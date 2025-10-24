@@ -1,0 +1,81 @@
+import { Button } from "@/components/ui/button";
+import { Sparkles, Rocket } from "lucide-react";
+import heroBg from "@/assets/hero-bg.jpg";
+
+export const Hero = () => {
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-30"
+        style={{ backgroundImage: `url(${heroBg})` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+      
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/20 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/20 rounded-full blur-3xl animate-float-delayed" />
+      <div className="absolute top-40 right-20 w-24 h-24 bg-accent/20 rounded-full blur-3xl animate-float" />
+      
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-4 text-center">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-6">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse-glow" />
+            <span className="text-sm font-space text-muted-foreground">Building Africa's Future Innovators</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-orbitron font-black leading-tight">
+            <span className="gradient-text">Tech Education</span>
+            <br />
+            <span className="text-foreground">Made Fun & Creative</span>
+          </h1>
+          
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
+            Making AI and emerging technologies accessible, engaging, and fun for young African learners 
+            through workshops, comics, edtech, and school programs.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+            <Button 
+              size="lg" 
+              className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] transition-all duration-300 font-space font-semibold group"
+            >
+              Start Learning
+              <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="text-lg px-8 py-6 border-2 border-primary/50 hover:bg-primary/10 hover:border-primary transition-all duration-300 font-space font-semibold"
+            >
+              Explore Programs
+            </Button>
+          </div>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto">
+            {[
+              { label: "Young Innovators", value: "10K+" },
+              { label: "Tech Workshops", value: "500+" },
+              { label: "Partner Schools", value: "50+" },
+              { label: "Countries", value: "15+" },
+            ].map((stat, idx) => (
+              <div key={idx} className="glow-card p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-primary/20">
+                <div className="text-3xl md:text-4xl font-orbitron font-bold gradient-text">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-muted-foreground font-space mt-2">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom Gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+    </section>
+  );
+};
