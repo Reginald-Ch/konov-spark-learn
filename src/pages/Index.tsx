@@ -8,6 +8,7 @@ import { Programs } from "@/components/Programs";
 import { Testimonials } from "@/components/Testimonials";
 import { CTA } from "@/components/CTA";
 import { Footer } from "@/components/Footer";
+import { AIMascot } from "@/components/AIMascot";
 
 const Index = () => {
   return (
@@ -15,6 +16,7 @@ const Index = () => {
       <FloatingParticles />
       <InteractiveIcons />
       <ScrollProgress />
+      <AIMascot />
       <Navbar />
       <Hero />
       <Mission />
