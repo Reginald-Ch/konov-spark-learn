@@ -3,7 +3,7 @@ import { ArrowRight, Mail } from "lucide-react";
 
 export const CTA = () => {
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
+    <section id="cta-section" className="py-24 md:py-32 relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse-glow" />
