@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Rocket } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
+import { AnimatedCounter } from "./AnimatedCounter";
 
 export const Hero = () => {
   return (
@@ -56,15 +57,13 @@ export const Hero = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto">
             {[
-              { label: "Young Innovators", value: "10K+" },
-              { label: "Tech Workshops", value: "500+" },
-              { label: "Partner Schools", value: "50+" },
-              { label: "Countries", value: "15+" },
+              { label: "Young Innovators", value: 10000, suffix: "+" },
+              { label: "Tech Workshops", value: 500, suffix: "+" },
+              { label: "Partner Schools", value: 50, suffix: "+" },
+              { label: "Countries", value: 15, suffix: "+" },
             ].map((stat, idx) => (
-              <div key={idx} className="glow-card p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-primary/20">
-                <div className="text-3xl md:text-4xl font-orbitron font-bold gradient-text">
-                  {stat.value}
-                </div>
+              <div key={idx} className="glow-card p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-primary/20 group hover:scale-105 transition-transform duration-300">
+                <AnimatedCounter end={stat.value} suffix={stat.suffix} />
                 <div className="text-sm text-muted-foreground font-space mt-2">
                   {stat.label}
                 </div>
