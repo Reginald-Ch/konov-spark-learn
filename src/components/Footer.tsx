@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -33,13 +34,11 @@ export const Footer = () => {
           <div>
             <h4 className="text-lg font-orbitron font-bold mb-4 text-foreground">Quick Links</h4>
             <ul className="space-y-2 font-space">
-              {['About Us', 'Our Programs', 'Workshops', 'Contact'].map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                    {link}
-                  </a>
-                </li>
-              ))}
+              <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
+              <li><Link to="/programs" className="text-muted-foreground hover:text-foreground transition-colors">Our Programs</Link></li>
+              <li><Link to="/workshops" className="text-muted-foreground hover:text-foreground transition-colors">Workshops</Link></li>
+              <li><Link to="/resources" className="text-muted-foreground hover:text-foreground transition-colors">Resources</Link></li>
+              <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
             </ul>
           </div>
 

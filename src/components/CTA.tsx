@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Mail } from "lucide-react";
+import { SignupModal } from "@/components/SignupModal";
 
 export const CTA = () => {
+  const [showSignupModal, setShowSignupModal] = useState(false);
   return (
     <section id="cta-section" className="py-24 md:py-32 relative overflow-hidden">
       {/* Animated Background */}
@@ -23,7 +26,8 @@ export const CTA = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 
-                size="lg" 
+                size="lg"
+                onClick={() => setShowSignupModal(true)}
                 className="text-lg px-8 py-6 bg-gradient-to-r from-primary via-accent to-secondary hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-300 font-space font-semibold group"
               >
                 <Mail className="mr-2 w-5 h-5" />
@@ -33,6 +37,7 @@ export const CTA = () => {
               <Button 
                 size="lg" 
                 variant="outline"
+                onClick={() => window.location.href = '/programs'}
                 className="text-lg px-8 py-6 border-2 border-primary/50 hover:bg-primary/10 hover:border-primary transition-all duration-300 font-space font-semibold"
               >
                 Learn More
@@ -60,6 +65,8 @@ export const CTA = () => {
           </div>
         </div>
       </div>
+
+      <SignupModal open={showSignupModal} onOpenChange={setShowSignupModal} source="cta" />
     </section>
   );
 };

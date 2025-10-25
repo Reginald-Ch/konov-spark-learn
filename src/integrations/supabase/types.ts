@@ -14,7 +14,155 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          program_interest: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          program_interest?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          program_interest?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      newsletter_signups: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          program_interest: string | null
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          program_interest?: string | null
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          program_interest?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      workshop_registrations: {
+        Row: {
+          created_at: string
+          id: string
+          participant_age: number | null
+          participant_email: string
+          participant_name: string
+          participant_phone: string | null
+          workshop_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_age?: number | null
+          participant_email: string
+          participant_name: string
+          participant_phone?: string | null
+          workshop_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_age?: number | null
+          participant_email?: string
+          participant_name?: string
+          participant_phone?: string | null
+          workshop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_registrations_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workshops: {
+        Row: {
+          age_group: string
+          created_at: string
+          current_participants: number
+          date: string
+          description: string
+          duration_hours: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          location: string
+          max_participants: number
+          price: number
+          title: string
+        }
+        Insert: {
+          age_group: string
+          created_at?: string
+          current_participants?: number
+          date: string
+          description: string
+          duration_hours?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          location: string
+          max_participants?: number
+          price?: number
+          title: string
+        }
+        Update: {
+          age_group?: string
+          created_at?: string
+          current_participants?: number
+          date?: string
+          description?: string
+          duration_hours?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          location?: string
+          max_participants?: number
+          price?: number
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
