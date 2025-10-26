@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import mascotImage from "@/assets/ai-mascot.jpg";
 import { Button } from "./ui/button";
+import { analytics } from "@/hooks/useAnalytics";
 
 const urgentMessages = [
   "🔥 Limited spots! Join our next workshop before they're gone!",
@@ -43,7 +44,62 @@ export const AIMascot = () => {
   const [showCTA, setShowCTA] = useState(false);
   const [timeOnPage, setTimeOnPage] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [isReturningVisitor, setIsReturningVisitor] = useState(false);
+  const [hasScrolledPast50, setHasScrolledPast50] = useState(false);
   const mascotRef = useRef<HTMLDivElement>(null);
+
+  // Check returning visitor
+  useEffect(() => {
+    const lastVisit = localStorage.getItem('lastMascotVisit');
+    if (lastVisit) {
+      setIsReturningVisitor(true);
+      analytics.trackMascotInteraction('returning-visitor');
+    }
+    localStorage.setItem('lastMascotVisit', new Date().toISOString());
+  }, []);
+
+  // Exit intent detection
+  useEffect(() => {
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0 && !hasInteracted && timeOnPage > 10) {
+        setMood("excited");
+        setMessage("⏰ Wait! Don't miss our limited workshop spots!");
+        setIsVisible(true);
+        setShowCTA(true);
+        analytics.trackMascotInteraction('exit-intent-triggered');
+        setTimeout(() => {
+          setIsVisible(false);
+          setShowCTA(false);
+        }, 8000);
+      }
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => document.removeEventListener('mouseleave', handleMouseLeave);
+  }, [hasInteracted, timeOnPage]);
+
+  // Scroll-based trigger
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+      
+      if (scrollPercent > 50 && !hasScrolledPast50 && !hasInteracted) {
+        setHasScrolledPast50(true);
+        setMood("thinking");
+        setMessage("🤔 Interested? Let me help you find the perfect program!");
+        setIsVisible(true);
+        setShowCTA(true);
+        analytics.trackMascotInteraction('scroll-triggered');
+        setTimeout(() => {
+          setIsVisible(false);
+          setShowCTA(false);
+        }, 7000);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasScrolledPast50, hasInteracted]);
 
   // Track mouse for eye following
   useEffect(() => {
@@ -80,8 +136,12 @@ export const AIMascot = () => {
     // Welcome message after 3 seconds
     if (timeOnPage === 3) {
       setMood("waving");
-      setMessage("👋 Hi! I'm Konovy, your AI learning buddy!");
+      const welcomeMsg = isReturningVisitor 
+        ? "🎉 Welcome back! Ready to continue your journey?"
+        : "👋 Hi! I'm Konovy, your AI learning buddy!";
+      setMessage(welcomeMsg);
       setIsVisible(true);
+      analytics.trackMascotInteraction('welcome-shown');
       setTimeout(() => setIsVisible(false), 4000);
       setTimeout(() => setMood("idle"), 1000);
     }
@@ -93,6 +153,7 @@ export const AIMascot = () => {
       setMessage(msg);
       setIsVisible(true);
       setShowCTA(true);
+      analytics.trackMascotInteraction('engagement-10s');
       setTimeout(() => {
         setIsVisible(false);
         setShowCTA(false);
@@ -156,6 +217,7 @@ export const AIMascot = () => {
   const handleMascotClick = () => {
     setHasInteracted(true);
     setMood("celebrating");
+    analytics.trackMascotInteraction('mascot-clicked');
     const responses = [
       "🎉 Awesome! Let's get you started!",
       "💫 You're going to love learning with us!",
@@ -171,6 +233,7 @@ export const AIMascot = () => {
   };
 
   const handleCTAClick = () => {
+    analytics.trackButtonClick('Mascot CTA', 'AI Mascot');
     // Scroll to CTA section
     const ctaSection = document.querySelector("#cta-section");
     if (ctaSection) {

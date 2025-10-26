@@ -1,6 +1,6 @@
 import { BookOpen, Palette, Laptop, GraduationCap } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
+import { ProgramCard } from "./ProgramCard";
 import workshopsImg from "@/assets/programs-workshops.jpg";
 import comicsImg from "@/assets/programs-comics.jpg";
 import edtechImg from "@/assets/programs-edtech.jpg";
@@ -31,30 +31,46 @@ export const Programs = () => {
     {
       icon: BookOpen,
       title: "Workshops",
-      description: "Hands-on tech workshops where kids build robots, create AI apps, and explore the future of technology.",
+      description: "Hands-on tech workshops where kids build robots, create AI apps, and explore the future of technology through interactive learning experiences.",
       image: workshopsImg,
       color: "from-primary to-accent",
+      features: ["Robot Building", "AI Development", "3D Printing", "Coding Challenges"],
+      capacity: "15-20 students",
+      duration: "2-4 hours",
+      ageGroup: "Ages 6-14",
     },
     {
       icon: Palette,
       title: "Comics",
-      description: "Adventure-packed tech comics that transform complex AI concepts into exciting stories young minds love.",
+      description: "Adventure-packed tech comics that transform complex AI concepts into exciting stories that captivate and educate young minds.",
       image: comicsImg,
       color: "from-accent to-secondary",
+      features: ["Visual Learning", "Story-Based", "Age-Appropriate", "Interactive Elements"],
+      capacity: "Unlimited",
+      duration: "Self-paced",
+      ageGroup: "Ages 7-13",
     },
     {
       icon: Laptop,
       title: "EdTech Platform",
-      description: "Interactive digital learning platform with gamified courses, coding challenges, and AI-powered lessons.",
+      description: "Interactive digital learning platform with gamified courses, real-time progress tracking, and AI-powered personalized tutoring.",
       image: edtechImg,
       color: "from-secondary to-primary",
+      features: ["Gamified Lessons", "Progress Tracking", "Video Tutorials", "Community Forums"],
+      capacity: "Unlimited",
+      duration: "Self-paced",
+      ageGroup: "Ages 8-16",
     },
     {
       icon: GraduationCap,
       title: "School Programs",
-      description: "Comprehensive curriculum integration bringing cutting-edge tech education directly to classrooms across Africa.",
+      description: "Comprehensive curriculum integration bringing cutting-edge tech education, teacher training, and hands-on labs to classrooms.",
       image: schoolsImg,
       color: "from-primary via-accent to-secondary",
+      features: ["Full Curriculum", "Teacher Training", "Lab Equipment", "Ongoing Support"],
+      capacity: "Whole schools",
+      duration: "Multi-year",
+      ageGroup: "K-12",
     },
   ];
 
@@ -86,28 +102,7 @@ export const Programs = () => {
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               }`}
             >
-              <Card className="glow-card overflow-hidden bg-card/50 backdrop-blur-sm border border-primary/20 group h-full">
-                <div className="relative h-64 overflow-hidden">
-                  <img 
-                    src={program.image} 
-                    alt={program.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${program.color} opacity-40 group-hover:opacity-30 transition-opacity duration-300`} />
-                  <div className={`absolute top-6 left-6 w-14 h-14 rounded-2xl bg-gradient-to-br ${program.color} flex items-center justify-center shadow-lg`}>
-                    <program.icon className="w-7 h-7 text-foreground" />
-                  </div>
-                </div>
-                
-                <div className="p-8">
-                  <h3 className="text-3xl font-orbitron font-bold mb-4 text-foreground">
-                    {program.title}
-                  </h3>
-                  <p className="text-muted-foreground font-space leading-relaxed text-lg">
-                    {program.description}
-                  </p>
-                </div>
-              </Card>
+              <ProgramCard {...program} />
             </div>
           ))}
         </div>

@@ -9,8 +9,12 @@ import { Testimonials } from "@/components/Testimonials";
 import { CTA } from "@/components/CTA";
 import { Footer } from "@/components/Footer";
 import { AIMascot } from "@/components/AIMascot";
+import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 
 const Index = () => {
+  usePageTracking('/');
+  useScrollTracking();
+  
   return (
     <div className="min-h-screen relative">
       <FloatingParticles />

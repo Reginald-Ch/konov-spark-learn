@@ -4,11 +4,16 @@ import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
 import { ProgramSelector } from "@/components/ProgramSelector";
 import { SignupModal } from "@/components/SignupModal";
+import { SocialProof } from "@/components/SocialProof";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2 } from "lucide-react";
+import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 
 const ProgramsPage = () => {
+  usePageTracking('/programs');
+  useScrollTracking();
+  
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState("");
 
@@ -106,6 +111,9 @@ const ProgramsPage = () => {
               A comprehensive ecosystem of tech education designed to inspire and empower the next generation
             </p>
           </div>
+
+          {/* Social Proof Stats */}
+          <SocialProof />
 
           {/* Program Selector Quiz */}
           <div className="mb-24">

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { analytics } from "@/hooks/useAnalytics";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -51,6 +52,13 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
 
       if (error) throw error;
 
+      analytics.trackFormSubmission('newsletter_signup', true);
+      analytics.track({
+        category: 'Conversion',
+        action: 'Newsletter Signup',
+        label: `${source} - ${validated.programInterest}`,
+      });
+
       toast.success("Success!", {
         description: "Thank you for signing up! We'll be in touch soon.",
       });
@@ -64,6 +72,7 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
       });
       onOpenChange(false);
     } catch (error) {
+      analytics.trackFormSubmission('newsletter_signup', false);
       if (error instanceof z.ZodError) {
         toast.error("Validation Error", {
           description: error.errors[0].message,
