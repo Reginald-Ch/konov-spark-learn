@@ -1,10 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Users, Clock, Sparkles } from "lucide-react";
+import { ArrowRight, Users, Clock, Sparkles, Zap } from "lucide-react";
 import { useState } from "react";
 import { SignupModal } from "./SignupModal";
 import { analytics } from "@/hooks/useAnalytics";
+import { motion } from "framer-motion";
 
 interface ProgramCardProps {
   icon: React.ElementType;
@@ -39,96 +40,227 @@ export const ProgramCard = ({
 
   return (
     <>
-      <Card 
-        className="group relative overflow-hidden bg-card/50 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/60 transition-all duration-500 h-full flex flex-col"
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        whileHover={{ y: -8 }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Animated gradient background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-        
-        {/* Image section */}
-        <div className="relative h-56 overflow-hidden">
-          <img 
-            src={image} 
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        <Card className="group relative overflow-hidden bg-card/50 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/60 transition-all duration-500 h-full flex flex-col">
+          {/* Animated gradient overlay */}
+          <motion.div 
+            className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0`}
+            animate={{ opacity: isHovered ? 0.15 : 0 }}
+            transition={{ duration: 0.4 }}
           />
-          <div className={`absolute inset-0 bg-gradient-to-t ${color} opacity-40 group-hover:opacity-20 transition-opacity duration-500`} />
           
-          {/* Floating icon */}
-          <div className={`absolute top-6 left-6 w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl transform transition-all duration-500 ${
-            isHovered ? 'scale-110 rotate-12' : 'scale-100 rotate-0'
-          }`}>
-            <Icon className="w-8 h-8 text-foreground" />
-          </div>
-
-          {/* Age group badge */}
-          {ageGroup && (
-            <Badge className="absolute top-6 right-6 bg-card/90 backdrop-blur-sm text-foreground border border-primary/30">
-              <Sparkles className="w-3 h-3 mr-1" />
-              {ageGroup}
-            </Badge>
-          )}
-        </div>
-        
-        {/* Content section */}
-        <div className="p-8 flex-1 flex flex-col relative z-10">
-          <h3 className="text-3xl font-orbitron font-bold mb-3 text-foreground group-hover:gradient-text transition-all duration-300">
-            {title}
-          </h3>
-          
-          <p className="text-muted-foreground font-space leading-relaxed text-base mb-6">
-            {description}
-          </p>
-
-          {/* Meta info */}
-          {(capacity || duration) && (
-            <div className="flex flex-wrap gap-3 mb-6">
-              {capacity && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span>{capacity}</span>
-                </div>
-              )}
-              {duration && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4 text-accent" />
-                  <span>{duration}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Features list */}
-          <div className="mb-6 flex-1">
-            <div className="grid grid-cols-2 gap-2">
-              {features.slice(0, 4).map((feature, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${color}`} />
-                  <span className="text-xs text-muted-foreground font-space">{feature}</span>
-                </div>
+          {/* Floating particles effect */}
+          {isHovered && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className={`absolute w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
+                  initial={{ 
+                    x: Math.random() * 100 + '%', 
+                    y: '100%',
+                    opacity: 0 
+                  }}
+                  animate={{ 
+                    y: '-20%',
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ 
+                    duration: 2 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: i * 0.2
+                  }}
+                />
               ))}
             </div>
+          )}
+          
+          {/* Image section with parallax effect */}
+          <div className="relative h-56 overflow-hidden">
+            <motion.img 
+              src={image} 
+              alt={title}
+              className="w-full h-full object-cover"
+              animate={{ 
+                scale: isHovered ? 1.15 : 1,
+                rotate: isHovered ? 2 : 0
+              }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            />
+            <motion.div 
+              className={`absolute inset-0 bg-gradient-to-t ${color}`}
+              animate={{ opacity: isHovered ? 0.2 : 0.4 }}
+              transition={{ duration: 0.5 }}
+            />
+            
+            {/* Floating icon with 3D effect */}
+            <motion.div 
+              className={`absolute top-6 left-6 w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl`}
+              animate={{ 
+                scale: isHovered ? 1.15 : 1,
+                rotate: isHovered ? 12 : 0,
+                y: isHovered ? -4 : 0
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <motion.div
+                animate={{ rotate: isHovered ? 360 : 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+              >
+                <Icon className="w-8 h-8 text-foreground" />
+              </motion.div>
+            </motion.div>
+
+            {/* Age group badge with slide animation */}
+            {ageGroup && (
+              <motion.div
+                initial={{ x: 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="absolute top-6 right-6"
+              >
+                <Badge className="bg-card/90 backdrop-blur-sm text-foreground border border-primary/30">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {ageGroup}
+                </Badge>
+              </motion.div>
+            )}
+
+            {/* Shine effect on hover */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0"
+              animate={{ 
+                x: isHovered ? ['0%', '200%'] : '0%',
+                opacity: isHovered ? [0, 0.3, 0] : 0
+              }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+            />
+          </div>
+          
+          {/* Content section */}
+          <div className="p-8 flex-1 flex flex-col relative z-10">
+            <h3 
+              className={`text-3xl font-orbitron font-bold mb-3 transition-all duration-400 ${
+                isHovered ? 'gradient-text' : 'text-foreground'
+              }`}
+            >
+              {title}
+            </h3>
+            
+            <p className="text-muted-foreground font-space leading-relaxed text-base mb-6">
+              {description}
+            </p>
+
+            {/* Meta info with stagger animation */}
+            {(capacity || duration) && (
+              <div className="flex flex-wrap gap-3 mb-6">
+                {capacity && (
+                  <motion.div 
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Users className="w-4 h-4 text-primary" />
+                    <span>{capacity}</span>
+                  </motion.div>
+                )}
+                {duration && (
+                  <motion.div 
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Clock className="w-4 h-4 text-accent" />
+                    <span>{duration}</span>
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {/* Features list with stagger */}
+            <div className="mb-6 flex-1">
+              <div className="grid grid-cols-2 gap-2">
+                {features.slice(0, 4).map((feature, idx) => (
+                  <motion.div 
+                    key={idx}
+                    className="flex items-center gap-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1, duration: 0.4 }}
+                    whileHover={{ x: 4 }}
+                  >
+                    <motion.div 
+                      className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${color}`}
+                      animate={{ scale: isHovered ? [1, 1.5, 1] : 1 }}
+                      transition={{ duration: 1, repeat: Infinity, delay: idx * 0.2 }}
+                    />
+                    <span className="text-xs text-muted-foreground font-space">{feature}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA Button with magnetic effect */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                onClick={handleEnroll}
+                variant="outline"
+                className="w-full group/btn border-2 hover:border-primary/80 relative overflow-hidden"
+              >
+                <motion.span 
+                  className={`absolute inset-0 bg-gradient-to-r ${color}`}
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ opacity: 0.2 }}
+                />
+                <span className="relative flex items-center justify-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Enroll Now
+                  <motion.div
+                    animate={{ x: isHovered ? [0, 4, 0] : 0 }}
+                    transition={{ duration: 0.6, repeat: Infinity }}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.div>
+                </span>
+              </Button>
+            </motion.div>
           </div>
 
-          {/* CTA Button */}
-          <Button
-            onClick={handleEnroll}
-            variant="outline"
-            className="w-full group/btn border-2 hover:border-primary/80 relative overflow-hidden"
-          >
-            <span className={`absolute inset-0 bg-gradient-to-r ${color} opacity-0 group-hover/btn:opacity-20 transition-opacity duration-300`} />
-            <span className="relative flex items-center justify-center gap-2">
-              Enroll Now
-              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-            </span>
-          </Button>
-        </div>
+          {/* Corner glow effect */}
+          <motion.div 
+            className={`absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br ${color} rounded-full blur-3xl`}
+            animate={{ 
+              opacity: isHovered ? 0.4 : 0,
+              scale: isHovered ? 1.2 : 1
+            }}
+            transition={{ duration: 0.7 }}
+          />
 
-        {/* Hover glow effect */}
-        <div className={`absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br ${color} rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-700`} />
-      </Card>
+          {/* Top corner sparkle */}
+          <motion.div 
+            className="absolute top-4 right-4 pointer-events-none"
+            animate={{ 
+              rotate: isHovered ? 360 : 0,
+              scale: isHovered ? 1 : 0
+            }}
+            transition={{ duration: 0.8 }}
+          >
+            <Sparkles className={`w-6 h-6 text-secondary`} />
+          </motion.div>
+        </Card>
+      </motion.div>
 
       <SignupModal 
         open={showSignup} 

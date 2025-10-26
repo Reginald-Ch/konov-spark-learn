@@ -1,6 +1,7 @@
 import { BookOpen, Palette, Laptop, GraduationCap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ProgramCard } from "./ProgramCard";
+import { motion } from "framer-motion";
 import workshopsImg from "@/assets/programs-workshops.jpg";
 import comicsImg from "@/assets/programs-comics.jpg";
 import edtechImg from "@/assets/programs-edtech.jpg";
@@ -96,14 +97,19 @@ export const Programs = () => {
 
         <div className="grid md:grid-cols-2 gap-8">
           {programs.map((program, idx) => (
-            <div
+            <motion.div
               key={idx}
-              className={`transition-all duration-700 delay-${idx * 150} ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ 
+                duration: 0.6, 
+                delay: idx * 0.15,
+                ease: [0.25, 0.1, 0.25, 1]
+              }}
             >
               <ProgramCard {...program} />
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
