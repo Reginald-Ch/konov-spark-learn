@@ -279,26 +279,26 @@ export const AIMascot = () => {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 pointer-events-none">
+    <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
       {/* Enhanced Speech Bubble */}
       <div
-        className={`absolute bottom-36 right-0 pointer-events-auto transition-all duration-500 ${
+        className={`absolute bottom-24 right-0 pointer-events-auto transition-all duration-500 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-gradient-to-br from-card to-card/80 border-2 border-primary/60 rounded-2xl p-5 shadow-2xl max-w-xs backdrop-blur-lg glow-card">
-          <div className="text-sm font-bold gradient-text mb-2">{message}</div>
+        <div className="bg-gradient-to-br from-card to-card/80 border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
+          <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
             <Button
               onClick={handleCTAClick}
-              className="w-full mt-3 bg-gradient-to-r from-primary via-secondary to-accent text-white font-bold hover:scale-105 transition-transform"
+              className="w-full mt-2 bg-gradient-to-r from-primary via-secondary to-accent text-white font-semibold hover:scale-105 transition-transform text-xs py-1.5"
             >
               Join Now! 🚀
             </Button>
           )}
         </div>
-        <div className="absolute -bottom-2 right-12 w-4 h-4 bg-card border-r-2 border-b-2 border-primary/60 transform rotate-45"></div>
+        <div className="absolute -bottom-1.5 right-10 w-3 h-3 bg-card border-r border-b border-primary/40 transform rotate-45"></div>
       </div>
 
       {/* Enhanced Mascot */}
@@ -313,46 +313,46 @@ export const AIMascot = () => {
       >
         <div className="relative">
           {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-full blur-2xl opacity-60 animate-pulse-glow"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-full blur-xl opacity-40 animate-pulse-glow"></div>
           
           {/* Mascot image with mood-based animations */}
           <div className="relative">
             <img
               src={mascotImage}
               alt="Konovy AI Mascot"
-              className={`relative w-28 h-28 rounded-full border-4 border-primary/60 shadow-2xl transition-all duration-300 group-hover:scale-125 group-hover:border-secondary ${getMoodAnimation()}`}
+              className={`relative w-20 h-20 rounded-full border-2 border-primary/50 shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:border-secondary ${getMoodAnimation()}`}
             />
             
             {/* Animated eyes overlay */}
             <div 
-              className="absolute top-10 left-1/2 -translate-x-1/2 w-12 flex justify-between pointer-events-none"
+              className="absolute top-7 left-1/2 -translate-x-1/2 w-8 flex justify-between pointer-events-none"
               style={{
                 transform: `translate(calc(-50% + ${eyePosition.x}px), ${eyePosition.y}px)`,
                 transition: "transform 0.1s ease-out",
               }}
             >
-              <div className="w-2 h-2 bg-white rounded-full shadow-lg"></div>
-              <div className="w-2 h-2 bg-white rounded-full shadow-lg"></div>
+              <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg"></div>
+              <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg"></div>
             </div>
           </div>
           
           {/* Mood indicator with enhanced animation */}
-          <div className="absolute -top-3 -right-3 w-10 h-10 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center text-xl shadow-lg border-2 border-white animate-bounce">
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center text-sm shadow-lg border border-white animate-bounce">
             {getMoodEmoji()}
           </div>
 
           {/* Interaction pulse rings */}
           {isVisible && (
             <>
-              <div className="absolute inset-0 rounded-full border-4 border-primary animate-ping opacity-40"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-secondary animate-ping opacity-30" style={{ animationDelay: "0.2s" }}></div>
+              <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-secondary animate-ping opacity-20" style={{ animationDelay: "0.2s" }}></div>
             </>
           )}
         </div>
 
         {/* Enhanced hover tooltip */}
-        <div className="absolute bottom-0 right-full mr-6 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-4 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-sm font-bold text-white shadow-xl border border-white/20">
-          Click me! I'm here to help! ✨
+        <div className="absolute bottom-0 right-full mr-4 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
+          Click me! ✨
         </div>
       </div>
     </div>

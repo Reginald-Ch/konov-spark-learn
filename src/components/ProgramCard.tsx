@@ -84,8 +84,8 @@ export const ProgramCard = ({
           )}
           
           {/* Image section with parallax effect */}
-          <div className="relative h-56 overflow-hidden">
-            <motion.img 
+          <div className="relative h-40 overflow-hidden">
+            <motion.img
               src={image} 
               alt={title}
               className="w-full h-full object-cover"
@@ -103,7 +103,7 @@ export const ProgramCard = ({
             
             {/* Floating icon with 3D effect */}
             <motion.div 
-              className={`absolute top-6 left-6 w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl`}
+              className={`absolute top-4 left-4 w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl`}
               animate={{ 
                 scale: isHovered ? 1.15 : 1,
                 rotate: isHovered ? 12 : 0,
@@ -115,7 +115,7 @@ export const ProgramCard = ({
                 animate={{ rotate: isHovered ? 360 : 0 }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
               >
-                <Icon className="w-8 h-8 text-foreground" />
+                <Icon className="w-6 h-6 text-foreground" />
               </motion.div>
             </motion.div>
 
@@ -125,10 +125,10 @@ export const ProgramCard = ({
                 initial={{ x: 100, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="absolute top-6 right-6"
+                className="absolute top-4 right-4"
               >
-                <Badge className="bg-card/90 backdrop-blur-sm text-foreground border border-primary/30">
-                  <Sparkles className="w-3 h-3 mr-1" />
+                <Badge className="bg-card/90 backdrop-blur-sm text-foreground border border-primary/30 text-xs px-2 py-0.5">
+                  <Sparkles className="w-2.5 h-2.5 mr-1" />
                   {ageGroup}
                 </Badge>
               </motion.div>
@@ -146,37 +146,37 @@ export const ProgramCard = ({
           </div>
           
           {/* Content section */}
-          <div className="p-8 flex-1 flex flex-col relative z-10">
+          <div className="p-5 flex-1 flex flex-col relative z-10">
             <h3 
-              className={`text-3xl font-orbitron font-bold mb-3 transition-all duration-400 ${
+              className={`text-xl font-orbitron font-bold mb-2 transition-all duration-400 ${
                 isHovered ? 'gradient-text' : 'text-foreground'
               }`}
             >
               {title}
             </h3>
             
-            <p className="text-muted-foreground font-space leading-relaxed text-base mb-6">
+            <p className="text-muted-foreground font-space leading-relaxed text-sm mb-4">
               {description}
             </p>
 
             {/* Meta info with stagger animation */}
             {(capacity || duration) && (
-              <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {capacity && (
                   <motion.div 
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <Users className="w-4 h-4 text-primary" />
+                    <Users className="w-3.5 h-3.5 text-primary" />
                     <span>{capacity}</span>
                   </motion.div>
                 )}
                 {duration && (
                   <motion.div 
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <Clock className="w-4 h-4 text-accent" />
+                    <Clock className="w-3.5 h-3.5 text-accent" />
                     <span>{duration}</span>
                   </motion.div>
                 )}
@@ -184,12 +184,12 @@ export const ProgramCard = ({
             )}
 
             {/* Features list with stagger */}
-            <div className="mb-6 flex-1">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="mb-4 flex-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 {features.slice(0, 4).map((feature, idx) => (
                   <motion.div 
                     key={idx}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1.5"
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
@@ -197,11 +197,11 @@ export const ProgramCard = ({
                     whileHover={{ x: 4 }}
                   >
                     <motion.div 
-                      className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${color}`}
+                      className={`w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
                       animate={{ scale: isHovered ? [1, 1.5, 1] : 1 }}
                       transition={{ duration: 1, repeat: Infinity, delay: idx * 0.2 }}
                     />
-                    <span className="text-xs text-muted-foreground font-space">{feature}</span>
+                    <span className="text-[11px] text-muted-foreground font-space">{feature}</span>
                   </motion.div>
                 ))}
               </div>
@@ -215,7 +215,7 @@ export const ProgramCard = ({
               <Button
                 onClick={handleEnroll}
                 variant="outline"
-                className="w-full group/btn border-2 hover:border-primary/80 relative overflow-hidden"
+                className="w-full group/btn border hover:border-primary/80 relative overflow-hidden text-sm py-2"
               >
                 <motion.span 
                   className={`absolute inset-0 bg-gradient-to-r ${color}`}
@@ -225,13 +225,13 @@ export const ProgramCard = ({
                   style={{ opacity: 0.2 }}
                 />
                 <span className="relative flex items-center justify-center gap-2">
-                  <Zap className="w-4 h-4" />
+                  <Zap className="w-3.5 h-3.5" />
                   Enroll Now
                   <motion.div
                     animate={{ x: isHovered ? [0, 4, 0] : 0 }}
                     transition={{ duration: 0.6, repeat: Infinity }}
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </motion.div>
                 </span>
               </Button>

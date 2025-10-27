@@ -59,9 +59,21 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm;
     background: linear-gradient(135deg, hsl(220 20% 5%) 0%, hsl(358 50% 10%) 50%, hsl(220 20% 5%) 100%);
     background-attachment: fixed;
+  }
+  
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+  
+  h3 {
+    @apply text-xl md:text-2xl;
   }
   
   .gradient-text {

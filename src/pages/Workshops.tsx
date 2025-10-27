@@ -108,17 +108,17 @@ const Workshops = () => {
           </div>
 
           {workshops.length === 0 ? (
-            <Card className="p-12 text-center bg-card/50 backdrop-blur-sm border border-primary/20">
-              <p className="text-xl text-muted-foreground font-space">
+            <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border border-primary/20">
+              <p className="text-base text-muted-foreground font-space">
                 No upcoming workshops at the moment. Check back soon!
               </p>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {workshops.map((workshop) => (
                 <Card key={workshop.id} className="glow-card bg-card/50 backdrop-blur-sm border border-primary/20 overflow-hidden group">
                   {workshop.image_url && (
-                    <div className="h-48 overflow-hidden">
+                    <div className="h-36 overflow-hidden">
                       <img 
                         src={workshop.image_url} 
                         alt={workshop.title}
@@ -126,48 +126,48 @@ const Workshops = () => {
                       />
                     </div>
                   )}
-                  <div className="p-6">
-                    <h3 className="text-2xl font-orbitron font-bold mb-3 text-foreground">
+                  <div className="p-4">
+                    <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
                       {workshop.title}
                     </h3>
-                    <p className="text-muted-foreground font-space mb-4">
+                    <p className="text-muted-foreground font-space mb-3 text-sm leading-snug">
                       {workshop.description}
                     </p>
                     
-                    <div className="space-y-2 mb-6 font-space text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
+                    <div className="space-y-1.5 mb-4 font-space text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5" />
                         {new Date(workshop.date).toLocaleDateString('en-US', { 
-                          month: 'long', 
+                          month: 'short', 
                           day: 'numeric', 
                           year: 'numeric' 
                         })}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="w-4 h-4" />
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="w-3.5 h-3.5" />
                         {workshop.duration_hours} hours
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5" />
                         {workshop.location}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="w-4 h-4" />
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="w-3.5 h-3.5" />
                         {workshop.current_participants}/{workshop.max_participants} registered
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-orbitron font-bold gradient-text">
+                      <span className="text-xl font-orbitron font-bold gradient-text">
                         ${workshop.price}
                       </span>
                       <Button 
                         onClick={() => handleRegister(workshop)}
                         disabled={workshop.current_participants >= workshop.max_participants}
-                        className="font-space group"
+                        className="font-space group text-sm py-2"
                       >
                         {workshop.current_participants >= workshop.max_participants ? "Full" : "Register"}
-                        <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="ml-1.5 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </div>
                   </div>
