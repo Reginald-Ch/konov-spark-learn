@@ -22,24 +22,34 @@ export const Mission = () => {
     return () => observer.disconnect();
   }, []);
 
-  const features = [
+  const values = [
+    {
+      icon: Zap,
+      title: "Convert customers",
+      description: "because traction always beats theory",
+    },
     {
       icon: Brain,
-      title: "AI-Powered Learning",
-      description: "Making complex AI concepts simple and fun through interactive experiences and real-world applications.",
-      gradient: "from-primary to-accent",
+      title: "Test your ideas in real markets",
+      description: "faster, cheaper, and backed by real data",
     },
     {
       icon: Heart,
-      title: "Creative & Playful",
-      description: "Transform tech education into an adventure with comics, games, and hands-on activities that spark imagination.",
-      gradient: "from-accent to-secondary",
+      title: "Build investor confidence",
+      description: "with a professional brand, a sharp site, and a story that gets taken seriously",
     },
+  ];
+
+  const additionalValues = [
     {
       icon: Zap,
-      title: "Future-Ready Skills",
-      description: "Equip young minds with emerging tech skills to become Africa's next generation of innovators and creators.",
-      gradient: "from-secondary to-primary",
+      title: "Save you months of time",
+      description: "one streamlined process instead of juggling scattered freelancers",
+    },
+    {
+      icon: Brain,
+      title: "Prepare you for scale",
+      description: "everything we deliver is built to grow with you",
     },
   ];
 
@@ -50,33 +60,56 @@ export const Mission = () => {
       <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/10 rounded-full blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            Our <span className="gradient-text">Mission</span>
+            We Create <span className="gradient-text">Solutions That</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            To build Africa's largest pipeline of future-ready innovators by making 
-            emerging technologies accessible, engaging, and fun for every young learner.
-          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {features.map((feature, idx) => (
+        {/* Top Row - 3 Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-6 max-w-6xl mx-auto">
+          {values.map((value, idx) => (
             <div
               key={idx}
-              className={`transition-all duration-700 delay-${idx * 200} ${
+              className={`transition-all duration-700 ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               }`}
+              style={{ transitionDelay: `${idx * 150}ms` }}
             >
-              <div className="glow-card p-8 rounded-3xl bg-card/50 backdrop-blur-sm border border-primary/20 h-full group">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="w-8 h-8 text-foreground" />
+              <div className="glow-card p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-primary/20 h-full group hover:bg-card/60 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                  <value.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-orbitron font-bold mb-4 text-foreground">
-                  {feature.title}
+                <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
+                  {value.title}
                 </h3>
-                <p className="text-muted-foreground font-space leading-relaxed">
-                  {feature.description}
+                <p className="text-sm text-muted-foreground font-space leading-relaxed">
+                  {value.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Row - 2 Cards */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {additionalValues.map((value, idx) => (
+            <div
+              key={idx}
+              className={`transition-all duration-700 ${
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              }`}
+              style={{ transitionDelay: `${(idx + 3) * 150}ms` }}
+            >
+              <div className="glow-card p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-primary/20 h-full group hover:bg-card/60 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                  <value.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
+                  {value.title}
+                </h3>
+                <p className="text-sm text-muted-foreground font-space leading-relaxed">
+                  {value.description}
                 </p>
               </div>
             </div>
