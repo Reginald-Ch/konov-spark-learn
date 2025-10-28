@@ -1,239 +1,188 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Users, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { z } from "zod";
-
-const registrationSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().optional(),
-  age: z.string().min(1, "Please enter age"),
-});
+import { motion } from "framer-motion";
+import { Brain, Sparkles, Users, Rocket, Zap, Trophy } from "lucide-react";
+import { SignupModal } from "@/components/SignupModal";
 
 const Workshops = () => {
-  const [workshops, setWorkshops] = useState<any[]>([]);
-  const [selectedWorkshop, setSelectedWorkshop] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    age: "",
-  });
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
 
-  useEffect(() => {
-    fetchWorkshops();
-  }, []);
-
-  const fetchWorkshops = async () => {
-    const { data, error } = await supabase
-      .from("workshops")
-      .select("*")
-      .eq("is_active", true)
-      .order("date", { ascending: true });
-
-    if (error) {
-      toast.error("Error loading workshops");
-    } else {
-      setWorkshops(data || []);
-    }
-  };
-
-  const handleRegister = (workshop: any) => {
-    setSelectedWorkshop(workshop);
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const validated = registrationSchema.parse(formData);
-
-      const { error } = await supabase.from("workshop_registrations").insert({
-        workshop_id: selectedWorkshop.id,
-        participant_name: validated.name,
-        participant_email: validated.email,
-        participant_phone: validated.phone || null,
-        participant_age: parseInt(validated.age),
-      });
-
-      if (error) throw error;
-
-      toast.success("Registration Successful!", {
-        description: "You're all set! Check your email for details.",
-      });
-
-      setFormData({ name: "", email: "", phone: "", age: "" });
-      setIsModalOpen(false);
-      fetchWorkshops();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error("Validation Error", {
-          description: error.errors[0].message,
-        });
-      } else {
-        toast.error("Error", {
-          description: "Registration failed. Please try again.",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const categories = [
+    {
+      title: "AI Explorers",
+      subtitle: "Ages 7-10",
+      description: "Discover the magic of AI through interactive games, storytelling, and simple coding projects designed for curious young minds.",
+      icon: Brain,
+      color: "from-purple-500 to-pink-500",
+      features: [
+        "AI-powered storytelling adventures",
+        "Simple robot programming",
+        "Creative AI art projects",
+        "Fun machine learning games",
+        "Weekly sessions",
+      ],
+    },
+    {
+      title: "Young Builders",
+      subtitle: "Ages 11-14",
+      description: "Build real AI applications, create smart robots, and develop problem-solving skills through hands-on tech challenges.",
+      icon: Rocket,
+      color: "from-blue-500 to-cyan-500",
+      features: [
+        "AI app development",
+        "Advanced robotics projects",
+        "Real-world tech challenges",
+        "Team collaboration",
+        "Project showcases",
+      ],
+    },
+    {
+      title: "Tech Ambassadors",
+      subtitle: "Ages 15-18",
+      description: "Lead innovation projects, mentor younger students, and prepare for tech careers through advanced AI and programming.",
+      icon: Trophy,
+      color: "from-orange-500 to-red-500",
+      features: [
+        "Advanced AI & ML projects",
+        "Mentorship opportunities",
+        "Career preparation",
+        "Innovation challenges",
+        "Industry connections",
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      
-      <section className="py-24 md:py-32">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-7xl font-orbitron font-bold mb-6">
-              Tech <span className="gradient-text">Workshops</span>
+      <section className="py-16 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-16"
+          >
+            <h1 className="text-4xl md:text-6xl font-orbitron font-bold mb-4">
+              Join Our <span className="gradient-text">Tech Community</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-              Hands-on learning experiences where kids build robots, create AI apps, and explore the future of technology
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto font-space">
+              Choose your learning path and start building the future today
             </p>
-          </div>
+          </motion.div>
 
-          {workshops.length === 0 ? (
-            <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border border-primary/20">
-              <p className="text-base text-muted-foreground font-space">
-                No upcoming workshops at the moment. Check back soon!
-              </p>
-            </Card>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {workshops.map((workshop) => (
-                <Card key={workshop.id} className="glow-card bg-card/50 backdrop-blur-sm border border-primary/20 overflow-hidden group">
-                  {workshop.image_url && (
-                    <div className="h-36 overflow-hidden">
-                      <img 
-                        src={workshop.image_url} 
-                        alt={workshop.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
+          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {categories.map((category, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.2 }}
+                onClick={() => setSelectedCategory(selectedCategory === idx ? null : idx)}
+                className="cursor-pointer"
+              >
+                {selectedCategory === idx ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glow-card p-8 rounded-2xl bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm border-2 border-primary/60 h-full"
+                  >
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 mx-auto`}>
+                      <category.icon className="w-8 h-8 text-white" />
                     </div>
-                  )}
-                  <div className="p-4">
-                    <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
-                      {workshop.title}
+                    
+                    <h3 className="text-2xl font-orbitron font-bold mb-2 text-center gradient-text">
+                      {category.title}
                     </h3>
-                    <p className="text-muted-foreground font-space mb-3 text-sm leading-snug">
-                      {workshop.description}
+                    <p className="text-xs text-accent mb-6 text-center font-space">
+                      {category.subtitle}
                     </p>
                     
-                    <div className="space-y-1.5 mb-4 font-space text-xs">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {new Date(workshop.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        {workshop.duration_hours} hours
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {workshop.location}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="w-3.5 h-3.5" />
-                        {workshop.current_participants}/{workshop.max_participants} registered
-                      </div>
+                    <div className="space-y-3 mb-6">
+                      {category.features.map((feature, fIdx) => (
+                        <motion.div
+                          key={fIdx}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: fIdx * 0.1 }}
+                          className="flex items-start gap-2"
+                        >
+                          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground font-space">{feature}</span>
+                        </motion.div>
+                      ))}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-orbitron font-bold gradient-text">
-                        ${workshop.price}
-                      </span>
-                      <Button 
-                        onClick={() => handleRegister(workshop)}
-                        disabled={workshop.current_participants >= workshop.max_participants}
-                        className="font-space group text-sm py-2"
-                      >
-                        {workshop.current_participants >= workshop.max_participants ? "Full" : "Register"}
-                        <ArrowRight className="ml-1.5 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                      </Button>
+                    <Button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSignup(true);
+                      }}
+                      className="w-full"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Enroll Now
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    className="glow-card p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-300 h-full"
+                  >
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-4 mx-auto`}>
+                      <category.icon className="w-7 h-7 text-white" />
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                    
+                    <h3 className="text-xl font-orbitron font-bold mb-2 text-center gradient-text">
+                      {category.title}
+                    </h3>
+                    <p className="text-xs text-accent mb-3 text-center font-space">
+                      {category.subtitle}
+                    </p>
+                    <p className="text-sm text-muted-foreground font-space text-center leading-relaxed mb-4">
+                      {category.description}
+                    </p>
+                    
+                    <div className="text-center">
+                      <span className="text-xs text-primary font-space">
+                        Click to explore →
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="text-center mt-16 space-y-4"
+          >
+            <p className="text-muted-foreground font-space">
+              Not sure which path is right for you?
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSignup(true)}
+              className="group"
+            >
+              <Users className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+              Talk to Our Team
+            </Button>
+          </motion.div>
         </div>
       </section>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-orbitron gradient-text">
-              Register for {selectedWorkshop?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone (optional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="age">Age *</Label>
-              <Input
-                id="age"
-                type="number"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Registering..." : "Complete Registration"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <SignupModal 
+        open={showSignup} 
+        onOpenChange={setShowSignup} 
+      />
 
       <Footer />
     </div>

@@ -24,32 +24,32 @@ export const Mission = () => {
 
   const values = [
     {
-      icon: Zap,
-      title: "Convert customers",
-      description: "because traction always beats theory",
+      icon: Brain,
+      title: "Empower Young Minds",
+      description: "through hands-on AI and tech education that sparks curiosity",
     },
     {
-      icon: Brain,
-      title: "Test your ideas in real markets",
-      description: "faster, cheaper, and backed by real data",
+      icon: Zap,
+      title: "Build Future Innovators",
+      description: "by teaching kids to create with cutting-edge technology",
     },
     {
       icon: Heart,
-      title: "Build investor confidence",
-      description: "with a professional brand, a sharp site, and a story that gets taken seriously",
+      title: "Make Learning Fun",
+      description: "with gamified experiences, comics, and interactive workshops",
     },
   ];
 
   const additionalValues = [
     {
       icon: Zap,
-      title: "Save you months of time",
-      description: "one streamlined process instead of juggling scattered freelancers",
+      title: "Bridge the Tech Gap",
+      description: "bringing advanced AI education to all kids, everywhere",
     },
     {
       icon: Brain,
-      title: "Prepare you for scale",
-      description: "everything we deliver is built to grow with you",
+      title: "Inspire Lifelong Learning",
+      description: "cultivating problem-solving skills and creative thinking for tomorrow",
     },
   ];
 
