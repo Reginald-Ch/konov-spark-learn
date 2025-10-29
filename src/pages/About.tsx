@@ -75,16 +75,19 @@ const About = () => {
             <Card className="p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <p>
-                  Founded with a vision to democratize tech education across Africa, Konov Artechtist began as a small workshop series and has grown into a comprehensive educational ecosystem.
+                  Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: children across Africa were fascinated by technology but had few opportunities to create with it.
                 </p>
                 <p>
-                  We recognized that traditional tech education often felt intimidating and inaccessible to young learners. Our founders asked a simple question: "What if learning AI and robotics could be as fun as playing games?"
+                  Our founder, Konov Nwachukwu, a software engineer and educator, started with a weekend workshop teaching 12 kids how to build simple robots. Those kids went home and told their friends. Within six months, we were running workshops for 200+ students.
                 </p>
                 <p>
-                  This question led us to develop our unique approach—combining hands-on workshops, engaging comic books, interactive digital platforms, and comprehensive school programs. Today, we're proud to serve thousands of students across multiple countries, igniting their passion for technology and preparing them for the future.
+                  We quickly learned that traditional tech education wasn't working—it was too formal, too intimidating. So we reimagined it. We created comic books featuring African child protagonists solving problems with AI. We gamified our online platform. We designed workshops where kids build, break, and rebuild without fear of failure.
                 </p>
                 <p>
-                  Our journey is just beginning. We're committed to expanding our reach, continuously improving our programs, and ensuring that every African child has the opportunity to become a technology creator, not just a consumer.
+                  Today, we've reached over 10,000 young learners across 15 African countries. We've partnered with 50+ schools, published 8 comic series, and watched kids who couldn't code create AI-powered apps. But we're just getting started.
+                </p>
+                <p>
+                  Our mission remains unchanged: make every African child a technology creator, not just a consumer. Because the next great innovation in AI could come from a 12-year-old in Accra, Nairobi, or Kigali—if we give them the tools and confidence to build it.
                 </p>
               </div>
             </Card>

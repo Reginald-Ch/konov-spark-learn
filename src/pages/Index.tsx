@@ -11,6 +11,8 @@ import { CTA } from "@/components/CTA";
 import { Footer } from "@/components/Footer";
 import { AIMascot } from "@/components/AIMascot";
 import { SocialProof } from "@/components/SocialProof";
+import { FAQ } from "@/components/FAQ";
+import { SuccessStories } from "@/components/SuccessStories";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 
 const Index = () => {
@@ -29,7 +31,9 @@ const Index = () => {
       <Mission />
       <ProgramsWithRocket />
       <Timeline />
+      <SuccessStories />
       <Testimonials />
+      <FAQ />
       <CTA />
       <Footer />
     </div>

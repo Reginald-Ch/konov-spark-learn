@@ -9,27 +9,27 @@ export const Testimonials = () => {
 
   const testimonials = [
     {
-      name: "Amara Johnson",
-      role: "Parent, Lagos",
-      content: "My daughter can't stop talking about the AI workshops! She's building her own chatbot now. Konov Artechtist made tech education so fun and accessible.",
+      name: "Mrs. Adebayo",
+      role: "Parent of 9-year-old",
+      content: "After just two workshops, Tunde built his first robot at home using cardboard and simple circuits. He explained how AI works to his younger sister. I've never seen him this excited about learning!",
       rating: 5,
     },
     {
-      name: "Dr. Kwame Mensah",
-      role: "Principal, Ghana",
-      content: "The school program transformed how our students see technology. The engagement levels are incredible, and kids are learning complex concepts through play.",
+      name: "Principal Okonkwo",
+      role: "Greenfield Academy, Lagos",
+      content: "We integrated Konov's curriculum last term. Our Year 5 students now understand machine learning basics and created an app that identifies plants. Parents are amazed at what their children can do.",
       rating: 5,
     },
     {
-      name: "Fatima Osei",
-      role: "Parent, Nairobi",
-      content: "The comics are brilliant! My son learns about AI through exciting stories. He's now inspired to become a tech innovator. Thank you Konov!",
+      name: "Chidi Eze",
+      role: "Parent of two learners",
+      content: "My kids race home to read the tech comics. They're learning AI, robotics, and coding through stories they actually want to read. It's the perfect blend of education and entertainment.",
       rating: 5,
     },
     {
-      name: "Mr. Chukwu",
-      role: "Teacher, Abuja",
-      content: "The EdTech platform is a game-changer. Students are excited to learn coding and AI. The gamification makes even the toughest concepts easy to grasp.",
+      name: "Ms. Kamau",
+      role: "Computer Studies Teacher",
+      content: "The hands-on approach works wonders. Students who struggled with abstract concepts now excel because they're building real projects. The platform's progress tracking helps me support each child individually.",
       rating: 5,
     },
   ];

@@ -62,8 +62,11 @@ export const Mission = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            We Create <span className="gradient-text">Solutions That</span>
+            We Help Kids <span className="gradient-text">Become</span>
           </h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
+            Empowering the next generation with AI and tech skills for tomorrow
+          </p>
         </div>
 
         {/* Top Row - 3 Cards */}

@@ -25,51 +25,51 @@ export const ProgramsWithRocket = () => {
 
   const programs = [
     {
-      title: "Tech Workshops",
-      subtitle: "Hands-On Innovation",
-      description: "Interactive workshops where kids build robots, create AI apps, and explore emerging technologies through hands-on learning experiences.",
+      title: "Interactive Workshops",
+      subtitle: "Build, Code, Create",
+      description: "Weekend hands-on sessions where kids build physical robots, program AI tools, and solve real-world problems with technology.",
       details: [
-        "Robot building & programming",
-        "AI app development basics",
-        "3D printing projects",
-        "Coding challenges & competitions",
-        "Ages 6-14 | 2-4 hours sessions"
+        "Build functioning robots using Arduino and sensors",
+        "Program chatbots that understand natural language",
+        "Create games using Scratch and Python",
+        "2-hour sessions every Saturday, age-specific groups",
+        "Take-home kits to continue learning at home"
       ]
     },
     {
       title: "EdTech Platform",
-      subtitle: "Digital Learning Hub",
-      description: "Gamified learning platform with interactive courses, progress tracking, and AI-powered tutoring for self-paced tech education.",
+      subtitle: "Learn Anytime, Anywhere",
+      description: "Interactive online platform with gamified courses, video tutorials, coding challenges, and an AI tutor that adapts to each child's learning pace.",
       details: [
-        "Gamified learning paths",
-        "Interactive coding challenges",
-        "Real-time progress tracking",
-        "AI-powered personalized tutoring",
-        "Ages 8-16 | Self-paced learning"
+        "40+ courses from beginner coding to machine learning",
+        "Real-time code editor with instant feedback",
+        "AI tutor answers questions 24/7 in student's language",
+        "Parent dashboard shows progress and achievements",
+        "Weekly live Q&A sessions with instructors"
       ]
     },
     {
       title: "Tech Comics",
-      subtitle: "Story-Based Learning",
-      description: "Adventure-packed comics that transform complex AI and tech concepts into exciting stories that captivate young minds.",
+      subtitle: "Adventure Meets Learning",
+      description: "Monthly comic series featuring African kids who use AI and tech to solve mysteries, help their communities, and save the day.",
       details: [
-        "Visual storytelling approach",
-        "Complex concepts simplified",
-        "Age-appropriate content",
-        "Digital & print formats",
-        "Ages 7-13 | Self-paced reading"
+        "Follow Ayo, Zara & friends on tech-powered adventures",
+        "Each issue teaches one core concept (ML, coding, robotics)",
+        "Includes hands-on activities based on the story",
+        "Available in English, French, Swahili, and Hausa",
+        "Collectible series with progressive difficulty levels"
       ]
     },
     {
-      title: "School Integration",
-      subtitle: "Curriculum Partnership",
-      description: "Comprehensive programs bringing cutting-edge tech education, teacher training, and hands-on labs directly to classrooms.",
+      title: "School Programs",
+      subtitle: "Tech Education, Simplified",
+      description: "Turn-key tech curriculum for schools including lesson plans, hardware kits, teacher training, and ongoing support—no tech expertise required.",
       details: [
-        "Complete curriculum integration",
-        "Teacher professional development",
-        "Student assessment tools",
-        "Hands-on lab equipment",
-        "K-12 | Multi-year partnership"
+        "Ready-to-use lesson plans for K-12 aligned to standards",
+        "Complete hardware kits shipped to your school",
+        "3-day teacher training plus ongoing video support",
+        "Monthly student assessments and progress reports",
+        "Access to all EdTech platform courses for students"
       ]
     },
   ];

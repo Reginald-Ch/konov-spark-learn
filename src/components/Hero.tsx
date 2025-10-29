@@ -57,15 +57,18 @@ export const Hero = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto">
             {[
-              { label: "Young Innovators", value: 10000, suffix: "+" },
-              { label: "Tech Workshops", value: 500, suffix: "+" },
-              { label: "Partner Schools", value: 50, suffix: "+" },
-              { label: "Countries", value: 15, suffix: "+" },
+              { label: "Students Reached", value: 10000, suffix: "+", desc: "since 2019" },
+              { label: "Workshops Delivered", value: 500, suffix: "+", desc: "across Africa" },
+              { label: "School Partners", value: 50, suffix: "+", desc: "and growing" },
+              { label: "African Countries", value: 15, suffix: "", desc: "presence" },
             ].map((stat, idx) => (
               <div key={idx} className="glow-card p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-primary/20 group hover:scale-105 transition-transform duration-300">
                 <AnimatedCounter end={stat.value} suffix={stat.suffix} />
                 <div className="text-sm text-muted-foreground font-space mt-2">
                   {stat.label}
+                </div>
+                <div className="text-xs text-muted-foreground/70 font-space mt-1">
+                  {stat.desc}
                 </div>
               </div>
             ))}

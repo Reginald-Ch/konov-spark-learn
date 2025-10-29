@@ -53,10 +53,10 @@ export const Timeline = () => {
           className="text-center mb-20"
         >
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            Our <span className="gradient-text">Learning Journey</span>
+            Your Child's <span className="gradient-text">Learning Path</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space">
-            A progressive pathway from exploration to mastery
+            Multiple ways to learn—choose what works best for your child
           </p>
         </motion.div>
 

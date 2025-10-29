@@ -17,11 +17,11 @@ export const CTA = () => {
         <div className="max-w-4xl mx-auto text-center">
           <div className="glow-card p-12 md:p-16 rounded-3xl bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border border-primary/30">
             <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-              Ready to <span className="gradient-text">Innovate?</span>
+              Start Your Child's <span className="gradient-text">Tech Journey Today</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-10 font-space leading-relaxed max-w-2xl mx-auto">
-              Join thousands of young African innovators on their journey to mastering 
-              AI and emerging technologies. The future starts here!
+              Join 10,000+ students learning AI, robotics, and coding through fun, 
+              hands-on experiences. Limited spots available for this month's workshops!
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
