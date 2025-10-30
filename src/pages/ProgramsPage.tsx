@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
@@ -16,6 +16,12 @@ const ProgramsPage = () => {
   
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const handleProgramComplete = (program: string) => {
     setSelectedProgram(program);
@@ -101,9 +107,13 @@ const ProgramsPage = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      <section className="py-24 md:py-32">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+      <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h1 className="text-5xl md:text-7xl font-orbitron font-bold mb-6">
               Our <span className="gradient-text">Programs</span>
             </h1>
@@ -113,10 +123,12 @@ const ProgramsPage = () => {
           </div>
 
           {/* Social Proof Stats */}
-          <SocialProof />
+          <div className={`transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <SocialProof />
+          </div>
 
           {/* Program Selector Quiz */}
-          <div className="mb-24">
+          <div className={`mb-24 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="text-center mb-8">
               <h2 className="text-3xl font-orbitron font-bold mb-4 text-foreground">
                 Not sure which program fits best?
@@ -129,10 +141,12 @@ const ProgramsPage = () => {
           </div>
 
           {/* All Programs Overview */}
-          <Programs />
+          <div className={`transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <Programs />
+          </div>
 
           {/* Detailed Program Information */}
-          <div className="mt-24">
+          <div className={`mt-24 transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-4xl font-orbitron font-bold mb-12 text-center">
               Program <span className="gradient-text">Details</span>
             </h2>

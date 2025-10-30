@@ -4,6 +4,7 @@ import { FloatingParticles } from "@/components/FloatingParticles";
 import { InteractiveIcons } from "@/components/InteractiveIcons";
 import { Hero } from "@/components/Hero";
 import { Mission } from "@/components/Mission";
+import { Values } from "@/components/Values";
 import { ProgramsWithRocket } from "@/components/ProgramsWithRocket";
 import { Timeline } from "@/components/Timeline";
 import { Testimonials } from "@/components/Testimonials";
@@ -29,7 +30,7 @@ const Index = () => {
       <Hero />
       <SocialProof />
       <Mission />
-      <ProgramsWithRocket />
+      <Values />
       <Timeline />
       <SuccessStories />
       <Testimonials />

@@ -234,10 +234,12 @@ export const AIMascot = () => {
 
   const handleCTAClick = () => {
     analytics.trackButtonClick('Mascot CTA', 'AI Mascot');
-    // Scroll to CTA section
-    const ctaSection = document.querySelector("#cta-section");
-    if (ctaSection) {
-      ctaSection.scrollIntoView({ behavior: "smooth" });
+    // Only scroll to CTA on homepage
+    if (window.location.pathname === '/') {
+      const ctaSection = document.querySelector("#cta-section");
+      if (ctaSection) {
+        ctaSection.scrollIntoView({ behavior: "smooth" });
+      }
     }
     setMood("celebrating");
     setMessage("🎊 Perfect! Fill out the form below!");

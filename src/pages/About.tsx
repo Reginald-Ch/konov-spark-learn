@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -5,6 +6,29 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Target, Lightbulb, Heart, Award } from "lucide-react";
 
 const About = () => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [valuesVisible, setValuesVisible] = useState(false);
+  const valuesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsVisible(true);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setValuesVisible(true);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (valuesRef.current) {
+      observer.observe(valuesRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   const stats = [
     { value: 5000, label: "Students Reached", suffix: "+" },
     { value: 50, label: "Schools Partnered", suffix: "+" },
@@ -44,9 +68,13 @@ const About = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="py-24 md:py-32">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+      <section className="py-24 md:py-32 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h1 className="text-5xl md:text-7xl font-orbitron font-bold mb-6">
               About <span className="gradient-text">Konov Artechtist</span>
             </h1>
@@ -58,7 +86,13 @@ const About = () => {
           {/* Impact Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
             {stats.map((stat, idx) => (
-              <Card key={idx} className="p-6 text-center glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
+              <Card 
+                key={idx} 
+                className={`p-6 text-center glow-card bg-card/50 backdrop-blur-sm border border-primary/20 transition-all duration-700 hover:scale-105 hover:border-primary/40 ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                }`}
+                style={{ transitionDelay: `${idx * 100 + 200}ms` }}
+              >
                 <div className="text-4xl md:text-5xl font-orbitron font-bold gradient-text mb-2">
                   <AnimatedCounter end={stat.value} suffix={stat.suffix} />
                 </div>
@@ -68,11 +102,11 @@ const About = () => {
           </div>
 
           {/* Our Story */}
-          <div className="mb-24">
+          <div className={`mb-24 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-4xl font-orbitron font-bold mb-8 text-center">
               Our <span className="gradient-text">Story</span>
             </h2>
-            <Card className="p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
+            <Card className="p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-300">
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <p>
                   Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: children across Africa were fascinated by technology but had few opportunities to create with it.
@@ -94,16 +128,22 @@ const About = () => {
           </div>
 
           {/* Our Values */}
-          <div>
-            <h2 className="text-4xl font-orbitron font-bold mb-12 text-center">
+          <div ref={valuesRef}>
+            <h2 className={`text-4xl font-orbitron font-bold mb-12 text-center transition-all duration-1000 ${valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               Our <span className="gradient-text">Values</span>
             </h2>
             <div className="grid md:grid-cols-2 gap-8">
               {values.map((value, idx) => {
                 const Icon = value.icon;
                 return (
-                  <Card key={idx} className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 group">
-                    <div className={`w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <Card 
+                    key={idx} 
+                    className={`p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 group hover:border-primary/40 transition-all duration-700 ${
+                      valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                    }`}
+                    style={{ transitionDelay: `${idx * 150}ms` }}
+                  >
+                    <div className={`w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                       <Icon className="w-8 h-8 text-foreground" />
                     </div>
                     <h3 className="text-2xl font-orbitron font-bold mb-4 text-foreground">
