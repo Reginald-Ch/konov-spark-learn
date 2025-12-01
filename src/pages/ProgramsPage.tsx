@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
-import { ProgramSelector } from "@/components/ProgramSelector";
 import { SignupModal } from "@/components/SignupModal";
 import { SocialProof } from "@/components/SocialProof";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2 } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
+import { motion } from "framer-motion";
 
 const ProgramsPage = () => {
   usePageTracking('/programs');
@@ -31,74 +31,53 @@ const ProgramsPage = () => {
   const programDetails = {
     workshops: {
       features: [
+        "Twice yearly sessions (2 months each)",
+        "After school & weekend schedules",
         "Hands-on robot building",
         "AI app development",
         "3D printing projects",
-        "Coding challenges",
-        "Team collaboration",
         "Expert mentorship",
       ],
       curriculum: [
-        "Introduction to Robotics",
-        "AI & Machine Learning Basics",
-        "Web Development",
-        "Mobile App Creation",
-        "Game Design",
-        "IoT Projects",
+        "Week 1-2: Tech Foundations & Safety",
+        "Week 3-4: Introduction to Robotics",
+        "Week 5-6: Coding & Programming",
+        "Week 7-8: AI & Machine Learning Basics",
+        "Week 9-10: Final Project & Showcase",
       ],
     },
-    comics: {
+    techcamp: {
       features: [
-        "Adventure-packed storylines",
-        "Complex concepts simplified",
-        "Beautiful illustrations",
-        "Interactive elements",
-        "Age-appropriate content",
-        "Digital & print formats",
+        "Full summer immersion program",
+        "Full-day activities (9am-4pm)",
+        "Project-based learning",
+        "Electronics & circuitry",
+        "Team collaboration",
+        "Field trips & guest speakers",
       ],
       curriculum: [
-        "AI Basics through Stories",
-        "Coding Adventures",
-        "Robot Tales",
-        "Data Science Journey",
-        "Cybersecurity Quest",
-        "Future Tech Exploration",
+        "Week 1: Electronics & Circuits Bootcamp",
+        "Week 2: Web Development & Design",
+        "Week 3: Robotics & Automation",
+        "Week 4: AI & Creative Coding",
+        "Week 5: Final Tech Challenge & Exhibition",
       ],
     },
-    edtech: {
+    techfair: {
       features: [
-        "Gamified learning paths",
-        "Interactive coding challenges",
-        "Real-time progress tracking",
-        "AI-powered tutoring",
-        "Video tutorials",
-        "Community forums",
+        "One-day mega event",
+        "Student project exhibitions",
+        "Interactive tech demonstrations",
+        "Coding competitions",
+        "Industry guest speakers",
+        "Free for all attendees",
       ],
       curriculum: [
-        "Programming Fundamentals",
-        "AI & ML Courses",
-        "Web Development Track",
-        "Mobile App Development",
-        "Data Science Path",
-        "Advanced Projects",
-      ],
-    },
-    schools: {
-      features: [
-        "Complete curriculum integration",
-        "Teacher training programs",
-        "Student assessment tools",
-        "Hands-on lab equipment",
-        "Digital resources",
-        "Ongoing support",
-      ],
-      curriculum: [
-        "Year 1: Tech Foundations",
-        "Year 2: Programming Basics",
-        "Year 3: AI & Robotics",
-        "Year 4: Advanced Projects",
-        "Teacher Professional Development",
-        "School-wide Implementation",
+        "Morning: Project Showcase Opening",
+        "10am-12pm: Live Tech Demonstrations",
+        "12pm-1pm: Lunch & Networking",
+        "1pm-3pm: Competitions & Challenges",
+        "3pm-5pm: Awards & Closing Ceremony",
       ],
     },
   };
@@ -127,18 +106,6 @@ const ProgramsPage = () => {
             <SocialProof />
           </div>
 
-          {/* Program Selector Quiz */}
-          <div className={`mb-24 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-orbitron font-bold mb-4 text-foreground">
-                Not sure which program fits best?
-              </h2>
-              <p className="text-lg text-muted-foreground font-space">
-                Take our quick quiz to find the perfect match!
-              </p>
-            </div>
-            <ProgramSelector onComplete={handleProgramComplete} />
-          </div>
 
           {/* All Programs Overview */}
           <div className={`transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -152,44 +119,74 @@ const ProgramsPage = () => {
             </h2>
             
             <Tabs defaultValue="workshops" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
+              <TabsList className="grid w-full grid-cols-3 mb-8 max-w-2xl mx-auto">
                 <TabsTrigger value="workshops" className="font-space">Workshops</TabsTrigger>
-                <TabsTrigger value="comics" className="font-space">Comics</TabsTrigger>
-                <TabsTrigger value="edtech" className="font-space">EdTech</TabsTrigger>
-                <TabsTrigger value="schools" className="font-space">Schools</TabsTrigger>
+                <TabsTrigger value="techcamp" className="font-space">Tech Camp</TabsTrigger>
+                <TabsTrigger value="techfair" className="font-space">Tech Fair</TabsTrigger>
               </TabsList>
 
-              {Object.entries(programDetails).map(([key, details]) => (
+              {Object.entries(programDetails).map(([key, details], tabIdx) => (
                 <TabsContent key={key} value={key}>
-                  <div className="grid md:grid-cols-2 gap-8">
-                    <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
-                      <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
-                        Key Features
-                      </h3>
-                      <ul className="space-y-3">
-                        {details.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-3 font-space">
-                            <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span className="text-muted-foreground">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </Card>
+                  <motion.div 
+                    className="grid md:grid-cols-2 gap-8"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                    >
+                      <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-500 h-full">
+                        <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
+                          Key Features
+                        </h3>
+                        <ul className="space-y-3">
+                          {details.features.map((feature, idx) => (
+                            <motion.li 
+                              key={idx} 
+                              className="flex items-start gap-3 font-space"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.3 + idx * 0.1 }}
+                              whileHover={{ x: 4 }}
+                            >
+                              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                              <span className="text-muted-foreground">{feature}</span>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </Card>
+                    </motion.div>
 
-                    <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
-                      <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
-                        Curriculum Highlights
-                      </h3>
-                      <ul className="space-y-3">
-                        {details.curriculum.map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-3 font-space">
-                            <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-                            <span className="text-muted-foreground">{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </Card>
-                  </div>
+                    <motion.div
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                    >
+                      <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-accent/40 transition-all duration-500 h-full">
+                        <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
+                          {key === 'techfair' ? 'Event Schedule' : 'Curriculum Highlights'}
+                        </h3>
+                        <ul className="space-y-3">
+                          {details.curriculum.map((item, idx) => (
+                            <motion.li 
+                              key={idx} 
+                              className="flex items-start gap-3 font-space"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.4, delay: 0.3 + idx * 0.1 }}
+                              whileHover={{ x: 4 }}
+                            >
+                              <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                              <span className="text-muted-foreground">{item}</span>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
                 </TabsContent>
               ))}
             </Tabs>
