@@ -32,46 +32,35 @@ export const Programs = () => {
     {
       icon: BookOpen,
       title: "Workshops",
-      description: "Hands-on tech workshops where kids build robots, create AI apps, and explore the future of technology through interactive learning experiences.",
+      description: "Twice-yearly immersive tech workshops running for two months. Join us after school and on weekends for hands-on learning in robotics, AI, coding, and more.",
       image: workshopsImg,
       color: "from-primary to-accent",
-      features: ["Robot Building", "AI Development", "3D Printing", "Coding Challenges"],
-      capacity: "15-20 students",
-      duration: "2-4 hours",
-      ageGroup: "Ages 6-14",
-    },
-    {
-      icon: Palette,
-      title: "Comics",
-      description: "Adventure-packed tech comics that transform complex AI concepts into exciting stories that captivate and educate young minds.",
-      image: comicsImg,
-      color: "from-accent to-secondary",
-      features: ["Visual Learning", "Story-Based", "Age-Appropriate", "Interactive Elements"],
-      capacity: "Unlimited",
-      duration: "Self-paced",
-      ageGroup: "Ages 7-13",
-    },
-    {
-      icon: Laptop,
-      title: "EdTech Platform",
-      description: "Interactive digital learning platform with gamified courses, real-time progress tracking, and AI-powered personalized tutoring.",
-      image: edtechImg,
-      color: "from-secondary to-primary",
-      features: ["Gamified Lessons", "Progress Tracking", "Video Tutorials", "Community Forums"],
-      capacity: "Unlimited",
-      duration: "Self-paced",
-      ageGroup: "Ages 8-16",
+      features: ["Robot Building", "AI Development", "After School & Weekends", "2-Month Programs"],
+      capacity: "Limited spots",
+      duration: "2 months, twice yearly",
+      ageGroup: "Ages 6-16",
     },
     {
       icon: GraduationCap,
-      title: "School Programs",
-      description: "Comprehensive curriculum integration bringing cutting-edge tech education, teacher training, and hands-on labs to classrooms.",
-      image: schoolsImg,
-      color: "from-primary via-accent to-secondary",
-      features: ["Full Curriculum", "Teacher Training", "Lab Equipment", "Ongoing Support"],
-      capacity: "Whole schools",
-      duration: "Multi-year",
-      ageGroup: "K-12",
+      title: "Tech Camp",
+      description: "Intensive summer technology camp where kids dive deep into coding, electronics, 3D printing, and creative tech projects in a fun, collaborative environment.",
+      image: edtechImg,
+      color: "from-accent to-secondary",
+      features: ["Full-Day Activities", "Project-Based Learning", "Summer Intensive", "Team Collaboration"],
+      capacity: "15-25 students",
+      duration: "Summer period",
+      ageGroup: "Ages 7-14",
+    },
+    {
+      icon: Laptop,
+      title: "Tech Fair",
+      description: "An exciting one-day event showcasing student projects, interactive tech demos, competitions, and inspiring talks. Experience the future of technology!",
+      image: comicsImg,
+      color: "from-secondary to-primary",
+      features: ["Project Showcase", "Live Demos", "Competitions", "Guest Speakers"],
+      capacity: "Open to all",
+      duration: "One full day",
+      ageGroup: "All ages",
     },
   ];
 
@@ -95,16 +84,16 @@ export const Programs = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {programs.map((program, idx) => (
             <motion.div
               key={idx}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ 
-                duration: 0.6, 
-                delay: idx * 0.15,
+                duration: 0.7, 
+                delay: idx * 0.2,
                 ease: [0.25, 0.1, 0.25, 1]
               }}
             >
