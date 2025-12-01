@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, MessageSquare, Phone, MapPin, Send, Loader2 } from "lucide-react";
+import { Mail, MessageSquare, Phone, MapPin, Send, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -97,6 +97,14 @@ const Contact = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Office Image Placeholder */}
+      <div className="w-full h-48 md:h-64 bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center border-b border-primary/20">
+        <div className="text-center">
+          <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground/60 font-space">Office/Contact Image Placeholder</p>
+        </div>
+      </div>
       
       <section className="py-24 md:py-32">
         <div className="container mx-auto px-4">
