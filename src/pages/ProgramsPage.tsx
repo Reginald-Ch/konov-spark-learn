@@ -6,7 +6,7 @@ import { SignupModal } from "@/components/SignupModal";
 import { SocialProof } from "@/components/SocialProof";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ImageIcon } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { motion } from "framer-motion";
 
@@ -85,6 +85,14 @@ const ProgramsPage = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Programs Hero Image Placeholder */}
+      <div className="w-full h-64 md:h-96 bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
+        <div className="text-center">
+          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground/60 font-space">Programs Showcase Placeholder</p>
+        </div>
+      </div>
       
       <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
         {/* Animated Background Elements */}

@@ -3,10 +3,10 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Brain, Sparkles, Users, Rocket, Zap, Trophy } from "lucide-react";
+import { Brain, Sparkles, Users, Rocket, Zap, Trophy, ImageIcon } from "lucide-react";
 import { SignupModal } from "@/components/SignupModal";
 
-const Workshops = () => {
+const Community = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -58,6 +58,15 @@ const Workshops = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Hero Image Placeholder */}
+      <div className="w-full h-64 md:h-96 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
+        <div className="text-center">
+          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground/60 font-space">Hero Image Placeholder</p>
+        </div>
+      </div>
+
       <section className="py-16 md:py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
         
@@ -189,4 +198,4 @@ const Workshops = () => {
   );
 };
 
-export default Workshops;
+export default Community;

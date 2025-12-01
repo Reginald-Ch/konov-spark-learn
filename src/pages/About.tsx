@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { Target, Lightbulb, Heart, Award } from "lucide-react";
+import { Target, Lightbulb, Heart, Award, ImageIcon } from "lucide-react";
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -66,6 +66,14 @@ const About = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Team Image Placeholder */}
+      <div className="w-full h-64 md:h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
+        <div className="text-center">
+          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground/60 font-space">Team Photo Placeholder</p>
+        </div>
+      </div>
       
       {/* Hero Section */}
       <section className="py-24 md:py-32 relative overflow-hidden">
