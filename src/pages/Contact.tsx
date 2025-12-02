@@ -193,9 +193,8 @@ const Contact = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="workshops">Workshops</SelectItem>
-                      <SelectItem value="comics">Comics</SelectItem>
-                      <SelectItem value="edtech">EdTech Platform</SelectItem>
-                      <SelectItem value="schools">School Programs</SelectItem>
+                      <SelectItem value="tech_camp">Tech Camp</SelectItem>
+                      <SelectItem value="tech_fair">Tech Fair</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

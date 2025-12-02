@@ -1,9 +1,15 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Rocket } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
+import { SignupModal } from "./SignupModal";
 
 export const Hero = () => {
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -41,6 +47,7 @@ export const Hero = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] transition-all duration-300 font-space font-semibold group"
+              onClick={() => setShowSignupModal(true)}
             >
               Start Learning
               <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -49,10 +56,17 @@ export const Hero = () => {
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-6 border-2 border-primary/50 hover:bg-primary/10 hover:border-primary transition-all duration-300 font-space font-semibold"
+              onClick={() => navigate('/programs')}
             >
               Explore Programs
             </Button>
           </div>
+          
+          <SignupModal 
+            open={showSignupModal} 
+            onOpenChange={setShowSignupModal}
+            source="hero"
+          />
           
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto">
