@@ -77,6 +77,113 @@ export type Database = {
         }
         Relationships: []
       }
+      program_sessions: {
+        Row: {
+          age_group: string
+          created_at: string
+          current_participants: number
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          location: string
+          max_participants: number
+          price: number
+          program_type: Database["public"]["Enums"]["program_type"]
+          start_date: string
+          title: string
+        }
+        Insert: {
+          age_group: string
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          location: string
+          max_participants?: number
+          price?: number
+          program_type: Database["public"]["Enums"]["program_type"]
+          start_date: string
+          title: string
+        }
+        Update: {
+          age_group?: string
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          location?: string
+          max_participants?: number
+          price?: number
+          program_type?: Database["public"]["Enums"]["program_type"]
+          start_date?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      registrations: {
+        Row: {
+          created_at: string
+          emergency_contact_name: string
+          emergency_contact_phone: string
+          id: string
+          parent_email: string
+          parent_name: string
+          parent_phone: string
+          participant_age: number
+          participant_email: string
+          participant_name: string
+          participant_phone: string | null
+          payment_status: string
+          session_id: string
+          special_requirements: string | null
+        }
+        Insert: {
+          created_at?: string
+          emergency_contact_name: string
+          emergency_contact_phone: string
+          id?: string
+          parent_email: string
+          parent_name: string
+          parent_phone: string
+          participant_age: number
+          participant_email: string
+          participant_name: string
+          participant_phone?: string | null
+          payment_status?: string
+          session_id: string
+          special_requirements?: string | null
+        }
+        Update: {
+          created_at?: string
+          emergency_contact_name?: string
+          emergency_contact_phone?: string
+          id?: string
+          parent_email?: string
+          parent_name?: string
+          parent_phone?: string
+          participant_age?: number
+          participant_email?: string
+          participant_name?: string
+          participant_phone?: string | null
+          payment_status?: string
+          session_id?: string
+          special_requirements?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "program_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workshop_registrations: {
         Row: {
           created_at: string
@@ -171,7 +278,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      program_type: "workshop" | "tech_camp" | "tech_fair"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -298,6 +405,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      program_type: ["workshop", "tech_camp", "tech_fair"],
+    },
   },
 } as const

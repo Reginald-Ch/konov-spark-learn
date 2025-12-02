@@ -36,7 +36,7 @@ export const Footer = () => {
             <ul className="space-y-2 font-space">
               <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
               <li><Link to="/programs" className="text-muted-foreground hover:text-foreground transition-colors">Our Programs</Link></li>
-              <li><Link to="/workshops" className="text-muted-foreground hover:text-foreground transition-colors">Workshops</Link></li>
+              <li><Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors">Community</Link></li>
               <li><Link to="/resources" className="text-muted-foreground hover:text-foreground transition-colors">Resources</Link></li>
               <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
             </ul>
@@ -57,7 +57,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-primary/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground font-space">
-            © 2024 Konov Artechtist. All rights reserved.
+            © 2025 Konov Artechtist. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground font-space">
             <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>

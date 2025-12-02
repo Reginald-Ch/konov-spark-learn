@@ -3,8 +3,12 @@ import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, BookOpen, Video, FileText, Lightbulb, ImageIcon } from "lucide-react";
+import { useState } from "react";
+import { SignupModal } from "@/components/SignupModal";
 
 const Resources = () => {
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  
   const resources = [
     {
       category: "Parent Guides",
@@ -167,12 +171,18 @@ const Resources = () => {
             <p className="text-lg text-muted-foreground font-space mb-8 max-w-2xl mx-auto">
               Sign up for our newsletter to receive new educational materials, workshop updates, and exclusive content delivered to your inbox.
             </p>
-            <Button size="lg" className="font-space font-semibold">
+            <Button size="lg" className="font-space font-semibold" onClick={() => setShowSignupModal(true)}>
               Subscribe to Newsletter
             </Button>
           </Card>
         </div>
       </section>
+
+      <SignupModal 
+        open={showSignupModal} 
+        onOpenChange={setShowSignupModal}
+        source="resources"
+      />
 
       <Footer />
     </div>
