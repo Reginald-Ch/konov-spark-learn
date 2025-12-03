@@ -6,9 +6,10 @@ import { SignupModal } from "@/components/SignupModal";
 import { SocialProof } from "@/components/SocialProof";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, ImageIcon } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { motion } from "framer-motion";
+import programsWorkshops from "@/assets/programs-workshops.jpg";
 
 const ProgramsPage = () => {
   usePageTracking('/programs');
@@ -86,12 +87,14 @@ const ProgramsPage = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Programs Hero Image Placeholder */}
-      <div className="w-full h-64 md:h-96 bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
-        <div className="text-center">
-          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground/60 font-space">Programs Showcase Placeholder</p>
-        </div>
+      {/* Programs Hero Image */}
+      <div className="w-full h-64 md:h-96 relative overflow-hidden">
+        <img 
+          src={programsWorkshops} 
+          alt="Students learning tech at Konov workshop" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
       </div>
       
       <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
