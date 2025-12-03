@@ -3,7 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { SignupModal } from "@/components/SignupModal";
-import logo from "@/assets/logo-transparent.png";
+import logo from "@/assets/logo-new.png";
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
