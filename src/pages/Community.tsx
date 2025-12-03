@@ -3,8 +3,9 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Brain, Sparkles, Users, Rocket, Zap, Trophy, ImageIcon } from "lucide-react";
+import { Brain, Sparkles, Users, Rocket, Zap, Trophy } from "lucide-react";
 import { SignupModal } from "@/components/SignupModal";
+import communityHero from "@/assets/community-hero.jpg";
 
 const Community = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -59,12 +60,14 @@ const Community = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Hero Image Placeholder */}
-      <div className="w-full h-64 md:h-96 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
-        <div className="text-center">
-          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground/60 font-space">Hero Image Placeholder</p>
-        </div>
+      {/* Hero Image */}
+      <div className="w-full h-64 md:h-96 relative overflow-hidden">
+        <img 
+          src={communityHero} 
+          alt="Young learners at Konov workshop" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
       </div>
 
       <section className="py-16 md:py-24 relative overflow-hidden">
