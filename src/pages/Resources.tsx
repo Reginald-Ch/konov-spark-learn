@@ -2,10 +2,9 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, BookOpen, Video, FileText, Lightbulb } from "lucide-react";
+import { Download, BookOpen, Video, FileText, Lightbulb, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { SignupModal } from "@/components/SignupModal";
-import resourcesBanner from "@/assets/resources-banner.jpg";
 
 const Resources = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -105,14 +104,12 @@ const Resources = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Resources Banner Image */}
-      <div className="w-full h-56 md:h-72 relative overflow-hidden">
-        <img 
-          src={resourcesBanner} 
-          alt="Students engaged in tech learning" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+      {/* Resources Banner Image Placeholder */}
+      <div className="w-full h-56 md:h-72 bg-gradient-to-br from-accent/20 to-secondary/20 flex items-center justify-center border-b border-primary/20">
+        <div className="text-center">
+          <ImageIcon className="w-14 h-14 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground/60 font-space">Resources Banner Placeholder</p>
+        </div>
       </div>
       
       <section className="py-24 md:py-32">

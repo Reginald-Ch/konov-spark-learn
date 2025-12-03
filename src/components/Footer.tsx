@@ -1,6 +1,5 @@
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo-transparent.png";
 
 export const Footer = () => {
   return (
@@ -11,9 +10,9 @@ export const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link to="/" className="inline-block mb-4">
-              <img src={logo} alt="Konov Artechtist" className="h-16 w-auto" />
-            </Link>
+            <h3 className="text-2xl font-orbitron font-bold gradient-text mb-4">
+              Konov Artechtist
+            </h3>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
               Transforming tech education across Africa. Making AI and emerging technologies 
               accessible, engaging, and fun for young learners.
