@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { SignupModal } from "@/components/SignupModal";
+import logo from "@/assets/logo.png";
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -40,13 +41,12 @@ export const Navbar = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Sparkles className="w-6 h-6 text-foreground animate-pulse-glow" />
-              </div>
-              <span className="text-xl font-orbitron font-bold gradient-text">
-                Konov Artechtist
-              </span>
+            <Link to="/" className="flex items-center group cursor-pointer">
+              <img 
+                src={logo} 
+                alt="Konov Artechtist" 
+                className="h-14 w-auto group-hover:scale-105 transition-transform duration-300 mix-blend-multiply dark:mix-blend-screen dark:invert"
+              />
             </Link>
 
             {/* Desktop Nav Links */}
