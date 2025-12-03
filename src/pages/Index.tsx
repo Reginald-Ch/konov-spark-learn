@@ -14,6 +14,7 @@ import { AIMascot } from "@/components/AIMascot";
 import { SocialProof } from "@/components/SocialProof";
 import { FAQ } from "@/components/FAQ";
 import { SuccessStories } from "@/components/SuccessStories";
+import { Gallery } from "@/components/Gallery";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 
 const Index = () => {
@@ -33,6 +34,7 @@ const Index = () => {
       <Values />
       <Timeline />
       <SuccessStories />
+      <Gallery />
       <Testimonials />
       <FAQ />
       <CTA />
