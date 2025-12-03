@@ -3,7 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { SignupModal } from "@/components/SignupModal";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-transparent.png";
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -45,7 +45,7 @@ export const Navbar = () => {
               <img 
                 src={logo} 
                 alt="Konov Artechtist" 
-                className="h-14 w-auto group-hover:scale-105 transition-transform duration-300 mix-blend-multiply dark:mix-blend-screen dark:invert"
+                className="h-14 w-auto group-hover:scale-105 transition-transform duration-300"
               />
             </Link>
 
