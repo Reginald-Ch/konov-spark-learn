@@ -29,18 +29,17 @@ export const Hero = () => {
         <div className="max-w-5xl mx-auto space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-6">
             <Sparkles className="w-4 h-4 text-primary animate-pulse-glow" />
-            <span className="text-sm font-space text-muted-foreground">Building Africa's Future Innovators</span>
+            <span className="text-sm font-space text-muted-foreground">Africa's First AI & ML Literacy Hub for Kids</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-orbitron font-black leading-tight">
-            <span className="gradient-text">Tech Education</span>
+            <span className="gradient-text">AI Literacy</span>
             <br />
             <span className="text-foreground">Made Fun & Creative</span>
           </h1>
           
           <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            Making AI and emerging technologies accessible, engaging, and fun for young African learners 
-            through workshops, comics, edtech, and school programs.
+            Teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity—through workshops, comics, and interactive learning.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
