@@ -14,8 +14,8 @@ export const Footer = () => {
               Konov Artechtist
             </h3>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
-              Transforming tech education across Africa. Making AI and emerging technologies 
-              accessible, engaging, and fun for young learners.
+              Africa's first AI & ML literacy hub for kids. Teaching how intelligent systems think, 
+              how data drives decisions, and how algorithms power creativity.
             </p>
             <div className="flex gap-4">
               {[Facebook, Twitter, Instagram, Linkedin].map((Icon, idx) => (

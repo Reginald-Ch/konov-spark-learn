@@ -87,7 +87,7 @@ const About = () => {
               About <span className="gradient-text">Konov Artechtist</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-              Transforming tech education across Africa through innovative, playful, and accessible learning experiences
+              Africa's first AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity
             </p>
           </div>
 
@@ -117,19 +117,19 @@ const About = () => {
             <Card className="p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-300">
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <p>
-                  Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: children across Africa were fascinated by technology but had few opportunities to create with it.
+                  Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
                 </p>
                 <p>
-                  Our founder, Konov Nwachukwu, a software engineer and educator, started with a weekend workshop teaching 12 kids how to build simple robots. Those kids went home and told their friends. Within six months, we were running workshops for 200+ students.
+                  Our founder saw that children across Africa were fascinated by AI but had few opportunities to truly understand it. Not just use AI tools, but grasp how data drives decisions, how algorithms learn, and how machine learning powers creativity.
                 </p>
                 <p>
-                  We quickly learned that traditional tech education wasn't working—it was too formal, too intimidating. So we reimagined it. We created comic books featuring African child protagonists solving problems with AI. We gamified our online platform. We designed workshops where kids build, break, and rebuild without fear of failure.
+                  We quickly learned that traditional tech education wasn't working—it was too focused on hardware, too intimidating. So we reimagined it. We created comic books featuring African child protagonists exploring AI concepts. We gamified our platform around ML fundamentals. We designed workshops where kids understand neural networks through play.
                 </p>
                 <p>
-                  Today, we've reached over 10,000 young learners across 15 African countries. We've partnered with 50+ schools, published 8 comic series, and watched kids who couldn't code create AI-powered apps. But we're just getting started.
+                  Today, we've reached over 10,000 young learners across 15 African countries. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
                 </p>
                 <p>
-                  Our mission remains unchanged: make every African child a technology creator, not just a consumer. Because the next great innovation in AI could come from a 12-year-old in Accra, Nairobi, or Kigali—if we give them the tools and confidence to build it.
+                  Our mission: make every African child AI-literate, not just a technology consumer. Because the next breakthrough in artificial intelligence could come from a 12-year-old in Accra, Nairobi, or Kigali—if they understand how AI actually works.
                 </p>
               </div>
             </Card>

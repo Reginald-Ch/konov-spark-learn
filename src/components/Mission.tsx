@@ -25,31 +25,31 @@ export const Mission = () => {
   const values = [
     {
       icon: Brain,
-      title: "Empower Young Minds",
-      description: "through hands-on AI and tech education that sparks curiosity",
+      title: "AI & ML Literacy Focus",
+      description: "teaching how intelligent systems think and make decisions",
     },
     {
       icon: Zap,
-      title: "Build Future Innovators",
-      description: "by teaching kids to create with cutting-edge technology",
+      title: "Data-Driven Thinking",
+      description: "showing kids how data powers the algorithms around them",
     },
     {
       icon: Heart,
-      title: "Make Learning Fun",
-      description: "with gamified experiences, comics, and interactive workshops",
+      title: "Creative AI Applications",
+      description: "exploring how algorithms power art, music, and storytelling",
     },
   ];
 
   const additionalValues = [
     {
       icon: Zap,
-      title: "Bridge the Tech Gap",
-      description: "bringing advanced AI education to all kids, everywhere",
+      title: "Future-Ready Skills",
+      description: "building foundational AI knowledge that scales with technology",
     },
     {
       icon: Brain,
-      title: "Inspire Lifelong Learning",
-      description: "cultivating problem-solving skills and creative thinking for tomorrow",
+      title: "Beyond Robotics",
+      description: "pure AI and ML education without hardware barriers",
     },
   ];
 
@@ -62,10 +62,10 @@ export const Mission = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            We Help Kids <span className="gradient-text">Become</span>
+            We Help Kids <span className="gradient-text">Understand AI</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            Empowering the next generation with AI and tech skills for tomorrow
+            Teaching how intelligent systems think, how data drives decisions, and how algorithms power creativity
           </p>
         </div>
 
