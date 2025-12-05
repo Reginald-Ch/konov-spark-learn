@@ -45,7 +45,7 @@ export const Navbar = () => {
               <img 
                 src={logo} 
                 alt="Konov Artechtist" 
-                className="h-14 w-auto group-hover:scale-105 transition-transform duration-300"
+                className="h-18 w-auto group-hover:scale-105 transition-transform duration-300"
               />
             </Link>
 
