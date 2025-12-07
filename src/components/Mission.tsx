@@ -1,122 +1,145 @@
-import { Brain, Heart, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Brain, Heart, Zap, Lightbulb, Cpu } from "lucide-react";
+import { motion } from "framer-motion";
+import { ComicPanel } from "./ComicPanel";
+import { RobotMascot } from "./RobotMascot";
+import { SpeechBubble } from "./SpeechBubble";
 
 export const Mission = () => {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.2 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   const values = [
     {
       icon: Brain,
       title: "AI & ML Literacy Focus",
-      description: "teaching how intelligent systems think and make decisions",
+      description: "Teaching how intelligent systems think and make decisions",
+      color: "primary" as const,
     },
     {
       icon: Zap,
       title: "Data-Driven Thinking",
-      description: "showing kids how data powers the algorithms around them",
+      description: "Showing kids how data powers the algorithms around them",
+      color: "secondary" as const,
     },
     {
       icon: Heart,
       title: "Creative AI Applications",
-      description: "exploring how algorithms power art, music, and storytelling",
+      description: "Exploring how algorithms power art, music, and storytelling",
+      color: "accent" as const,
     },
   ];
 
   const additionalValues = [
     {
-      icon: Zap,
+      icon: Lightbulb,
       title: "Future-Ready Skills",
-      description: "building foundational AI knowledge that scales with technology",
+      description: "Building foundational AI knowledge that scales with technology",
+      color: "secondary" as const,
     },
     {
-      icon: Brain,
+      icon: Cpu,
       title: "Beyond Robotics",
-      description: "pure AI and ML education without hardware barriers",
+      description: "Pure AI and ML education without hardware barriers",
+      color: "primary" as const,
     },
   ];
 
   return (
-    <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
+    <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
       {/* Background Elements */}
-      <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/20 rounded-full blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            We Help Kids <span className="gradient-text">Understand AI</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            Teaching how intelligent systems think, how data drives decisions, and how algorithms power creativity
-          </p>
+        {/* Header with Mascot */}
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 mb-16">
+          <motion.div
+            initial={{ x: -50, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center lg:text-left"
+          >
+            <h2 className="text-4xl md:text-6xl font-fredoka font-bold mb-4">
+              We Help Kids{" "}
+              <span className="text-primary">Understand</span>{" "}
+              <span className="text-secondary">AI!</span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl font-space leading-relaxed">
+              Teaching how intelligent systems think, how data drives decisions, and how algorithms power creativity
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", delay: 0.2 }}
+            className="relative"
+          >
+            <RobotMascot type="teaching" size="lg" />
+            <div className="absolute -top-16 -right-8">
+              <SpeechBubble direction="bottom" className="text-sm whitespace-nowrap">
+                Let's learn together! 🎓
+              </SpeechBubble>
+            </div>
+          </motion.div>
         </div>
 
         {/* Top Row - 3 Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-6 max-w-6xl mx-auto">
-          {values.map((value, idx) => (
-            <div
-              key={idx}
-              className={`transition-all duration-700 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
-              style={{ transitionDelay: `${idx * 150}ms` }}
-            >
-              <div className="glow-card p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-primary/20 h-full group hover:bg-card/60 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
-                  <value.icon className="w-6 h-6 text-primary" />
+          {values.map((value, idx) => {
+            const Icon = value.icon;
+            return (
+              <ComicPanel key={idx} color={value.color} delay={idx * 0.15}>
+                <div className="p-6">
+                  <motion.div 
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${
+                      value.color === 'primary' ? 'from-primary to-primary/70' :
+                      value.color === 'secondary' ? 'from-secondary to-secondary/70' :
+                      'from-accent to-accent/70'
+                    } flex items-center justify-center mb-4`}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Icon className="w-7 h-7 text-foreground" />
+                  </motion.div>
+                  <h3 className="text-xl font-fredoka font-bold mb-2 text-foreground">
+                    {value.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-space leading-relaxed">
+                    {value.description}
+                  </p>
                 </div>
-                <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
-                  {value.title}
-                </h3>
-                <p className="text-sm text-muted-foreground font-space leading-relaxed">
-                  {value.description}
-                </p>
-              </div>
-            </div>
-          ))}
+              </ComicPanel>
+            );
+          })}
         </div>
 
         {/* Bottom Row - 2 Cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {additionalValues.map((value, idx) => (
-            <div
-              key={idx}
-              className={`transition-all duration-700 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
-              style={{ transitionDelay: `${(idx + 3) * 150}ms` }}
-            >
-              <div className="glow-card p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-primary/20 h-full group hover:bg-card/60 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
-                  <value.icon className="w-6 h-6 text-primary" />
+          {additionalValues.map((value, idx) => {
+            const Icon = value.icon;
+            return (
+              <ComicPanel key={idx} color={value.color} delay={(idx + 3) * 0.15}>
+                <div className="p-6">
+                  <motion.div 
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${
+                      value.color === 'primary' ? 'from-primary to-primary/70' :
+                      value.color === 'secondary' ? 'from-secondary to-secondary/70' :
+                      'from-accent to-accent/70'
+                    } flex items-center justify-center mb-4`}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Icon className="w-7 h-7 text-foreground" />
+                  </motion.div>
+                  <h3 className="text-xl font-fredoka font-bold mb-2 text-foreground">
+                    {value.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-space leading-relaxed">
+                    {value.description}
+                  </p>
                 </div>
-                <h3 className="text-lg font-orbitron font-bold mb-2 text-foreground">
-                  {value.title}
-                </h3>
-                <p className="text-sm text-muted-foreground font-space leading-relaxed">
-                  {value.description}
-                </p>
-              </div>
-            </div>
-          ))}
+              </ComicPanel>
+            );
+          })}
         </div>
       </div>
     </section>
