@@ -1,53 +1,77 @@
-import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { RobotMascot } from "./RobotMascot";
 
 export const Footer = () => {
   return (
-    <footer className="py-12 border-t border-primary/20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
+    <footer className="py-16 border-t-4 border-foreground relative overflow-hidden bg-card/50">
+      <div className="absolute inset-0 halftone-bg opacity-50" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h3 className="text-2xl font-orbitron font-bold gradient-text mb-4">
-              Konov Artechtist
-            </h3>
+            <div className="flex items-center gap-4 mb-4">
+              <RobotMascot type="happy" size="sm" />
+              <h3 className="text-3xl font-fredoka font-bold text-primary">
+                Konov Artechtist
+              </h3>
+            </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
               Africa's first AI & ML literacy hub for kids. Teaching how intelligent systems think, 
               how data drives decisions, and how algorithms power creativity.
             </p>
-            <div className="flex gap-4">
-              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, idx) => (
-                <a
+            <div className="flex gap-3">
+              {[
+                { Icon: Facebook, href: "#" },
+                { Icon: Twitter, href: "#" },
+                { Icon: Instagram, href: "#" },
+                { Icon: Linkedin, href: "#" },
+              ].map(({ Icon, href }, idx) => (
+                <motion.a
                   key={idx}
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 hover:border-primary transition-all duration-300 group"
+                  href={href}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-xl bg-card border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] flex items-center justify-center hover:bg-primary/20 transition-colors"
                 >
-                  <Icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </a>
+                  <Icon className="w-5 h-5 text-foreground" />
+                </motion.a>
               ))}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-orbitron font-bold mb-4 text-foreground">Quick Links</h4>
-            <ul className="space-y-2 font-space">
-              <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
-              <li><Link to="/programs" className="text-muted-foreground hover:text-foreground transition-colors">Our Programs</Link></li>
-              <li><Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors">Community</Link></li>
-              <li><Link to="/resources" className="text-muted-foreground hover:text-foreground transition-colors">Resources</Link></li>
-              <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
+            <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">Quick Links</h4>
+            <ul className="space-y-3 font-space">
+              {[
+                { to: "/about", label: "About Us" },
+                { to: "/programs", label: "Our Programs" },
+                { to: "/community", label: "Community" },
+                { to: "/resources", label: "Learn AI" },
+                { to: "/contact", label: "Contact" },
+              ].map((link, idx) => (
+                <li key={idx}>
+                  <Link 
+                    to={link.to} 
+                    className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
+                  >
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="text-lg font-orbitron font-bold mb-4 text-foreground">Get in Touch</h4>
-            <ul className="space-y-2 font-space">
+            <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">Get in Touch</h4>
+            <ul className="space-y-3 font-space">
               <li className="flex items-start gap-2 text-muted-foreground">
-                <Mail className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" />
                 <span>hello@konovartechtist.com</span>
               </li>
             </ul>
@@ -55,13 +79,20 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-primary/20 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground font-space">
-            © 2025 Konov Artechtist. All rights reserved.
+        <div className="pt-8 border-t-4 border-foreground/20 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground font-space flex items-center gap-2">
+            © 2025 Konov Artechtist. Made with{" "}
+            <motion.span
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <Heart className="w-4 h-4 text-primary fill-primary" />
+            </motion.span>
+            {" "}for young innovators.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground font-space">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>

@@ -1,5 +1,9 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { HelpCircle, MessageCircle } from "lucide-react";
+import { ComicPanel } from "./ComicPanel";
+import { RobotMascot } from "./RobotMascot";
+import { SpeechBubble } from "./SpeechBubble";
 
 export const FAQ = () => {
   const faqs = [
@@ -38,46 +42,99 @@ export const FAQ = () => {
   ];
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
-      <div className="absolute top-1/3 -left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/3 -right-20 w-72 h-72 bg-accent/10 rounded-full blur-3xl" />
+    <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+      <motion.div 
+        className="absolute top-1/3 -left-20 w-72 h-72 bg-primary/15 rounded-full blur-3xl"
+        animate={{ y: [0, 30, 0] }}
+        transition={{ duration: 6, repeat: Infinity }}
+      />
+      <motion.div 
+        className="absolute bottom-1/3 -right-20 w-72 h-72 bg-accent/15 rounded-full blur-3xl"
+        animate={{ y: [30, 0, 30] }}
+        transition={{ duration: 6, repeat: Infinity }}
+      />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            Frequently Asked <span className="gradient-text">Questions</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            Everything you need to know about our programs
-          </p>
+        {/* Header with Mascot */}
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 mb-12">
+          <motion.div
+            initial={{ x: -30, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center lg:text-left"
+          >
+            <h2 className="text-4xl md:text-6xl font-fredoka font-bold mb-4">
+              Got <span className="text-primary">Questions</span>?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-xl font-space leading-relaxed">
+              Everything you need to know about our programs
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", delay: 0.2 }}
+            className="relative"
+          >
+            <RobotMascot type="thinking" size="lg" />
+            <div className="absolute -top-14 right-0">
+              <SpeechBubble direction="bottom" className="text-sm whitespace-nowrap">
+                I've got answers! 💡
+              </SpeechBubble>
+            </div>
+          </motion.div>
         </div>
 
-        <Card className="max-w-4xl mx-auto p-8 md:p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20">
-          <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="border border-primary/10 rounded-lg px-6 bg-card/30">
-                <AccordionTrigger className="text-left font-orbitron font-semibold text-foreground hover:text-primary transition-colors">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground font-space leading-relaxed pt-2">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </Card>
+        <ComicPanel color="primary" className="max-w-4xl mx-auto">
+          <div className="p-6 md:p-10">
+            <Accordion type="single" collapsible className="space-y-3">
+              {faqs.map((faq, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ x: -20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <AccordionItem 
+                    value={`item-${idx}`} 
+                    className="border-3 border-foreground/20 rounded-xl px-5 bg-card/50 hover:border-primary/50 transition-colors"
+                  >
+                    <AccordionTrigger className="text-left font-fredoka font-bold text-foreground hover:text-primary transition-colors py-4">
+                      <span className="flex items-center gap-3">
+                        <HelpCircle className="w-5 h-5 text-secondary flex-shrink-0" />
+                        {faq.question}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground font-space leading-relaxed pb-4">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                </motion.div>
+              ))}
+            </Accordion>
+          </div>
+        </ComicPanel>
 
-        <div className="text-center mt-12">
+        <motion.div 
+          className="text-center mt-10"
+          initial={{ y: 20, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+        >
           <p className="text-muted-foreground font-space mb-4">
             Still have questions?
           </p>
           <a 
             href="/contact" 
-            className="text-primary hover:text-primary/80 font-space font-semibold underline underline-offset-4 transition-colors"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-fredoka font-bold text-lg transition-colors"
           >
+            <MessageCircle className="w-5 h-5" />
             Contact our team →
           </a>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

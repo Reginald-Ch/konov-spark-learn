@@ -1,65 +1,128 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Rocket } from "lucide-react";
+import { Sparkles, Rocket, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { SignupModal } from "./SignupModal";
+import { ComicPanel } from "./ComicPanel";
+import { RobotMascot } from "./RobotMascot";
+import { SpeechBubble } from "./SpeechBubble";
+import { ActionBurst } from "./ActionBurst";
 
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden halftone-bg">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-30"
+        className="absolute inset-0 bg-cover bg-center opacity-20"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
       
       {/* Floating Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/20 rounded-full blur-3xl animate-float-delayed" />
-      <div className="absolute top-40 right-20 w-24 h-24 bg-accent/20 rounded-full blur-3xl animate-float" />
+      <motion.div 
+        className="absolute top-20 left-10 w-20 h-20 bg-primary/30 rounded-full blur-2xl"
+        animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
+        transition={{ duration: 4, repeat: Infinity }}
+      />
+      <motion.div 
+        className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/30 rounded-full blur-2xl"
+        animate={{ y: [0, 20, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+      />
+      <motion.div 
+        className="absolute top-40 right-20 w-24 h-24 bg-accent/30 rounded-full blur-2xl"
+        animate={{ y: [0, -15, 0] }}
+        transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+      />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-6">
-            <Sparkles className="w-4 h-4 text-primary animate-pulse-glow" />
-            <span className="text-sm font-space text-muted-foreground">Africa's First AI & ML Literacy Hub for Kids</span>
-          </div>
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Action Burst Badge */}
+          <motion.div
+            initial={{ scale: 0, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+            className="inline-block"
+          >
+            <ActionBurst>
+              <span className="flex items-center gap-2 text-base md:text-lg">
+                <Sparkles className="w-5 h-5" />
+                Africa's First AI & ML Literacy Hub!
+              </span>
+            </ActionBurst>
+          </motion.div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-orbitron font-black leading-tight">
-            <span className="gradient-text">AI Literacy</span>
+          {/* Main Heading - Comic Style */}
+          <motion.h1 
+            className="text-5xl md:text-7xl lg:text-8xl font-fredoka font-bold leading-tight"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <span className="text-primary">AI Literacy</span>
             <br />
-            <span className="text-foreground">Made Fun & Creative</span>
-          </h1>
+            <span className="text-foreground">Made Fun & </span>
+            <span className="text-secondary">Creative!</span>
+          </motion.h1>
           
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-            Teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity—through workshops, comics, and interactive learning.
-          </p>
+          {/* Speech Bubble Description */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", delay: 0.5 }}
+            className="max-w-3xl mx-auto"
+          >
+            <SpeechBubble className="inline-block">
+              <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
+                Teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity—through workshops, comics, and interactive learning!
+              </p>
+            </SpeechBubble>
+          </motion.div>
+
+          {/* Mascots Row */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="flex justify-center items-end gap-4 my-8"
+          >
+            <RobotMascot type="thinking" size="md" />
+            <RobotMascot type="excited" size="lg" />
+            <RobotMascot type="happy" size="md" />
+          </motion.div>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+          {/* CTA Buttons - Comic Style */}
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7 }}
+          >
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] transition-all duration-300 font-space font-semibold group"
+              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-gradient-to-r from-primary to-accent"
               onClick={() => setShowSignupModal(true)}
             >
-              Start Learning
-              <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <Rocket className="mr-2 w-6 h-6" />
+              Start Learning!
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 py-6 border-2 border-primary/50 hover:bg-primary/10 hover:border-primary transition-all duration-300 font-space font-semibold"
+              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card"
               onClick={() => navigate('/programs')}
             >
+              <Zap className="mr-2 w-5 h-5" />
               Explore Programs
             </Button>
-          </div>
+          </motion.div>
           
           <SignupModal 
             open={showSignupModal} 
@@ -67,25 +130,38 @@ export const Hero = () => {
             source="hero"
           />
           
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto">
+          {/* Stats - Comic Panels */}
+          <motion.div 
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-5xl mx-auto"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.8 }}
+          >
             {[
               { label: "Students Reached", value: 10000, suffix: "+", desc: "since 2019" },
               { label: "Workshops Delivered", value: 500, suffix: "+", desc: "across Africa" },
               { label: "School Partners", value: 50, suffix: "+", desc: "and growing" },
               { label: "African Countries", value: 15, suffix: "", desc: "presence" },
             ].map((stat, idx) => (
-              <div key={idx} className="glow-card p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-primary/20 group hover:scale-105 transition-transform duration-300">
-                <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                <div className="text-sm text-muted-foreground font-space mt-2">
-                  {stat.label}
+              <ComicPanel 
+                key={idx} 
+                color={["primary", "secondary", "accent", "primary"][idx] as "primary" | "secondary" | "accent"}
+                delay={idx * 0.1}
+              >
+                <div className="p-4 md:p-6 text-center">
+                  <div className="text-3xl md:text-4xl font-fredoka font-bold text-foreground">
+                    <AnimatedCounter end={stat.value} suffix={stat.suffix} />
+                  </div>
+                  <div className="text-sm text-foreground font-fredoka mt-1">
+                    {stat.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-space mt-1">
+                    {stat.desc}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground/70 font-space mt-1">
-                  {stat.desc}
-                </div>
-              </div>
+              </ComicPanel>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
       
