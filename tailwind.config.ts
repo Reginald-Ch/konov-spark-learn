@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         'orbitron': ['Orbitron', 'sans-serif'],
         'space': ['Space Grotesk', 'sans-serif'],
+        'fredoka': ['Fredoka', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -120,6 +121,41 @@ export default {
             opacity: "1",
           },
         },
+        "bounce-in": {
+          "0%": {
+            transform: "scale(0.3)",
+            opacity: "0",
+          },
+          "50%": {
+            transform: "scale(1.05)",
+          },
+          "70%": {
+            transform: "scale(0.9)",
+          },
+          "100%": {
+            transform: "scale(1)",
+            opacity: "1",
+          },
+        },
+        "wiggle": {
+          "0%, 100%": {
+            transform: "rotate(-3deg)",
+          },
+          "50%": {
+            transform: "rotate(3deg)",
+          },
+        },
+        "pop": {
+          "0%": {
+            transform: "scale(1)",
+          },
+          "50%": {
+            transform: "scale(1.1)",
+          },
+          "100%": {
+            transform: "scale(1)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -128,6 +164,9 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "slide-in-right": "slide-in-right 0.6s ease-out",
         "slide-in-left": "slide-in-left 0.6s ease-out",
+        "bounce-in": "bounce-in 0.6s ease-out",
+        "wiggle": "wiggle 0.5s ease-in-out infinite",
+        "pop": "pop 0.3s ease-in-out",
       },
     },
   },
