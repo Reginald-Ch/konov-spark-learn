@@ -4,6 +4,11 @@ import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Target, Lightbulb, Heart, Award, ImageIcon } from "lucide-react";
+import { motion } from "framer-motion";
+import { ComicPanel } from "@/components/ComicPanel";
+import { RobotMascot } from "@/components/RobotMascot";
+import { SpeechBubble } from "@/components/SpeechBubble";
+import { ActionBurst } from "@/components/ActionBurst";
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -42,24 +47,28 @@ const About = () => {
       title: "Mission-Driven",
       description: "We're on a mission to make AI and emerging technologies accessible to every African child, breaking down barriers to tech education.",
       color: "from-primary to-accent",
+      mascot: "happy" as const,
     },
     {
       icon: Lightbulb,
       title: "Innovation First",
       description: "We constantly innovate our teaching methods, combining traditional learning with cutting-edge technology and playful experiences.",
       color: "from-accent to-secondary",
+      mascot: "excited" as const,
     },
     {
       icon: Heart,
       title: "Student-Centered",
       description: "Every program is designed with our students in mind, ensuring age-appropriate content that sparks curiosity and builds confidence.",
       color: "from-secondary to-primary",
+      mascot: "thinking" as const,
     },
     {
       icon: Award,
       title: "Quality Excellence",
       description: "We maintain the highest standards in curriculum design, instructor training, and learning outcomes to deliver exceptional results.",
       color: "from-primary via-accent to-secondary",
+      mascot: "cool" as const,
     },
   ];
 
@@ -67,100 +76,151 @@ const About = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Team Image Placeholder */}
-      <div className="w-full h-64 md:h-80 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
-        <div className="text-center">
-          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground/60 font-space">Team Photo Placeholder</p>
+      {/* Team Image Placeholder with Comic Style */}
+      <div className="w-full h-64 md:h-80 halftone-bg flex items-center justify-center border-b-4 border-foreground relative overflow-hidden">
+        <div className="absolute top-4 left-4">
+          <RobotMascot type="happy" size="sm" />
         </div>
+        <div className="absolute bottom-4 right-4">
+          <RobotMascot type="excited" size="sm" />
+        </div>
+        <ComicPanel className="p-8">
+          <div className="text-center">
+            <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/60" />
+            <p className="text-lg font-fredoka text-muted-foreground">Team Photo Coming Soon!</p>
+          </div>
+        </ComicPanel>
       </div>
       
       {/* Hero Section */}
       <section className="py-24 md:py-32 relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute inset-0 halftone-bg opacity-30" />
         
         <div className="container mx-auto px-4 relative z-10">
           <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <h1 className="text-5xl md:text-7xl font-orbitron font-bold mb-6">
+            <div className="flex justify-center mb-6">
+              <ActionBurst color="primary" className="text-2xl md:text-3xl">
+                MEET THE TEAM!
+              </ActionBurst>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-fredoka font-bold mb-6">
               About <span className="gradient-text">Konov Artechtist</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-              Africa's first AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity
-            </p>
+            <div className="flex justify-center mb-6">
+              <RobotMascot type="happy" size="lg" />
+            </div>
+            <SpeechBubble direction="up" className="max-w-3xl mx-auto">
+              <p className="text-xl font-space leading-relaxed">
+                Africa's first AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity!
+              </p>
+            </SpeechBubble>
           </div>
 
           {/* Impact Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
             {stats.map((stat, idx) => (
-              <Card 
-                key={idx} 
-                className={`p-6 text-center glow-card bg-card/50 backdrop-blur-sm border border-primary/20 transition-all duration-700 hover:scale-105 hover:border-primary/40 ${
-                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                }`}
-                style={{ transitionDelay: `${idx * 100 + 200}ms` }}
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                animate={isVisible ? { opacity: 1, scale: 1, rotate: 0 } : {}}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
               >
-                <div className="text-4xl md:text-5xl font-orbitron font-bold gradient-text mb-2">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </div>
-                <p className="text-sm text-muted-foreground font-space">{stat.label}</p>
-              </Card>
+                <ComicPanel className="p-6 text-center hover:scale-105 transition-transform">
+                  <div className="text-4xl md:text-5xl font-fredoka font-bold gradient-text mb-2">
+                    <AnimatedCounter end={stat.value} suffix={stat.suffix} />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-space">{stat.label}</p>
+                </ComicPanel>
+              </motion.div>
             ))}
           </div>
 
           {/* Our Story */}
           <div className={`mb-24 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <h2 className="text-4xl font-orbitron font-bold mb-8 text-center">
-              Our <span className="gradient-text">Story</span>
-            </h2>
-            <Card className="p-12 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-300">
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <ActionBurst color="accent">ORIGIN</ActionBurst>
+              <h2 className="text-4xl font-fredoka font-bold">
+                Our <span className="gradient-text">Story</span>
+              </h2>
+              <ActionBurst color="secondary">STORY!</ActionBurst>
+            </div>
+            
+            <div className="flex justify-center mb-6">
+              <RobotMascot type="thinking" size="md" />
+            </div>
+            
+            <ComicPanel className="p-8 md:p-12">
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
-                <p>
-                  Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
-                </p>
-                <p>
-                  Our founder saw that children across Africa were fascinated by AI but had few opportunities to truly understand it. Not just use AI tools, but grasp how data drives decisions, how algorithms learn, and how machine learning powers creativity.
-                </p>
-                <p>
-                  We quickly learned that traditional tech education wasn't working—it was too focused on hardware, too intimidating. So we reimagined it. We created comic books featuring African child protagonists exploring AI concepts. We gamified our platform around ML fundamentals. We designed workshops where kids understand neural networks through play.
-                </p>
-                <p>
-                  Today, we've reached over 10,000 young learners across 15 African countries. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
-                </p>
-                <p>
-                  Our mission: make every African child AI-literate, not just a technology consumer. Because the next breakthrough in artificial intelligence could come from a 12-year-old in Accra, Nairobi, or Kigali—if they understand how AI actually works.
-                </p>
+                <SpeechBubble direction="left" delay={0.2}>
+                  <p>
+                    Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
+                  </p>
+                </SpeechBubble>
+                
+                <SpeechBubble direction="right" delay={0.4}>
+                  <p>
+                    Our founder saw that children across Africa were fascinated by AI but had few opportunities to truly understand it. Not just use AI tools, but grasp how data drives decisions, how algorithms learn, and how machine learning powers creativity.
+                  </p>
+                </SpeechBubble>
+                
+                <SpeechBubble direction="left" delay={0.6}>
+                  <p>
+                    We quickly learned that traditional tech education wasn't working—it was too focused on hardware, too intimidating. So we reimagined it. We created comic books featuring African child protagonists exploring AI concepts. We gamified our platform around ML fundamentals. We designed workshops where kids understand neural networks through play.
+                  </p>
+                </SpeechBubble>
+                
+                <SpeechBubble direction="right" delay={0.8}>
+                  <p>
+                    Today, we've reached over 10,000 young learners across 15 African countries. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
+                  </p>
+                </SpeechBubble>
+                
+                <div className="flex justify-center pt-4">
+                  <ActionBurst color="primary" className="text-lg">
+                    THE FUTURE IS AI!
+                  </ActionBurst>
+                </div>
               </div>
-            </Card>
+            </ComicPanel>
           </div>
 
           {/* Our Values */}
           <div ref={valuesRef}>
-            <h2 className={`text-4xl font-orbitron font-bold mb-12 text-center transition-all duration-1000 ${valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              Our <span className="gradient-text">Values</span>
-            </h2>
+            <div className="flex items-center justify-center gap-4 mb-12">
+              <RobotMascot type="cool" size="sm" />
+              <h2 className={`text-4xl font-fredoka font-bold transition-all duration-1000 ${valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                Our <span className="gradient-text">Values</span>
+              </h2>
+              <RobotMascot type="happy" size="sm" />
+            </div>
+            
             <div className="grid md:grid-cols-2 gap-8">
               {values.map((value, idx) => {
                 const Icon = value.icon;
                 return (
-                  <Card 
-                    key={idx} 
-                    className={`p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 group hover:border-primary/40 transition-all duration-700 ${
-                      valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                    }`}
-                    style={{ transitionDelay: `${idx * 150}ms` }}
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 30, rotate: idx % 2 === 0 ? -3 : 3 }}
+                    animate={valuesVisible ? { opacity: 1, y: 0, rotate: 0 } : {}}
+                    transition={{ duration: 0.6, delay: idx * 0.15 }}
                   >
-                    <div className={`w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                      <Icon className="w-8 h-8 text-foreground" />
-                    </div>
-                    <h3 className="text-2xl font-orbitron font-bold mb-4 text-foreground">
-                      {value.title}
-                    </h3>
-                    <p className="text-muted-foreground font-space leading-relaxed">
-                      {value.description}
-                    </p>
-                  </Card>
+                    <ComicPanel className="p-8 h-full group hover:scale-[1.02] transition-transform">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-16 h-16 flex-shrink-0 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 border-3 border-foreground`}>
+                          <Icon className="w-8 h-8 text-foreground" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-fredoka font-bold mb-2 text-foreground">
+                            {value.title}
+                          </h3>
+                          <p className="text-muted-foreground font-space leading-relaxed">
+                            {value.description}
+                          </p>
+                        </div>
+                        <RobotMascot type={value.mascot} size="sm" className="hidden md:block" />
+                      </div>
+                    </ComicPanel>
+                  </motion.div>
                 );
               })}
             </div>

@@ -4,11 +4,14 @@ import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
 import { SignupModal } from "@/components/SignupModal";
 import { SocialProof } from "@/components/SocialProof";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, ImageIcon } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { motion } from "framer-motion";
+import { ComicPanel } from "@/components/ComicPanel";
+import { RobotMascot } from "@/components/RobotMascot";
+import { SpeechBubble } from "@/components/SpeechBubble";
+import { ActionBurst } from "@/components/ActionBurst";
 
 const ProgramsPage = () => {
   usePageTracking('/programs');
@@ -45,6 +48,7 @@ const ProgramsPage = () => {
         "Week 7-8: AI & Machine Learning Basics",
         "Week 9-10: Final Project & Showcase",
       ],
+      mascot: "happy" as const,
     },
     techcamp: {
       features: [
@@ -62,6 +66,7 @@ const ProgramsPage = () => {
         "Week 4: AI & Creative Coding",
         "Week 5: Final Tech Challenge & Exhibition",
       ],
+      mascot: "excited" as const,
     },
     techfair: {
       features: [
@@ -79,6 +84,7 @@ const ProgramsPage = () => {
         "1pm-3pm: Competitions & Challenges",
         "3pm-5pm: Awards & Closing Ceremony",
       ],
+      mascot: "cool" as const,
     },
   };
 
@@ -86,34 +92,44 @@ const ProgramsPage = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Programs Hero Image Placeholder */}
-      <div className="w-full h-64 md:h-96 bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center border-b border-primary/20">
-        <div className="text-center">
-          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground/60 font-space">Programs Showcase Placeholder</p>
+      {/* Programs Hero with Comic Style */}
+      <div className="w-full py-16 halftone-bg border-b-4 border-foreground relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center text-center">
+            <ActionBurst color="accent" className="mb-4 text-2xl">
+              LEARN & BUILD!
+            </ActionBurst>
+            <div className="flex items-center gap-4 mb-4">
+              <RobotMascot type="excited" size="lg" />
+            </div>
+            <SpeechBubble direction="up" className="max-w-xl">
+              <p className="text-lg font-space">
+                Discover amazing programs designed just for young tech explorers like you!
+              </p>
+            </SpeechBubble>
+          </div>
         </div>
       </div>
       
-      <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <section ref={sectionRef} className="py-16 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 halftone-bg opacity-20" />
         
         <div className="container mx-auto px-4 relative z-10">
           <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <h1 className="text-5xl md:text-7xl font-orbitron font-bold mb-6">
+            <h1 className="text-5xl md:text-7xl font-fredoka font-bold mb-6">
               Our <span className="gradient-text">Programs</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
-              A comprehensive ecosystem of tech education designed to inspire and empower the next generation
-            </p>
+            <SpeechBubble direction="up" className="max-w-3xl mx-auto">
+              <p className="text-xl font-space leading-relaxed">
+                A comprehensive ecosystem of tech education designed to inspire and empower the next generation
+              </p>
+            </SpeechBubble>
           </div>
 
           {/* Social Proof Stats */}
           <div className={`transition-all duration-1000 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <SocialProof />
           </div>
-
 
           {/* All Programs Overview */}
           <div className={`transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -122,18 +138,22 @@ const ProgramsPage = () => {
 
           {/* Detailed Program Information */}
           <div className={`mt-24 transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <h2 className="text-4xl font-orbitron font-bold mb-12 text-center">
-              Program <span className="gradient-text">Details</span>
-            </h2>
+            <div className="flex items-center justify-center gap-4 mb-12">
+              <ActionBurst color="primary">DETAILS</ActionBurst>
+              <h2 className="text-4xl font-fredoka font-bold">
+                Program <span className="gradient-text">Details</span>
+              </h2>
+              <ActionBurst color="secondary">INFO!</ActionBurst>
+            </div>
             
             <Tabs defaultValue="workshops" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8 max-w-2xl mx-auto">
-                <TabsTrigger value="workshops" className="font-space">Workshops</TabsTrigger>
-                <TabsTrigger value="techcamp" className="font-space">Tech Camp</TabsTrigger>
-                <TabsTrigger value="techfair" className="font-space">Tech Fair</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 mb-8 max-w-2xl mx-auto border-3 border-foreground rounded-full shadow-[4px_4px_0_hsl(var(--foreground))] p-1">
+                <TabsTrigger value="workshops" className="font-fredoka rounded-full data-[state=active]:shadow-[2px_2px_0_hsl(var(--foreground))]">Workshops</TabsTrigger>
+                <TabsTrigger value="techcamp" className="font-fredoka rounded-full data-[state=active]:shadow-[2px_2px_0_hsl(var(--foreground))]">Tech Camp</TabsTrigger>
+                <TabsTrigger value="techfair" className="font-fredoka rounded-full data-[state=active]:shadow-[2px_2px_0_hsl(var(--foreground))]">Tech Fair</TabsTrigger>
               </TabsList>
 
-              {Object.entries(programDetails).map(([key, details], tabIdx) => (
+              {Object.entries(programDetails).map(([key, details]) => (
                 <TabsContent key={key} value={key}>
                   <motion.div 
                     className="grid md:grid-cols-2 gap-8"
@@ -146,10 +166,13 @@ const ProgramsPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.6, delay: 0.2 }}
                     >
-                      <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all duration-500 h-full">
-                        <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
-                          Key Features
-                        </h3>
+                      <ComicPanel className="p-8 h-full">
+                        <div className="flex items-center gap-3 mb-6">
+                          <RobotMascot type={details.mascot} size="sm" />
+                          <h3 className="text-2xl font-fredoka font-bold gradient-text">
+                            Key Features
+                          </h3>
+                        </div>
                         <ul className="space-y-3">
                           {details.features.map((feature, idx) => (
                             <motion.li 
@@ -165,7 +188,7 @@ const ProgramsPage = () => {
                             </motion.li>
                           ))}
                         </ul>
-                      </Card>
+                      </ComicPanel>
                     </motion.div>
 
                     <motion.div
@@ -173,10 +196,13 @@ const ProgramsPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.6, delay: 0.2 }}
                     >
-                      <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 hover:border-accent/40 transition-all duration-500 h-full">
-                        <h3 className="text-2xl font-orbitron font-bold mb-6 gradient-text">
-                          {key === 'techfair' ? 'Event Schedule' : 'Curriculum Highlights'}
-                        </h3>
+                      <ComicPanel className="p-8 h-full">
+                        <div className="flex items-center gap-3 mb-6">
+                          <ActionBurst color="accent" className="text-sm">WOW!</ActionBurst>
+                          <h3 className="text-2xl font-fredoka font-bold gradient-text">
+                            {key === 'techfair' ? 'Event Schedule' : 'Curriculum Highlights'}
+                          </h3>
+                        </div>
                         <ul className="space-y-3">
                           {details.curriculum.map((item, idx) => (
                             <motion.li 
@@ -192,7 +218,7 @@ const ProgramsPage = () => {
                             </motion.li>
                           ))}
                         </ul>
-                      </Card>
+                      </ComicPanel>
                     </motion.div>
                   </motion.div>
                 </TabsContent>

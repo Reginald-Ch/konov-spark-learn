@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 
 interface RobotMascotProps {
-  type?: "happy" | "thinking" | "excited" | "teaching";
+  type?: "happy" | "thinking" | "excited" | "teaching" | "cool";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -21,14 +21,16 @@ export const RobotMascot = ({
     happy: { eyes: "^_^", mouth: "◡", antenna: "📡" },
     thinking: { eyes: "◔_◔", mouth: "〜", antenna: "💭" },
     excited: { eyes: "★_★", mouth: "◠", antenna: "⚡" },
-    teaching: { eyes: "◉_◉", mouth: "▽", antenna: "💡" }
+    teaching: { eyes: "◉_◉", mouth: "▽", antenna: "💡" },
+    cool: { eyes: "⌐■_■", mouth: "▿", antenna: "🔥" }
   };
 
   const colors = {
     happy: "from-secondary to-primary",
     thinking: "from-accent to-secondary",
     excited: "from-primary to-secondary",
-    teaching: "from-accent to-primary"
+    teaching: "from-accent to-primary",
+    cool: "from-primary to-accent"
   };
 
   const expr = expressions[type];
