@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { Target, Lightbulb, Heart, Award, ImageIcon } from "lucide-react";
+import { Target, Lightbulb, Heart, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
@@ -76,21 +76,6 @@ const About = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Team Image Placeholder with Comic Style */}
-      <div className="w-full h-64 md:h-80 halftone-bg flex items-center justify-center border-b-4 border-foreground relative overflow-hidden">
-        <div className="absolute top-4 left-4">
-          <RobotMascot type="happy" size="sm" />
-        </div>
-        <div className="absolute bottom-4 right-4">
-          <RobotMascot type="excited" size="sm" />
-        </div>
-        <ComicPanel className="p-8">
-          <div className="text-center">
-            <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/60" />
-            <p className="text-lg font-fredoka text-muted-foreground">Team Photo Coming Soon!</p>
-          </div>
-        </ComicPanel>
-      </div>
       
       {/* Hero Section */}
       <section className="py-24 md:py-32 relative overflow-hidden">

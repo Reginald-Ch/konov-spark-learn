@@ -12,80 +12,83 @@ export const RobotMascot = ({
   className = "" 
 }: RobotMascotProps) => {
   const sizeClasses = {
-    sm: "w-16 h-16",
-    md: "w-24 h-24",
-    lg: "w-32 h-32"
+    sm: "w-12 h-12",
+    md: "w-16 h-16",
+    lg: "w-24 h-24"
   };
 
-  const expressions = {
-    happy: { eyes: "^_^", mouth: "◡", antenna: "📡" },
-    thinking: { eyes: "◔_◔", mouth: "〜", antenna: "💭" },
-    excited: { eyes: "★_★", mouth: "◠", antenna: "⚡" },
-    teaching: { eyes: "◉_◉", mouth: "▽", antenna: "💡" },
-    cool: { eyes: "⌐■_■", mouth: "▿", antenna: "🔥" }
+  const emojiFaces = {
+    happy: "😊",
+    thinking: "🤔",
+    excited: "🤩",
+    teaching: "🧠",
+    cool: "😎"
   };
 
-  const colors = {
-    happy: "from-secondary to-primary",
-    thinking: "from-accent to-secondary",
-    excited: "from-primary to-secondary",
-    teaching: "from-accent to-primary",
-    cool: "from-primary to-accent"
+  const bgColors = {
+    happy: "from-secondary via-primary to-accent",
+    thinking: "from-accent via-secondary to-primary",
+    excited: "from-primary via-secondary to-accent",
+    teaching: "from-accent via-primary to-secondary",
+    cool: "from-primary via-accent to-secondary"
   };
 
-  const expr = expressions[type];
+  const emojiSizes = {
+    sm: "text-2xl",
+    md: "text-3xl",
+    lg: "text-5xl"
+  };
 
   return (
     <motion.div
       className={`${sizeClasses[size]} ${className}`}
       animate={{ 
-        y: [0, -8, 0],
+        y: [0, -6, 0],
+        rotate: [0, 3, -3, 0],
       }}
       transition={{ 
-        duration: 2,
+        duration: 2.5,
         repeat: Infinity,
         ease: "easeInOut"
       }}
     >
-      <div className={`relative w-full h-full bg-gradient-to-br ${colors[type]} rounded-2xl border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]`}>
-        {/* Antenna */}
-        <motion.div 
-          className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl"
-          animate={{ rotate: [-10, 10, -10] }}
-          transition={{ duration: 1, repeat: Infinity }}
+      <motion.div 
+        className={`relative w-full h-full bg-gradient-to-br ${bgColors[type]} rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] flex items-center justify-center overflow-hidden`}
+        whileHover={{ scale: 1.15, rotate: 10 }}
+        transition={{ type: "spring", stiffness: 400 }}
+      >
+        {/* Sparkle effects */}
+        <motion.div
+          className="absolute top-1 right-1 text-xs"
+          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
         >
-          {expr.antenna}
+          ✨
         </motion.div>
-        
-        {/* Face */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {/* Eyes */}
-          <motion.div 
-            className="text-foreground font-bold text-xl md:text-2xl font-fredoka"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            {expr.eyes}
-          </motion.div>
-          
-          {/* Mouth */}
-          <div className="text-foreground text-lg mt-1">
-            {expr.mouth}
-          </div>
-        </div>
+        <motion.div
+          className="absolute bottom-1 left-1 text-xs"
+          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity, delay: 0.7 }}
+        >
+          ⭐
+        </motion.div>
 
-        {/* Blinking lights */}
+        {/* Emoji face */}
+        <motion.span 
+          className={`${emojiSizes[size]} select-none`}
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          {emojiFaces[type]}
+        </motion.span>
+
+        {/* Glow ring */}
         <motion.div
-          className="absolute top-2 right-2 w-2 h-2 rounded-full bg-foreground"
-          animate={{ opacity: [1, 0.3, 1] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
+          className="absolute inset-0 rounded-full border-2 border-white/30"
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
         />
-        <motion.div
-          className="absolute top-2 left-2 w-2 h-2 rounded-full bg-foreground"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-      </div>
+      </motion.div>
     </motion.div>
   );
 };
