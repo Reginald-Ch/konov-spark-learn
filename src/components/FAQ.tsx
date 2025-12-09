@@ -9,48 +9,57 @@ export const FAQ = () => {
   const faqs = [
      {
       question: "What is Konov Artechtist?",
-      answer: "Konov Artechtist, is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners.. We make tech education fun, creative, and easy to grasp.
-"
+      answer: "Konov Artechtist, is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners.. We make tech education fun, creative, and easy to grasp."
     },
+    
      {
       question: "Why should kids learn AI and Machine Learning?",
       answer: "AI is shaping the future of every industry. When kids understand how intelligent systems work, they become creators — not just consumers — of technology. Early exposure builds problem-solving, critical thinking, creativity, and confidence in the digital world."
     },
+    
     {
       question: "What age groups do you cater to?",
       answer: "We offer programs for ages 6-18, with content specifically designed for different developmental stages. Our AI Explorers (7-10), Young Builders (11-14), and Tech Ambassadors (15-18) programs ensure age-appropriate learning experiences."
     },
+    
     {
       question: "Does my child need prior coding experience?",
       answer: "Not at all! Our programs are designed for complete beginners. We start with visual programming and gradually progress to text-based coding. Each child learns at their own pace with support from our instructors."
     },
+    
     {
       question: "What equipment or materials do we need?",
       answer: "For workshops, we provide all materials and kits during sessions expect laptops.Your child would need a computer or tablet."
     },
+    
     {
       question: "How are workshops structured?",
       answer: "Workshops run every Saturday in 2-hour sessions. Each session includes hands-on building, challenges, and a project showcase. Classes are small (12-15 students) to ensure personalized attention."
     },
+    
     {
       question: "Can schools integrate your curriculum?",
       answer: "Yes! Our School Programs include complete curriculum packages,KONOV facilitators or  teacher training, and ongoing support."
     },
+    
     {
       question: "How do I track my child's progress?",
       answer: "Our EdTech platform includes a parent dashboard showing completed courses, projects built, skills mastered, and time spent learning. "
     },
+    
     {
       question: "What do kids actually learn?",
       answer: "Kids learn how intelligent systems think, how to program and build simple AI systems and apps, and how data is collected, labelled, and used to make decisions. They explore how algorithms make predictions, train their own beginner-friendly AI models, and unleash creativity by using AI to create stories, images, and projects. Along the way, they also learn about AI ethics, responsible use, and how to apply problem-solving skills to real-world challenges."
     },
+    
     {
       question: "What is included in your workshops?",
       answer: "Our workshops offer rich AI and Machine Learning lessons, beginner-friendly programming, and hands-on projects that help kids build real skills and confidence. Participants also enjoy snacks and refreshments to keep them energized, receive a proudly earned certificate of participation.Each session includes interactive challenges and a practical mini-project, ensuring every child leaves with new knowledge, improved problem-solving skills, and a fun, meaningful learning experience."
     },
+    
     {
       question: "What is included in your workshops?",
-      answer: "It is a  learning platform that teaches African children real Artificial Intelligence and Machine Learning through simple coding, hands-on model training, and culturally relevant storytelling. Unlike typical programs that focus only on robotics or basic coding, it empowers kids to build real AI systems — including chatbots, image classifiers, and audio models. Learners start with Chatie, an easy English-like coding tool, progress to Python with ChatterBot, and eventually explore our ML Studio to train real machine learning models directly in their browser.."
+      answer: "It is a  learning platform that teaches African children real Artificial Intelligence and Machine Learning through simple coding, hands-on model training, and culturally relevant storytelling. Unlike typical programs that focus only on robotics or basic coding, it empowers kids to build real AI systems — including chatbots, image classifiers, and audio models. Learners start with Chatie, an easy English-like coding tool, progress to Python with ChatterBot, and eventually explore our ML Studio to train real machine learning models directly in their browser."
     },
   ];
 
