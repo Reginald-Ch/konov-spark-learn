@@ -16,7 +16,7 @@ const timelineEvents = [
     icon: Palette,
     title: "Tech Comics",
     description: "Adventure-packed comics that transform complex AI concepts into exciting stories.",
-    age: "Ages 5-16",
+    age: "All ages",
     color: "secondary" as const,
   },
   {
