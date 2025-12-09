@@ -7,6 +7,15 @@ import { SpeechBubble } from "./SpeechBubble";
 
 export const FAQ = () => {
   const faqs = [
+     {
+      question: "What is Konov Artechtist?",
+      answer: "Konov Artechtist, is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners.. We make tech education fun, creative, and easy to grasp.
+"
+    },
+     {
+      question: "Why should kids learn AI and Machine Learning?",
+      answer: "AI is shaping the future of every industry. When kids understand how intelligent systems work, they become creators — not just consumers — of technology. Early exposure builds problem-solving, critical thinking, creativity, and confidence in the digital world."
+    },
     {
       question: "What age groups do you cater to?",
       answer: "We offer programs for ages 6-18, with content specifically designed for different developmental stages. Our AI Explorers (7-10), Young Builders (11-14), and Tech Ambassadors (15-18) programs ensure age-appropriate learning experiences."
@@ -17,27 +26,27 @@ export const FAQ = () => {
     },
     {
       question: "What equipment or materials do we need?",
-      answer: "For workshops, we provide all materials and kits during sessions. For our EdTech platform, you'll need a computer or tablet with internet access. We offer take-home kits for continued learning at an additional cost."
+      answer: "For workshops, we provide all materials and kits during sessions expect laptops.Your child would need a computer or tablet."
     },
     {
       question: "How are workshops structured?",
-      answer: "Workshops run every Saturday in 2-hour sessions. Each session includes hands-on building, coding challenges, and a project showcase. Classes are small (12-15 students) to ensure personalized attention."
+      answer: "Workshops run every Saturday in 2-hour sessions. Each session includes hands-on building, challenges, and a project showcase. Classes are small (12-15 students) to ensure personalized attention."
     },
     {
       question: "Can schools integrate your curriculum?",
-      answer: "Yes! Our School Programs include complete curriculum packages, teacher training, hardware kits, and ongoing support. We align with national education standards and can customize content for your school's needs."
+      answer: "Yes! Our School Programs include complete curriculum packages,KONOV facilitators or  teacher training, and ongoing support."
     },
     {
       question: "How do I track my child's progress?",
-      answer: "Our EdTech platform includes a parent dashboard showing completed courses, projects built, skills mastered, and time spent learning. You'll also receive monthly progress reports and can schedule check-ins with instructors."
+      answer: "Our EdTech platform includes a parent dashboard showing completed courses, projects built, skills mastered, and time spent learning. "
     },
     {
-      question: "What languages are your programs available in?",
-      answer: "Our materials are available in English, French, Swahili, and Hausa. Our EdTech platform's AI tutor can answer questions in any of these languages, and our comics are translated into all four."
+      question: "What do kids actually learn?",
+      answer: "Kids learn how intelligent systems think, how to program and build simple AI systems and apps, and how data is collected, labelled, and used to make decisions. They explore how algorithms make predictions, train their own beginner-friendly AI models, and unleash creativity by using AI to create stories, images, and projects. Along the way, they also learn about AI ethics, responsible use, and how to apply problem-solving skills to real-world challenges."
     },
     {
-      question: "What is your refund policy?",
-      answer: "We offer a full refund within the first two sessions if you're not satisfied. For our EdTech platform, you can try it free for 7 days before committing to a subscription."
+      question: "What is included in your workshops?",
+      answer: "Our workshops offer rich AI and Machine Learning lessons, beginner-friendly programming, and hands-on projects that help kids build real skills and confidence. Participants also enjoy snacks and refreshments to keep them energized, receive a proudly earned certificate of participation.Each session includes interactive challenges and a practical mini-project, ensuring every child leaves with new knowledge, improved problem-solving skills, and a fun, meaningful learning experience."
     },
   ];
 
