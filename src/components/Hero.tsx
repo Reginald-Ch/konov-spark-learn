@@ -54,7 +54,7 @@ export const Hero = () => {
             <ActionBurst>
               <span className="flex items-center gap-2 text-base md:text-lg">
                 <Sparkles className="w-5 h-5" />
-                Africa's First AI & ML Literacy Hub!
+                 AI & ML Literacy Hub!
               </span>
             </ActionBurst>
           </motion.div>
@@ -81,7 +81,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                Teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity—through workshops, comics, and interactive learning!
+                Empowering the next generation to understand how intelligent systems think, how data shapes decisions, and how algorithms fuel innovation — through engaging workshops, vibrant AI comics, and our immersive EdTech learning platform.
               </p>
             </SpeechBubble>
           </motion.div>
