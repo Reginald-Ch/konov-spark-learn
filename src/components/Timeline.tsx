@@ -16,14 +16,14 @@ const timelineEvents = [
     icon: Palette,
     title: "Tech Comics",
     description: "Adventure-packed comics that transform complex AI concepts into exciting stories.",
-    age: "Ages 7-13",
+    age: "Ages 5-16",
     color: "secondary" as const,
   },
   {
     icon: Laptop,
     title: "EdTech Platform",
     description: "Gamified courses with real-time progress tracking and AI-powered personalized tutoring.",
-    age: "Ages 8-16",
+    age: "Ages 6-14",
     color: "accent" as const,
   },
   {
