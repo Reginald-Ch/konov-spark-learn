@@ -96,7 +96,7 @@ const About = () => {
             </div>
             <SpeechBubble direction="up" className="max-w-3xl mx-auto">
               <p className="text-xl font-space leading-relaxed">
-                Africa's first AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity!
+                AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity!
               </p>
             </SpeechBubble>
           </div>
@@ -138,7 +138,7 @@ const About = () => {
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <SpeechBubble direction="left" delay={0.2}>
                   <p>
-                    Founded in 2019 in Lagos, Nigeria, Konov Artechtist was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
+                    Founded  in Accra, Ghan, Konov Artechtist was born from a simple observation of providing innovative and creative tech education: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
                   </p>
                 </SpeechBubble>
                 
@@ -156,7 +156,7 @@ const About = () => {
                 
                 <SpeechBubble direction="right" delay={0.8}>
                   <p>
-                    Today, we've reached over 10,000 young learners across 15 African countries. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
+                    Today, we've reached over 400 plus young learners in a year. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
                   </p>
                 </SpeechBubble>
                 
