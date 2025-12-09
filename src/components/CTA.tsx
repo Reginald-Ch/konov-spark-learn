@@ -116,7 +116,7 @@ export const CTA = () => {
                 transition={{ delay: 0.6 }}
               >
                 <p className="text-sm text-muted-foreground mb-4 font-fredoka">
-                  Trusted by educators and parents across Africa
+                  Trusted by educators and parents 
                 </p>
                 <div className="flex flex-wrap justify-center gap-6 items-center text-sm text-muted-foreground font-space">
                   {[
