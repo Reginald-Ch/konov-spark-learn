@@ -77,7 +77,7 @@ export const CTA = () => {
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
               >
-                Join 10,000+ students learning AI through fun, 
+                Join 400+ students learning AI through fun, 
                 hands-on experiences. Limited spots available for this month's workshops!
               </motion.p>
               
