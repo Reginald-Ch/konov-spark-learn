@@ -81,7 +81,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                Empowering the next generation to understand how intelligent systems think, how data shapes decisions, and how algorithms fuel innovation — through engaging workshops, vibrant AI comics, and our immersive EdTech learning platform.
+                “Teaching kids how intelligent systems think — how data drives decisions, how algorithms spark creativity — through hands-on workshops, powerful storytelling comics, and an interactive EdTech learning experience!”
               </p>
             </SpeechBubble>
           </motion.div>
