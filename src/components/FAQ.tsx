@@ -48,6 +48,10 @@ export const FAQ = () => {
       question: "What is included in your workshops?",
       answer: "Our workshops offer rich AI and Machine Learning lessons, beginner-friendly programming, and hands-on projects that help kids build real skills and confidence. Participants also enjoy snacks and refreshments to keep them energized, receive a proudly earned certificate of participation.Each session includes interactive challenges and a practical mini-project, ensuring every child leaves with new knowledge, improved problem-solving skills, and a fun, meaningful learning experience."
     },
+    {
+      question: "What is included in your workshops?",
+      answer: "It is a  learning platform that teaches African children real Artificial Intelligence and Machine Learning through simple coding, hands-on model training, and culturally relevant storytelling. Unlike typical programs that focus only on robotics or basic coding, it empowers kids to build real AI systems — including chatbots, image classifiers, and audio models. Learners start with Chatie, an easy English-like coding tool, progress to Python with ChatterBot, and eventually explore our ML Studio to train real machine learning models directly in their browser.."
+    },
   ];
 
   return (
