@@ -35,10 +35,10 @@ const About = () => {
   }, []);
 
   const stats = [
-    { value: 5000, label: "Students Reached", suffix: "+" },
-    { value: 50, label: "Schools Partnered", suffix: "+" },
-    { value: 200, label: "Workshops Delivered", suffix: "+" },
-    { value: 15, label: "Countries", suffix: "" },
+    { value: 500, label: "Students Reached", suffix: "+" },
+    { value: 15, label: "Curriculum Module", suffix: "+" },
+    { value: 17, label: "Partners", suffix: "+" },
+    { value: 20, label: "Projects", suffix: "" },
   ];
 
   const values = [
@@ -156,7 +156,7 @@ const About = () => {
                 
                 <SpeechBubble direction="right" delay={0.8}>
                   <p>
-                    Today, we've reached over 400 plus young learners in a year. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
+                    Today, we've reached over 500 plus young learners in a year. Our edge? We're fully focused on AI and ML literacy—a more scalable and future-oriented approach that doesn't require expensive hardware.
                   </p>
                 </SpeechBubble>
                 
