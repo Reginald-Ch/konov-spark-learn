@@ -139,9 +139,9 @@ export const Hero = () => {
           >
             {[
               { label: "Students Reached", value: 500, suffix: "+", desc: "since 2024" },
-              { label: "Curriculum Module", value: 15+, suffix: "+", desc: "hand on based" },
+              { label: "Curriculum Module", value: 15, suffix: "+", desc: "hand on based" },
               { label: "Partners", value: 7, suffix: "+", desc: "and growing" },
-              { label: "Projects ", value: 20+, suffix: "", desc: "presence" },
+              { label: "Projects ", value: 20, suffix: "+", desc: "presence" },
             ].map((stat, idx) => (
               <ComicPanel 
                 key={idx} 
