@@ -138,10 +138,10 @@ export const Hero = () => {
             transition={{ delay: 0.8 }}
           >
             {[
-              { label: "Students Reached", value: 10000, suffix: "+", desc: "since 2019" },
-              { label: "Workshops Delivered", value: 500, suffix: "+", desc: "across Africa" },
-              { label: "School Partners", value: 50, suffix: "+", desc: "and growing" },
-              { label: "African Countries", value: 15, suffix: "", desc: "presence" },
+              { label: "Students Reached", value: 500, suffix: "+", desc: "since 2024" },
+              { label: "Curriculum Module", value: 15+, suffix: "+", desc: "hand on based" },
+              { label: "Partners", value: 7, suffix: "+", desc: "and growing" },
+              { label: "Projects ", value: 20+, suffix: "", desc: "presence" },
             ].map((stat, idx) => (
               <ComicPanel 
                 key={idx} 
