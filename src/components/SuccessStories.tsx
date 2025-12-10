@@ -8,34 +8,34 @@ export const SuccessStories = () => {
 
   const stories = [
     {
-      name: "Chioma, Age 12",
-      location: "Lagos, Nigeria",
-      achievement: "Built PlantDoc AI",
+      name: "Damien, Age 9",
+      location: "Accra, Ghana",
+      achievement: "learnt how to train an AI ",
       icon: Lightbulb,
       color: "from-primary to-accent",
-      story: "After 6 months in our Young Builders program, Chioma created an AI app that identifies sick plants and recommends treatments. She trained it using 500+ images from her mother's garden. Her app is now used by 3 local farms.",
-      project: "Machine Learning + Mobile App",
-      quote: "I never thought I could build something that actually helps people. Now I want to study agricultural technology in university!"
+      story: "Daamien learnt about datasets , learning algorithms and prediction and applied the concept by training computer to recognize  images.",
+      project: "AI and Machine Learning",
+      quote: "The lessons are fun and easy to understand!"
     },
     {
-      name: "Kwame & Ama, Ages 10 & 11",
+      name: "Kwasi & Nana Akua, Ages 10 & 8",
       location: "Accra, Ghana",
-      achievement: "Smart Waste Sorter Robot",
+      achievement: "We know that how AI learns ",
       icon: Award,
       color: "from-accent to-secondary",
-      story: "These siblings attended our Saturday workshops for 4 months. They built a robot that uses computer vision to sort recyclables from trash. Their project won the Ghana Youth Innovation Award and was featured on national TV.",
-      project: "Robotics + Computer Vision",
-      quote: "We wanted to help our community with the waste problem. Konov taught us we could actually build the solution ourselves!"
+      story: "These siblings attended our Sworkshop. They learnt about how machines learn with patterns and  AI ethics .",
+      project: "AI vrs Robots",
+      quote: "We enjoyed the lessons and also we got to play with AI games!"
     },
     {
-      name: "Amina, Age 15",
-      location: "Nairobi, Kenya",
-      achievement: "Founded CodeQueens Club",
+      name: "Jayden, Age 8",
+      location: "Accra, Ghana",
+      achievement: "Trained my AI to classify between images and objects",
       icon: Trophy,
       color: "from-secondary to-primary",
-      story: "Amina joined as a shy beginner 2 years ago. After completing our Tech Ambassador program, she started a coding club for girls in her school. She's now teaching 40+ girls to code and has partnered with us to expand the initiative.",
-      project: "Web Development + Community Impact",
-      quote: "I learned to code, but more importantly, I learned I could be a leader. Now I'm helping other girls discover their potential."
+      story: "Jayden now as a good understand of AI fundamentals starting his journey as a AI young builder.",
+      project: "I know how AI can be bias",
+      quote: "I trained my AI with Datasets."
     },
   ];
 
