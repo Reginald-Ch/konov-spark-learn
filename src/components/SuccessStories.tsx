@@ -10,17 +10,17 @@ export const SuccessStories = () => {
     {
       name: "Damien, Age 9",
       location: "Accra, Ghana",
-      achievement: "learnt how to train an AI ",
+      achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
       color: "from-primary to-accent",
-      story: "Damien learnt about datasets , learning algorithms and prediction and applied the concept by training computer to recognize  images.",
+      story: "Damien learnt about datasets , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },
     {
       name: "Kwasi & Nana Akua, Ages 10 & 8",
       location: "Accra, Ghana",
-      achievement: "We know that how AI learns ",
+      achievement: "We know  how AI learns  and can train it with Datasets",
       icon: Award,
       color: "from-accent to-secondary",
       story: "These siblings attended our Sworkshop. They learnt about how machines learn with patterns and  AI ethics .",
