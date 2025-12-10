@@ -13,7 +13,7 @@ export const SuccessStories = () => {
       achievement: "learnt how to train an AI ",
       icon: Lightbulb,
       color: "from-primary to-accent",
-      story: "Daamien learnt about datasets , learning algorithms and prediction and applied the concept by training computer to recognize  images.",
+      story: "Damien learnt about datasets , learning algorithms and prediction and applied the concept by training computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },
