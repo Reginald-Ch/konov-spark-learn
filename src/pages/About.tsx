@@ -138,7 +138,7 @@ const About = () => {
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <SpeechBubble direction="left" delay={0.2}>
                   <p>
-                    Founded  in Accra, Ghan, Konov Artechtist was born from a simple observation of providing innovative and creative tech education: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
+                    Founded  in Accra, Ghana, Konov Artechtist was born from a simple observation of providing innovative and creative tech education: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
                   </p>
                 </SpeechBubble>
                 
