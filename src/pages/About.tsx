@@ -9,7 +9,12 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { SEO } from "@/components/SEO";
+import { SEO, createBreadcrumbSchema } from "@/components/SEO";
+
+const aboutBreadcrumb = createBreadcrumbSchema([
+  { name: "Home", url: "/" },
+  { name: "About Us", url: "/about" }
+]);
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -79,6 +84,8 @@ const About = () => {
         title="About Us - Our Story & Mission"
         description="Learn about Konov Artechtist, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
         canonical="/about"
+        keywords={["about Konov Artechtist", "AI education company Ghana", "tech startup Africa", "children education mission"]}
+        jsonLd={aboutBreadcrumb}
       />
       <Navbar />
       

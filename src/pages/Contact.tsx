@@ -15,7 +15,30 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { SEO } from "@/components/SEO";
+import { SEO, createBreadcrumbSchema } from "@/components/SEO";
+
+const contactBreadcrumb = createBreadcrumbSchema([
+  { name: "Home", url: "/" },
+  { name: "Contact", url: "/contact" }
+]);
+
+const contactPageJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  name: "Contact Konov Artechtist",
+  description: "Get in touch with Konov Artechtist for AI and ML education programs for kids in Ghana.",
+  mainEntity: {
+    "@type": "EducationalOrganization",
+    name: "Konov Artechtist",
+    email: "info@konovartechtist.com",
+    telephone: "+234 (0) 20 874 1417",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Accra",
+      addressCountry: "Ghana"
+    }
+  }
+};
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -108,6 +131,8 @@ const Contact = () => {
         title="Contact Us - Get in Touch"
         description="Contact Konov Artechtist for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
         canonical="/contact"
+        keywords={["contact Konov Artechtist", "AI education inquiry Ghana", "tech programs contact Accra"]}
+        jsonLd={[contactBreadcrumb, contactPageJsonLd]}
       />
       <Navbar />
       

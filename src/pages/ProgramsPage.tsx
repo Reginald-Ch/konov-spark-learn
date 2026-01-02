@@ -12,7 +12,33 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { SEO } from "@/components/SEO";
+import { SEO, createCourseSchema, createBreadcrumbSchema } from "@/components/SEO";
+
+// Course schemas for structured data
+const coursesJsonLd = [
+  createCourseSchema({
+    name: "AI Workshops for Kids",
+    description: "Hands-on AI and ML workshops running twice yearly for 2 months. After school and weekend schedules available with expert mentorship and demo days.",
+    ageRange: "Ages 6-14",
+    duration: "P2M"
+  }),
+  createCourseSchema({
+    name: "Summer Tech Camp",
+    description: "Full summer immersion program with full-day activities from 9am-4pm. Project-based learning with team collaboration and mentorship.",
+    ageRange: "Ages 6-14",
+    duration: "P4W"
+  }),
+  createCourseSchema({
+    name: "One-Day Tech Fair",
+    description: "Annual mega event featuring student project exhibitions, interactive tech demonstrations, coding activities, and competitions.",
+    ageRange: "Ages 6-14",
+    duration: "P1D"
+  }),
+  createBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Programs", url: "/programs" }
+  ])
+];
 
 const ProgramsPage = () => {
   usePageTracking('/programs');
@@ -97,6 +123,9 @@ const ProgramsPage = () => {
         title="Programs - AI Workshops, Tech Camps & Fairs"
         description="Explore Konov Artechtist's AI & ML programs for kids ages 6-14. Join our workshops, summer tech camps, and one-day tech fairs in Ghana."
         canonical="/programs"
+        type="course"
+        keywords={["AI workshops Ghana", "kids tech camp Accra", "coding for children", "STEM summer camp Africa"]}
+        jsonLd={coursesJsonLd}
       />
       <Navbar />
       

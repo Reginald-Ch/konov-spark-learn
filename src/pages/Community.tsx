@@ -8,7 +8,12 @@ import { SignupModal } from "@/components/SignupModal";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { ActionBurst } from "@/components/ActionBurst";
-import { SEO } from "@/components/SEO";
+import { SEO, createBreadcrumbSchema } from "@/components/SEO";
+
+const communityBreadcrumb = createBreadcrumbSchema([
+  { name: "Home", url: "/" },
+  { name: "Community", url: "/community" }
+]);
 
 const Community = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -67,6 +72,8 @@ const Community = () => {
         title="Community - Join Our Tech Learning Paths"
         description="Join Konov Artechtist's learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs."
         canonical="/community"
+        keywords={["AI learning community Ghana", "kids tech groups Accra", "children coding community Africa"]}
+        jsonLd={communityBreadcrumb}
       />
       <Navbar />
 
