@@ -15,6 +15,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
+import { SEO } from "@/components/SEO";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -103,6 +104,11 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Contact Us - Get in Touch"
+        description="Contact Konov Artechtist for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
+        canonical="/contact"
+      />
       <Navbar />
       
       {/* Hero Section with Comic Style */}

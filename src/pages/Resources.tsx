@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { SignupModal } from "@/components/SignupModal";
+import { SEO } from "@/components/SEO";
 
 const aiTopics = [
   {
@@ -120,6 +121,11 @@ const Resources = () => {
 
   return (
     <div className="min-h-screen halftone-bg">
+      <SEO 
+        title="AI Learning Resources for Kids"
+        description="Explore fun AI & ML learning resources for kids. Interactive comic panels teaching What is AI, Machine Learning, Computer Vision, and more!"
+        canonical="/resources"
+      />
       <Navbar />
       
       {/* Hero Section - Comic Style */}

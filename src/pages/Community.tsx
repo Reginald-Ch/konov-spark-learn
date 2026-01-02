@@ -8,6 +8,7 @@ import { SignupModal } from "@/components/SignupModal";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { ActionBurst } from "@/components/ActionBurst";
+import { SEO } from "@/components/SEO";
 
 const Community = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -62,6 +63,11 @@ const Community = () => {
 
   return (
     <div className="min-h-screen halftone-bg">
+      <SEO 
+        title="Community - Join Our Tech Learning Paths"
+        description="Join Konov Artechtist's learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs."
+        canonical="/community"
+      />
       <Navbar />
 
       <section className="py-16 md:py-24 relative overflow-hidden">
