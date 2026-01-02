@@ -12,6 +12,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
+import { SEO } from "@/components/SEO";
 
 const ProgramsPage = () => {
   usePageTracking('/programs');
@@ -92,6 +93,11 @@ const ProgramsPage = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Programs - AI Workshops, Tech Camps & Fairs"
+        description="Explore Konov Artechtist's AI & ML programs for kids ages 6-14. Join our workshops, summer tech camps, and one-day tech fairs in Ghana."
+        canonical="/programs"
+      />
       <Navbar />
       
       {/* Programs Hero with Comic Style */}

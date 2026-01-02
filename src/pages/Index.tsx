@@ -16,6 +16,7 @@ import { FAQ } from "@/components/FAQ";
 import { SuccessStories } from "@/components/SuccessStories";
 import { Gallery } from "@/components/Gallery";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
+import { SEO } from "@/components/SEO";
 
 const Index = () => {
   usePageTracking('/');
@@ -23,6 +24,11 @@ const Index = () => {
   
   return (
     <div className="min-h-screen relative">
+      <SEO 
+        title="Africa's First AI & ML Literacy Hub for Kids"
+        description="Making AI and emerging tech literacy accessible, engaging, and fun for Kids ages 6-14 through interactive workshops, tech camps, and tech fairs in Ghana."
+        canonical="/"
+      />
       <FloatingParticles />
       <InteractiveIcons />
       <ScrollProgress />

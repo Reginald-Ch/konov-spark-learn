@@ -9,6 +9,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
+import { SEO } from "@/components/SEO";
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -74,6 +75,11 @@ const About = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="About Us - Our Story & Mission"
+        description="Learn about Konov Artechtist, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
+        canonical="/about"
+      />
       <Navbar />
       
       
