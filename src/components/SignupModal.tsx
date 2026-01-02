@@ -89,7 +89,7 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-orbitron gradient-text">Join the Innovation</DialogTitle>
           <DialogDescription className="font-space">
