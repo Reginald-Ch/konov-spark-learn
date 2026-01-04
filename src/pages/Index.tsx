@@ -34,10 +34,10 @@ const Index = () => {
   return (
     <div className="min-h-screen relative">
       <SEO 
-        title="Africa's First AI & ML Literacy Hub for Kids"
-        description="Making AI and emerging tech literacy accessible, engaging, and fun for Kids ages 6-14 through interactive workshops, tech camps, and tech fairs in Ghana."
+        title="Empowering Young Tech Innovators"
+        description="Africa's first AI & ML literacy hub for kids. Teaching children ages 6-14 how intelligent systems think through hands-on workshops, tech camps, and tech fairs in Ghana."
         canonical="/"
-        keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "STEM programs Ghana"]}
+        keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "STEM programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
       <FloatingParticles />

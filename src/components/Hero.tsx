@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Rocket, Zap } from "lucide-react";
+import { Rocket, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
@@ -52,9 +52,8 @@ export const Hero = () => {
             className="inline-block"
           >
             <ActionBurst>
-              <span className="flex items-center gap-2 text-base md:text-lg">
-                <Sparkles className="w-5 h-5" />
-                 AI & ML Literacy Hub!
+              <span className="text-base md:text-lg font-bold">
+                Africa's First AI & ML Literacy Hub!
               </span>
             </ActionBurst>
           </motion.div>
