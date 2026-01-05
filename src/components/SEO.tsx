@@ -23,14 +23,10 @@ const organizationSchema = {
   url: SITE_URL,
   logo: `${SITE_URL}/og-image.jpg`,
   description: "Africa's First AI & ML Literacy Hub for Kids. Teaching children ages 6-14 how intelligent systems think through fun, interactive programs.",
-  foundingDate: "2024",
-  foundingLocation: {
-    "@type": "Place",
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: "Accra",
-      addressCountry: "Ghana"
-    }
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Accra",
+    addressCountry: "Ghana"
   },
   areaServed: {
     "@type": "Country",
