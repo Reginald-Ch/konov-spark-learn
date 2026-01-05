@@ -21,7 +21,16 @@ const organizationSchema = {
   name: SITE_NAME,
   alternateName: "Konov Artechtist AI Hub",
   url: SITE_URL,
-  logo: `${SITE_URL}/og-image.jpg`,
+  logo: {
+    "@type": "ImageObject",
+    "@id": `${SITE_URL}/#logo`,
+    url: `${SITE_URL}/favicon.png`,
+    contentUrl: `${SITE_URL}/favicon.png`,
+    width: 512,
+    height: 512,
+    caption: SITE_NAME
+  },
+  image: `${SITE_URL}/og-image.jpg`,
   description: "Africa's First AI & ML Literacy Hub for Kids. Teaching children ages 6-14 how intelligent systems think through fun, interactive programs.",
   address: {
     "@type": "PostalAddress",
