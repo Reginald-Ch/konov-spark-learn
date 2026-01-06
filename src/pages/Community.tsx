@@ -28,10 +28,13 @@ const Community = () => {
       color: "primary" as const,
       mascot: "happy" as const,
       features: [
-        "Introduction to AI and ML Literacy",
-        " ",
-        "Creative Digital Storytelling",
-        "AI vrs Robots",
+        "Artificial Intelligence foundation",
+        "How AI Makes decisions",
+        "Train your first AI model to recognize patterns",
+        "Develop AI apps and tools using coding and rule base logic",
+        "AI and Robotics",
+        "Project building",
+
       ],
     },
     {
@@ -44,8 +47,7 @@ const Community = () => {
       features: [
         "Introduction to AI and ML",
         "Train and test real AI and machine learning models",
-        "Develop AI apps and tools using coding and rule base logics,
-        "AI and coding ",
+        "Create AI-powered projects like chatbots and smart games",
         "AI Ethics and Bias",
         "Project building",
       ],
