@@ -32,7 +32,7 @@ const Community = () => {
         "How AI Makes decisions",
         "Train your first AI model to recognize patterns",
         "Develop AI apps and tools using coding and rule base logic",
-        "AI and Robotics",
+        "Creative AI",
         "Project building",
 
       ],
@@ -64,6 +64,7 @@ const Community = () => {
         "Train and test real AI and machine learning models",
         "Machine learning ",
         "Responsible AI and ethics",
+        "Generative AI",
         "Develop AI apps and tools using  Python programming ",
         "Project building ",
 
