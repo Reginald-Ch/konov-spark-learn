@@ -15,6 +15,7 @@ import { SocialProof } from "@/components/SocialProof";
 import { FAQ } from "@/components/FAQ";
 import { SuccessStories } from "@/components/SuccessStories";
 import { Gallery } from "@/components/Gallery";
+import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { SEO, createFAQSchema } from "@/components/SEO";
 
@@ -46,6 +47,7 @@ const Index = () => {
       <AIMascot />
       <Navbar />
       <Hero />
+      <BookFreeTrial />
       <SocialProof />
       <Mission />
       <Values />

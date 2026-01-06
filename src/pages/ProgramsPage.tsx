@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
 import { SignupModal } from "@/components/SignupModal";
 import { SocialProof } from "@/components/SocialProof";
+import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2 } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
@@ -264,6 +265,8 @@ const ProgramsPage = () => {
           </div>
         </div>
       </section>
+
+      <BookFreeTrial />
 
       <SignupModal open={showSignupModal} onOpenChange={setShowSignupModal} source={`program_${selectedProgram}`} />
       <Footer />

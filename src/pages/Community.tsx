@@ -8,6 +8,7 @@ import { SignupModal } from "@/components/SignupModal";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { ActionBurst } from "@/components/ActionBurst";
+import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { SEO, createBreadcrumbSchema } from "@/components/SEO";
 
 const communityBreadcrumb = createBreadcrumbSchema([
@@ -172,6 +173,8 @@ const Community = () => {
           </motion.div>
         </div>
       </section>
+
+      <BookFreeTrial />
 
       <SignupModal open={showSignup} onOpenChange={setShowSignup} />
       <Footer />
