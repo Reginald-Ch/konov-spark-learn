@@ -8,7 +8,6 @@ import { SignupModal } from "@/components/SignupModal";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { ActionBurst } from "@/components/ActionBurst";
-import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { SEO, createBreadcrumbSchema } from "@/components/SEO";
 
 const communityBreadcrumb = createBreadcrumbSchema([
@@ -29,8 +28,8 @@ const Community = () => {
       color: "primary" as const,
       mascot: "happy" as const,
       features: [
-        "Introduction to AI and ML Basics",
-        "Visual Programming ",
+        "Introduction to AI and ML Literacy",
+        " ",
         "Creative Digital Storytelling",
         "AI vrs Robots",
       ],
@@ -44,11 +43,11 @@ const Community = () => {
       mascot: "thinking" as const,
       features: [
         "Introduction to AI and ML",
-        "AI vrs Robots",
-        "Data and Prediction",
-        "Coding and Python Programming",
+        "Train and test real AI and machine learning models",
+        "Develop AI apps and tools using coding and rule base logics,
+        "AI and coding ",
         "AI Ethics and Bias",
-        "AI Models",
+        "Project building",
       ],
     },
     {
@@ -59,10 +58,14 @@ const Community = () => {
       color: "accent" as const,
       mascot: "excited" as const,
       features: [
-        "Advanced AI ",
-        "Research ",
-        "AI app buiding",
-        "Design thinking",
+        "Advance AI and ML literacy ",
+        "Train and test real AI and machine learning models",
+        "Machine learning ",
+        "Responsible AI and ethics",
+        "Develop AI apps and tools using  Python programming ",
+        "Project building ",
+
+
       ],
     },
   ];
@@ -173,8 +176,6 @@ const Community = () => {
           </motion.div>
         </div>
       </section>
-
-      <BookFreeTrial />
 
       <SignupModal open={showSignup} onOpenChange={setShowSignup} />
       <Footer />
