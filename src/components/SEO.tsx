@@ -55,7 +55,7 @@ const organizationSchema = {
   }
 };
 
-// Website structured data
+// Website structured data with sitelinks search box
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -66,11 +66,52 @@ const websiteSchema = {
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/search?q={search_term_string}`,
-    "query-input": "required name=search_term_string"
-  }
+  inLanguage: "en"
+};
+
+// Site Navigation Element - helps Google show sitelinks
+const siteNavigationSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": `${SITE_URL}/#navigation`,
+  name: "Main Navigation",
+  itemListElement: [
+    {
+      "@type": "SiteNavigationElement",
+      position: 1,
+      name: "Programs",
+      description: "AI & ML workshops, tech camps, and tech fairs for kids ages 6-14",
+      url: `${SITE_URL}/programs`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 2,
+      name: "About Us",
+      description: "Learn about Konov Artechtist's mission to empower young tech innovators in Africa",
+      url: `${SITE_URL}/about`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 3,
+      name: "Community",
+      description: "Join our community of young innovators and tech-savvy kids in Ghana",
+      url: `${SITE_URL}/community`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 4,
+      name: "Resources",
+      description: "Free AI & ML learning resources for kids and parents",
+      url: `${SITE_URL}/resources`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 5,
+      name: "Contact",
+      description: "Get in touch with Konov Artechtist for programs and partnerships",
+      url: `${SITE_URL}/contact`
+    }
+  ]
 };
 
 export const SEO = ({ 
@@ -98,7 +139,7 @@ export const SEO = ({
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   
   // Combine all JSON-LD schemas
-  const schemas: Record<string, unknown>[] = [organizationSchema, websiteSchema];
+  const schemas: Record<string, unknown>[] = [organizationSchema, websiteSchema, siteNavigationSchema];
   if (jsonLd) {
     if (Array.isArray(jsonLd)) {
       schemas.push(...jsonLd);
