@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { analytics } from "@/hooks/useAnalytics";
+import { format } from "date-fns";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -23,9 +24,10 @@ interface SignupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   source?: string;
+  prefilledDate?: Date;
 }
 
-export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModalProps) => {
+export const SignupModal = ({ open, onOpenChange, source = "modal", prefilledDate }: SignupModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -34,6 +36,18 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
     programInterest: "",
     message: "",
   });
+
+  // Pre-fill message with date if provided
+  useEffect(() => {
+    if (prefilledDate && open) {
+      const dateStr = format(prefilledDate, "EEEE, MMMM d, yyyy");
+      const bookingType = source === "school_demo" ? "School Demo" : "Free Trial";
+      setFormData(prev => ({
+        ...prev,
+        message: `Preferred date for ${bookingType}: ${dateStr}`,
+      }));
+    }
+  }, [prefilledDate, source, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,20 +101,43 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
     }
   };
 
+  const isSchoolDemo = source === "school_demo";
+  const isFreeTrial = source === "free_trial";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-orbitron gradient-text">Join the Innovation</DialogTitle>
+          <DialogTitle className="text-2xl font-orbitron gradient-text">
+            {isSchoolDemo ? "Book School Demo" : isFreeTrial ? "Book Free Trial" : "Join the Innovation"}
+          </DialogTitle>
           <DialogDescription className="font-space">
-            Fill in your details and we'll get you started on your AI learning journey!
+            {isSchoolDemo 
+              ? "Fill in your details to schedule a demo for your school or class!"
+              : isFreeTrial
+              ? "Fill in your details to book your free trial session!"
+              : "Fill in your details and we'll get you started on your AI learning journey!"
+            }
           </DialogDescription>
         </DialogHeader>
+
+        {/* Show selected date if provided */}
+        {prefilledDate && (
+          <div className="bg-primary/10 rounded-lg p-3 flex items-center gap-3 border border-primary/20">
+            <CalendarIcon className="w-5 h-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-primary">Selected Date</p>
+              <p className="text-sm text-muted-foreground">{format(prefilledDate, "EEEE, MMMM d, yyyy")}</p>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">{isSchoolDemo ? "Contact Name *" : "Name *"}</Label>
             <Input
               id="name"
+              placeholder={isSchoolDemo ? "Your name" : "Child's name or parent name"}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -112,6 +149,7 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
             <Input
               id="email"
               type="email"
+              placeholder={isSchoolDemo ? "school@example.com" : "parent@example.com"}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
@@ -119,12 +157,14 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (optional)</Label>
+            <Label htmlFor="phone">Phone {isSchoolDemo ? "*" : "(optional)"}</Label>
             <Input
               id="phone"
               type="tel"
+              placeholder="+233 XX XXX XXXX"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required={isSchoolDemo}
               disabled={isLoading}
             />
           </div>
@@ -142,13 +182,20 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
                 <SelectItem value="workshops">Workshops</SelectItem>
                 <SelectItem value="tech_camp">Tech Camp</SelectItem>
                 <SelectItem value="tech_fair">Tech Fair</SelectItem>
+                {isSchoolDemo && <SelectItem value="school_program">School Program</SelectItem>}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="message">Message (optional)</Label>
+            <Label htmlFor="message">
+              {isSchoolDemo ? "Additional Information" : "Message"} (optional)
+            </Label>
             <Textarea
               id="message"
+              placeholder={isSchoolDemo 
+                ? "School name, class size, preferred time, etc."
+                : "Any questions or special requirements?"
+              }
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               rows={3}
@@ -162,7 +209,7 @@ export const SignupModal = ({ open, onOpenChange, source = "modal" }: SignupModa
                 Submitting...
               </>
             ) : (
-              "Sign Up Now"
+              isSchoolDemo ? "Request School Demo" : isFreeTrial ? "Book Free Trial" : "Sign Up Now"
             )}
           </Button>
         </form>
