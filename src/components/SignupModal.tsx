@@ -15,8 +15,10 @@ import { format } from "date-fns";
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
-  phone: z.string().optional(),
+  phone: z.string().min(10, "Please enter a valid phone number"),
   programInterest: z.string().min(1, "Please select a program"),
+  childAge: z.string().optional(),
+  schoolName: z.string().optional(),
   message: z.string().optional(),
 });
 
@@ -34,6 +36,8 @@ export const SignupModal = ({ open, onOpenChange, source = "modal", prefilledDat
     email: "",
     phone: "",
     programInterest: "",
+    childAge: "",
+    schoolName: "",
     message: "",
   });
 
@@ -82,6 +86,8 @@ export const SignupModal = ({ open, onOpenChange, source = "modal", prefilledDat
         email: "",
         phone: "",
         programInterest: "",
+        childAge: "",
+        schoolName: "",
         message: "",
       });
       onOpenChange(false);
@@ -109,14 +115,14 @@ export const SignupModal = ({ open, onOpenChange, source = "modal", prefilledDat
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-orbitron gradient-text">
-            {isSchoolDemo ? "Book School Demo" : isFreeTrial ? "Book Free Trial" : "Join the Innovation"}
+            {isSchoolDemo ? "Book School Demo" : isFreeTrial ? "Book Free Trial" : "Application Form"}
           </DialogTitle>
           <DialogDescription className="font-space">
             {isSchoolDemo 
               ? "Fill in your details to schedule a demo for your school or class!"
               : isFreeTrial
               ? "Fill in your details to book your free trial session!"
-              : "Fill in your details and we'll get you started on your AI learning journey!"
+              : "Complete this application to join our AI learning community!"
             }
           </DialogDescription>
         </DialogHeader>
@@ -157,17 +163,48 @@ export const SignupModal = ({ open, onOpenChange, source = "modal", prefilledDat
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone {isSchoolDemo ? "*" : "(optional)"}</Label>
+            <Label htmlFor="phone">Phone *</Label>
             <Input
               id="phone"
               type="tel"
               placeholder="+233 XX XXX XXXX"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required={isSchoolDemo}
+              required
               disabled={isLoading}
             />
           </div>
+          {!isSchoolDemo && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="childAge">Child's Age *</Label>
+                <Select
+                  value={formData.childAge}
+                  onValueChange={(value) => setFormData({ ...formData, childAge: value })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select age" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 9 }, (_, i) => i + 6).map(age => (
+                      <SelectItem key={age} value={age.toString()}>{age} years</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schoolName">School Name</Label>
+                <Input
+                  id="schoolName"
+                  placeholder="Child's school"
+                  value={formData.schoolName}
+                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="programInterest">Program Interest *</Label>
             <Select
