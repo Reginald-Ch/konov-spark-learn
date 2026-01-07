@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Brain, Sparkles, Users, Rocket, Zap, Trophy } from "lucide-react";
+import { Brain, CheckCircle2, Users, Rocket, Zap, Trophy } from "lucide-react";
 import { SignupModal } from "@/components/SignupModal";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
@@ -140,7 +140,7 @@ const Community = () => {
                     <ul className="space-y-2 mb-6">
                       {category.features.map((feature, fIdx) => (
                         <li key={fIdx} className="flex items-start gap-2 text-sm font-space text-muted-foreground">
-                          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                           {feature}
                         </li>
                       ))}
