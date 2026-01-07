@@ -1,4 +1,4 @@
-import { Brain, Cpu, Zap, Code, Sparkles, Rocket } from "lucide-react";
+import { Brain, Cpu, Zap, Code, Lightbulb, Rocket } from "lucide-react";
 
 export const InteractiveIcons = () => {
   const icons = [
@@ -6,7 +6,7 @@ export const InteractiveIcons = () => {
     { Icon: Cpu, position: "top-40 right-[15%]", delay: "0.5s", color: "text-accent" },
     { Icon: Zap, position: "top-[60%] left-[5%]", delay: "1s", color: "text-secondary" },
     { Icon: Code, position: "top-[70%] right-[8%]", delay: "1.5s", color: "text-primary" },
-    { Icon: Sparkles, position: "top-[30%] right-[25%]", delay: "2s", color: "text-accent" },
+    { Icon: Lightbulb, position: "top-[30%] right-[25%]", delay: "2s", color: "text-accent" },
     { Icon: Rocket, position: "top-[50%] left-[20%]", delay: "2.5s", color: "text-secondary" },
   ];
 

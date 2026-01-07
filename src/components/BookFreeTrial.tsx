@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Clock, Users, Sparkles, Gift, ArrowRight, School, GraduationCap, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Users, CheckCircle2, Gift, ArrowRight, School, GraduationCap } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -158,7 +158,7 @@ export const BookFreeTrial = () => {
                     </div>
 
                     <p className="text-sm text-muted-foreground font-space">
-                      <Sparkles className="w-4 h-4 inline mr-1" />
+                      <CheckCircle2 className="w-4 h-4 inline mr-1" />
                       Limited spots available each week
                     </p>
                   </div>

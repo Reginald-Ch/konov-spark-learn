@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
   Brain, Sparkles, Lightbulb, Zap, Target, 
-  Rocket, Star, Heart, Code, Bot, 
+  Rocket, CheckCircle2, Heart, Code, Bot, 
   Database, Cpu, Eye, MessageSquare, 
   Gamepad2, Music, Camera, BookOpen,
   ChevronRight, Play
@@ -135,7 +135,7 @@ const whyLearnAI = [
     description: "Build games, apps, robots, and things we haven't even imagined yet!"
   },
   {
-    icon: Star,
+    icon: CheckCircle2,
     title: "Be a Creator, Not Just User",
     description: "Don't just use AI - learn to build and shape it!"
   }
@@ -371,7 +371,7 @@ const Resources = () => {
                           <ul className="mt-2 space-y-1">
                             {topic.activities.map((activity, aIdx) => (
                               <li key={aIdx} className="flex items-center gap-2 text-sm font-space text-foreground">
-                                <Star className="w-4 h-4 text-secondary" />
+                                <CheckCircle2 className="w-4 h-4 text-secondary" />
                                 {activity}
                               </li>
                             ))}

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Users, Clock, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Users, Clock, CheckCircle2, Zap } from "lucide-react";
 import { useState } from "react";
 import { SignupModal } from "./SignupModal";
 import { analytics } from "@/hooks/useAnalytics";
@@ -128,7 +128,7 @@ export const ProgramCard = ({
                 className="absolute top-4 right-4"
               >
                 <Badge className="bg-card/90 backdrop-blur-sm text-foreground border border-primary/30 text-xs px-2 py-0.5">
-                  <Sparkles className="w-2.5 h-2.5 mr-1" />
+                  <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
                   {ageGroup}
                 </Badge>
               </motion.div>
@@ -257,7 +257,7 @@ export const ProgramCard = ({
             }}
             transition={{ duration: 0.8 }}
           >
-            <Sparkles className={`w-6 h-6 text-secondary`} />
+            <CheckCircle2 className={`w-6 h-6 text-secondary`} />
           </motion.div>
         </Card>
       </motion.div>
