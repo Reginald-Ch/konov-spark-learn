@@ -24,8 +24,8 @@ const organizationSchema = {
   logo: {
     "@type": "ImageObject",
     "@id": `${SITE_URL}/#logo`,
-    url: `${SITE_URL}/favicon.png`,
-    contentUrl: `${SITE_URL}/favicon.png`,
+    url: `${SITE_URL}/favicon.jpg`,
+    contentUrl: `${SITE_URL}/favicon.jpg`,
     width: 512,
     height: 512,
     caption: SITE_NAME
