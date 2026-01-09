@@ -47,6 +47,212 @@ export type Database = {
         }
         Relationships: []
       }
+      hackathon_registrations: {
+        Row: {
+          created_at: string
+          experience_level: string | null
+          hackathon_id: string
+          id: string
+          looking_for_team: boolean
+          participant_email: string
+          participant_name: string
+          participant_phone: string | null
+          skills: string | null
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          experience_level?: string | null
+          hackathon_id: string
+          id?: string
+          looking_for_team?: boolean
+          participant_email: string
+          participant_name: string
+          participant_phone?: string | null
+          skills?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          experience_level?: string | null
+          hackathon_id?: string
+          id?: string
+          looking_for_team?: boolean
+          participant_email?: string
+          participant_name?: string
+          participant_phone?: string | null
+          skills?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_registrations_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hackathon_registrations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hackathon_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hackathon_submissions: {
+        Row: {
+          demo_url: string | null
+          description: string
+          hackathon_id: string
+          id: string
+          project_name: string
+          repo_url: string | null
+          submitted_at: string
+          team_id: string
+          technologies: string | null
+          video_url: string | null
+        }
+        Insert: {
+          demo_url?: string | null
+          description: string
+          hackathon_id: string
+          id?: string
+          project_name: string
+          repo_url?: string | null
+          submitted_at?: string
+          team_id: string
+          technologies?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          demo_url?: string | null
+          description?: string
+          hackathon_id?: string
+          id?: string
+          project_name?: string
+          repo_url?: string | null
+          submitted_at?: string
+          team_id?: string
+          technologies?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_submissions_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hackathon_submissions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hackathon_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hackathon_teams: {
+        Row: {
+          created_at: string
+          created_by_email: string
+          description: string | null
+          hackathon_id: string
+          id: string
+          looking_for_members: boolean
+          max_members: number
+          team_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_email: string
+          description?: string | null
+          hackathon_id: string
+          id?: string
+          looking_for_members?: boolean
+          max_members?: number
+          team_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by_email?: string
+          description?: string | null
+          hackathon_id?: string
+          id?: string
+          looking_for_members?: boolean
+          max_members?: number
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_teams_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hackathons: {
+        Row: {
+          created_at: string
+          current_participants: number
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          max_participants: number
+          max_team_size: number
+          min_team_size: number
+          prizes: string | null
+          registration_deadline: string
+          rules: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["hackathon_status"]
+          theme: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          max_team_size?: number
+          min_team_size?: number
+          prizes?: string | null
+          registration_deadline: string
+          rules?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["hackathon_status"]
+          theme?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          current_participants?: number
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          max_team_size?: number
+          min_team_size?: number
+          prizes?: string | null
+          registration_deadline?: string
+          rules?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["hackathon_status"]
+          theme?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       newsletter_signups: {
         Row: {
           created_at: string
@@ -278,6 +484,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      hackathon_status: "upcoming" | "live" | "ended"
       program_type: "workshop" | "tech_camp" | "tech_fair"
     }
     CompositeTypes: {
@@ -406,6 +613,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      hackathon_status: ["upcoming", "live", "ended"],
       program_type: ["workshop", "tech_camp", "tech_fair"],
     },
   },
