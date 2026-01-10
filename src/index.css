@@ -50,6 +50,18 @@ All colors MUST be HSL.
     --glow-accent: 0 0 30px hsl(32 93% 54% / 0.2);
     
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Discord-inspired hackathon theme */
+    --discord-dark: 225 7% 11%;
+    --discord-darker: 225 6% 8%;
+    --discord-light: 223 6% 21%;
+    --discord-lighter: 220 7% 27%;
+    --discord-blurple: 235 86% 65%;
+    --discord-green: 139 47% 44%;
+    --discord-yellow: 38 96% 54%;
+    --discord-red: 359 83% 59%;
+    --discord-text: 210 9% 87%;
+    --discord-text-muted: 214 8% 61%;
   }
 }
 

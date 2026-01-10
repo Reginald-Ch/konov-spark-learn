@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { Rocket, FileCode, Link, Github, Video, Cpu, Users } from 'lucide-react';
 
 const submissionSchema = z.object({
   project_name: z.string().trim().min(2, 'Project name must be at least 2 characters').max(100),
@@ -119,7 +120,7 @@ export const SubmissionModal = ({
       }
 
       toast({
-        title: 'Project Submitted!',
+        title: '🚀 Project Submitted!',
         description: 'Your project has been submitted successfully.',
       });
 
@@ -155,27 +156,39 @@ export const SubmissionModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white">
         <DialogHeader>
-          <DialogTitle>Submit Your Project</DialogTitle>
-          <DialogDescription>{hackathonTitle}</DialogDescription>
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Rocket className="w-5 h-5 text-[hsl(var(--discord-green))]" />
+            Submit Your Project
+          </DialogTitle>
+          <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+            {hackathonTitle}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="team">Select Team *</Label>
+            <Label htmlFor="team" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Select Team *
+            </Label>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading teams...</p>
+              <div className="h-10 bg-[hsl(var(--discord-darker))] rounded animate-pulse" />
             ) : teams.length === 0 ? (
-              <p className="text-sm text-destructive">No teams available. Create a team first.</p>
+              <p className="text-sm text-[hsl(var(--discord-red))]">No teams available. Create a team first.</p>
             ) : (
               <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
                   <SelectValue placeholder="Select your team" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))]">
                   {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
+                    <SelectItem 
+                      key={team.id} 
+                      value={team.id}
+                      className="text-white focus:bg-[hsl(var(--discord-blurple))]"
+                    >
                       {team.team_name}
                     </SelectItem>
                   ))}
@@ -185,18 +198,22 @@ export const SubmissionModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="project_name">Project Name *</Label>
+            <Label htmlFor="project_name" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <FileCode className="w-4 h-4" />
+              Project Name *
+            </Label>
             <Input
               id="project_name"
               value={formData.project_name}
               onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
               placeholder="Enter your project name"
               required
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description" className="text-[hsl(var(--discord-text))]">Description *</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -204,64 +221,86 @@ export const SubmissionModal = ({
               placeholder="Describe your project, what problem it solves, and how it works"
               rows={4}
               required
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] resize-none"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="technologies">Technologies Used</Label>
+            <Label htmlFor="technologies" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Cpu className="w-4 h-4" />
+              Technologies Used
+            </Label>
             <Input
               id="technologies"
               value={formData.technologies}
               onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
               placeholder="e.g., React, Node.js, Python, TensorFlow"
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="demo_url">Demo URL</Label>
+              <Label htmlFor="demo_url" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                Demo URL
+              </Label>
               <Input
                 id="demo_url"
                 type="url"
                 value={formData.demo_url}
                 onChange={(e) => setFormData({ ...formData, demo_url: e.target.value })}
                 placeholder="https://your-demo.com"
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="repo_url">Repository URL</Label>
+              <Label htmlFor="repo_url" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+                <Github className="w-4 h-4" />
+                Repository URL
+              </Label>
               <Input
                 id="repo_url"
                 type="url"
                 value={formData.repo_url}
                 onChange={(e) => setFormData({ ...formData, repo_url: e.target.value })}
                 placeholder="https://github.com/..."
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="video_url">Video/Presentation URL</Label>
+            <Label htmlFor="video_url" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              Video/Presentation URL
+            </Label>
             <Input
               id="video_url"
               type="url"
               value={formData.video_url}
               onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
               placeholder="https://youtube.com/..."
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1 border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]"
+            >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1" 
+              className="flex-1 bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white" 
               disabled={isSubmitting || teams.length === 0}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Project'}
+              {isSubmitting ? 'Submitting...' : '🚀 Submit Project'}
             </Button>
           </div>
         </form>

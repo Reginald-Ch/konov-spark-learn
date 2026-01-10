@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from '@/components/SEO';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
 import { supabase } from '@/integrations/supabase/client';
-import { Zap, Calendar, Trophy, Code } from 'lucide-react';
+import { 
+  Zap, Calendar, Trophy, Code, Hash, Users, Rocket, 
+  Terminal, MessageSquare, Bell, Settings, Plus, 
+  ChevronDown, Circle, Sparkles, ArrowLeft
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Hackathon {
   id: string;
@@ -33,7 +37,8 @@ const Hackathons = () => {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [teamsModalOpen, setTeamsModalOpen] = useState(false);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeChannel, setActiveChannel] = useState('all-events');
+  const [selectedEndedHackathon, setSelectedEndedHackathon] = useState<Hackathon | null>(null);
 
   useEffect(() => {
     fetchHackathons();
@@ -76,152 +81,337 @@ const Hackathons = () => {
     }
   };
 
-  const filteredHackathons = hackathons.filter(h => {
-    if (activeTab === 'all') return true;
-    return h.status === activeTab;
-  });
-
   const liveHackathons = hackathons.filter(h => h.status === 'live');
   const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
   const endedHackathons = hackathons.filter(h => h.status === 'ended');
 
+  const getFilteredHackathons = () => {
+    switch (activeChannel) {
+      case 'live-now':
+        return liveHackathons;
+      case 'upcoming':
+        return upcomingHackathons;
+      case 'past-events':
+        return endedHackathons;
+      default:
+        return hackathons;
+    }
+  };
+
+  const channels = [
+    { id: 'all-events', name: 'all-events', icon: Hash, count: hackathons.length },
+    { id: 'live-now', name: 'live-now', icon: Zap, count: liveHackathons.length, live: true },
+    { id: 'upcoming', name: 'upcoming', icon: Calendar, count: upcomingHackathons.length },
+    { id: 'past-events', name: 'past-events', icon: Trophy, count: endedHackathons.length },
+  ];
+
+  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex">
       <SEO 
         title="Hackathons - Tech Kids Africa"
         description="Join our exciting hackathons! Collaborate, innovate, and build amazing projects with fellow tech enthusiasts."
       />
-      <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative py-20 px-4 bg-gradient-to-br from-primary/10 via-background to-secondary/10 overflow-hidden">
-        <div className="container mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-              <Zap className="w-4 h-4" />
-              <span className="text-sm font-medium">Hackathons</span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Build. <span className="text-primary">Innovate.</span> Win.
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join our hackathons to collaborate with fellow innovators, solve real-world challenges, 
-              and showcase your skills. Amazing prizes await!
-            </p>
-          </motion.div>
-
-          {/* Stats */}
+      {/* Server Sidebar */}
+      <div className="w-[72px] bg-[hsl(var(--discord-darker))] flex flex-col items-center py-3 gap-2 border-r border-[hsl(var(--discord-light)/0.2)]">
+        {/* Back to Home */}
+        <Link to="/">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="grid grid-cols-3 gap-8 max-w-lg mx-auto mt-12"
+            whileHover={{ scale: 1.1, borderRadius: '16px' }}
+            className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
           >
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Zap className="w-5 h-5" />
-                <span className="text-3xl font-bold">{liveHackathons.length}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Live Now</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Calendar className="w-5 h-5" />
-                <span className="text-3xl font-bold">{upcomingHackathons.length}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Upcoming</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Trophy className="w-5 h-5" />
-                <span className="text-3xl font-bold">{endedHackathons.length}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Completed</p>
-            </div>
+            <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
+          </motion.div>
+        </Link>
+        
+        <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
+        
+        {/* Tech Kids Server */}
+        <motion.div 
+          whileHover={{ scale: 1.1, borderRadius: '16px' }}
+          className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer transition-all relative"
+        >
+          <Rocket className="w-6 h-6 text-white" />
+          <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />
+        </motion.div>
+
+        {/* Hackathon Categories */}
+        <motion.div 
+          whileHover={{ scale: 1.1, borderRadius: '16px' }}
+          className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all"
+        >
+          <Code className="w-6 h-6 text-white" />
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.1, borderRadius: '16px' }}
+          className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all"
+        >
+          <Terminal className="w-6 h-6 text-white" />
+        </motion.div>
+
+        <div className="mt-auto">
+          <motion.div 
+            whileHover={{ scale: 1.1, borderRadius: '16px' }}
+            className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-[hsl(var(--discord-green))]"
+          >
+            <Plus className="w-6 h-6 text-[hsl(var(--discord-green))]" />
           </motion.div>
         </div>
-      </section>
+      </div>
 
-      {/* Hackathons List */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex justify-center mb-8">
-              <TabsList className="grid grid-cols-4 w-full max-w-md">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="live" className="relative">
-                  Live
-                  {liveHackathons.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                <TabsTrigger value="ended">Ended</TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value={activeTab} className="mt-0">
-              {isLoading ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Loading hackathons...
-                </div>
-              ) : filteredHackathons.length === 0 ? (
-                <div className="text-center py-12">
-                  <Code className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hackathons found</h3>
-                  <p className="text-muted-foreground">
-                    {activeTab === 'live' 
-                      ? 'No hackathons are currently live. Check upcoming events!' 
-                      : 'Check back soon for new hackathons!'}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                  {filteredHackathons.map((hackathon) => (
-                    <HackathonCard
-                      key={hackathon.id}
-                      hackathon={hackathon}
-                      onRegister={handleRegister}
-                      onViewTeams={handleViewTeams}
-                      onSubmitProject={handleSubmitProject}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+      {/* Channels Sidebar */}
+      <div className="w-60 bg-[hsl(var(--discord-dark))] flex flex-col">
+        {/* Server Header */}
+        <div className="h-12 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-darker))] shadow-sm hover:bg-[hsl(var(--discord-light)/0.3)] cursor-pointer">
+          <span className="font-semibold text-white truncate">Tech Kids Hackathons</span>
+          <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
         </div>
-      </section>
 
-      {/* Submissions Gallery for ended hackathons */}
-      {endedHackathons.length > 0 && (
-        <section className="py-16 px-4 bg-muted/30">
-          <div className="container mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl font-bold mb-4">Past Submissions</h2>
-              <p className="text-muted-foreground">Check out the amazing projects from previous hackathons</p>
-            </motion.div>
-
-            {endedHackathons.slice(0, 1).map((hackathon) => (
-              <div key={hackathon.id}>
-                <h3 className="text-xl font-semibold mb-6">{hackathon.title}</h3>
-                <SubmissionsGallery hackathonId={hackathon.id} />
-              </div>
+        {/* Channels */}
+        <ScrollArea className="flex-1 px-2 py-4">
+          {/* Event Channels */}
+          <div className="mb-4">
+            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
+              <ChevronDown className="w-3 h-3" />
+              Hackathon Events
+            </div>
+            {channels.map((channel) => (
+              <motion.button
+                key={channel.id}
+                onClick={() => setActiveChannel(channel.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors group ${
+                  activeChannel === channel.id 
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white' 
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                }`}
+              >
+                <channel.icon className={`w-4 h-4 ${channel.live ? 'text-[hsl(var(--discord-red))] animate-pulse' : ''}`} />
+                <span className="flex-1 text-left truncate">{channel.name}</span>
+                {channel.count > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                    channel.live 
+                      ? 'bg-[hsl(var(--discord-red))] text-white' 
+                      : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
+                  }`}>
+                    {channel.count}
+                  </span>
+                )}
+              </motion.button>
             ))}
           </div>
-        </section>
-      )}
 
-      <Footer />
+          {/* Voice Channels Style Stats */}
+          <div className="mb-4">
+            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
+              <ChevronDown className="w-3 h-3" />
+              Community Stats
+            </div>
+            <div className="px-2 py-2 text-sm text-[hsl(var(--discord-text-muted))]">
+              <div className="flex items-center gap-2 mb-2">
+                <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
+                <span>{onlineMembers} Active Hackers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
+                <span>{hackathons.length} Total Events</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Past Events with Submissions */}
+          {endedHackathons.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
+                <ChevronDown className="w-3 h-3" />
+                Project Showcase
+              </div>
+              {endedHackathons.map((hackathon) => (
+                <motion.button
+                  key={hackathon.id}
+                  onClick={() => setSelectedEndedHackathon(
+                    selectedEndedHackathon?.id === hackathon.id ? null : hackathon
+                  )}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
+                    selectedEndedHackathon?.id === hackathon.id
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                      : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                  }`}
+                >
+                  <Trophy className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
+                  <span className="flex-1 text-left truncate text-xs">{hackathon.title}</span>
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* User Panel */}
+        <div className="h-[52px] bg-[hsl(var(--discord-darker)/0.8)] px-2 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <Users className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">Hacker</p>
+            <p className="text-xs text-[hsl(var(--discord-text-muted))]">Online</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white hover:bg-[hsl(var(--discord-light)/0.3)]">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))]">
+        {/* Channel Header */}
+        <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm">
+          <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+          <span className="font-semibold text-white">{activeChannel}</span>
+          <div className="w-px h-6 bg-[hsl(var(--discord-light))]" />
+          <span className="text-sm text-[hsl(var(--discord-text-muted))]">
+            {activeChannel === 'all-events' && 'Browse all hackathon events'}
+            {activeChannel === 'live-now' && 'Currently running hackathons'}
+            {activeChannel === 'upcoming' && 'Register for upcoming events'}
+            {activeChannel === 'past-events' && 'View completed hackathons'}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
+              <Bell className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
+              <MessageSquare className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="flex-1 p-6">
+          <AnimatePresence mode="wait">
+            {/* Show submissions gallery if ended hackathon is selected */}
+            {selectedEndedHackathon ? (
+              <motion.div
+                key="submissions"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="mb-6">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setSelectedEndedHackathon(null)}
+                    className="text-[hsl(var(--discord-text-muted))] hover:text-white mb-4"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to events
+                  </Button>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <Trophy className="w-6 h-6 text-[hsl(var(--discord-yellow))]" />
+                    {selectedEndedHackathon.title} - Project Showcase
+                  </h2>
+                  <p className="text-[hsl(var(--discord-text-muted))] mt-2">
+                    Check out the amazing projects submitted by our hackers!
+                  </p>
+                </div>
+                <SubmissionsGallery hackathonId={selectedEndedHackathon.id} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="events"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Welcome Banner */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-[hsl(var(--discord-blurple))] to-primary rounded-lg p-6 mb-8 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-4 right-4">
+                      <Code className="w-32 h-32 text-white" />
+                    </div>
+                  </div>
+                  <div className="relative z-10">
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                      <Zap className="w-8 h-8" />
+                      Welcome to Hackathons!
+                    </h1>
+                    <p className="text-white/80 text-lg max-w-2xl">
+                      Build. Innovate. Win. Join our tech community hackathons to collaborate, 
+                      learn, and create amazing projects with fellow developers!
+                    </p>
+                    <div className="flex items-center gap-6 mt-4">
+                      <div className="flex items-center gap-2 text-white/90">
+                        <Circle className="w-3 h-3 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
+                        <span>{onlineMembers} hackers active</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-white/90">
+                        <Rocket className="w-4 h-4" />
+                        <span>{liveHackathons.length} live events</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Hackathon Cards */}
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-[hsl(var(--discord-text-muted))]">Loading hackathons...</p>
+                    </div>
+                  </div>
+                ) : getFilteredHackathons().length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-20"
+                  >
+                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+                      <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
+                    <p className="text-[hsl(var(--discord-text-muted))]">
+                      {activeChannel === 'live-now' 
+                        ? 'No hackathons are currently live. Check upcoming events!' 
+                        : 'Check back soon for new hackathons!'}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {getFilteredHackathons().map((hackathon, index) => (
+                      <motion.div
+                        key={hackathon.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <HackathonCard
+                          hackathon={hackathon}
+                          onRegister={handleRegister}
+                          onViewTeams={handleViewTeams}
+                          onSubmitProject={handleSubmitProject}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </ScrollArea>
+      </div>
 
       {/* Modals */}
       <RegistrationModal
