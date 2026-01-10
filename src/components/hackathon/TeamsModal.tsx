@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Plus, UserPlus } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Users, Plus, UserPlus, Hash, Crown, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { motion } from 'framer-motion';
 
 const teamSchema = z.object({
   team_name: z.string().trim().min(2, 'Team name must be at least 2 characters').max(50),
@@ -40,6 +41,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('browse');
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
     team_name: '',
     description: '',
@@ -102,7 +104,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
       }
 
       toast({
-        title: 'Team Created!',
+        title: '🎉 Team Created!',
         description: 'Your team has been created successfully.',
       });
 
@@ -139,7 +141,6 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
     }
 
     try {
-      // Update registration with team_id
       const { error } = await supabase
         .from('hackathon_registrations' as any)
         .update({ team_id: teamId })
@@ -149,7 +150,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
       if (error) throw error;
 
       toast({
-        title: 'Team Joined!',
+        title: '🎉 Team Joined!',
         description: 'You have successfully joined the team.',
       });
     } catch (error) {
@@ -161,60 +162,104 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
     }
   };
 
+  const filteredTeams = teams.filter(team => 
+    team.team_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Hackathon Teams</DialogTitle>
-          <DialogDescription>{hackathonTitle}</DialogDescription>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white p-0">
+        <DialogHeader className="p-4 border-b border-[hsl(var(--discord-light)/0.2)]">
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+            hackathon-teams
+          </DialogTitle>
+          <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+            {hackathonTitle}
+          </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="browse">
-              <Users className="w-4 h-4 mr-2" />
-              Browse Teams
-            </TabsTrigger>
-            <TabsTrigger value="create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Team
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+          <div className="px-4 pt-2">
+            <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--discord-darker))]">
+              <TabsTrigger 
+                value="browse" 
+                className="data-[state=active]:bg-[hsl(var(--discord-blurple))] data-[state=active]:text-white"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Browse Teams
+              </TabsTrigger>
+              <TabsTrigger 
+                value="create"
+                className="data-[state=active]:bg-[hsl(var(--discord-blurple))] data-[state=active]:text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Team
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="browse" className="space-y-4 mt-4">
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading teams...</div>
-            ) : teams.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No teams yet. Be the first to create one!</p>
-              </div>
-            ) : (
-              teams.map((team) => (
-                <TeamCard 
-                  key={team.id} 
-                  team={team} 
-                  onJoin={(email) => handleJoinTeam(team.id, email)} 
+          <TabsContent value="browse" className="mt-0 flex-1">
+            <div className="p-4 border-b border-[hsl(var(--discord-light)/0.2)]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+                <Input
+                  placeholder="Search teams..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
                 />
-              ))
-            )}
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[350px] px-4 py-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : filteredTeams.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+                    <Users className="w-8 h-8 text-[hsl(var(--discord-text-muted))]" />
+                  </div>
+                  <p className="text-[hsl(var(--discord-text-muted))]">
+                    {searchQuery ? 'No teams found matching your search.' : 'No teams yet. Be the first to create one!'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredTeams.map((team, index) => (
+                    <motion.div
+                      key={team.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <TeamCard team={team} onJoin={(email) => handleJoinTeam(team.id, email)} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="create" className="mt-4">
+          <TabsContent value="create" className="mt-0 p-4">
             <form onSubmit={handleCreateTeam} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="team_name">Team Name *</Label>
+                <Label htmlFor="team_name" className="text-[hsl(var(--discord-text))]">Team Name *</Label>
                 <Input
                   id="team_name"
                   value={formData.team_name}
                   onChange={(e) => setFormData({ ...formData, team_name: e.target.value })}
                   placeholder="Enter a unique team name"
                   required
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="team_email">Your Email *</Label>
+                <Label htmlFor="team_email" className="text-[hsl(var(--discord-text))]">Your Email *</Label>
                 <Input
                   id="team_email"
                   type="email"
@@ -222,25 +267,36 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
                   onChange={(e) => setFormData({ ...formData, created_by_email: e.target.value })}
                   placeholder="Enter your email"
                   required
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="team_description">Description</Label>
+                <Label htmlFor="team_description" className="text-[hsl(var(--discord-text))]">Description</Label>
                 <Textarea
                   id="team_description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe your team and what you're looking for"
                   rows={3}
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] resize-none"
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setActiveTab('browse')} className="flex-1">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setActiveTab('browse')} 
+                  className="flex-1 border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]" 
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? 'Creating...' : 'Create Team'}
                 </Button>
               </div>
@@ -257,45 +313,60 @@ const TeamCard = ({ team, onJoin }: { team: Team; onJoin: (email: string) => voi
   const [showJoinInput, setShowJoinInput] = useState(false);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{team.team_name}</CardTitle>
-          {team.looking_for_members && (
-            <Badge variant="outline" className="text-green-600 border-green-600">
-              <UserPlus className="w-3 h-3 mr-1" />
-              Recruiting
-            </Badge>
-          )}
+    <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)] hover:border-[hsl(var(--discord-blurple)/0.5)] transition-colors">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-primary flex items-center justify-center">
+            <Crown className="w-4 h-4 text-white" />
+          </div>
+          <h4 className="font-semibold text-white">{team.team_name}</h4>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {team.description && (
-          <p className="text-sm text-muted-foreground">{team.description}</p>
-        )}
-        
         {team.looking_for_members && (
-          <>
-            {showJoinInput ? (
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your registered email"
-                  className="flex-1"
-                />
-                <Button size="sm" onClick={() => onJoin(email)}>Join</Button>
-              </div>
-            ) : (
-              <Button size="sm" variant="outline" onClick={() => setShowJoinInput(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Request to Join
-              </Button>
-            )}
-          </>
+          <Badge className="bg-[hsl(var(--discord-green))] text-white border-0 text-xs">
+            <UserPlus className="w-3 h-3 mr-1" />
+            Recruiting
+          </Badge>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      
+      {team.description && (
+        <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-3 line-clamp-2">
+          {team.description}
+        </p>
+      )}
+      
+      {team.looking_for_members && (
+        <>
+          {showJoinInput ? (
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your registered email"
+                className="flex-1 h-8 text-sm bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
+              />
+              <Button 
+                size="sm" 
+                className="h-8 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]"
+                onClick={() => onJoin(email)}
+              >
+                Join
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setShowJoinInput(true)}
+              className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Request to Join
+            </Button>
+          )}
+        </>
+      )}
+    </div>
   );
 };

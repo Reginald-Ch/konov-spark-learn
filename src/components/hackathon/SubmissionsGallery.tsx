@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Github, Video, Code } from 'lucide-react';
+import { ExternalLink, Github, Video, Code, Trophy, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Submission {
@@ -51,80 +50,123 @@ export const SubmissionsGallery = ({ hackathonId }: SubmissionsGalleryProps) => 
 
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">Loading submissions...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[hsl(var(--discord-text-muted))]">Loading submissions...</p>
+        </div>
+      </div>
     );
   }
 
   if (submissions.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Code className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-        <p className="text-muted-foreground">No submissions yet. Be the first to submit!</p>
+      <div className="text-center py-12">
+        <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+          <Code className="w-10 h-10 text-[hsl(var(--discord-text-muted))]" />
+        </div>
+        <h3 className="text-lg font-semibold text-white mb-2">No submissions yet</h3>
+        <p className="text-[hsl(var(--discord-text-muted))]">Be the first to submit a project!</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {submissions.map((submission, index) => (
         <motion.div
           key={submission.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
+          className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-lg overflow-hidden hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group"
         >
-          <Card className="h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-lg leading-tight">{submission.project_name}</CardTitle>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                by {submission.hackathon_teams.team_name}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {submission.description}
-              </p>
-
-              {submission.technologies && (
-                <div className="flex flex-wrap gap-1">
-                  {submission.technologies.split(',').slice(0, 4).map((tech, i) => (
-                    <Badge key={i} variant="secondary" className="text-xs">
-                      {tech.trim()}
-                    </Badge>
-                  ))}
+          {/* Project Header */}
+          <div className="p-4 border-b border-[hsl(var(--discord-light)/0.2)]">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h4 className="font-semibold text-white group-hover:text-[hsl(var(--discord-blurple))] transition-colors">
+                {submission.project_name}
+              </h4>
+              {index === 0 && (
+                <div className="flex items-center gap-1 text-[hsl(var(--discord-yellow))]">
+                  <Trophy className="w-4 h-4" />
+                  <Star className="w-3 h-3" />
                 </div>
               )}
+            </div>
+            <p className="text-xs text-[hsl(var(--discord-text-muted))] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[hsl(var(--discord-green))]" />
+              {submission.hackathon_teams.team_name}
+            </p>
+          </div>
 
-              <div className="flex flex-wrap gap-2 pt-2">
-                {submission.demo_url && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={submission.demo_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      Demo
-                    </a>
-                  </Button>
-                )}
-                {submission.repo_url && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={submission.repo_url} target="_blank" rel="noopener noreferrer">
-                      <Github className="w-3 h-3 mr-1" />
-                      Code
-                    </a>
-                  </Button>
-                )}
-                {submission.video_url && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={submission.video_url} target="_blank" rel="noopener noreferrer">
-                      <Video className="w-3 h-3 mr-1" />
-                      Video
-                    </a>
-                  </Button>
+          {/* Description */}
+          <div className="p-4">
+            <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-3 mb-4">
+              {submission.description}
+            </p>
+
+            {/* Technologies */}
+            {submission.technologies && (
+              <div className="flex flex-wrap gap-1 mb-4">
+                {submission.technologies.split(',').slice(0, 4).map((tech, i) => (
+                  <Badge 
+                    key={i} 
+                    className="bg-[hsl(var(--discord-lighter))] text-[hsl(var(--discord-text))] border-0 text-xs px-2 py-0"
+                  >
+                    {tech.trim()}
+                  </Badge>
+                ))}
+                {submission.technologies.split(',').length > 4 && (
+                  <Badge className="bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))] border-0 text-xs px-2 py-0">
+                    +{submission.technologies.split(',').length - 4}
+                  </Badge>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Links */}
+            <div className="flex flex-wrap gap-2">
+              {submission.demo_url && (
+                <Button 
+                  size="sm" 
+                  className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]"
+                  asChild
+                >
+                  <a href={submission.demo_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Demo
+                  </a>
+                </Button>
+              )}
+              {submission.repo_url && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]"
+                  asChild
+                >
+                  <a href={submission.repo_url} target="_blank" rel="noopener noreferrer">
+                    <Github className="w-3 h-3 mr-1" />
+                    Code
+                  </a>
+                </Button>
+              )}
+              {submission.video_url && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]"
+                  asChild
+                >
+                  <a href={submission.video_url} target="_blank" rel="noopener noreferrer">
+                    <Video className="w-3 h-3 mr-1" />
+                    Video
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
         </motion.div>
       ))}
     </div>

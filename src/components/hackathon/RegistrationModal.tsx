@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { Zap, User, Mail, Phone, Code, GraduationCap, Users } from 'lucide-react';
 
 const registrationSchema = z.object({
   participant_name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
@@ -78,7 +79,7 @@ export const RegistrationModal = ({
       }
 
       toast({
-        title: 'Registration Successful!',
+        title: '🎉 Registration Successful!',
         description: 'You have been registered for the hackathon.',
       });
 
@@ -113,26 +114,38 @@ export const RegistrationModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white">
         <DialogHeader>
-          <DialogTitle>Register for Hackathon</DialogTitle>
-          <DialogDescription>{hackathonTitle}</DialogDescription>
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Zap className="w-5 h-5 text-[hsl(var(--discord-blurple))]" />
+            Join the Hackathon
+          </DialogTitle>
+          <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+            {hackathonTitle}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name *</Label>
+            <Label htmlFor="name" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Full Name *
+            </Label>
             <Input
               id="name"
               value={formData.participant_name}
               onChange={(e) => setFormData({ ...formData, participant_name: e.target.value })}
               placeholder="Enter your full name"
               required
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] focus:ring-[hsl(var(--discord-blurple))]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Email *
+            </Label>
             <Input
               id="email"
               type="email"
@@ -140,68 +153,91 @@ export const RegistrationModal = ({
               onChange={(e) => setFormData({ ...formData, participant_email: e.target.value })}
               placeholder="Enter your email"
               required
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] focus:ring-[hsl(var(--discord-blurple))]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (optional)</Label>
+            <Label htmlFor="phone" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Phone (optional)
+            </Label>
             <Input
               id="phone"
               type="tel"
               value={formData.participant_phone}
               onChange={(e) => setFormData({ ...formData, participant_phone: e.target.value })}
               placeholder="Enter your phone number"
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] focus:ring-[hsl(var(--discord-blurple))]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="skills">Skills</Label>
+            <Label htmlFor="skills" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <Code className="w-4 h-4" />
+              Skills
+            </Label>
             <Textarea
               id="skills"
               value={formData.skills}
               onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
               placeholder="e.g., React, Python, UI/UX Design, Machine Learning"
               rows={2}
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] focus:ring-[hsl(var(--discord-blurple))] resize-none"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="experience">Experience Level</Label>
+            <Label htmlFor="experience" className="text-[hsl(var(--discord-text))] flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              Experience Level
+            </Label>
             <Select
               value={formData.experience_level}
               onValueChange={(value) => setFormData({ ...formData, experience_level: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white focus:ring-[hsl(var(--discord-blurple))]">
                 <SelectValue placeholder="Select your experience level" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-                <SelectItem value="expert">Expert</SelectItem>
+              <SelectContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))]">
+                <SelectItem value="beginner" className="text-white focus:bg-[hsl(var(--discord-blurple))]">🌱 Beginner</SelectItem>
+                <SelectItem value="intermediate" className="text-white focus:bg-[hsl(var(--discord-blurple))]">🚀 Intermediate</SelectItem>
+                <SelectItem value="advanced" className="text-white focus:bg-[hsl(var(--discord-blurple))]">⚡ Advanced</SelectItem>
+                <SelectItem value="expert" className="text-white focus:bg-[hsl(var(--discord-blurple))]">🏆 Expert</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 bg-[hsl(var(--discord-darker))] p-3 rounded-lg">
             <Checkbox
               id="looking_for_team"
               checked={formData.looking_for_team}
               onCheckedChange={(checked) => 
                 setFormData({ ...formData, looking_for_team: checked as boolean })
               }
+              className="border-[hsl(var(--discord-light))] data-[state=checked]:bg-[hsl(var(--discord-blurple))] data-[state=checked]:border-[hsl(var(--discord-blurple))]"
             />
-            <Label htmlFor="looking_for_team" className="text-sm">
+            <Label htmlFor="looking_for_team" className="text-sm text-[hsl(var(--discord-text))] flex items-center gap-2 cursor-pointer">
+              <Users className="w-4 h-4" />
               I'm looking for a team to join
             </Label>
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1 border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-white"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? 'Registering...' : 'Register'}
+            <Button 
+              type="submit" 
+              className="flex-1 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Registering...' : 'Register Now'}
             </Button>
           </div>
         </form>
