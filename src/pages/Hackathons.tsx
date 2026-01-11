@@ -42,6 +42,40 @@ const Hackathons = () => {
 
   useEffect(() => {
     fetchHackathons();
+
+    // Real-time subscriptions
+    const hackathonsChannel = supabase
+      .channel('hackathons-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'hackathons' },
+        () => fetchHackathons()
+      )
+      .subscribe();
+
+    const registrationsChannel = supabase
+      .channel('registrations-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'hackathon_registrations' },
+        () => fetchHackathons()
+      )
+      .subscribe();
+
+    const teamsChannel = supabase
+      .channel('teams-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'hackathon_teams' },
+        () => fetchHackathons()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(hackathonsChannel);
+      supabase.removeChannel(registrationsChannel);
+      supabase.removeChannel(teamsChannel);
+    };
   }, []);
 
   const fetchHackathons = async () => {
@@ -331,15 +365,21 @@ const Hackathons = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                {/* Welcome Banner */}
+                {/* Welcome Banner - Konov Brand Colors */}
                 <motion.div 
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-[hsl(var(--discord-blurple))] to-primary rounded-lg p-6 mb-8 relative overflow-hidden"
+                  className="rounded-lg p-6 mb-8 relative overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)'
+                  }}
                 >
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-4 right-4">
                       <Code className="w-32 h-32 text-white" />
+                    </div>
+                    <div className="absolute bottom-4 left-4">
+                      <Terminal className="w-24 h-24 text-white" />
                     </div>
                   </div>
                   <div className="relative z-10">
@@ -347,18 +387,18 @@ const Hackathons = () => {
                       <Zap className="w-8 h-8" />
                       Welcome to Hackathons!
                     </h1>
-                    <p className="text-white/80 text-lg max-w-2xl">
+                    <p className="text-white/90 text-lg max-w-2xl">
                       Build. Innovate. Win. Join our tech community hackathons to collaborate, 
                       learn, and create amazing projects with fellow developers!
                     </p>
-                    <div className="flex items-center gap-6 mt-4">
-                      <div className="flex items-center gap-2 text-white/90">
-                        <Circle className="w-3 h-3 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
-                        <span>{onlineMembers} hackers active</span>
+                    <div className="flex flex-wrap items-center gap-6 mt-4">
+                      <div className="flex items-center gap-2 text-white">
+                        <Circle className="w-3 h-3 fill-green-400 text-green-400" />
+                        <span className="font-medium">{onlineMembers} hackers active</span>
                       </div>
-                      <div className="flex items-center gap-2 text-white/90">
+                      <div className="flex items-center gap-2 text-white">
                         <Rocket className="w-4 h-4" />
-                        <span>{liveHackathons.length} live events</span>
+                        <span className="font-medium">{liveHackathons.length} live events</span>
                       </div>
                     </div>
                   </div>
