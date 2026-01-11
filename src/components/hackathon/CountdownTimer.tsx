@@ -45,10 +45,14 @@ export const CountdownTimer = ({ targetDate, label }: CountdownTimerProps) => {
     { value: timeLeft.seconds, label: 'S', fullLabel: 'Sec' },
   ];
 
+  const isUrgent = timeLeft.days === 0 && timeLeft.hours < 24;
+
   return (
     <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3">
-      <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-2 text-center font-medium uppercase tracking-wider">
+      <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-2 text-center font-medium uppercase tracking-wider flex items-center justify-center gap-2">
+        {isUrgent && <span className="w-2 h-2 rounded-full bg-[#F7941D] animate-pulse" />}
         {label}
+        {isUrgent && <span className="text-[#F7941D]">⚡</span>}
       </p>
       <div className="flex justify-center gap-2">
         {timeUnits.map((unit, index) => (
@@ -60,12 +64,22 @@ export const CountdownTimer = ({ targetDate, label }: CountdownTimerProps) => {
             className="flex flex-col items-center"
           >
             <div className="relative">
-              <div className="bg-[hsl(var(--discord-light))] rounded px-2 py-1.5 min-w-[40px] border border-[hsl(var(--discord-lighter))]">
+              <div 
+                className="rounded px-2 py-1.5 min-w-[40px] border"
+                style={{
+                  background: isUrgent 
+                    ? 'linear-gradient(135deg, rgba(199, 1, 16, 0.2) 0%, rgba(247, 148, 29, 0.2) 100%)'
+                    : 'hsl(var(--discord-light))',
+                  borderColor: isUrgent ? '#F7941D' : 'hsl(var(--discord-lighter))'
+                }}
+              >
                 <motion.span 
                   key={unit.value}
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  className="text-lg font-mono font-bold text-white block text-center"
+                  className={`text-lg font-mono font-bold block text-center ${
+                    isUrgent ? 'text-[#F7941D]' : 'text-white'
+                  }`}
                 >
                   {unit.value.toString().padStart(2, '0')}
                 </motion.span>

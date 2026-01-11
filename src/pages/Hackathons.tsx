@@ -6,11 +6,13 @@ import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
+import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Zap, Calendar, Trophy, Code, Hash, Users, Rocket, 
   Terminal, MessageSquare, Bell, Settings, Plus, 
-  ChevronDown, Circle, Sparkles, ArrowLeft
+  ChevronDown, Circle, Sparkles, ArrowLeft, Award, 
+  HelpCircle, BookOpen, Lightbulb
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -137,6 +139,7 @@ const Hackathons = () => {
     { id: 'live-now', name: 'live-now', icon: Zap, count: liveHackathons.length, live: true },
     { id: 'upcoming', name: 'upcoming', icon: Calendar, count: upcomingHackathons.length },
     { id: 'past-events', name: 'past-events', icon: Trophy, count: endedHackathons.length },
+    { id: 'leaderboard', name: 'leaderboard', icon: Award, count: 0, special: true },
   ];
 
   const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
@@ -239,7 +242,7 @@ const Hackathons = () => {
             ))}
           </div>
 
-          {/* Voice Channels Style Stats */}
+          {/* Community Stats */}
           <div className="mb-4">
             <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
               <ChevronDown className="w-3 h-3" />
@@ -250,10 +253,48 @@ const Hackathons = () => {
                 <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
                 <span>{onlineMembers} Active Hackers</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
                 <span>{hackathons.length} Total Events</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[hsl(var(--discord-blurple))]" />
+                <span>{upcomingHackathons.length + liveHackathons.length} Active Now</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Resources Section */}
+          <div className="mb-4">
+            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
+              <ChevronDown className="w-3 h-3" />
+              Resources
+            </div>
+            <div className="space-y-0.5">
+              <motion.a
+                href="#"
+                whileHover={{ scale: 1.02 }}
+                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Getting Started</span>
+              </motion.a>
+              <motion.a
+                href="#"
+                whileHover={{ scale: 1.02 }}
+                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+              >
+                <Lightbulb className="w-4 h-4" />
+                <span>Project Ideas</span>
+              </motion.a>
+              <motion.a
+                href="#"
+                whileHover={{ scale: 1.02 }}
+                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span>FAQ & Help</span>
+              </motion.a>
             </div>
           </div>
 
@@ -307,7 +348,11 @@ const Hackathons = () => {
       <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))]">
         {/* Channel Header */}
         <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm">
-          <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+          {activeChannel === 'leaderboard' ? (
+            <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
+          ) : (
+            <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+          )}
           <span className="font-semibold text-white">{activeChannel}</span>
           <div className="w-px h-6 bg-[hsl(var(--discord-light))]" />
           <span className="text-sm text-[hsl(var(--discord-text-muted))]">
@@ -315,6 +360,7 @@ const Hackathons = () => {
             {activeChannel === 'live-now' && 'Currently running hackathons'}
             {activeChannel === 'upcoming' && 'Register for upcoming events'}
             {activeChannel === 'past-events' && 'View completed hackathons'}
+            {activeChannel === 'leaderboard' && 'Top hackers and teams rankings'}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
@@ -329,8 +375,18 @@ const Hackathons = () => {
         {/* Content */}
         <ScrollArea className="flex-1 p-6">
           <AnimatePresence mode="wait">
-            {/* Show submissions gallery if ended hackathon is selected */}
-            {selectedEndedHackathon ? (
+            {/* Show leaderboard */}
+            {activeChannel === 'leaderboard' ? (
+              <motion.div
+                key="leaderboard"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Leaderboard />
+              </motion.div>
+            ) : selectedEndedHackathon ? (
               <motion.div
                 key="submissions"
                 initial={{ opacity: 0, y: 20 }}
