@@ -79,24 +79,40 @@ export const SubmissionsGallery = ({ hackathonId }: SubmissionsGalleryProps) => 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-lg overflow-hidden hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group"
+          className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-lg overflow-hidden hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group relative"
         >
+          {/* Winner ribbon for first place */}
+          {index === 0 && (
+            <div 
+              className="absolute top-0 right-0 px-3 py-1 text-xs font-bold text-white rounded-bl-lg"
+              style={{
+                background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)'
+              }}
+            >
+              🏆 Winner
+            </div>
+          )}
+          {index === 1 && (
+            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-gray-400 rounded-bl-lg">
+              🥈 2nd
+            </div>
+          )}
+          {index === 2 && (
+            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-amber-600 rounded-bl-lg">
+              🥉 3rd
+            </div>
+          )}
+          
           {/* Project Header */}
           <div className="p-4 border-b border-[hsl(var(--discord-light)/0.2)]">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <h4 className="font-semibold text-white group-hover:text-[hsl(var(--discord-blurple))] transition-colors">
+              <h4 className="font-semibold text-white group-hover:text-[hsl(var(--discord-blurple))] transition-colors pr-16">
                 {submission.project_name}
               </h4>
-              {index === 0 && (
-                <div className="flex items-center gap-1 text-[hsl(var(--discord-yellow))]">
-                  <Trophy className="w-4 h-4" />
-                  <Star className="w-3 h-3" />
-                </div>
-              )}
             </div>
             <p className="text-xs text-[hsl(var(--discord-text-muted))] flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-[hsl(var(--discord-green))]" />
-              {submission.hackathon_teams.team_name}
+              {submission.hackathon_teams?.team_name || 'Unknown Team'}
             </p>
           </div>
 
