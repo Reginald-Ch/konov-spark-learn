@@ -7,6 +7,9 @@ import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
+import { GettingStarted } from '@/components/hackathon/GettingStarted';
+import { ProjectIdeas } from '@/components/hackathon/ProjectIdeas';
+import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Zap, Calendar, Trophy, Code, Hash, Users, Rocket, 
@@ -17,6 +20,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Hackathon {
   id: string;
@@ -145,6 +149,7 @@ const Hackathons = () => {
   const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex">
       <SEO 
         title="Hackathons - Tech Kids Africa"
@@ -154,48 +159,96 @@ const Hackathons = () => {
       {/* Server Sidebar */}
       <div className="w-[72px] bg-[hsl(var(--discord-darker))] flex flex-col items-center py-3 gap-2 border-r border-[hsl(var(--discord-light)/0.2)]">
         {/* Back to Home */}
-        <Link to="/">
-          <motion.div 
-            whileHover={{ scale: 1.1, borderRadius: '16px' }}
-            className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
-          >
-            <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
-          </motion.div>
-        </Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to="/">
+              <motion.div 
+                whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
+              >
+                <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
+              </motion.div>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Back to Home</p>
+          </TooltipContent>
+        </Tooltip>
         
         <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
         
-        {/* Tech Kids Server */}
-        <motion.div 
-          whileHover={{ scale: 1.1, borderRadius: '16px' }}
-          className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer transition-all relative"
-        >
-          <Rocket className="w-6 h-6 text-white" />
-          <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />
-        </motion.div>
+        {/* Tech Kids Server - Hackathon Hub */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.div 
+              whileHover={{ scale: 1.1, borderRadius: '16px' }}
+              onClick={() => setActiveChannel('all-events')}
+              className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer transition-all relative"
+            >
+              <Rocket className="w-6 h-6 text-white" />
+              {activeChannel.includes('event') && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
+            </motion.div>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p className="font-semibold">Hackathon Hub</p>
+            <p className="text-xs text-muted-foreground">Browse events & register</p>
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Hackathon Categories */}
-        <motion.div 
-          whileHover={{ scale: 1.1, borderRadius: '16px' }}
-          className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all"
-        >
-          <Code className="w-6 h-6 text-white" />
-        </motion.div>
+        {/* Project Ideas */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.div 
+              whileHover={{ scale: 1.1, borderRadius: '16px' }}
+              onClick={() => setActiveChannel('project-ideas')}
+              className={`w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all relative ${
+                activeChannel === 'project-ideas' ? 'ring-2 ring-white ring-offset-2 ring-offset-[hsl(var(--discord-darker))]' : ''
+              }`}
+            >
+              <Code className="w-6 h-6 text-white" />
+              {activeChannel === 'project-ideas' && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
+            </motion.div>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p className="font-semibold">Project Ideas</p>
+            <p className="text-xs text-muted-foreground">Get inspiration for your project</p>
+          </TooltipContent>
+        </Tooltip>
 
-        <motion.div 
-          whileHover={{ scale: 1.1, borderRadius: '16px' }}
-          className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all"
-        >
-          <Terminal className="w-6 h-6 text-white" />
-        </motion.div>
+        {/* Getting Started / Resources */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.div 
+              whileHover={{ scale: 1.1, borderRadius: '16px' }}
+              onClick={() => setActiveChannel('getting-started')}
+              className={`w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all relative ${
+                activeChannel === 'getting-started' ? 'ring-2 ring-white ring-offset-2 ring-offset-[hsl(var(--discord-darker))]' : ''
+              }`}
+            >
+              <Terminal className="w-6 h-6 text-white" />
+              {activeChannel === 'getting-started' && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
+            </motion.div>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p className="font-semibold">Getting Started</p>
+            <p className="text-xs text-muted-foreground">Learn how hackathons work</p>
+          </TooltipContent>
+        </Tooltip>
 
         <div className="mt-auto">
-          <motion.div 
-            whileHover={{ scale: 1.1, borderRadius: '16px' }}
-            className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-[hsl(var(--discord-green))]"
-          >
-            <Plus className="w-6 h-6 text-[hsl(var(--discord-green))]" />
-          </motion.div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.div 
+                whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-[hsl(var(--discord-green))]"
+              >
+                <Plus className="w-6 h-6 text-[hsl(var(--discord-green))]" />
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Suggest a Hackathon</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -271,30 +324,42 @@ const Hackathons = () => {
               Resources
             </div>
             <div className="space-y-0.5">
-              <motion.a
-                href="#"
+              <motion.button
+                onClick={() => setActiveChannel('getting-started')}
                 whileHover={{ scale: 1.02 }}
-                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
+                  activeChannel === 'getting-started'
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                }`}
               >
                 <BookOpen className="w-4 h-4" />
                 <span>Getting Started</span>
-              </motion.a>
-              <motion.a
-                href="#"
+              </motion.button>
+              <motion.button
+                onClick={() => setActiveChannel('project-ideas')}
                 whileHover={{ scale: 1.02 }}
-                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
+                  activeChannel === 'project-ideas'
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                }`}
               >
                 <Lightbulb className="w-4 h-4" />
                 <span>Project Ideas</span>
-              </motion.a>
-              <motion.a
-                href="#"
+              </motion.button>
+              <motion.button
+                onClick={() => setActiveChannel('faq')}
                 whileHover={{ scale: 1.02 }}
-                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors"
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
+                  activeChannel === 'faq'
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                }`}
               >
                 <HelpCircle className="w-4 h-4" />
                 <span>FAQ & Help</span>
-              </motion.a>
+              </motion.button>
             </div>
           </div>
 
@@ -361,6 +426,9 @@ const Hackathons = () => {
             {activeChannel === 'upcoming' && 'Register for upcoming events'}
             {activeChannel === 'past-events' && 'View completed hackathons'}
             {activeChannel === 'leaderboard' && 'Top hackers and teams rankings'}
+            {activeChannel === 'getting-started' && 'Learn how to participate in hackathons'}
+            {activeChannel === 'project-ideas' && 'Get inspired for your next project'}
+            {activeChannel === 'faq' && 'Frequently asked questions and help'}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
@@ -385,6 +453,36 @@ const Hackathons = () => {
                 transition={{ duration: 0.2 }}
               >
                 <Leaderboard />
+              </motion.div>
+            ) : activeChannel === 'getting-started' ? (
+              <motion.div
+                key="getting-started"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <GettingStarted onNavigate={setActiveChannel} />
+              </motion.div>
+            ) : activeChannel === 'project-ideas' ? (
+              <motion.div
+                key="project-ideas"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ProjectIdeas />
+              </motion.div>
+            ) : activeChannel === 'faq' ? (
+              <motion.div
+                key="faq"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <HackathonFAQ />
               </motion.div>
             ) : selectedEndedHackathon ? (
               <motion.div
@@ -533,6 +631,7 @@ const Hackathons = () => {
         onSuccess={fetchHackathons}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
