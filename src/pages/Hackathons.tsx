@@ -10,6 +10,9 @@ import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { ProjectIdeas } from '@/components/hackathon/ProjectIdeas';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
+import { CodePlayground } from '@/components/hackathon/CodePlayground';
+import { QuickSubmitModal } from '@/components/hackathon/QuickSubmitModal';
+import { CommunityChat } from '@/components/hackathon/CommunityChat';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Zap, Calendar, Trophy, Code, Hash, Users, Rocket, 
@@ -45,6 +48,11 @@ const Hackathons = () => {
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState('all-events');
   const [selectedEndedHackathon, setSelectedEndedHackathon] = useState<Hackathon | null>(null);
+  
+  // New modal states for sidebar tools
+  const [codePlaygroundOpen, setCodePlaygroundOpen] = useState(false);
+  const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
+  const [communityChatOpen, setCommunityChatOpen] = useState(false);
 
   useEffect(() => {
     fetchHackathons();
@@ -182,56 +190,49 @@ const Hackathons = () => {
           <TooltipTrigger asChild>
             <motion.div 
               whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setActiveChannel('all-events')}
+              onClick={() => setCommunityChatOpen(true)}
               className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer transition-all relative"
             >
               <Rocket className="w-6 h-6 text-white" />
-              {activeChannel.includes('event') && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
             </motion.div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-semibold">Hackathon Hub</p>
-            <p className="text-xs text-muted-foreground">Browse events & register</p>
+            <p className="font-semibold">Community Chat</p>
+            <p className="text-xs text-muted-foreground">Chat, collaborate & video calls</p>
           </TooltipContent>
         </Tooltip>
 
-        {/* Project Ideas */}
+        {/* Code Playground */}
         <Tooltip>
           <TooltipTrigger asChild>
             <motion.div 
               whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setActiveChannel('project-ideas')}
-              className={`w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all relative ${
-                activeChannel === 'project-ideas' ? 'ring-2 ring-white ring-offset-2 ring-offset-[hsl(var(--discord-darker))]' : ''
-              }`}
+              onClick={() => setCodePlaygroundOpen(true)}
+              className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all relative"
             >
               <Code className="w-6 h-6 text-white" />
-              {activeChannel === 'project-ideas' && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
             </motion.div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-semibold">Project Ideas</p>
-            <p className="text-xs text-muted-foreground">Get inspiration for your project</p>
+            <p className="font-semibold">Code Playground</p>
+            <p className="text-xs text-muted-foreground">Open CodeSandbox/StackBlitz IDE</p>
           </TooltipContent>
         </Tooltip>
 
-        {/* Getting Started / Resources */}
+        {/* Quick Submit */}
         <Tooltip>
           <TooltipTrigger asChild>
             <motion.div 
               whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setActiveChannel('getting-started')}
-              className={`w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all relative ${
-                activeChannel === 'getting-started' ? 'ring-2 ring-white ring-offset-2 ring-offset-[hsl(var(--discord-darker))]' : ''
-              }`}
+              onClick={() => setQuickSubmitOpen(true)}
+              className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all relative"
             >
               <Terminal className="w-6 h-6 text-white" />
-              {activeChannel === 'getting-started' && <div className="absolute -left-1 w-1 h-10 bg-white rounded-r-full" />}
             </motion.div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-semibold">Getting Started</p>
-            <p className="text-xs text-muted-foreground">Learn how hackathons work</p>
+            <p className="font-semibold">Quick Submit</p>
+            <p className="text-xs text-muted-foreground">Submit project demo & repo links</p>
           </TooltipContent>
         </Tooltip>
 
@@ -629,6 +630,23 @@ const Hackathons = () => {
         isOpen={submissionModalOpen}
         onClose={() => setSubmissionModalOpen(false)}
         onSuccess={fetchHackathons}
+      />
+
+      {/* Sidebar Tool Modals */}
+      <CodePlayground
+        isOpen={codePlaygroundOpen}
+        onClose={() => setCodePlaygroundOpen(false)}
+      />
+
+      <QuickSubmitModal
+        isOpen={quickSubmitOpen}
+        onClose={() => setQuickSubmitOpen(false)}
+        onSuccess={fetchHackathons}
+      />
+
+      <CommunityChat
+        isOpen={communityChatOpen}
+        onClose={() => setCommunityChatOpen(false)}
       />
     </div>
     </TooltipProvider>
