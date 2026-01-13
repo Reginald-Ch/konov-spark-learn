@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      community_channels: {
+        Row: {
+          channel_type: string
+          created_at: string
+          description: string | null
+          hackathon_id: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string
+          description?: string | null
+          hackathon_id?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string
+          description?: string | null
+          hackathon_id?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_channels_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_messages: {
+        Row: {
+          channel_id: string
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          sender_email: string
+          sender_name: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_email: string
+          sender_name: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_email?: string
+          sender_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -386,6 +468,38 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "program_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_room_participants: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string
+          participant_email: string
+          participant_name: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string
+          participant_email: string
+          participant_name: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string
+          participant_email?: string
+          participant_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_room_participants_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
             referencedColumns: ["id"]
           },
         ]
