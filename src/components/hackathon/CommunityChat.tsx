@@ -288,7 +288,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] h-[80vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white">
+      <DialogContent hideCloseButton className="sm:max-w-[900px] h-[80vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white">
         <div className="flex h-full">
           {/* Channels Sidebar */}
           <div className="w-60 bg-[hsl(var(--discord-darker))] flex flex-col border-r border-[hsl(var(--discord-light)/0.2)]">
