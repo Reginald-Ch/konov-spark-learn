@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { 
-  Rocket, UserPlus, Users, Code, Trophy, CheckCircle2, 
-  ArrowRight, Lightbulb, Zap, MessageSquare
+  Rocket, UserPlus, Users, Brain, Trophy, CheckCircle2, 
+  ArrowRight, Lightbulb, Zap, MessageSquare, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -13,8 +13,8 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   const steps = [
     {
       number: 1,
-      title: 'Register for a Hackathon',
-      description: 'Browse our upcoming and live hackathons, then click "Register" to join. You\'ll need your name, email, and preferred experience level.',
+      title: 'Register for an AI Hackathon',
+      description: 'Browse our upcoming and live AI hackathons, then click "Register" to join. You\'ll need your name, email, and preferred experience level.',
       icon: UserPlus,
       color: '#C70110',
       action: { label: 'View Events', channel: 'all-events' }
@@ -22,23 +22,23 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     {
       number: 2,
       title: 'Join or Create a Team',
-      description: 'Team up with other hackers! You can join an existing team looking for members, or create your own and recruit teammates.',
+      description: 'Team up with other AI enthusiasts! You can join an existing team looking for members, or create your own and recruit teammates with complementary skills.',
       icon: Users,
       color: '#F7941D',
       action: { label: 'Find Teams', channel: 'all-events' }
     },
     {
       number: 3,
-      title: 'Build Your Project',
-      description: 'Work with your team to build something amazing! Use any programming languages, frameworks, or tools you prefer.',
-      icon: Code,
+      title: 'Build Your AI Project',
+      description: 'Work with your team to build an AI-powered solution! Use AI APIs like OpenAI, Hugging Face, or TensorFlow.js. Focus on prompt engineering, model selection, and a great user experience.',
+      icon: Brain,
       color: '#006600',
-      action: { label: 'Get Ideas', channel: 'project-ideas' }
+      action: { label: 'Get AI Ideas', channel: 'project-ideas' }
     },
     {
       number: 4,
       title: 'Submit & Win',
-      description: 'Submit your project before the deadline. Include a demo link, GitHub repo, and short video. Top projects win prizes!',
+      description: 'Submit your AI project before the deadline. Include a demo link, GitHub repo, and short video showing your AI in action. Top projects win prizes!',
       icon: Trophy,
       color: '#5865F2',
       action: { label: 'View Leaderboard', channel: 'leaderboard' }
@@ -46,10 +46,12 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   ];
 
   const tips = [
-    { icon: Lightbulb, text: 'Start with a simple idea and build from there' },
-    { icon: Zap, text: 'Focus on a working demo over perfect code' },
+    { icon: Sparkles, text: 'Start with a pre-trained model — don\'t build from scratch' },
+    { icon: Zap, text: 'Use free AI API tiers (OpenAI, Hugging Face, Google AI)' },
+    { icon: Lightbulb, text: 'Focus on the user experience, not just the AI' },
+    { icon: CheckCircle2, text: 'Document your prompts and approach' },
     { icon: MessageSquare, text: 'Communicate often with your team' },
-    { icon: CheckCircle2, text: 'Submit early to avoid last-minute issues' }
+    { icon: Rocket, text: 'Submit early to avoid last-minute issues' }
   ];
 
   return (
@@ -69,7 +71,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">Getting Started</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Your guide to hackathon success</p>
+            <p className="text-[hsl(var(--discord-text-muted))]">Your guide to AI hackathon success</p>
           </div>
         </div>
       </motion.div>
@@ -126,7 +128,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
       >
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Zap className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
-          Pro Tips for Hackathon Success
+          Pro Tips for AI Hackathon Success
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {tips.map((tip, index) => (
@@ -157,7 +159,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
           style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}
         >
           <Rocket className="w-5 h-5 mr-2" />
-          Start Your Journey
+          Start Your AI Journey
         </Button>
       </motion.div>
     </div>

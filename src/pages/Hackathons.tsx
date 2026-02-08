@@ -257,7 +257,7 @@ const Hackathons = () => {
       <div className="w-60 bg-[hsl(var(--discord-dark))] flex flex-col">
         {/* Server Header */}
         <div className="h-12 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-darker))] shadow-sm hover:bg-[hsl(var(--discord-light)/0.3)] cursor-pointer">
-          <span className="font-semibold text-white truncate">Tech Kids Hackathons</span>
+          <span className="font-semibold text-white truncate">Tech Kids AI Hackathons</span>
           <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
         </div>
 
@@ -422,14 +422,14 @@ const Hackathons = () => {
           <span className="font-semibold text-white">{activeChannel}</span>
           <div className="w-px h-6 bg-[hsl(var(--discord-light))]" />
           <span className="text-sm text-[hsl(var(--discord-text-muted))]">
-            {activeChannel === 'all-events' && 'Browse all hackathon events'}
-            {activeChannel === 'live-now' && 'Currently running hackathons'}
-            {activeChannel === 'upcoming' && 'Register for upcoming events'}
-            {activeChannel === 'past-events' && 'View completed hackathons'}
-            {activeChannel === 'leaderboard' && 'Top hackers and teams rankings'}
-            {activeChannel === 'getting-started' && 'Learn how to participate in hackathons'}
-            {activeChannel === 'project-ideas' && 'Get inspired for your next project'}
-            {activeChannel === 'faq' && 'Frequently asked questions and help'}
+            {activeChannel === 'all-events' && 'Browse all AI hackathon events'}
+            {activeChannel === 'live-now' && 'Currently running AI hackathons'}
+            {activeChannel === 'upcoming' && 'Register for upcoming AI events'}
+            {activeChannel === 'past-events' && 'View completed AI hackathons'}
+            {activeChannel === 'leaderboard' && 'Top AI hackers and teams rankings'}
+            {activeChannel === 'getting-started' && 'Learn how to participate in AI hackathons'}
+            {activeChannel === 'project-ideas' && 'Get inspired for your next AI project'}
+            {activeChannel === 'faq' && 'AI hackathon FAQ and help'}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
@@ -531,20 +531,20 @@ const Hackathons = () => {
                 >
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-4 right-4">
-                      <Code className="w-32 h-32 text-white" />
+                      <Sparkles className="w-32 h-32 text-white" />
                     </div>
                     <div className="absolute bottom-4 left-4">
-                      <Terminal className="w-24 h-24 text-white" />
+                      <Zap className="w-24 h-24 text-white" />
                     </div>
                   </div>
                   <div className="relative z-10">
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                      <Zap className="w-8 h-8" />
-                      Welcome to Hackathons!
+                      <Sparkles className="w-8 h-8" />
+                      Welcome to AI Hackathons!
                     </h1>
                     <p className="text-white/90 text-lg max-w-2xl">
-                      Build. Innovate. Win. Join our tech community hackathons to collaborate, 
-                      learn, and create amazing projects with fellow developers!
+                      Build AI-powered solutions. Experiment with machine learning, chatbots, 
+                      computer vision, and more! Collaborate and innovate with fellow AI enthusiasts.
                     </p>
                     <div className="flex flex-wrap items-center gap-6 mt-4">
                       <div className="flex items-center gap-2 text-white">

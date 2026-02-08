@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { HelpCircle, ChevronDown, MessageSquare, Mail, ExternalLink } from 'lucide-react';
+import { HelpCircle, MessageSquare, Mail, ExternalLink } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -12,12 +12,28 @@ import { Link } from 'react-router-dom';
 export const HackathonFAQ = () => {
   const faqs = [
     {
-      question: 'What is a hackathon?',
-      answer: 'A hackathon is a creative coding event where participants form teams to build projects within a set timeframe. It\'s a fun way to learn new skills, collaborate with others, and turn ideas into working prototypes!'
+      question: 'What is an AI hackathon?',
+      answer: 'An AI hackathon is a creative coding event focused on building AI-powered projects. Participants form teams to build chatbots, image classifiers, AI art generators, and more within a set timeframe. It\'s a fun way to explore artificial intelligence hands-on!'
+    },
+    {
+      question: 'Do I need to know machine learning to participate?',
+      answer: 'Not at all! Many AI tools today have simple APIs that don\'t require ML knowledge. You can use pre-built models from OpenAI, Hugging Face, or Google AI with just a few lines of code. Focus on building a great user experience around the AI.'
+    },
+    {
+      question: 'What AI APIs can I use?',
+      answer: 'You can use any AI API! Popular options include: OpenAI (ChatGPT, DALL·E), Hugging Face (thousands of free models), Google AI (Gemini), TensorFlow.js (in-browser ML), Stable Diffusion (image generation), and Langchain (for chaining AI calls).'
+    },
+    {
+      question: 'Are there free AI tools available?',
+      answer: 'Yes! Many AI services offer free tiers: OpenAI gives free credits to new users, Hugging Face has thousands of free models, TensorFlow.js runs entirely in the browser for free, and Google AI Studio offers free Gemini API access. No credit card needed for most.'
+    },
+    {
+      question: 'How do I handle API keys safely?',
+      answer: 'Never put API keys directly in your frontend code! Use environment variables (.env files) and a backend proxy. For hackathon demos, you can use serverless functions (like Supabase Edge Functions) to keep your keys secret while still calling AI APIs.'
     },
     {
       question: 'Do I need coding experience to participate?',
-      answer: 'Not at all! Hackathons are for all skill levels. Beginners can learn from teammates, and there are always mentors available to help. You can contribute in many ways - design, ideas, testing, or presenting.'
+      answer: 'Not necessarily! Hackathons are for all skill levels. Beginners can start with no-code AI tools or simple API calls. You can also contribute through design, ideas, testing, or presenting. Teammates and mentors are always available to help.'
     },
     {
       question: 'How do I register for a hackathon?',
@@ -25,39 +41,31 @@ export const HackathonFAQ = () => {
     },
     {
       question: 'Can I participate solo or do I need a team?',
-      answer: 'You can register solo and either join an existing team or create your own. We encourage teamwork as it\'s more fun and you can build bigger projects. Teams typically have 2-5 members.'
+      answer: 'You can register solo and either join an existing team or create your own. We encourage teamwork as it\'s more fun and you can build bigger AI projects. Teams typically have 2-5 members.'
     },
     {
       question: 'How do teams work?',
       answer: 'After registering, you can view teams in the "Teams" section. You can join a team that\'s looking for members, or create your own team and invite others. Team leaders can manage their team composition.'
     },
     {
-      question: 'What can I build during a hackathon?',
-      answer: 'Almost anything! Web apps, games, tools, creative projects - as long as it fits the hackathon theme (if there is one). Check our "Project Ideas" section for inspiration.'
-    },
-    {
-      question: 'What tools and technologies can I use?',
-      answer: 'You\'re free to use any programming languages, frameworks, or tools you prefer. We recommend sticking to what you know for faster development, but hackathons are also great for learning new tech!'
+      question: 'What can I build during an AI hackathon?',
+      answer: 'Anything AI-powered! Chatbots, image classifiers, story generators, sentiment analyzers, AI art tools, voice assistants, smart planners, and more. Check our "Project Ideas" section for AI-specific inspiration.'
     },
     {
       question: 'How do I submit my project?',
-      answer: 'Before the deadline, go to your hackathon and click "Submit Project". You\'ll need to provide a project name, description, tech stack, and links to your demo and code repository (GitHub, GitLab, etc.).'
+      answer: 'Before the deadline, go to your hackathon and click "Submit Project". You\'ll need to provide a project name, description, AI tech stack used, and links to your demo and code repository.'
     },
     {
-      question: 'How are projects judged?',
-      answer: 'Projects are typically judged on creativity, technical implementation, design, and presentation. Specific criteria may vary by hackathon. Winners are announced after the event ends.'
+      question: 'How are AI projects judged?',
+      answer: 'Projects are judged on creativity, AI implementation quality, user experience, and presentation. Judges look for clever use of AI, not just technical complexity. A simple chatbot with great UX can beat a complex ML model with poor usability!'
     },
     {
       question: 'What are the prizes?',
-      answer: 'Prizes vary by hackathon and may include certificates, gift cards, tech gadgets, learning subscriptions, or other rewards. Check each hackathon\'s details for specific prize information.'
-    },
-    {
-      question: 'What if I have technical problems during the event?',
-      answer: 'Don\'t worry! We have mentors and support channels available during the hackathon. Reach out through our community channels or contact page for help.'
+      answer: 'Prizes vary by hackathon and may include certificates, gift cards, tech gadgets, AI API credits, learning subscriptions, or other rewards. Check each hackathon\'s details for specific prize information.'
     },
     {
       question: 'Is there an age requirement?',
-      answer: 'Our hackathons are designed for young tech enthusiasts, typically ages 8-18. Some events may have specific age brackets. Check each event\'s requirements for details.'
+      answer: 'Our AI hackathons are designed for young tech enthusiasts, typically ages 8-18. Some events may have specific age brackets. Check each event\'s requirements for details.'
     }
   ];
 
@@ -77,8 +85,8 @@ export const HackathonFAQ = () => {
             <HelpCircle className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">FAQ & Help</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Got questions? We've got answers</p>
+            <h1 className="text-3xl font-bold text-white">AI Hackathon FAQ & Help</h1>
+            <p className="text-[hsl(var(--discord-text-muted))]">Got questions about AI hackathons? We've got answers</p>
           </div>
         </div>
       </motion.div>
@@ -118,8 +126,7 @@ export const HackathonFAQ = () => {
           <MessageSquare className="w-10 h-10 mx-auto mb-4 text-[hsl(var(--discord-blurple))]" />
           <h3 className="text-xl font-semibold text-white mb-2">Still Have Questions?</h3>
           <p className="text-[hsl(var(--discord-text-muted))] mb-6 max-w-md mx-auto">
-            Can't find what you're looking for? Our team is here to help! Reach out 
-            through our contact page and we'll get back to you.
+            Can't find what you're looking for? Our team is here to help with any AI hackathon questions!
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link to="/contact">
@@ -152,19 +159,19 @@ export const HackathonFAQ = () => {
       >
         {[
           { 
-            emoji: '🎯', 
-            title: 'Start Early', 
-            text: 'Register as soon as registration opens to secure your spot' 
+            emoji: '🤖', 
+            title: 'Start Simple', 
+            text: 'Use a pre-built AI API — don\'t try to train your own model' 
           },
           { 
-            emoji: '🤝', 
-            title: 'Team Up', 
-            text: 'Find teammates with complementary skills' 
+            emoji: '🔑', 
+            title: 'Keep Keys Safe', 
+            text: 'Use environment variables and backend proxies for API keys' 
           },
           { 
             emoji: '🚀', 
             title: 'Ship It', 
-            text: 'A working demo beats a perfect idea every time' 
+            text: 'A working AI demo beats a perfect idea every time' 
           }
         ].map((tip, index) => (
           <div 

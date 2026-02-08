@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Lightbulb, Globe, Gamepad2, Heart, Leaf, GraduationCap, 
-  ShoppingCart, Music, Camera, MessageCircle, ChevronRight,
-  Star, Sparkles, Zap, Users
+  Lightbulb, MessageCircle, ChevronRight,
+  Star, Sparkles, Zap, Users, Brain, Eye, Palette, BarChart3,
+  Bot, BookOpen, Mic, Swords
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,99 +26,99 @@ export const ProjectIdeas = () => {
 
   const categories = [
     { id: 'all', name: 'All Ideas', icon: Sparkles },
-    { id: 'web', name: 'Web Apps', icon: Globe },
-    { id: 'games', name: 'Games', icon: Gamepad2 },
-    { id: 'social', name: 'Social Good', icon: Heart },
-    { id: 'education', name: 'Education', icon: GraduationCap },
+    { id: 'chatbots', name: 'Chatbots', icon: Bot },
+    { id: 'vision', name: 'Computer Vision', icon: Eye },
+    { id: 'creative', name: 'Creative AI', icon: Palette },
+    { id: 'data', name: 'Data / ML', icon: BarChart3 },
   ];
 
   const ideas: ProjectIdea[] = [
     {
       id: '1',
-      title: 'Eco Tracker',
-      description: 'An app that helps users track and reduce their carbon footprint through daily challenges and tips.',
-      category: 'social',
+      title: 'AI Chatbot Assistant',
+      description: 'Build a conversational chatbot using a large language model API that can answer questions, tell jokes, or help with homework.',
+      category: 'chatbots',
       difficulty: 'Beginner',
-      techStack: ['React', 'Tailwind CSS', 'LocalStorage'],
-      features: ['Daily eco-challenges', 'Carbon calculator', 'Achievement badges', 'Share progress'],
-      icon: Leaf,
-      color: '#006600'
-    },
-    {
-      id: '2',
-      title: 'Study Buddy',
-      description: 'A collaborative learning platform where students can form study groups and share resources.',
-      category: 'education',
-      difficulty: 'Intermediate',
-      techStack: ['React', 'Supabase', 'Real-time DB'],
-      features: ['Group chat', 'Resource sharing', 'Quiz maker', 'Progress tracking'],
-      icon: GraduationCap,
+      techStack: ['React', 'OpenAI API', 'Tailwind CSS', 'Vercel AI SDK'],
+      features: ['Conversational UI', 'Chat history', 'Typing indicators', 'Multiple personalities'],
+      icon: Bot,
       color: '#5865F2'
     },
     {
+      id: '2',
+      title: 'Image Classifier',
+      description: 'Use a pre-trained machine learning model to classify images uploaded by users — identify objects, animals, or scenes.',
+      category: 'vision',
+      difficulty: 'Intermediate',
+      techStack: ['React', 'TensorFlow.js', 'MobileNet', 'Tailwind CSS'],
+      features: ['Drag & drop upload', 'Real-time predictions', 'Confidence scores', 'Top-5 results'],
+      icon: Eye,
+      color: '#006600'
+    },
+    {
       id: '3',
-      title: 'Mini Arcade',
-      description: 'A collection of simple browser-based games like Snake, Tetris, or Memory Match.',
-      category: 'games',
+      title: 'AI Story Generator',
+      description: 'Generate creative stories, poems, or adventures using AI prompts. Users pick a genre, characters, and setting.',
+      category: 'creative',
       difficulty: 'Beginner',
-      techStack: ['HTML5 Canvas', 'JavaScript', 'CSS'],
-      features: ['Multiple games', 'High score system', 'Sound effects', 'Mobile responsive'],
-      icon: Gamepad2,
+      techStack: ['React', 'OpenAI API', 'Framer Motion', 'LocalStorage'],
+      features: ['Genre selection', 'Character builder', 'Story continuation', 'Save & share stories'],
+      icon: BookOpen,
       color: '#F7941D'
     },
     {
       id: '4',
-      title: 'Mood Journal',
-      description: 'A mental wellness app for tracking daily moods, journaling, and viewing mood patterns.',
-      category: 'social',
-      difficulty: 'Beginner',
-      techStack: ['React', 'Charts.js', 'LocalStorage'],
-      features: ['Mood logging', 'Journal entries', 'Mood analytics', 'Reminders'],
-      icon: Heart,
+      title: 'Smart Study Planner',
+      description: 'An AI-powered study schedule optimizer that creates personalized study plans based on subjects, deadlines, and learning style.',
+      category: 'data',
+      difficulty: 'Intermediate',
+      techStack: ['React', 'OpenAI API', 'Supabase', 'date-fns'],
+      features: ['AI schedule generation', 'Priority ranking', 'Progress tracking', 'Smart reminders'],
+      icon: Brain,
       color: '#C70110'
     },
     {
       id: '5',
-      title: 'Recipe Remix',
-      description: 'A web app that suggests recipes based on ingredients you already have in your kitchen.',
-      category: 'web',
-      difficulty: 'Intermediate',
-      techStack: ['React', 'API Integration', 'Supabase'],
-      features: ['Ingredient input', 'Recipe suggestions', 'Favorites list', 'Shopping list'],
-      icon: ShoppingCart,
+      title: 'Sentiment Analyzer',
+      description: 'Analyze the sentiment of text from social media posts, reviews, or messages. Visualize emotions with charts and colors.',
+      category: 'data',
+      difficulty: 'Beginner',
+      techStack: ['React', 'Hugging Face API', 'Recharts', 'Tailwind CSS'],
+      features: ['Text input & paste', 'Emotion detection', 'Sentiment charts', 'Batch analysis'],
+      icon: BarChart3,
       color: '#00B894'
     },
     {
       id: '6',
-      title: 'Beat Maker',
-      description: 'A simple drum machine and beat sequencer where users can create their own music loops.',
-      category: 'games',
+      title: 'AI Art Gallery',
+      description: 'Generate and curate AI-created artwork using text prompts. Build a gallery where users can create, vote, and share AI art.',
+      category: 'creative',
       difficulty: 'Intermediate',
-      techStack: ['Web Audio API', 'React', 'CSS Grid'],
-      features: ['16-step sequencer', 'Multiple instruments', 'Tempo control', 'Export audio'],
-      icon: Music,
+      techStack: ['React', 'Stable Diffusion API', 'Supabase Storage', 'Masonry Grid'],
+      features: ['Text-to-image generation', 'Gallery wall', 'Community voting', 'Download & share'],
+      icon: Palette,
       color: '#9B59B6'
     },
     {
       id: '7',
-      title: 'Photo Filter Studio',
-      description: 'Apply Instagram-like filters to photos right in the browser using canvas.',
-      category: 'web',
+      title: 'Voice Command App',
+      description: 'Build an app controlled by voice! Use speech-to-text to execute commands, search the web, or control a game.',
+      category: 'chatbots',
       difficulty: 'Advanced',
-      techStack: ['HTML5 Canvas', 'WebGL', 'React'],
-      features: ['10+ filters', 'Adjustable intensity', 'Download edited photos', 'Batch processing'],
-      icon: Camera,
+      techStack: ['React', 'Web Speech API', 'OpenAI Whisper', 'Langchain'],
+      features: ['Voice recognition', 'Command parsing', 'Text-to-speech response', 'Custom wake word'],
+      icon: Mic,
       color: '#E91E63'
     },
     {
       id: '8',
-      title: 'Anonymous Feedback',
-      description: 'A platform for anonymous peer feedback in classrooms or teams.',
-      category: 'education',
-      difficulty: 'Intermediate',
-      techStack: ['React', 'Supabase', 'Real-time'],
-      features: ['Anonymous submissions', 'Sentiment analysis', 'Teacher dashboard', 'Response threads'],
-      icon: MessageCircle,
+      title: 'AI Debate Partner',
+      description: 'An AI that takes the opposite side of any argument and debates with you. Great for critical thinking and exploring perspectives.',
+      category: 'chatbots',
+      difficulty: 'Advanced',
+      techStack: ['React', 'OpenAI API', 'Langchain', 'Framer Motion'],
+      features: ['Topic selection', 'Turn-based debate', 'Argument scoring', 'Debate history'],
+      icon: Swords,
       color: '#00CEC9'
     }
   ];
@@ -152,8 +152,8 @@ export const ProjectIdeas = () => {
             <Lightbulb className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Project Ideas</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Get inspired for your next hackathon project</p>
+            <h1 className="text-3xl font-bold text-white">AI Project Ideas</h1>
+            <p className="text-[hsl(var(--discord-text-muted))]">Get inspired for your next AI hackathon project</p>
           </div>
         </div>
       </motion.div>
@@ -277,14 +277,14 @@ export const ProjectIdeas = () => {
         className="mt-8 p-6 rounded-lg border border-dashed border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-darker)/0.5)] text-center"
       >
         <Zap className="w-8 h-8 mx-auto mb-3 text-[hsl(var(--discord-yellow))]" />
-        <h3 className="text-lg font-semibold text-white mb-2">Have Your Own Idea?</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">Have Your Own AI Idea?</h3>
         <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto mb-4">
-          These are just suggestions! The best hackathon projects solve real problems 
-          you care about. Build something you're passionate about!
+          These are just suggestions! The best AI hackathon projects solve real problems 
+          using artificial intelligence. Build something you're passionate about!
         </p>
         <div className="flex items-center justify-center gap-2 text-sm text-[hsl(var(--discord-text-muted))]">
           <Users className="w-4 h-4" />
-          <span>Team up and brainstorm together for even better ideas</span>
+          <span>Team up and brainstorm AI solutions together</span>
         </div>
       </motion.div>
     </div>
