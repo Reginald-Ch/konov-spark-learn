@@ -242,7 +242,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
               id="project_name"
               value={formData.project_name}
               onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-              placeholder="Your awesome project"
+              placeholder="e.g., AI Chatbot with LangChain"
               required
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
@@ -258,7 +258,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
               type="url"
               value={formData.demo_url}
               onChange={(e) => setFormData({ ...formData, demo_url: e.target.value })}
-              placeholder="https://your-demo.com"
+              placeholder="https://colab.research.google.com/... or Streamlit URL"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>
@@ -273,7 +273,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
               type="url"
               value={formData.repo_url}
               onChange={(e) => setFormData({ ...formData, repo_url: e.target.value })}
-              placeholder="https://github.com/..."
+              placeholder="https://github.com/your-python-ai-project"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>

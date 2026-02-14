@@ -215,7 +215,7 @@ const Hackathons = () => {
           </TooltipTrigger>
           <TooltipContent side="right">
             <p className="font-semibold">Code Playground</p>
-            <p className="text-xs text-muted-foreground">Open CodeSandbox/StackBlitz IDE</p>
+            <p className="text-xs text-muted-foreground">Open Python IDE (Colab/Kaggle)</p>
           </TooltipContent>
         </Tooltip>
 
@@ -257,7 +257,7 @@ const Hackathons = () => {
       <div className="w-60 bg-[hsl(var(--discord-dark))] flex flex-col">
         {/* Server Header */}
         <div className="h-12 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-darker))] shadow-sm hover:bg-[hsl(var(--discord-light)/0.3)] cursor-pointer">
-          <span className="font-semibold text-white truncate">Tech Kids AI Hackathons</span>
+          <span className="font-semibold text-white truncate">Python AI Hackathons</span>
           <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
         </div>
 
@@ -422,14 +422,14 @@ const Hackathons = () => {
           <span className="font-semibold text-white">{activeChannel}</span>
           <div className="w-px h-6 bg-[hsl(var(--discord-light))]" />
           <span className="text-sm text-[hsl(var(--discord-text-muted))]">
-            {activeChannel === 'all-events' && 'Browse all AI hackathon events'}
-            {activeChannel === 'live-now' && 'Currently running AI hackathons'}
-            {activeChannel === 'upcoming' && 'Register for upcoming AI events'}
-            {activeChannel === 'past-events' && 'View completed AI hackathons'}
-            {activeChannel === 'leaderboard' && 'Top AI hackers and teams rankings'}
-            {activeChannel === 'getting-started' && 'Learn how to participate in AI hackathons'}
-            {activeChannel === 'project-ideas' && 'Get inspired for your next AI project'}
-            {activeChannel === 'faq' && 'AI hackathon FAQ and help'}
+            {activeChannel === 'all-events' && 'Browse all Python AI hackathon events'}
+            {activeChannel === 'live-now' && 'Currently running Python AI hackathons'}
+            {activeChannel === 'upcoming' && 'Register for upcoming Python AI events'}
+            {activeChannel === 'past-events' && 'View completed Python AI hackathons'}
+            {activeChannel === 'leaderboard' && 'Top Python AI hackers and teams'}
+            {activeChannel === 'getting-started' && 'Set up Python and start building AI'}
+            {activeChannel === 'project-ideas' && 'Python AI project ideas with starter code'}
+            {activeChannel === 'faq' && 'Python AI hackathon FAQ and help'}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
@@ -540,11 +540,11 @@ const Hackathons = () => {
                   <div className="relative z-10">
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
                       <Sparkles className="w-8 h-8" />
-                      Welcome to AI Hackathons!
+                      Build AI Projects with Python!
                     </h1>
                     <p className="text-white/90 text-lg max-w-2xl">
-                      Build AI-powered solutions. Experiment with machine learning, chatbots, 
-                      computer vision, and more! Collaborate and innovate with fellow AI enthusiasts.
+                      Use Python, PyTorch, TensorFlow, and leading AI models to build innovative solutions. 
+                      Code in Google Colab, Kaggle, or Replit — no setup needed!
                     </p>
                     <div className="flex flex-wrap items-center gap-6 mt-4">
                       <div className="flex items-center gap-2 text-white">

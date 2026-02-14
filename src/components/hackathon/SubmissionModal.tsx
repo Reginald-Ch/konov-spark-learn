@@ -218,7 +218,7 @@ export const SubmissionModal = ({
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe your project, what problem it solves, and how it works"
+              placeholder="Describe your Python AI project, what problem it solves, which models/libraries you used, and how it works"
               rows={4}
               required
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] resize-none"
@@ -234,7 +234,7 @@ export const SubmissionModal = ({
               id="technologies"
               value={formData.technologies}
               onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
-              placeholder="e.g., React, Node.js, Python, TensorFlow"
+              placeholder="e.g., Python, PyTorch, Hugging Face, Streamlit, LangChain"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
             />
           </div>
@@ -250,7 +250,7 @@ export const SubmissionModal = ({
                 type="url"
                 value={formData.demo_url}
                 onChange={(e) => setFormData({ ...formData, demo_url: e.target.value })}
-                placeholder="https://your-demo.com"
+                placeholder="https://streamlit.app/... or Colab link"
                 className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
               />
             </div>
@@ -265,7 +265,7 @@ export const SubmissionModal = ({
                 type="url"
                 value={formData.repo_url}
                 onChange={(e) => setFormData({ ...formData, repo_url: e.target.value })}
-                placeholder="https://github.com/..."
+                placeholder="https://github.com/your-python-ai-project"
                 className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
               />
             </div>

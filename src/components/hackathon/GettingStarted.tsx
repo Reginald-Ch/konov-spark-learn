@@ -13,8 +13,8 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   const steps = [
     {
       number: 1,
-      title: 'Register for an AI Hackathon',
-      description: 'Browse our upcoming and live AI hackathons, then click "Register" to join. You\'ll need your name, email, and preferred experience level.',
+      title: 'Register for a Python AI Hackathon',
+      description: 'Browse our upcoming and live hackathons, then click "Register" to join. You\'ll need your name, email, and preferred experience level.',
       icon: UserPlus,
       color: '#C70110',
       action: { label: 'View Events', channel: 'all-events' }
@@ -22,23 +22,23 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     {
       number: 2,
       title: 'Join or Create a Team',
-      description: 'Team up with other AI enthusiasts! You can join an existing team looking for members, or create your own and recruit teammates with complementary skills.',
+      description: 'Team up with other Python AI enthusiasts! Join an existing team or create your own and recruit teammates with complementary skills in ML, data science, or frontend.',
       icon: Users,
       color: '#F7941D',
       action: { label: 'Find Teams', channel: 'all-events' }
     },
     {
       number: 3,
-      title: 'Build Your AI Project',
-      description: 'Work with your team to build an AI-powered solution! Use AI APIs like OpenAI, Hugging Face, or TensorFlow.js. Focus on prompt engineering, model selection, and a great user experience.',
+      title: 'Build Your Python AI Project',
+      description: 'Set up your Python environment in Google Colab or Kaggle (free GPU!). Pick an AI model from Hugging Face or OpenAI, build your logic, and create a demo UI with Streamlit or Gradio.',
       icon: Brain,
       color: '#006600',
-      action: { label: 'Get AI Ideas', channel: 'project-ideas' }
+      action: { label: 'Get Python AI Ideas', channel: 'project-ideas' }
     },
     {
       number: 4,
       title: 'Submit & Win',
-      description: 'Submit your AI project before the deadline. Include a demo link, GitHub repo, and short video showing your AI in action. Top projects win prizes!',
+      description: 'Submit your Python AI project before the deadline. Include a Colab/GitHub link, demo URL (Streamlit/Gradio/HuggingFace Spaces), and a short video of your AI in action.',
       icon: Trophy,
       color: '#5865F2',
       action: { label: 'View Leaderboard', channel: 'leaderboard' }
@@ -46,11 +46,11 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   ];
 
   const tips = [
-    { icon: Sparkles, text: 'Start with a pre-trained model — don\'t build from scratch' },
-    { icon: Zap, text: 'Use free AI API tiers (OpenAI, Hugging Face, Google AI)' },
-    { icon: Lightbulb, text: 'Focus on the user experience, not just the AI' },
-    { icon: CheckCircle2, text: 'Document your prompts and approach' },
-    { icon: MessageSquare, text: 'Communicate often with your team' },
+    { icon: Sparkles, text: 'Use Google Colab for free GPU access' },
+    { icon: Zap, text: 'Start with Hugging Face pre-trained models' },
+    { icon: Lightbulb, text: 'Use Streamlit or Gradio to build your demo UI fast' },
+    { icon: CheckCircle2, text: 'pip install everything in requirements.txt' },
+    { icon: MessageSquare, text: 'Test your model on small data first, then scale up' },
     { icon: Rocket, text: 'Submit early to avoid last-minute issues' }
   ];
 
@@ -70,8 +70,8 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
             <Rocket className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Getting Started</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Your guide to AI hackathon success</p>
+            <h1 className="text-3xl font-bold text-white">Getting Started with Python AI</h1>
+            <p className="text-[hsl(var(--discord-text-muted))]">Your guide to building AI projects with Python</p>
           </div>
         </div>
       </motion.div>
@@ -128,7 +128,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
       >
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Zap className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
-          Pro Tips for AI Hackathon Success
+          Pro Tips for Python AI Success
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {tips.map((tip, index) => (
@@ -159,7 +159,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
           style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}
         >
           <Rocket className="w-5 h-5 mr-2" />
-          Start Your AI Journey
+          Start Your Python AI Journey
         </Button>
       </motion.div>
     </div>
