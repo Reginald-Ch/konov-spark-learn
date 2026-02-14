@@ -1,83 +1,81 @@
 
 
-# AI Hackathon Enhancement Plan
+# AI Hackathon MVP: Python + AI Models Focus
 
-The hackathon page currently uses generic tech/coding language. Since this is an **AI Hackathon**, the entire experience needs to be rebranded and enhanced for AI-specific content. Here's what needs to change:
-
----
-
-## 1. Rebrand All Content to AI Hackathon Theme
-
-**Welcome Banner** (Hackathons.tsx)
-- Change "Welcome to Hackathons!" to "Welcome to AI Hackathons!"
-- Update description to focus on AI: "Build AI-powered solutions. Experiment with machine learning, chatbots, computer vision, and more!"
-- Add AI-themed icons and language
-
-**Server Header**
-- "Tech Kids Hackathons" to "Tech Kids AI Hackathons"
+This plan transforms the hackathon into a Python-focused AI building platform where participants build AI projects exclusively using Python and AI models.
 
 ---
 
-## 2. Update Project Ideas for AI Focus
+## What Changes
 
-**Replace all 8 project ideas** in `ProjectIdeas.tsx` with AI-specific ones:
-- AI Chatbot Assistant (Beginner) - Build a conversational bot using an LLM API
-- Image Classifier (Intermediate) - Use a pre-trained model to classify images
-- AI Story Generator (Beginner) - Generate creative stories with AI prompts
-- Smart Study Planner (Intermediate) - AI-powered study schedule optimization
-- Sentiment Analyzer (Beginner) - Analyze text sentiment from social media posts
-- AI Art Gallery (Intermediate) - Generate and curate AI-created artwork
-- Voice Command App (Advanced) - Speech-to-text powered app controls
-- AI Debate Partner (Advanced) - An AI that argues different perspectives
+### 1. Code Playground -- Python-Only IDEs
+Replace the current React-focused playgrounds (CodeSandbox, StackBlitz) with Python-friendly environments:
+- **Google Colab** (primary) -- Free GPU, pre-installed ML libraries, perfect for AI
+- **Replit Python** -- Collaborative Python IDE with package management  
+- **Kaggle Notebooks** -- Dataset access + free GPU for ML projects
 
-Update **category filters** to: All Ideas, Chatbots, Computer Vision, Creative AI, Data/ML
+Update descriptions to emphasize Python + AI model development.
 
-Update **tech stacks** to include AI-relevant tools: OpenAI API, TensorFlow.js, Hugging Face, Langchain, Stable Diffusion, etc.
+### 2. Project Ideas -- Python AI Projects Only
+Replace all 8 project ideas with Python-specific AI projects:
+- Chatbot with LangChain (Beginner) -- Python, OpenAI API, Streamlit
+- Image Classifier with PyTorch (Intermediate) -- Python, torchvision, Gradio
+- AI Story Generator (Beginner) -- Python, OpenAI, Flask
+- Data Visualizer with ML Predictions (Intermediate) -- Python, scikit-learn, Matplotlib
+- Sentiment Analysis Dashboard (Beginner) -- Python, Hugging Face Transformers, Streamlit
+- AI Image Generator (Intermediate) -- Python, Stable Diffusion, Gradio
+- Voice-to-Text Transcriber (Advanced) -- Python, Whisper, FastAPI
+- AI Code Reviewer (Advanced) -- Python, LangChain, AST parsing
 
----
+Update categories to: All Ideas, NLP/Chatbots, Computer Vision, Data Science, Generative AI
 
-## 3. Update Getting Started Guide for AI Context
+Update tech stacks to Python ecosystem: Python, PyTorch, TensorFlow, scikit-learn, Hugging Face, LangChain, Streamlit, Gradio, FastAPI, OpenAI API, Pandas, NumPy
 
-**Modify steps** in `GettingStarted.tsx`:
-- Step 3: "Build Your AI Project" - mention AI APIs, prompt engineering, model selection
-- Add AI-specific pro tips: "Start with a pre-trained model", "Use free AI API tiers", "Focus on the user experience, not just the AI", "Document your prompts and approach"
+### 3. Getting Started Guide -- Python AI Workflow
+Update steps:
+- Step 1: Same (register)
+- Step 2: Same (teams)
+- Step 3: "Build Your Python AI Project" -- set up Python environment, choose AI model, build with Streamlit/Gradio for demos
+- Step 4: Same (submit)
 
----
+Update pro tips:
+- "Use Google Colab for free GPU access"
+- "Start with Hugging Face pre-trained models"
+- "Use Streamlit or Gradio to build your demo UI fast"
+- "pip install everything you need in requirements.txt"
+- "Test your model on small data first, then scale up"
 
-## 4. Update Code Playground for AI Development
+### 4. Banner and Branding
+- Update welcome text: "Build AI Projects with Python"
+- Update description: "Use Python, PyTorch, TensorFlow, and leading AI models to build innovative solutions"
+- Server header: "Tech Kids Python AI Hackathons"
+- Channel descriptions updated for Python + AI context
 
-**Enhance `CodePlayground.tsx`**:
-- Set default CodeSandbox/StackBlitz templates to AI-relevant starter projects (e.g., React + AI API template)
-- Add an "AI Starter Templates" section with pre-configured sandboxes for common AI tasks
-- Update descriptions to reference AI development
+### 5. FAQ Updates
+Add/update Python-specific entries:
+- "What Python libraries should I learn first?"
+- "How do I get free GPU access?"
+- "Can I use Jupyter notebooks?"
+- "How do I deploy my Python AI project?"
+Replace/update existing FAQ entries to reference Python instead of React/JavaScript
 
----
-
-## 5. Update FAQ for AI Hackathon
-
-**Add AI-specific FAQ entries** in `HackathonFAQ.tsx`:
-- "Do I need to know machine learning?" 
-- "What AI APIs can I use?"
-- "Are there free AI tools available?"
-- "How do I handle API keys safely?"
-
----
-
-## 6. Fix Code Playground UX Issue (from screenshot)
-
-The screenshot shows a double close button (X and another X). Clean up the dialog header to have only one close button.
+### 6. Quick Submit and Submission -- Python Context
+- Update placeholder text to reference Python projects (e.g., "https://colab.research.google.com/...", GitHub repos with .py files)
+- Update technologies placeholder to "e.g., Python, PyTorch, Hugging Face, Streamlit"
 
 ---
 
 ## Technical Details
 
 ### Files to modify:
-1. **`src/pages/Hackathons.tsx`** - Update banner text, server name, and AI-themed messaging
-2. **`src/components/hackathon/ProjectIdeas.tsx`** - Replace all project ideas with AI-focused ones, update categories
-3. **`src/components/hackathon/GettingStarted.tsx`** - Update steps and tips for AI context
-4. **`src/components/hackathon/CodePlayground.tsx`** - Add AI starter templates, fix double close button
-5. **`src/components/hackathon/HackathonFAQ.tsx`** - Add AI-specific FAQ entries
+1. **`src/components/hackathon/CodePlayground.tsx`** -- Replace playground list with Google Colab, Replit Python, Kaggle Notebooks
+2. **`src/components/hackathon/ProjectIdeas.tsx`** -- Replace all ideas with Python AI projects, update categories and tech stacks
+3. **`src/components/hackathon/GettingStarted.tsx`** -- Update step 3 and pro tips for Python AI workflow
+4. **`src/components/hackathon/HackathonFAQ.tsx`** -- Add Python-specific FAQs, update existing ones
+5. **`src/pages/Hackathons.tsx`** -- Update banner text, server name, channel descriptions for Python AI focus
+6. **`src/components/hackathon/QuickSubmitModal.tsx`** -- Update placeholder text for Python projects
+7. **`src/components/hackathon/SubmissionModal.tsx`** -- Update placeholder text for Python AI context
 
 ### No database changes needed
-All changes are frontend content updates - no new tables or migrations required.
+All changes are frontend content and branding updates.
 
