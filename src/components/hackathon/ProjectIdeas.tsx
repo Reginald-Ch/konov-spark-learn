@@ -26,98 +26,98 @@ export const ProjectIdeas = () => {
 
   const categories = [
     { id: 'all', name: 'All Ideas', icon: Sparkles },
-    { id: 'chatbots', name: 'Chatbots', icon: Bot },
+    { id: 'nlp', name: 'NLP / Chatbots', icon: Bot },
     { id: 'vision', name: 'Computer Vision', icon: Eye },
-    { id: 'creative', name: 'Creative AI', icon: Palette },
-    { id: 'data', name: 'Data / ML', icon: BarChart3 },
+    { id: 'datascience', name: 'Data Science', icon: BarChart3 },
+    { id: 'generative', name: 'Generative AI', icon: Palette },
   ];
 
   const ideas: ProjectIdea[] = [
     {
       id: '1',
-      title: 'AI Chatbot Assistant',
-      description: 'Build a conversational chatbot using a large language model API that can answer questions, tell jokes, or help with homework.',
-      category: 'chatbots',
+      title: 'Chatbot with LangChain',
+      description: 'Build a conversational AI chatbot using Python and LangChain that can answer questions, summarize documents, or act as a study tutor.',
+      category: 'nlp',
       difficulty: 'Beginner',
-      techStack: ['React', 'OpenAI API', 'Tailwind CSS', 'Vercel AI SDK'],
-      features: ['Conversational UI', 'Chat history', 'Typing indicators', 'Multiple personalities'],
+      techStack: ['Python', 'LangChain', 'OpenAI API', 'Streamlit'],
+      features: ['Conversational memory', 'Document Q&A', 'Streamlit chat UI', 'Prompt templates'],
       icon: Bot,
       color: '#5865F2'
     },
     {
       id: '2',
-      title: 'Image Classifier',
-      description: 'Use a pre-trained machine learning model to classify images uploaded by users — identify objects, animals, or scenes.',
+      title: 'Image Classifier with PyTorch',
+      description: 'Use a pre-trained PyTorch model (ResNet, EfficientNet) to classify images uploaded by users — identify objects, animals, or scenes.',
       category: 'vision',
       difficulty: 'Intermediate',
-      techStack: ['React', 'TensorFlow.js', 'MobileNet', 'Tailwind CSS'],
-      features: ['Drag & drop upload', 'Real-time predictions', 'Confidence scores', 'Top-5 results'],
+      techStack: ['Python', 'PyTorch', 'torchvision', 'Gradio'],
+      features: ['Drag & drop upload', 'Real-time predictions', 'Confidence scores', 'Gradio web UI'],
       icon: Eye,
       color: '#006600'
     },
     {
       id: '3',
       title: 'AI Story Generator',
-      description: 'Generate creative stories, poems, or adventures using AI prompts. Users pick a genre, characters, and setting.',
-      category: 'creative',
+      description: 'Generate creative stories, poems, or adventures using Python and OpenAI. Users pick a genre, characters, and setting.',
+      category: 'generative',
       difficulty: 'Beginner',
-      techStack: ['React', 'OpenAI API', 'Framer Motion', 'LocalStorage'],
-      features: ['Genre selection', 'Character builder', 'Story continuation', 'Save & share stories'],
+      techStack: ['Python', 'OpenAI API', 'Flask', 'Jinja2'],
+      features: ['Genre selection', 'Character builder', 'Story continuation', 'Save as PDF'],
       icon: BookOpen,
       color: '#F7941D'
     },
     {
       id: '4',
-      title: 'Smart Study Planner',
-      description: 'An AI-powered study schedule optimizer that creates personalized study plans based on subjects, deadlines, and learning style.',
-      category: 'data',
+      title: 'Data Visualizer with ML Predictions',
+      description: 'Build a dashboard that visualizes datasets and makes ML predictions using scikit-learn. Upload CSVs and get insights instantly.',
+      category: 'datascience',
       difficulty: 'Intermediate',
-      techStack: ['React', 'OpenAI API', 'Supabase', 'date-fns'],
-      features: ['AI schedule generation', 'Priority ranking', 'Progress tracking', 'Smart reminders'],
-      icon: Brain,
+      techStack: ['Python', 'scikit-learn', 'Pandas', 'Matplotlib', 'Streamlit'],
+      features: ['CSV upload', 'Auto-visualization', 'ML model training', 'Prediction export'],
+      icon: BarChart3,
       color: '#C70110'
     },
     {
       id: '5',
-      title: 'Sentiment Analyzer',
-      description: 'Analyze the sentiment of text from social media posts, reviews, or messages. Visualize emotions with charts and colors.',
-      category: 'data',
+      title: 'Sentiment Analysis Dashboard',
+      description: 'Analyze the sentiment of text using Hugging Face Transformers. Paste tweets, reviews, or messages and visualize emotions.',
+      category: 'nlp',
       difficulty: 'Beginner',
-      techStack: ['React', 'Hugging Face API', 'Recharts', 'Tailwind CSS'],
+      techStack: ['Python', 'Hugging Face Transformers', 'Streamlit', 'Plotly'],
       features: ['Text input & paste', 'Emotion detection', 'Sentiment charts', 'Batch analysis'],
-      icon: BarChart3,
+      icon: Brain,
       color: '#00B894'
     },
     {
       id: '6',
-      title: 'AI Art Gallery',
-      description: 'Generate and curate AI-created artwork using text prompts. Build a gallery where users can create, vote, and share AI art.',
-      category: 'creative',
+      title: 'AI Image Generator',
+      description: 'Generate images from text prompts using Stable Diffusion. Build a gallery where users create, browse, and share AI art.',
+      category: 'generative',
       difficulty: 'Intermediate',
-      techStack: ['React', 'Stable Diffusion API', 'Supabase Storage', 'Masonry Grid'],
-      features: ['Text-to-image generation', 'Gallery wall', 'Community voting', 'Download & share'],
+      techStack: ['Python', 'Stable Diffusion', 'Diffusers', 'Gradio'],
+      features: ['Text-to-image generation', 'Style presets', 'Gallery view', 'Download & share'],
       icon: Palette,
       color: '#9B59B6'
     },
     {
       id: '7',
-      title: 'Voice Command App',
-      description: 'Build an app controlled by voice! Use speech-to-text to execute commands, search the web, or control a game.',
-      category: 'chatbots',
+      title: 'Voice-to-Text Transcriber',
+      description: 'Build a speech-to-text app using OpenAI Whisper. Upload audio files or record live and get accurate transcriptions.',
+      category: 'nlp',
       difficulty: 'Advanced',
-      techStack: ['React', 'Web Speech API', 'OpenAI Whisper', 'Langchain'],
-      features: ['Voice recognition', 'Command parsing', 'Text-to-speech response', 'Custom wake word'],
+      techStack: ['Python', 'OpenAI Whisper', 'FastAPI', 'Streamlit'],
+      features: ['Audio file upload', 'Live recording', 'Multi-language support', 'Transcript export'],
       icon: Mic,
       color: '#E91E63'
     },
     {
       id: '8',
-      title: 'AI Debate Partner',
-      description: 'An AI that takes the opposite side of any argument and debates with you. Great for critical thinking and exploring perspectives.',
-      category: 'chatbots',
+      title: 'AI Code Reviewer',
+      description: 'Build a tool that reviews Python code using LangChain and AST parsing. Get AI-powered suggestions for bugs, style, and performance.',
+      category: 'datascience',
       difficulty: 'Advanced',
-      techStack: ['React', 'OpenAI API', 'Langchain', 'Framer Motion'],
-      features: ['Topic selection', 'Turn-based debate', 'Argument scoring', 'Debate history'],
+      techStack: ['Python', 'LangChain', 'AST module', 'Streamlit'],
+      features: ['Code paste input', 'Bug detection', 'Style suggestions', 'Performance tips'],
       icon: Swords,
       color: '#00CEC9'
     }
@@ -152,8 +152,8 @@ export const ProjectIdeas = () => {
             <Lightbulb className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">AI Project Ideas</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Get inspired for your next AI hackathon project</p>
+            <h1 className="text-3xl font-bold text-white">Python AI Project Ideas</h1>
+            <p className="text-[hsl(var(--discord-text-muted))]">Build these projects using Python + AI models</p>
           </div>
         </div>
       </motion.div>
@@ -233,7 +233,7 @@ export const ProjectIdeas = () => {
                     >
                       <div className="mb-3">
                         <h4 className="text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase mb-2">
-                          Suggested Tech Stack
+                          Python Tech Stack
                         </h4>
                         <div className="flex flex-wrap gap-1">
                           {idea.techStack.map((tech) => (
@@ -277,14 +277,14 @@ export const ProjectIdeas = () => {
         className="mt-8 p-6 rounded-lg border border-dashed border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-darker)/0.5)] text-center"
       >
         <Zap className="w-8 h-8 mx-auto mb-3 text-[hsl(var(--discord-yellow))]" />
-        <h3 className="text-lg font-semibold text-white mb-2">Have Your Own AI Idea?</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">Have Your Own Python AI Idea?</h3>
         <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto mb-4">
-          These are just suggestions! The best AI hackathon projects solve real problems 
-          using artificial intelligence. Build something you're passionate about!
+          These are just suggestions! Build any AI project using Python. 
+          Use Streamlit or Gradio for your demo UI — judges love a great presentation!
         </p>
         <div className="flex items-center justify-center gap-2 text-sm text-[hsl(var(--discord-text-muted))]">
           <Users className="w-4 h-4" />
-          <span>Team up and brainstorm AI solutions together</span>
+          <span>Team up and brainstorm Python AI solutions together</span>
         </div>
       </motion.div>
     </div>

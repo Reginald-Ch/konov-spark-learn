@@ -12,60 +12,60 @@ import { Link } from 'react-router-dom';
 export const HackathonFAQ = () => {
   const faqs = [
     {
-      question: 'What is an AI hackathon?',
-      answer: 'An AI hackathon is a creative coding event focused on building AI-powered projects. Participants form teams to build chatbots, image classifiers, AI art generators, and more within a set timeframe. It\'s a fun way to explore artificial intelligence hands-on!'
+      question: 'What is a Python AI hackathon?',
+      answer: 'A Python AI hackathon is a creative coding event where participants build AI-powered projects using Python. Teams use libraries like PyTorch, TensorFlow, scikit-learn, and Hugging Face Transformers to create chatbots, image classifiers, data dashboards, and more within a set timeframe.'
     },
     {
       question: 'Do I need to know machine learning to participate?',
-      answer: 'Not at all! Many AI tools today have simple APIs that don\'t require ML knowledge. You can use pre-built models from OpenAI, Hugging Face, or Google AI with just a few lines of code. Focus on building a great user experience around the AI.'
+      answer: 'Not at all! Many Python AI tools have simple APIs that don\'t require deep ML knowledge. You can use pre-built models from Hugging Face or call OpenAI\'s API with just a few lines of Python. Focus on building a great project around the AI.'
+    },
+    {
+      question: 'What Python libraries should I learn first?',
+      answer: 'Start with the basics: Pandas for data, Requests for API calls, and Streamlit for building quick UIs. For AI specifically, learn the OpenAI Python SDK (easiest), Hugging Face Transformers (tons of free models), or scikit-learn (classic ML). You don\'t need to master them all — pick one and go!'
+    },
+    {
+      question: 'How do I get free GPU access?',
+      answer: 'Google Colab offers free GPU/TPU access — just open a notebook and select Runtime > Change runtime type > GPU. Kaggle Notebooks also provide free GPUs with 30 hours/week. Both come with PyTorch and TensorFlow pre-installed!'
+    },
+    {
+      question: 'Can I use Jupyter notebooks?',
+      answer: 'Absolutely! Jupyter notebooks are perfect for AI hackathons. Use Google Colab (cloud-based Jupyter), Kaggle Notebooks, or run Jupyter locally. Notebooks let you iterate fast, visualize data inline, and document your approach — all things judges love.'
+    },
+    {
+      question: 'How do I handle API keys safely in Python?',
+      answer: 'Never hardcode API keys in your Python files! Use environment variables with python-dotenv (load_dotenv() + os.getenv("API_KEY")), or use Google Colab\'s secrets manager. For deployed apps, use Streamlit secrets or environment variables on your hosting platform.'
+    },
+    {
+      question: 'How do I deploy my Python AI project?',
+      answer: 'The easiest options: Streamlit Community Cloud (free, one-click deploy from GitHub), Hugging Face Spaces (free, supports Gradio & Streamlit), or Google Colab (share your notebook link). For more control, try Railway or Render with FastAPI.'
     },
     {
       question: 'What AI APIs can I use?',
-      answer: 'You can use any AI API! Popular options include: OpenAI (ChatGPT, DALL·E), Hugging Face (thousands of free models), Google AI (Gemini), TensorFlow.js (in-browser ML), Stable Diffusion (image generation), and Langchain (for chaining AI calls).'
-    },
-    {
-      question: 'Are there free AI tools available?',
-      answer: 'Yes! Many AI services offer free tiers: OpenAI gives free credits to new users, Hugging Face has thousands of free models, TensorFlow.js runs entirely in the browser for free, and Google AI Studio offers free Gemini API access. No credit card needed for most.'
-    },
-    {
-      question: 'How do I handle API keys safely?',
-      answer: 'Never put API keys directly in your frontend code! Use environment variables (.env files) and a backend proxy. For hackathon demos, you can use serverless functions (like Supabase Edge Functions) to keep your keys secret while still calling AI APIs.'
+      answer: 'Any AI API that works with Python! Popular options: OpenAI (GPT, DALL·E, Whisper), Hugging Face (thousands of free models), Google AI (Gemini), Stability AI (Stable Diffusion), and Cohere. Most offer free tiers perfect for hackathons.'
     },
     {
       question: 'Do I need coding experience to participate?',
-      answer: 'Not necessarily! Hackathons are for all skill levels. Beginners can start with no-code AI tools or simple API calls. You can also contribute through design, ideas, testing, or presenting. Teammates and mentors are always available to help.'
-    },
-    {
-      question: 'How do I register for a hackathon?',
-      answer: 'Browse our events in the "All Events" channel, find one that interests you, and click the "Register" button. Fill in your details and you\'re in! You\'ll receive a confirmation with more details.'
-    },
-    {
-      question: 'Can I participate solo or do I need a team?',
-      answer: 'You can register solo and either join an existing team or create your own. We encourage teamwork as it\'s more fun and you can build bigger AI projects. Teams typically have 2-5 members.'
+      answer: 'Basic Python knowledge helps, but hackathons are for all levels. Beginners can start with simple API calls and Streamlit UIs. You can also contribute through ideas, testing, data collection, or presenting. Teammates and mentors are always available to help.'
     },
     {
       question: 'How do teams work?',
-      answer: 'After registering, you can view teams in the "Teams" section. You can join a team that\'s looking for members, or create your own team and invite others. Team leaders can manage their team composition.'
+      answer: 'After registering, you can view teams in the "Teams" section. Join a team looking for members, or create your own and recruit teammates. Look for complementary skills — someone good at Python ML, someone for UI with Streamlit/Gradio, and someone for presenting.'
     },
     {
-      question: 'What can I build during an AI hackathon?',
-      answer: 'Anything AI-powered! Chatbots, image classifiers, story generators, sentiment analyzers, AI art tools, voice assistants, smart planners, and more. Check our "Project Ideas" section for AI-specific inspiration.'
+      question: 'What should I submit?',
+      answer: 'Submit your project with: a GitHub repository (with requirements.txt and README), a working demo link (Streamlit/Gradio/Colab), and optionally a short video showing your AI in action. Make sure your README explains the problem, your approach, and how to run the project.'
     },
     {
-      question: 'How do I submit my project?',
-      answer: 'Before the deadline, go to your hackathon and click "Submit Project". You\'ll need to provide a project name, description, AI tech stack used, and links to your demo and code repository.'
-    },
-    {
-      question: 'How are AI projects judged?',
-      answer: 'Projects are judged on creativity, AI implementation quality, user experience, and presentation. Judges look for clever use of AI, not just technical complexity. A simple chatbot with great UX can beat a complex ML model with poor usability!'
+      question: 'How are Python AI projects judged?',
+      answer: 'Projects are judged on: creativity of the AI application, quality of Python implementation, user experience of the demo (Streamlit/Gradio), and presentation. A clean Streamlit app with a clever use of AI beats a messy notebook with a complex model!'
     },
     {
       question: 'What are the prizes?',
-      answer: 'Prizes vary by hackathon and may include certificates, gift cards, tech gadgets, AI API credits, learning subscriptions, or other rewards. Check each hackathon\'s details for specific prize information.'
+      answer: 'Prizes vary by hackathon and may include certificates, gift cards, tech gadgets, AI API credits, GPU cloud credits, learning subscriptions, or other rewards. Check each hackathon\'s details for specific prize information.'
     },
     {
       question: 'Is there an age requirement?',
-      answer: 'Our AI hackathons are designed for young tech enthusiasts, typically ages 8-18. Some events may have specific age brackets. Check each event\'s requirements for details.'
+      answer: 'Our Python AI hackathons are designed for young tech enthusiasts, typically ages 8-18. Some events may have specific age brackets. Check each event\'s requirements for details.'
     }
   ];
 
@@ -85,8 +85,8 @@ export const HackathonFAQ = () => {
             <HelpCircle className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">AI Hackathon FAQ & Help</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Got questions about AI hackathons? We've got answers</p>
+            <h1 className="text-3xl font-bold text-white">Python AI Hackathon FAQ</h1>
+            <p className="text-[hsl(var(--discord-text-muted))]">Everything you need to know about building AI with Python</p>
           </div>
         </div>
       </motion.div>
@@ -126,7 +126,7 @@ export const HackathonFAQ = () => {
           <MessageSquare className="w-10 h-10 mx-auto mb-4 text-[hsl(var(--discord-blurple))]" />
           <h3 className="text-xl font-semibold text-white mb-2">Still Have Questions?</h3>
           <p className="text-[hsl(var(--discord-text-muted))] mb-6 max-w-md mx-auto">
-            Can't find what you're looking for? Our team is here to help with any AI hackathon questions!
+            Need help with Python setup, AI libraries, or hackathon rules? Our team is here to help!
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link to="/contact">
@@ -159,19 +159,19 @@ export const HackathonFAQ = () => {
       >
         {[
           { 
-            emoji: '🤖', 
-            title: 'Start Simple', 
-            text: 'Use a pre-built AI API — don\'t try to train your own model' 
+            emoji: '🐍', 
+            title: 'Python First', 
+            text: 'All projects must be built with Python — use Colab, Kaggle, or Replit' 
           },
           { 
-            emoji: '🔑', 
-            title: 'Keep Keys Safe', 
-            text: 'Use environment variables and backend proxies for API keys' 
+            emoji: '🤗', 
+            title: 'Use Pre-trained Models', 
+            text: 'Hugging Face has thousands of free models ready to use with Python' 
           },
           { 
             emoji: '🚀', 
-            title: 'Ship It', 
-            text: 'A working AI demo beats a perfect idea every time' 
+            title: 'Demo with Streamlit', 
+            text: 'Build a polished demo UI in minutes with Streamlit or Gradio' 
           }
         ].map((tip, index) => (
           <div 

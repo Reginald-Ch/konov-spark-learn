@@ -12,33 +12,33 @@ interface CodePlaygroundProps {
 
 const playgrounds = [
   {
-    id: 'codesandbox',
-    name: 'CodeSandbox',
-    description: 'React + AI API starter — build chatbots & AI-powered apps',
-    url: 'https://codesandbox.io/s/new',
-    embedUrl: 'https://codesandbox.io/embed/new?codemirror=1&fontsize=14&hidenavigation=1&theme=dark',
-    color: 'hsl(var(--discord-blurple))',
-  },
-  {
-    id: 'stackblitz',
-    name: 'StackBlitz',
-    description: 'Full-stack AI development with Node.js backend for API keys',
-    url: 'https://stackblitz.com/fork/react',
-    embedUrl: 'https://stackblitz.com/fork/react?embed=1&file=src/App.js&hideNavigation=1&theme=dark',
-    color: 'hsl(var(--discord-green))',
+    id: 'colab',
+    name: 'Google Colab',
+    description: 'Free GPU, pre-installed ML libraries — perfect for Python AI projects',
+    url: 'https://colab.research.google.com/#create=true',
+    embedUrl: 'https://colab.research.google.com/',
+    color: 'hsl(38, 100%, 50%)',
   },
   {
     id: 'replit',
-    name: 'Replit',
-    description: 'Collaborative AI IDE with built-in Python & ML support',
-    url: 'https://replit.com/new/html',
-    embedUrl: 'https://replit.com/new/html?embed=true&theme=dark',
-    color: 'hsl(38, 100%, 50%)',
+    name: 'Replit Python',
+    description: 'Collaborative Python IDE with package management & instant sharing',
+    url: 'https://replit.com/new/python3',
+    embedUrl: 'https://replit.com/new/python3?embed=true&theme=dark',
+    color: 'hsl(var(--discord-blurple))',
+  },
+  {
+    id: 'kaggle',
+    name: 'Kaggle Notebooks',
+    description: 'Free GPU + dataset access — ideal for ML and data science projects',
+    url: 'https://www.kaggle.com/code',
+    embedUrl: 'https://www.kaggle.com/code',
+    color: 'hsl(var(--discord-green))',
   },
 ];
 
 export const CodePlayground = ({ isOpen, onClose }: CodePlaygroundProps) => {
-  const [activePlayground, setActivePlayground] = useState('codesandbox');
+  const [activePlayground, setActivePlayground] = useState('colab');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const currentPlayground = playgrounds.find(p => p.id === activePlayground);
@@ -57,7 +57,7 @@ export const CodePlayground = ({ isOpen, onClose }: CodePlaygroundProps) => {
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-white">
               <Code className="w-5 h-5 text-[hsl(var(--discord-blurple))]" />
-              AI Code Playground
+              Python AI Playground
             </DialogTitle>
             <div className="flex items-center gap-2">
               <Button
