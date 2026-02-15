@@ -185,7 +185,7 @@ export const ProjectIdeas = () => {
 
       {/* Ideas Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="wait">
           {filteredIdeas.map((idea, index) => (
             <motion.div
               key={idea.id}

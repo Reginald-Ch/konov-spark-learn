@@ -214,8 +214,8 @@ const Hackathons = () => {
             </motion.div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-semibold">Code Playground</p>
-            <p className="text-xs text-muted-foreground">Open Python IDE (Colab/Kaggle)</p>
+            <p className="font-semibold">Python AI Lab</p>
+            <p className="text-xs text-muted-foreground">Code editor with AI models & assistant</p>
           </TooltipContent>
         </Tooltip>
 
