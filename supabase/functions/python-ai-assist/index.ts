@@ -32,6 +32,24 @@ Keep responses concise (under 200 words). Use simple language. Format with markd
     } else if (action === "generate") {
       systemPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). Generate clean, well-commented Python code based on the description. Use the specified AI model/library if mentioned. Return ONLY the Python code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any appropriate one"}`;
+    } else if (action === "idea-to-code") {
+      systemPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). The student will describe an AI project idea. Generate a complete, working Python starter project with:
+- Clear comments explaining each section
+- All necessary imports
+- A main function or script that runs
+- Sample data or placeholders
+- Print statements showing output
+Return the code inside a \`\`\`python code block. Keep it under 60 lines. Use simple, beginner-friendly code.`;
+      userPrompt = `Create a Python AI project for this idea: ${code}`;
+    } else if (action === "visual-builder") {
+      systemPrompt = `You are a Python AI coding tutor. Generate training code for an AI model based on the data type and model type described. Include:
+- Data loading
+- Model setup
+- Training loop
+- Accuracy evaluation
+- Clear comments
+Return code in a \`\`\`python block.`;
+      userPrompt = `Generate Python training code for: ${code}\nModel type: ${model || "auto-detect"}`;
     } else {
       systemPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). Help with any Python AI coding question. Keep responses concise and encouraging.`;
       userPrompt = code;
