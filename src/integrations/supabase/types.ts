@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_projects: {
+        Row: {
+          author_email: string
+          author_name: string
+          code: string
+          created_at: string
+          demo_url: string | null
+          description: string | null
+          hackathon_id: string | null
+          id: string
+          is_published: boolean
+          points_earned: number
+          project_name: string
+          template_id: string | null
+        }
+        Insert: {
+          author_email: string
+          author_name: string
+          code?: string
+          created_at?: string
+          demo_url?: string | null
+          description?: string | null
+          hackathon_id?: string | null
+          id?: string
+          is_published?: boolean
+          points_earned?: number
+          project_name: string
+          template_id?: string | null
+        }
+        Update: {
+          author_email?: string
+          author_name?: string
+          code?: string
+          created_at?: string
+          demo_url?: string | null
+          description?: string | null
+          hackathon_id?: string | null
+          id?: string
+          is_published?: boolean
+          points_earned?: number
+          project_name?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_projects_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_channels: {
         Row: {
           channel_type: string

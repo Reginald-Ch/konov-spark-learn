@@ -8,17 +8,17 @@ import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
-import { ProjectIdeas } from '@/components/hackathon/ProjectIdeas';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
 import { CodePlayground } from '@/components/hackathon/CodePlayground';
 import { QuickSubmitModal } from '@/components/hackathon/QuickSubmitModal';
 import { CommunityChat } from '@/components/hackathon/CommunityChat';
+import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
+import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Zap, Calendar, Trophy, Code, Hash, Users, Rocket, 
-  Terminal, MessageSquare, Bell, Settings, Plus, 
-  ChevronDown, Circle, Sparkles, ArrowLeft, Award, 
-  HelpCircle, BookOpen, Lightbulb
+  Code, Trophy, Sparkles, ArrowLeft, Brain,
+  Rocket, Zap, Circle, Calendar, Hash,
+  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,9 @@ interface Hackathon {
   prizes: string | null;
 }
 
+type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
+
 const Hackathons = () => {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,49 +49,34 @@ const Hackathons = () => {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [teamsModalOpen, setTeamsModalOpen] = useState(false);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-  const [activeChannel, setActiveChannel] = useState('all-events');
   const [selectedEndedHackathon, setSelectedEndedHackathon] = useState<Hackathon | null>(null);
-  
-  // New modal states for sidebar tools
-  const [codePlaygroundOpen, setCodePlaygroundOpen] = useState(false);
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<MainTab>('hackathons');
+  const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
+  
+  // Build tab state
+  const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
+  const [buildTemplate, setBuildTemplate] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     fetchHackathons();
 
-    // Real-time subscriptions
     const hackathonsChannel = supabase
       .channel('hackathons-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'hackathons' },
-        () => fetchHackathons()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathons' }, () => fetchHackathons())
       .subscribe();
 
     const registrationsChannel = supabase
       .channel('registrations-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'hackathon_registrations' },
-        () => fetchHackathons()
-      )
-      .subscribe();
-
-    const teamsChannel = supabase
-      .channel('teams-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'hackathon_teams' },
-        () => fetchHackathons()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_registrations' }, () => fetchHackathons())
       .subscribe();
 
     return () => {
       supabase.removeChannel(hackathonsChannel);
       supabase.removeChannel(registrationsChannel);
-      supabase.removeChannel(teamsChannel);
     };
   }, []);
 
@@ -107,548 +95,391 @@ const Hackathons = () => {
 
   const handleRegister = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) {
-      setSelectedHackathon(hackathon);
-      setRegistrationModalOpen(true);
-    }
+    if (hackathon) { setSelectedHackathon(hackathon); setRegistrationModalOpen(true); }
   };
 
   const handleViewTeams = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) {
-      setSelectedHackathon(hackathon);
-      setTeamsModalOpen(true);
-    }
+    if (hackathon) { setSelectedHackathon(hackathon); setTeamsModalOpen(true); }
   };
 
   const handleSubmitProject = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) {
-      setSelectedHackathon(hackathon);
-      setSubmissionModalOpen(true);
-    }
+    if (hackathon) { setSelectedHackathon(hackathon); setSubmissionModalOpen(true); }
+  };
+
+  const handleStartBuilding = (code: string, templateId: string) => {
+    setBuildCode(code);
+    setBuildTemplate(templateId);
+    setActiveTab('build');
+  };
+
+  const handleViewCode = (code: string) => {
+    setBuildCode(code);
+    setActiveTab('build');
   };
 
   const liveHackathons = hackathons.filter(h => h.status === 'live');
   const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
   const endedHackathons = hackathons.filter(h => h.status === 'ended');
+  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
 
   const getFilteredHackathons = () => {
-    switch (activeChannel) {
-      case 'live-now':
-        return liveHackathons;
-      case 'upcoming':
-        return upcomingHackathons;
-      case 'past-events':
-        return endedHackathons;
-      default:
-        return hackathons;
+    switch (hackathonSubView) {
+      case 'live-now': return liveHackathons;
+      case 'upcoming': return upcomingHackathons;
+      case 'past-events': return endedHackathons;
+      default: return hackathons;
     }
   };
 
-  const channels = [
-    { id: 'all-events', name: 'all-events', icon: Hash, count: hackathons.length },
-    { id: 'live-now', name: 'live-now', icon: Zap, count: liveHackathons.length, live: true },
-    { id: 'upcoming', name: 'upcoming', icon: Calendar, count: upcomingHackathons.length },
-    { id: 'past-events', name: 'past-events', icon: Trophy, count: endedHackathons.length },
-    { id: 'leaderboard', name: 'leaderboard', icon: Award, count: 0, special: true },
+  const MAIN_TABS = [
+    { id: 'build' as MainTab, name: 'Build', icon: Code, color: '#5865F2', desc: 'Python AI IDE' },
+    { id: 'templates' as MainTab, name: 'Templates', icon: Rocket, color: '#F7941D', desc: '1-Click Starters' },
+    { id: 'hackathons' as MainTab, name: 'Hackathons', icon: Trophy, color: '#C70110', desc: 'Events & Leaderboard' },
+    { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
   ];
-
-  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex">
-      <SEO 
-        title="Hackathons - Tech Kids Africa"
-        description="Join our exciting hackathons! Collaborate, innovate, and build amazing projects with fellow tech enthusiasts."
-      />
+      <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex">
+        <SEO 
+          title="AI Hackathon Platform - Tech Kids Africa"
+          description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
+        />
 
-      {/* Server Sidebar */}
-      <div className="w-[72px] bg-[hsl(var(--discord-darker))] flex flex-col items-center py-3 gap-2 border-r border-[hsl(var(--discord-light)/0.2)]">
-        {/* Back to Home */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link to="/">
-              <motion.div 
-                whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
-              >
-                <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
-              </motion.div>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Back to Home</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
-        
-        {/* Tech Kids Server - Hackathon Hub */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.div 
-              whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setCommunityChatOpen(true)}
-              className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer transition-all relative"
-            >
-              <Rocket className="w-6 h-6 text-white" />
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p className="font-semibold">Community Chat</p>
-            <p className="text-xs text-muted-foreground">Chat, collaborate & video calls</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Left Icon Rail */}
+        <div className="w-[72px] bg-[hsl(var(--discord-darker))] flex flex-col items-center py-3 gap-2 border-r border-[hsl(var(--discord-light)/0.2)]">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link to="/">
+                <motion.div 
+                  whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                  className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
+                >
+                  <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
+                </motion.div>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right"><p>Back to Home</p></TooltipContent>
+          </Tooltip>
+          
+          <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
 
-        {/* Code Playground */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.div 
-              whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setCodePlaygroundOpen(true)}
-              className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-blurple))] flex items-center justify-center cursor-pointer transition-all relative"
-            >
-              <Code className="w-6 h-6 text-white" />
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p className="font-semibold">Python AI Lab</p>
-            <p className="text-xs text-muted-foreground">Code editor with AI models & assistant</p>
-          </TooltipContent>
-        </Tooltip>
+          {/* Main Tab Icons */}
+          {MAIN_TABS.map(tab => (
+            <Tooltip key={tab.id}>
+              <TooltipTrigger asChild>
+                <motion.div 
+                  whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-12 h-12 rounded-[24px] flex items-center justify-center cursor-pointer transition-all relative ${
+                    activeTab === tab.id ? 'rounded-[16px]' : ''
+                  }`}
+                  style={{ backgroundColor: activeTab === tab.id ? tab.color : 'hsl(var(--discord-light))' }}
+                >
+                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}`} />
+                  {activeTab === tab.id && (
+                    <motion.div 
+                      layoutId="activeTab"
+                      className="absolute -left-[6px] w-1 h-8 rounded-r-full bg-white"
+                    />
+                  )}
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="font-semibold">{tab.name}</p>
+                <p className="text-xs text-muted-foreground">{tab.desc}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
 
-        {/* Quick Submit */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.div 
-              whileHover={{ scale: 1.1, borderRadius: '16px' }}
-              onClick={() => setQuickSubmitOpen(true)}
-              className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer transition-all relative"
-            >
-              <Terminal className="w-6 h-6 text-white" />
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p className="font-semibold">Quick Submit</p>
-            <p className="text-xs text-muted-foreground">Submit project demo & repo links</p>
-          </TooltipContent>
-        </Tooltip>
+          <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
 
-        <div className="mt-auto">
+          {/* Community & Quick Submit */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.div 
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-[hsl(var(--discord-green))]"
+                onClick={() => setCommunityChatOpen(true)}
+                className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer"
               >
-                <Plus className="w-6 h-6 text-[hsl(var(--discord-green))]" />
+                <MessageSquare className="w-5 h-5 text-white" />
               </motion.div>
             </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Suggest a Hackathon</p>
-            </TooltipContent>
+            <TooltipContent side="right"><p className="font-semibold">Community</p></TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.div 
+                whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                onClick={() => setQuickSubmitOpen(true)}
+                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer"
+              >
+                <Terminal className="w-5 h-5 text-white" />
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent side="right"><p className="font-semibold">Quick Submit</p></TooltipContent>
           </Tooltip>
         </div>
-      </div>
 
-      {/* Channels Sidebar */}
-      <div className="w-60 bg-[hsl(var(--discord-dark))] flex flex-col">
-        {/* Server Header */}
-        <div className="h-12 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-darker))] shadow-sm hover:bg-[hsl(var(--discord-light)/0.3)] cursor-pointer">
-          <span className="font-semibold text-white truncate">Python AI Hackathons</span>
-          <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
-        </div>
-
-        {/* Channels */}
-        <ScrollArea className="flex-1 px-2 py-4">
-          {/* Event Channels */}
-          <div className="mb-4">
-            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
-              <ChevronDown className="w-3 h-3" />
-              Hackathon Events
+        {/* Hackathons Sub-sidebar (only for hackathons tab) */}
+        {activeTab === 'hackathons' && (
+          <div className="w-56 bg-[hsl(var(--discord-dark))] flex flex-col border-r border-[hsl(var(--discord-darker))]">
+            <div className="h-12 px-4 flex items-center border-b border-[hsl(var(--discord-darker))] shadow-sm">
+              <span className="font-semibold text-white truncate">Python AI Hackathons</span>
             </div>
-            {channels.map((channel) => (
-              <motion.button
-                key={channel.id}
-                onClick={() => setActiveChannel(channel.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors group ${
-                  activeChannel === channel.id 
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white' 
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <channel.icon className={`w-4 h-4 ${channel.live ? 'text-[hsl(var(--discord-red))] animate-pulse' : ''}`} />
-                <span className="flex-1 text-left truncate">{channel.name}</span>
-                {channel.count > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    channel.live 
-                      ? 'bg-[hsl(var(--discord-red))] text-white' 
-                      : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
-                  }`}>
-                    {channel.count}
-                  </span>
-                )}
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Community Stats */}
-          <div className="mb-4">
-            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
-              <ChevronDown className="w-3 h-3" />
-              Community Stats
-            </div>
-            <div className="px-2 py-2 text-sm text-[hsl(var(--discord-text-muted))]">
-              <div className="flex items-center gap-2 mb-2">
-                <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
-                <span>{onlineMembers} Active Hackers</span>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
-                <span>{hackathons.length} Total Events</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[hsl(var(--discord-blurple))]" />
-                <span>{upcomingHackathons.length + liveHackathons.length} Active Now</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Resources Section */}
-          <div className="mb-4">
-            <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
-              <ChevronDown className="w-3 h-3" />
-              Resources
-            </div>
-            <div className="space-y-0.5">
-              <motion.button
-                onClick={() => setActiveChannel('getting-started')}
-                whileHover={{ scale: 1.02 }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
-                  activeChannel === 'getting-started'
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>Getting Started</span>
-              </motion.button>
-              <motion.button
-                onClick={() => setActiveChannel('project-ideas')}
-                whileHover={{ scale: 1.02 }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
-                  activeChannel === 'project-ideas'
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <Lightbulb className="w-4 h-4" />
-                <span>Project Ideas</span>
-              </motion.button>
-              <motion.button
-                onClick={() => setActiveChannel('faq')}
-                whileHover={{ scale: 1.02 }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
-                  activeChannel === 'faq'
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span>FAQ & Help</span>
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Past Events with Submissions */}
-          {endedHackathons.length > 0 && (
-            <div>
-              <div className="flex items-center gap-1 px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">
-                <ChevronDown className="w-3 h-3" />
-                Project Showcase
-              </div>
-              {endedHackathons.map((hackathon) => (
+            <ScrollArea className="flex-1 px-2 py-3">
+              {[
+                { id: 'all-events' as HackathonSubView, name: 'All Events', icon: Hash, count: hackathons.length },
+                { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap, count: liveHackathons.length, live: true },
+                { id: 'upcoming' as HackathonSubView, name: 'Upcoming', icon: Calendar, count: upcomingHackathons.length },
+                { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
+                { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              ].map(ch => (
                 <motion.button
-                  key={hackathon.id}
-                  onClick={() => setSelectedEndedHackathon(
-                    selectedEndedHackathon?.id === hackathon.id ? null : hackathon
-                  )}
+                  key={ch.id}
+                  onClick={() => { setHackathonSubView(ch.id); setSelectedEndedHackathon(null); }}
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
-                    selectedEndedHackathon?.id === hackathon.id
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                    hackathonSubView === ch.id 
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white' 
+                      : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                  }`}
+                >
+                  <ch.icon className={`w-4 h-4 ${ch.live ? 'text-[hsl(var(--discord-red))] animate-pulse' : ''}`} />
+                  <span className="flex-1 text-left truncate">{ch.name}</span>
+                  {ch.count > 0 && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      ch.live ? 'bg-[hsl(var(--discord-red))] text-white' : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
+                    }`}>{ch.count}</span>
+                  )}
+                </motion.button>
+              ))}
+
+              <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
+
+              {/* Resources */}
+              {[
+                { id: 'getting-started' as HackathonSubView, name: 'Getting Started', icon: BookOpen },
+                { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
+              ].map(ch => (
+                <motion.button
+                  key={ch.id}
+                  onClick={() => setHackathonSubView(ch.id)}
+                  whileHover={{ scale: 1.02 }}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                    hackathonSubView === ch.id
                       ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
                       : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
                   }`}
                 >
-                  <Trophy className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
-                  <span className="flex-1 text-left truncate text-xs">{hackathon.title}</span>
+                  <ch.icon className="w-4 h-4" />
+                  <span>{ch.name}</span>
                 </motion.button>
               ))}
+
+              {/* Past events showcase */}
+              {endedHackathons.length > 0 && (
+                <>
+                  <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
+                  <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Showcase</p>
+                  {endedHackathons.map(h => (
+                    <motion.button
+                      key={h.id}
+                      onClick={() => setSelectedEndedHackathon(selectedEndedHackathon?.id === h.id ? null : h)}
+                      whileHover={{ scale: 1.02 }}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 ${
+                        selectedEndedHackathon?.id === h.id
+                          ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                          : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]'
+                      }`}
+                    >
+                      <Trophy className="w-3.5 h-3.5 text-[hsl(var(--discord-yellow))]" />
+                      <span className="truncate">{h.title}</span>
+                    </motion.button>
+                  ))}
+                </>
+              )}
+            </ScrollArea>
+
+            {/* Stats */}
+            <div className="p-3 border-t border-[hsl(var(--discord-darker))]">
+              <div className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text-muted))]">
+                <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
+                {onlineMembers} hackers • {hackathons.length} events
+              </div>
             </div>
-          )}
-        </ScrollArea>
+          </div>
+        )}
 
-        {/* User Panel */}
-        <div className="h-[52px] bg-[hsl(var(--discord-darker)/0.8)] px-2 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <Users className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Hacker</p>
-            <p className="text-xs text-[hsl(var(--discord-text-muted))]">Online</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white hover:bg-[hsl(var(--discord-light)/0.3)]">
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))]">
-        {/* Channel Header */}
-        <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm">
-          {activeChannel === 'leaderboard' ? (
-            <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
-          ) : (
-            <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
-          )}
-          <span className="font-semibold text-white">{activeChannel}</span>
-          <div className="w-px h-6 bg-[hsl(var(--discord-light))]" />
-          <span className="text-sm text-[hsl(var(--discord-text-muted))]">
-            {activeChannel === 'all-events' && 'Browse all Python AI hackathon events'}
-            {activeChannel === 'live-now' && 'Currently running Python AI hackathons'}
-            {activeChannel === 'upcoming' && 'Register for upcoming Python AI events'}
-            {activeChannel === 'past-events' && 'View completed Python AI hackathons'}
-            {activeChannel === 'leaderboard' && 'Top Python AI hackers and teams'}
-            {activeChannel === 'getting-started' && 'Set up Python and start building AI'}
-            {activeChannel === 'project-ideas' && 'Python AI project ideas with starter code'}
-            {activeChannel === 'faq' && 'Python AI hackathon FAQ and help'}
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
-              <Bell className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="w-8 h-8 text-[hsl(var(--discord-text-muted))] hover:text-white">
-              <MessageSquare className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <ScrollArea className="flex-1 p-6">
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))] overflow-hidden">
           <AnimatePresence mode="wait">
-            {/* Show leaderboard */}
-            {activeChannel === 'leaderboard' ? (
-              <motion.div
-                key="leaderboard"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Leaderboard />
+            {/* BUILD TAB */}
+            {activeTab === 'build' && (
+              <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+                <CodePlayground initialCode={buildCode} initialTemplate={buildTemplate} />
               </motion.div>
-            ) : activeChannel === 'getting-started' ? (
-              <motion.div
-                key="getting-started"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <GettingStarted onNavigate={setActiveChannel} />
-              </motion.div>
-            ) : activeChannel === 'project-ideas' ? (
-              <motion.div
-                key="project-ideas"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ProjectIdeas />
-              </motion.div>
-            ) : activeChannel === 'faq' ? (
-              <motion.div
-                key="faq"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <HackathonFAQ />
-              </motion.div>
-            ) : selectedEndedHackathon ? (
-              <motion.div
-                key="submissions"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="mb-6">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setSelectedEndedHackathon(null)}
-                    className="text-[hsl(var(--discord-text-muted))] hover:text-white mb-4"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to events
-                  </Button>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Trophy className="w-6 h-6 text-[hsl(var(--discord-yellow))]" />
-                    {selectedEndedHackathon.title} - Project Showcase
-                  </h2>
-                  <p className="text-[hsl(var(--discord-text-muted))] mt-2">
-                    Check out the amazing projects submitted by our hackers!
-                  </p>
-                </div>
-                <SubmissionsGallery hackathonId={selectedEndedHackathon.id} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="events"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {/* Welcome Banner - Konov Brand Colors */}
-                <motion.div 
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-lg p-6 mb-8 relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)'
-                  }}
-                >
-                  <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-4 right-4">
-                      <Sparkles className="w-32 h-32 text-white" />
-                    </div>
-                    <div className="absolute bottom-4 left-4">
-                      <Zap className="w-24 h-24 text-white" />
-                    </div>
-                  </div>
-                  <div className="relative z-10">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                      <Sparkles className="w-8 h-8" />
-                      Build AI Projects with Python!
-                    </h1>
-                    <p className="text-white/90 text-lg max-w-2xl">
-                      Use Python, PyTorch, TensorFlow, and leading AI models to build innovative solutions. 
-                      Code in Google Colab, Kaggle, or Replit — no setup needed!
-                    </p>
-                    <div className="flex flex-wrap items-center gap-6 mt-4">
-                      <div className="flex items-center gap-2 text-white">
-                        <Circle className="w-3 h-3 fill-green-400 text-green-400" />
-                        <span className="font-medium">{onlineMembers} hackers active</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white">
-                        <Rocket className="w-4 h-4" />
-                        <span className="font-medium">{liveHackathons.length} live events</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+            )}
 
-                {/* Hackathon Cards */}
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-12 h-12 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
-                      <p className="text-[hsl(var(--discord-text-muted))]">Loading hackathons...</p>
-                    </div>
-                  </div>
-                ) : getFilteredHackathons().length === 0 ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-20"
-                  >
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
-                      <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
-                    <p className="text-[hsl(var(--discord-text-muted))]">
-                      {activeChannel === 'live-now' 
-                        ? 'No hackathons are currently live. Check upcoming events!' 
-                        : 'Check back soon for new hackathons!'}
-                    </p>
-                  </motion.div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {getFilteredHackathons().map((hackathon, index) => (
-                      <motion.div
-                        key={hackathon.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <HackathonCard
-                          hackathon={hackathon}
-                          onRegister={handleRegister}
-                          onViewTeams={handleViewTeams}
-                          onSubmitProject={handleSubmitProject}
-                        />
+            {/* TEMPLATES TAB */}
+            {activeTab === 'templates' && (
+              <motion.div key="templates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+                <TemplatesTab onStartBuilding={handleStartBuilding} />
+              </motion.div>
+            )}
+
+            {/* AI MODELS TAB */}
+            {activeTab === 'ai-models' && (
+              <motion.div key="ai-models" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+                <AIModelsTab onViewCode={handleViewCode} />
+              </motion.div>
+            )}
+
+            {/* HACKATHONS TAB */}
+            {activeTab === 'hackathons' && (
+              <motion.div key="hackathons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+                {/* Header Bar */}
+                <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm flex-shrink-0">
+                  {hackathonSubView === 'leaderboard' ? (
+                    <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
+                  ) : (
+                    <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+                  )}
+                  <span className="font-semibold text-white">{hackathonSubView}</span>
+                </div>
+
+                <ScrollArea className="flex-1 p-6">
+                  <AnimatePresence mode="wait">
+                    {hackathonSubView === 'leaderboard' ? (
+                      <motion.div key="lb" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        <Leaderboard />
                       </motion.div>
-                    ))}
-                  </div>
-                )}
+                    ) : hackathonSubView === 'getting-started' ? (
+                      <motion.div key="gs" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />
+                      </motion.div>
+                    ) : hackathonSubView === 'faq' ? (
+                      <motion.div key="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        <HackathonFAQ />
+                      </motion.div>
+                    ) : selectedEndedHackathon ? (
+                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        <Button variant="ghost" onClick={() => setSelectedEndedHackathon(null)} className="text-[hsl(var(--discord-text-muted))] hover:text-white mb-4">
+                          <ArrowLeft className="w-4 h-4 mr-2" />Back to events
+                        </Button>
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-4">
+                          <Trophy className="w-6 h-6 text-[hsl(var(--discord-yellow))]" />
+                          {selectedEndedHackathon.title} - Showcase
+                        </h2>
+                        <SubmissionsGallery hackathonId={selectedEndedHackathon.id} />
+                      </motion.div>
+                    ) : (
+                      <motion.div key="events" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        {/* Welcome Banner */}
+                        <motion.div 
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="rounded-lg p-6 mb-8 relative overflow-hidden"
+                          style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
+                        >
+                          <div className="absolute inset-0 opacity-10">
+                            <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
+                            <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
+                          </div>
+                          <div className="relative z-10">
+                            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                              <Sparkles className="w-8 h-8" />
+                              Build AI Projects with Python!
+                            </h1>
+                            <p className="text-white/90 text-lg max-w-2xl">
+                              Use Python, PyTorch, TensorFlow, and AI models to build innovative solutions.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-6 mt-4">
+                              <div className="flex items-center gap-2 text-white">
+                                <Circle className="w-3 h-3 fill-green-400 text-green-400" />
+                                <span className="font-medium">{onlineMembers} hackers active</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-white">
+                                <Rocket className="w-4 h-4" />
+                                <span className="font-medium">{liveHackathons.length} live events</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Hackathon Cards */}
+                        {isLoading ? (
+                          <div className="flex items-center justify-center py-20">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="w-12 h-12 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+                              <p className="text-[hsl(var(--discord-text-muted))]">Loading hackathons...</p>
+                            </div>
+                          </div>
+                        ) : getFilteredHackathons().length === 0 ? (
+                          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-20">
+                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+                              <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
+                            <p className="text-[hsl(var(--discord-text-muted))]">Check back soon for new events!</p>
+                          </motion.div>
+                        ) : (
+                          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                            {getFilteredHackathons().map((hackathon, index) => (
+                              <motion.div key={hackathon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+                                <HackathonCard
+                                  hackathon={hackathon}
+                                  onRegister={handleRegister}
+                                  onViewTeams={handleViewTeams}
+                                  onSubmitProject={handleSubmitProject}
+                                />
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </ScrollArea>
               </motion.div>
             )}
           </AnimatePresence>
-        </ScrollArea>
+        </div>
+
+        {/* Modals */}
+        <RegistrationModal
+          hackathonId={selectedHackathon?.id || null}
+          hackathonTitle={selectedHackathon?.title || ''}
+          isOpen={registrationModalOpen}
+          onClose={() => setRegistrationModalOpen(false)}
+          onSuccess={fetchHackathons}
+        />
+        <TeamsModal
+          hackathonId={selectedHackathon?.id || null}
+          hackathonTitle={selectedHackathon?.title || ''}
+          isOpen={teamsModalOpen}
+          onClose={() => setTeamsModalOpen(false)}
+        />
+        <SubmissionModal
+          hackathonId={selectedHackathon?.id || null}
+          hackathonTitle={selectedHackathon?.title || ''}
+          isOpen={submissionModalOpen}
+          onClose={() => setSubmissionModalOpen(false)}
+          onSuccess={fetchHackathons}
+        />
+        <QuickSubmitModal
+          isOpen={quickSubmitOpen}
+          onClose={() => setQuickSubmitOpen(false)}
+          onSuccess={fetchHackathons}
+        />
+        <CommunityChat
+          isOpen={communityChatOpen}
+          onClose={() => setCommunityChatOpen(false)}
+        />
       </div>
-
-      {/* Modals */}
-      <RegistrationModal
-        hackathonId={selectedHackathon?.id || null}
-        hackathonTitle={selectedHackathon?.title || ''}
-        isOpen={registrationModalOpen}
-        onClose={() => setRegistrationModalOpen(false)}
-        onSuccess={fetchHackathons}
-      />
-
-      <TeamsModal
-        hackathonId={selectedHackathon?.id || null}
-        hackathonTitle={selectedHackathon?.title || ''}
-        isOpen={teamsModalOpen}
-        onClose={() => setTeamsModalOpen(false)}
-      />
-
-      <SubmissionModal
-        hackathonId={selectedHackathon?.id || null}
-        hackathonTitle={selectedHackathon?.title || ''}
-        isOpen={submissionModalOpen}
-        onClose={() => setSubmissionModalOpen(false)}
-        onSuccess={fetchHackathons}
-      />
-
-      {/* Sidebar Tool Modals */}
-      <CodePlayground
-        isOpen={codePlaygroundOpen}
-        onClose={() => setCodePlaygroundOpen(false)}
-      />
-
-      <QuickSubmitModal
-        isOpen={quickSubmitOpen}
-        onClose={() => setQuickSubmitOpen(false)}
-        onSuccess={fetchHackathons}
-      />
-
-      <CommunityChat
-        isOpen={communityChatOpen}
-        onClose={() => setCommunityChatOpen(false)}
-      />
-    </div>
     </TooltipProvider>
   );
 };
