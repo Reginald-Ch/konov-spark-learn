@@ -50,6 +50,21 @@ Return the code inside a \`\`\`python code block. Keep it under 60 lines. Use si
 - Clear comments
 Return code in a \`\`\`python block.`;
       userPrompt = `Generate Python training code for: ${code}\nModel type: ${model || "auto-detect"}`;
+    } else if (action === "generate-ui") {
+      systemPrompt = `You are a Python AI coding tutor for teens (ages 12-20). Generate a complete, working Streamlit web app that demonstrates an AI model.
+
+The app MUST include:
+- A clear title and description
+- File upload widget (st.file_uploader) for the appropriate data type
+- Model loading and inference
+- Visual output display (st.image, st.bar_chart, st.write as appropriate)
+- A sidebar with model info and settings
+- Error handling with st.error
+- Beautiful styling with st.set_page_config and custom CSS
+- Sample/demo mode when no file is uploaded
+
+Return ONLY the Python code in a \`\`\`python code block. Keep it under 80 lines. Use clear comments.`;
+      userPrompt = `Generate a Streamlit web UI for this AI model: ${code}\nModel type: ${model || "image classifier"}`;
     } else {
       systemPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). Help with any Python AI coding question. Keep responses concise and encouraging.`;
       userPrompt = code;
