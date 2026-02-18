@@ -1,128 +1,128 @@
-# AI Hackathon Platform Redesign: The Easiest Place for Young People to Build Real AI Projects
 
-This is a major redesign that transforms the current hackathon page from a simple event listing into a full **learning + building playground** with 5 clear tabs, 1-click project templates, a visual AI builder, a smart coding assistant, and one-click project publishing.
 
----
+# Hackathon Platform: Bug Fixes, AI Models Testing, and Completion Audit
 
-## New Platform Structure: 5 Tabs
-
-The sidebar channels will be reorganized into **5 clear sections** replacing the current channel-based navigat
-
-1. **Build** -- The simple Python IDE with AI assistant
-2. **Templates** -- 1-click starter projects (replaces "Project Ideas")
-3. **Hackathons** -- Competitions, events, and leaderboard (current events view)
-4. **AI models selection option for training and export to code  (ths is shs students )**   
-
+This plan covers three phases to make the hackathon page production-ready for 200+ users.
 
 ---
 
+## Phase 1: Critical Bug Fixes
 
+### Bug 1: Edge Function Missing JWT Configuration
+The `supabase/config.toml` only has `project_id` -- it is missing the `[functions.python-ai-assist]` section with `verify_jwt = false`. This means all AI assistant calls (Review, Explain, Suggest, Idea-to-Code) will fail with 401 errors because the default JWT verification blocks unauthenticated requests.
 
-The IDE gets redesigned from a modal dialog into a **full-page tab view** with 4 simple parts:
+**Fix:** Add `[functions.python-ai-assist]` with `verify_jwt = false` to `supabase/config.toml`.
 
-**A. Project Templates (1-click start)** -- Left sidebar
+### Bug 2: Missing DialogDescription Warning
+Console logs show: `Warning: Missing Description or aria-describedby={undefined} for {DialogContent}`. The `PublishModal` is missing a `DialogDescription` component inside its `DialogHeader`.
 
-- 6 pre-built templates: Chatbot, Image Classifier, Voice Assistant, AI Quiz Generator, Sentiment Analyzer, Game AI
-- Each template includes: pre-loaded starter code, working dataset, and a "Run" button
-- Clicking a template instantly loads everything -- no blank screen fear
+**Fix:** Add `<DialogDescription>` to `PublishModal.tsx`.
 
-**B. Visual AI Builder Mode** -- Toggle between code and visual mode  
-Select ai model -image classifier, object , audio,llm
+### Bug 3: AI Output Not Rendered as Markdown
+The AI mentor panel in `CodePlayground.tsx` renders `aiOutput` as plain `whitespace-pre-wrap` text instead of parsed markdown. The `react-markdown` library was mentioned in memory but is not actually used.
 
-- Upload images/text/audio data
-- Click "Train Model" button
-- See accuracy visually with animated progress bars and charts
-- Then click "View Code" to see the auto-generated Python code
-- This teaches AI thinking first, coding second
+**Fix:** Install `react-markdown` and render AI output with proper markdown formatting (code blocks, bold, lists).
 
-**C. Smart Coding Assistant** -- Right panel (enhanced from current)
+### Bug 4: Leaderboard Not Including ai_projects Points
+The `Leaderboard.tsx` only queries `hackathon_teams`, `hackathon_registrations`, and `hackathon_submissions`. Published `ai_projects` (which award 10 points each) are not included in the participant scores.
 
-- Explains errors in simple English (not technical jargon)
-- Suggests next steps in the project contextually
-- "Describe your idea" input that generates a starter project
-- Acts as an AI mentor, not just a code reviewer
+**Fix:** Fetch `ai_projects` data and merge points into the leaderboard participant scores.
 
-**D. One-Click Publish** -- Top bar action
+### Bug 5: PublishModal State Not Reset Between Opens
+When the user closes and re-opens the PublishModal after a successful publish, the `isPublished` state persists showing the success screen immediately.
 
-- "Publish Project" button that:
-  - Saves project to the database
-  - Creates a public project page
-  - Generates a shareable demo link
-  - Awards leaderboard points
-  - Shows certificate badge
+**Fix:** Already handled in `handleClose` -- verified this is correct. No change needed.
 
-### 3. Templates Tab (Redesign of ProjectIdeas)
+### Bug 6: CommunityChat DialogContent Missing Description
+The large community chat dialog also lacks a `DialogDescription`, triggering the same console warning.
 
-Transform from static idea cards to interactive 1-click starter templates:
-
-- Category filters: Health, Education, Climate, Games, Creative
-- Each template card shows: preview image, difficulty, estimated time, tech stack
-- "Start Building" button that opens the Build tab with code pre-loaded
-- Community rating/popularity indicators
-
-### 4. Hackathons Tab (Enhanced Current View)
-
-Improved hackathon flow:
-
-- Challenge categories: Health, Education, Climate, Games
-- Students pick a category, then choose a starter template
-- Clear step-by-step flow: Join > Pick Challenge > Build > Submit > Get Judged
-- Auto-judging criteria display
-- Badges, prizes, and certificate system
-- Enhanced leaderboard with more achievement types
-
-### 5. Community Tab (Simplified Chat)
-
-Simplified from Discord-style to a cleaner interface:
-
-- Project rooms (one per active project)
-- Team chat
-- Mentor help channel
-- Dataset sharing
+**Fix:** Add `aria-describedby` or `DialogDescription` to the community chat dialog.
 
 ---
 
-## Technical Implementation Details
+## Phase 2: AI Models Tab -- Teachable Machine-Style Testing
 
-### New Files to Create:
+The current AI Models tab lets users click "Train Model" which runs a fake timer simulation. There is no actual data upload, no real prediction testing, and no meaningful interactivity.
 
-1. `**src/components/hackathon/LearnTab.tsx**` -- Mini AI lessons component with comic panels
-2. `**src/components/hackathon/TemplatesTab.tsx**` -- 1-click starter templates grid
-3. `**src/components/hackathon/PublishModal.tsx**` -- One-click publish flow
+### Redesign: 3-Step Workflow (Upload -> Train -> Predict)
 
-### Files to Heavily Modify:
+**Step 1: Upload Data**
+- For Image Classifier: Add file input that accepts images. Show uploaded images as a thumbnail grid with class labels (e.g., "Class A", "Class B").
+- For Text AI: Add a textarea for sample text inputs with labeled categories.
+- For Audio: Add audio file upload with playback preview.
+- Users can add at least 2 classes with sample data per class.
 
-4. `**src/pages/Hackathons.tsx**` -- Replace channel sidebar with 5-tab navigation, move IDE from modal to inline tab view
-5. `**src/components/hackathon/CodePlayground.tsx**` -- Complete redesign from modal to full-page IDE with visual builder mode, enhanced AI assistant, and publish button
-6. `**src/components/hackathon/ProjectIdeas.tsx**` -- Transform into interactive templates with "Start Building" actions
-7. `**src/components/hackathon/GettingStarted.tsx**` -- Integrate into Learn tab content
+**Step 2: Train (Simulated with Visual Feedback)**
+- Keep the simulated training (since real model training cannot run in the browser), but make it more interactive:
+  - Show epoch-by-epoch progress with animated accuracy/loss chart using Recharts
+  - Display per-epoch metrics (accuracy, loss) updating in real-time
+  - Show confusion matrix-style results after training
 
-### Database Migration:
+**Step 3: Predict / Test**
+- After training completes, show a "Test Your Model" section:
+  - For images: drag-and-drop an image, see prediction with confidence bars
+  - For text: type text, see classification result with confidence percentages
+  - For audio: upload/record audio, see transcription or classification
+- Display results with animated confidence bars (like Teachable Machine)
+- "Export Code" button generates the Python code for the trained model
 
-- New `**ai_projects**` table to store published student projects:
-  - `id`, `project_name`, `description`, `code`, `template_id`, `author_name`, `author_email`, `hackathon_id` (nullable), `is_published`, `demo_url`, `points_earned`, `created_at`
-- This enables the publish/share/leaderboard features
-
-### Edge Function Update:
-
-- `**python-ai-assist**` -- Add new action `"idea-to-code"` that takes a natural language description and generates a complete starter project
-- Add `"visual-builder"` action that generates training code from uploaded data descriptions
-
-### Offline-Friendly Considerations:
-
-- All templates and lesson content are bundled in the frontend (no API calls needed to browse)
-- Code editor works without internet
-- AI assistant gracefully degrades with a "You're offline" message
-- Cached datasets embedded in template starter code
+### Implementation Details
+- Modify `AIModelsTab.tsx` to add state management for uploaded samples, class labels, training epochs data, and test predictions
+- Add a Recharts line chart for training visualization (already installed)
+- Use the `python-ai-assist` edge function with the `visual-builder` action to generate contextual code based on the user's uploaded data description
+- Add file input handling (images stored in state as base64 for preview, not uploaded to server)
 
 ---
 
-## UI/UX Design Principles (Ages 12-20)
+## Phase 3: Hackathon Page Completeness Audit
 
-- **No blank screens** -- Every entry point has pre-loaded content
-- **Big, colorful buttons** -- "Start Building", "Publish", "Train Model"
-- **Progress indicators** -- Visual feedback for every action
-- **Gamification** -- Points, badges, and leaderboard for every milestone
-- **Comic-style** micro-lessons matching the KONOV brand
-- **Mobile-responsive** -- Works on phones and tablets for school use
-- **Smooth animations** -- Framer Motion transitions between tabs and states
+Here is what the platform needs to be fully complete for 200+ users:
+
+### Already Working
+- Hackathon event listing with live/upcoming/ended filters
+- Registration modal with validation
+- Team creation and viewing
+- Project submission modal
+- Quick submit modal
+- Community chat with text channels, voice rooms, and reactions
+- Leaderboard with teams and individual rankings
+- Getting Started guide and FAQ
+- Python AI Lab IDE with AI mentor
+- 1-click templates
+- Project publishing to database
+- Countdown timers on hackathon cards
+- Submissions gallery for ended events
+- Real-time updates via database subscriptions
+
+### Needs Fixing/Adding
+1. **Seed hackathon data** -- Currently only 2 hackathons exist in the database. For 200+ users, there should be active live/upcoming events ready. *Recommend adding sample hackathon events through the database.*
+
+2. **Mobile responsiveness** -- The 72px icon rail sidebar works on desktop but may be tight on mobile. The Build tab code editor needs better mobile layout. *Fix the `min-h-screen flex` layout for small screens with a collapsible sidebar.*
+
+3. **Error handling for edge cases** -- Registration doesn't check for duplicate emails before submitting (relies on DB constraint). Add pre-check query or better error message handling.
+
+4. **Hackathon sub-view header display** -- The header bar shows raw `hackathonSubView` value like `all-events` instead of a formatted name like "All Events".
+
+5. **No loading state for Templates tab** -- Templates load instantly (static data), which is fine.
+
+6. **Community channels need seed data** -- If no channels exist in the database, the community chat opens with an empty sidebar. Need default channels seeded.
+
+7. **ai_projects RLS UPDATE policy is too permissive** -- Currently uses `USING (true)` which lets anyone update any project. Should restrict to `author_email = current user email` or similar.
+
+---
+
+## Technical Summary of Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/config.toml` | Add `[functions.python-ai-assist]` with `verify_jwt = false` |
+| `src/components/hackathon/AIModelsTab.tsx` | Complete rewrite: add upload UI, Recharts training chart, test/predict section |
+| `src/components/hackathon/CodePlayground.tsx` | Add react-markdown for AI output rendering |
+| `src/components/hackathon/PublishModal.tsx` | Add DialogDescription |
+| `src/components/hackathon/Leaderboard.tsx` | Add ai_projects query to leaderboard scores |
+| `src/pages/Hackathons.tsx` | Fix header display format, mobile responsiveness |
+| `src/components/hackathon/CommunityChat.tsx` | Add DialogDescription to fix console warning |
+
+### New Dependency
+- `react-markdown` -- for rendering AI mentor output with proper formatting
+
