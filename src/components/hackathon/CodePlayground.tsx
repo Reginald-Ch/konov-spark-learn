@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { PublishModal } from './PublishModal';
@@ -349,8 +350,24 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                  <div className="prose prose-invert prose-sm max-w-none text-[hsl(var(--discord-text))] text-sm leading-relaxed whitespace-pre-wrap">
-                    {aiOutput}
+                  <div className="prose prose-invert prose-sm max-w-none text-[hsl(var(--discord-text))] text-sm leading-relaxed">
+                    <ReactMarkdown
+                      components={{
+                        code: ({ children, className }) => {
+                          const isBlock = className?.includes('language-');
+                          return isBlock ? (
+                            <pre className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 overflow-x-auto my-2">
+                              <code className="text-xs font-mono text-[hsl(var(--discord-green))]">{children}</code>
+                            </pre>
+                          ) : (
+                            <code className="bg-[hsl(var(--discord-light)/0.3)] px-1.5 py-0.5 rounded text-xs font-mono text-[hsl(var(--discord-blurple))]">{children}</code>
+                          );
+                        },
+                        pre: ({ children }) => <>{children}</>,
+                      }}
+                    >
+                      {aiOutput}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </motion.div>

@@ -142,14 +142,14 @@ const Hackathons = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex">
+      <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row">
         <SEO 
           title="AI Hackathon Platform - Tech Kids Africa"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
         />
 
         {/* Left Icon Rail */}
-        <div className="w-[72px] bg-[hsl(var(--discord-darker))] flex flex-col items-center py-3 gap-2 border-r border-[hsl(var(--discord-light)/0.2)]">
+        <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Link to="/">
@@ -226,7 +226,7 @@ const Hackathons = () => {
 
         {/* Hackathons Sub-sidebar (only for hackathons tab) */}
         {activeTab === 'hackathons' && (
-          <div className="w-56 bg-[hsl(var(--discord-dark))] flex flex-col border-r border-[hsl(var(--discord-darker))]">
+          <div className="hidden md:flex w-56 bg-[hsl(var(--discord-dark))] flex-col border-r border-[hsl(var(--discord-darker))]">
             <div className="h-12 px-4 flex items-center border-b border-[hsl(var(--discord-darker))] shadow-sm">
               <span className="font-semibold text-white truncate">Python AI Hackathons</span>
             </div>
@@ -348,7 +348,9 @@ const Hackathons = () => {
                   ) : (
                     <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
                   )}
-                  <span className="font-semibold text-white">{hackathonSubView}</span>
+                  <span className="font-semibold text-white">
+                    {hackathonSubView.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </span>
                 </div>
 
                 <ScrollArea className="flex-1 p-6">
