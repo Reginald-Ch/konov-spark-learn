@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { PublishModal } from './PublishModal';
-import ReactMarkdown from 'react-markdown';
 import { 
   Code, Maximize2, Minimize2, Play, Sparkles, 
   Brain, MessageSquare, Lightbulb, ExternalLink,
@@ -130,9 +129,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
               setAiOutput(fullText);
             }
           } catch {
-            // Incomplete JSON — put the raw data back (without 'data: ' prefix re-added)
-            // and wait for more chunks
-            buffer = jsonStr;
+            buffer = line + '\n' + buffer;
             break;
           }
         }
@@ -352,8 +349,8 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                  <div className="prose prose-invert prose-sm max-w-none text-[hsl(var(--discord-text))] text-sm leading-relaxed">
-                    <ReactMarkdown>{aiOutput}</ReactMarkdown>
+                  <div className="prose prose-invert prose-sm max-w-none text-[hsl(var(--discord-text))] text-sm leading-relaxed whitespace-pre-wrap">
+                    {aiOutput}
                   </div>
                 </div>
               </motion.div>
