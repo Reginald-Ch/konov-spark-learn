@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -364,6 +364,9 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
               </div>
               Join Hackathon Community
             </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              Enter your details to join the community chat.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 mt-6">
@@ -408,7 +411,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent hideCloseButton className="sm:max-w-[1000px] h-[85vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white overflow-hidden">
+      <DialogContent hideCloseButton aria-describedby={undefined} className="sm:max-w-[1000px] h-[85vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white overflow-hidden">
         <div className="flex h-full">
           {/* Channels Sidebar */}
           <div className="w-64 bg-[hsl(var(--discord-darker))] flex flex-col border-r border-[hsl(var(--discord-light)/0.15)]">

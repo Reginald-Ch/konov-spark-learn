@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,6 +76,9 @@ export const PublishModal = ({ isOpen, onClose, code, templateId }: PublishModal
             <Rocket className="w-5 h-5 text-[hsl(var(--discord-blurple))]" />
             Publish Your Project
           </DialogTitle>
+          <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+            Share your AI project with the community and earn leaderboard points.
+          </DialogDescription>
         </DialogHeader>
 
         {isPublished ? (

@@ -44,6 +44,7 @@ export const Leaderboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_teams' }, () => fetchLeaderboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_registrations' }, () => fetchLeaderboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_submissions' }, () => fetchLeaderboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => fetchLeaderboardData())
       .subscribe();
 
     return () => {
@@ -57,29 +58,25 @@ export const Leaderboard = () => {
     // Fetch teams with their hackathon titles
     const { data: teamsData } = await supabase
       .from('hackathon_teams' as any)
-      .select(`
-        id,
-        team_name,
-        description,
-        hackathon_id,
-        created_at
-      `)
+      .select(`id, team_name, description, hackathon_id, created_at`)
       .order('created_at', { ascending: true });
 
-    // Fetch hackathons for titles
     const { data: hackathonsData } = await supabase
       .from('hackathons' as any)
       .select('id, title');
 
-    // Fetch submissions
     const { data: submissionsData } = await supabase
       .from('hackathon_submissions' as any)
       .select('team_id');
 
-    // Fetch registrations
     const { data: registrationsData } = await supabase
       .from('hackathon_registrations' as any)
       .select('*');
+
+    // Fetch published ai_projects for leaderboard points
+    const { data: aiProjectsData } = await supabase
+      .from('ai_projects' as any)
+      .select('author_email, author_name, points_earned');
 
     const hackathonMap = new Map((hackathonsData || []).map((h: any) => [h.id, h.title]));
     
@@ -148,6 +145,29 @@ export const Leaderboard = () => {
       }
     });
 
+    // Add ai_projects points to participants
+    ((aiProjectsData as any[]) || []).forEach((project: any) => {
+      const participant = participantMap.get(project.author_email);
+      if (participant) {
+        participant.points += (project.points_earned || 10);
+        participant.submissions += 1;
+        if (!participant.achievements.includes('🚀 Published Project')) {
+          participant.achievements.push('🚀 Published Project');
+        }
+      } else {
+        participantMap.set(project.author_email, {
+          id: project.author_email,
+          name: project.author_name,
+          email: project.author_email,
+          hackathons_joined: 0,
+          teams_created: 0,
+          submissions: 1,
+          points: project.points_earned || 10,
+          rank: 0,
+          achievements: ['🚀 Published Project'],
+        });
+      }
+    });
     const participantScores = Array.from(participantMap.values())
       .sort((a, b) => b.points - a.points)
       .map((p, index) => {
