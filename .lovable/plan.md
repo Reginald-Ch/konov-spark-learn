@@ -1,128 +1,161 @@
 
 
-# Hackathon Platform: Bug Fixes, AI Models Testing, and Completion Audit
+# MVP Plan: Production-Ready Hackathon Platform
 
-This plan covers three phases to make the hackathon page production-ready for 200+ users.
-
----
-
-## Phase 1: Critical Bug Fixes
-
-### Bug 1: Edge Function Missing JWT Configuration
-The `supabase/config.toml` only has `project_id` -- it is missing the `[functions.python-ai-assist]` section with `verify_jwt = false`. This means all AI assistant calls (Review, Explain, Suggest, Idea-to-Code) will fail with 401 errors because the default JWT verification blocks unauthenticated requests.
-
-**Fix:** Add `[functions.python-ai-assist]` with `verify_jwt = false` to `supabase/config.toml`.
-
-### Bug 2: Missing DialogDescription Warning
-Console logs show: `Warning: Missing Description or aria-describedby={undefined} for {DialogContent}`. The `PublishModal` is missing a `DialogDescription` component inside its `DialogHeader`.
-
-**Fix:** Add `<DialogDescription>` to `PublishModal.tsx`.
-
-### Bug 3: AI Output Not Rendered as Markdown
-The AI mentor panel in `CodePlayground.tsx` renders `aiOutput` as plain `whitespace-pre-wrap` text instead of parsed markdown. The `react-markdown` library was mentioned in memory but is not actually used.
-
-**Fix:** Install `react-markdown` and render AI output with proper markdown formatting (code blocks, bold, lists).
-
-### Bug 4: Leaderboard Not Including ai_projects Points
-The `Leaderboard.tsx` only queries `hackathon_teams`, `hackathon_registrations`, and `hackathon_submissions`. Published `ai_projects` (which award 10 points each) are not included in the participant scores.
-
-**Fix:** Fetch `ai_projects` data and merge points into the leaderboard participant scores.
-
-### Bug 5: PublishModal State Not Reset Between Opens
-When the user closes and re-opens the PublishModal after a successful publish, the `isPublished` state persists showing the success screen immediately.
-
-**Fix:** Already handled in `handleClose` -- verified this is correct. No change needed.
-
-### Bug 6: CommunityChat DialogContent Missing Description
-The large community chat dialog also lacks a `DialogDescription`, triggering the same console warning.
-
-**Fix:** Add `aria-describedby` or `DialogDescription` to the community chat dialog.
+This plan focuses on making the hackathon page work reliably for 200+ users by fixing real issues, improving the IDE structure (inspired by the reference images), and ensuring all features connect properly.
 
 ---
 
-## Phase 2: AI Models Tab -- Teachable Machine-Style Testing
+## Current State Assessment
 
-The current AI Models tab lets users click "Train Model" which runs a fake timer simulation. There is no actual data upload, no real prediction testing, and no meaningful interactivity.
+**What works:**
+- 4-tab navigation (Build, Templates, Hackathons, AI Models)
+- Template selection loads code into IDE
+- AI mentor streaming (review, explain, suggest, idea-to-code)
+- Publish modal saves to database
+- Leaderboard fetches from multiple tables including ai_projects
+- AI Models tab has upload/train/predict flow
+- Real-time subscriptions on hackathon data
 
-### Redesign: 3-Step Workflow (Upload -> Train -> Predict)
-
-**Step 1: Upload Data**
-- For Image Classifier: Add file input that accepts images. Show uploaded images as a thumbnail grid with class labels (e.g., "Class A", "Class B").
-- For Text AI: Add a textarea for sample text inputs with labeled categories.
-- For Audio: Add audio file upload with playback preview.
-- Users can add at least 2 classes with sample data per class.
-
-**Step 2: Train (Simulated with Visual Feedback)**
-- Keep the simulated training (since real model training cannot run in the browser), but make it more interactive:
-  - Show epoch-by-epoch progress with animated accuracy/loss chart using Recharts
-  - Display per-epoch metrics (accuracy, loss) updating in real-time
-  - Show confusion matrix-style results after training
-
-**Step 3: Predict / Test**
-- After training completes, show a "Test Your Model" section:
-  - For images: drag-and-drop an image, see prediction with confidence bars
-  - For text: type text, see classification result with confidence percentages
-  - For audio: upload/record audio, see transcription or classification
-- Display results with animated confidence bars (like Teachable Machine)
-- "Export Code" button generates the Python code for the trained model
-
-### Implementation Details
-- Modify `AIModelsTab.tsx` to add state management for uploaded samples, class labels, training epochs data, and test predictions
-- Add a Recharts line chart for training visualization (already installed)
-- Use the `python-ai-assist` edge function with the `visual-builder` action to generate contextual code based on the user's uploaded data description
-- Add file input handling (images stored in state as base64 for preview, not uploaded to server)
+**What is broken or incomplete:**
+- IDE is a plain textarea -- no syntax highlighting, line numbers, or file tabs (the reference images show a proper code editor with line numbers and file tabs)
+- No "Run" or "Save" buttons with clear actions in the IDE
+- No "Live Preview" panel for AI output (reference shows a chat-like preview panel)
+- The code cannot actually run in the browser (Python) -- need clear UX for this
+- Hackathon events have past dates (Feb 1-3 and Mar 15-17) but status is still "upcoming"
+- No bottom action bar like the reference (Run Tests / Save Agent / Deploy to Production)
+- AI Models training is purely simulated with no connection to actual AI generation
+- No file tab system (agent.py, config.json, requirements.txt like in reference)
 
 ---
 
-## Phase 3: Hackathon Page Completeness Audit
+## Phase 1: IDE Redesign (Inspired by Reference Images)
 
-Here is what the platform needs to be fully complete for 200+ users:
+### 1A. Restructure CodePlayground Layout
 
-### Already Working
-- Hackathon event listing with live/upcoming/ended filters
-- Registration modal with validation
-- Team creation and viewing
-- Project submission modal
-- Quick submit modal
-- Community chat with text channels, voice rooms, and reactions
-- Leaderboard with teams and individual rankings
-- Getting Started guide and FAQ
-- Python AI Lab IDE with AI mentor
-- 1-click templates
-- Project publishing to database
-- Countdown timers on hackathon cards
-- Submissions gallery for ended events
-- Real-time updates via database subscriptions
+Redesign `CodePlayground.tsx` to match the 3-panel layout from the reference:
 
-### Needs Fixing/Adding
-1. **Seed hackathon data** -- Currently only 2 hackathons exist in the database. For 200+ users, there should be active live/upcoming events ready. *Recommend adding sample hackathon events through the database.*
+**Left Panel: Configuration Sidebar** (replaces current model list)
+- Project name input field
+- Agent/Model type dropdown selector
+- Model selection dropdown (LangChain, PyTorch, HuggingFace, etc.)
+- System prompt textarea
+- Capability badges (clickable toggles)
 
-2. **Mobile responsiveness** -- The 72px icon rail sidebar works on desktop but may be tight on mobile. The Build tab code editor needs better mobile layout. *Fix the `min-h-screen flex` layout for small screens with a collapsible sidebar.*
+**Center Panel: Code Editor with File Tabs**
+- File tab bar: `main.py`, `config.json`, `requirements.txt`
+- Line numbers on the left gutter
+- Syntax-highlighted textarea (using CSS-based highlighting for Python keywords)
+- Status indicator: green dot + "Ready"
 
-3. **Error handling for edge cases** -- Registration doesn't check for duplicate emails before submitting (relies on DB constraint). Add pre-check query or better error message handling.
+**Right Panel: Live Preview / AI Output**
+- Chat-style output panel showing AI responses
+- Input field at the bottom: "Ask AI anything..." with Send button
+- Status messages like "Agent initialized successfully"
+- Streaming AI responses displayed as chat bubbles
 
-4. **Hackathon sub-view header display** -- The header bar shows raw `hackathonSubView` value like `all-events` instead of a formatted name like "All Events".
+**Bottom Action Bar** (key addition from reference)
+- "Run Tests" button (green) -- simulates running Python code and shows output
+- "Save Project" button (blue) -- saves to database via ai_projects table
+- "Deploy to Production" button (gradient) -- opens Publish modal
 
-5. **No loading state for Templates tab** -- Templates load instantly (static data), which is fine.
+### 1B. Add Line Numbers + Basic Syntax Highlighting
 
-6. **Community channels need seed data** -- If no channels exist in the database, the community chat opens with an empty sidebar. Need default channels seeded.
+Create a custom code editor component that overlays syntax highlighting on the textarea:
+- Line number gutter
+- Python keyword highlighting (import, def, class, return, etc.)
+- String and comment highlighting
+- Current line highlight
 
-7. **ai_projects RLS UPDATE policy is too permissive** -- Currently uses `USING (true)` which lets anyone update any project. Should restrict to `author_email = current user email` or similar.
+### 1C. Multi-File Tab System
+
+Add state for multiple files per project:
+- `main.py` -- the main code (current code state)
+- `config.json` -- auto-generated config based on selected model
+- `requirements.txt` -- auto-generated from imports in code
+
+Switching tabs shows different content. Config and requirements are generated automatically.
 
 ---
 
-## Technical Summary of Files to Modify
+## Phase 2: IDE Functionality (Save, Run, Deploy)
 
-| File | Changes |
-|------|---------|
-| `supabase/config.toml` | Add `[functions.python-ai-assist]` with `verify_jwt = false` |
-| `src/components/hackathon/AIModelsTab.tsx` | Complete rewrite: add upload UI, Recharts training chart, test/predict section |
-| `src/components/hackathon/CodePlayground.tsx` | Add react-markdown for AI output rendering |
-| `src/components/hackathon/PublishModal.tsx` | Add DialogDescription |
-| `src/components/hackathon/Leaderboard.tsx` | Add ai_projects query to leaderboard scores |
-| `src/pages/Hackathons.tsx` | Fix header display format, mobile responsiveness |
-| `src/components/hackathon/CommunityChat.tsx` | Add DialogDescription to fix console warning |
+### 2A. "Run" Button -- Simulated Python Execution
 
-### New Dependency
-- `react-markdown` -- for rendering AI mentor output with proper formatting
+Since Python cannot run in the browser, the "Run" button will:
+1. Send code to the `python-ai-assist` edge function with a new `action: "run"` 
+2. The AI simulates running the code and returns expected output
+3. Display the output in the Live Preview panel as terminal-style text
+4. This gives users immediate feedback without leaving the platform
+
+Update `supabase/functions/python-ai-assist/index.ts` to add:
+```
+action === "run" -> AI simulates executing the Python code and returns expected output
+```
+
+### 2B. "Save" Button -- Auto-Save to Database
+
+- Save current project state to `ai_projects` table without publishing
+- Set `is_published: false` for saves (vs `true` for publish)
+- Show "Saved!" toast notification
+- Track last save time in the UI
+
+### 2C. "Deploy to Production" -- Enhanced Publish Flow
+
+- Opens the existing PublishModal
+- But now pre-fills project name and description if already saved
+- Shows the Colab link prominently as the "production" deployment option
+
+---
+
+## Phase 3: Leaderboard Real-Time Data Fix
+
+### 3A. Fix Hackathon Event Dates
+
+The two existing hackathons have dates that may not match their status. Insert seed data with correct dates so "live" events actually show as live during the hackathon.
+
+### 3B. Ensure Real-Time Leaderboard Updates
+
+The Leaderboard component already subscribes to real-time changes on `hackathon_teams`, `hackathon_registrations`, `hackathon_submissions`, and `ai_projects`. This is working. 
+
+The fix needed: The leaderboard currently shows empty when there are no registrations. Add a more helpful empty state with a CTA to register for a hackathon or publish a project.
+
+---
+
+## Phase 4: AI Models Tab Polish
+
+### 4A. Connect "Export Code" to IDE Properly
+
+When users click "Export Code" after training, the code should:
+1. Switch to the Build tab
+2. Load the generated Python code into the editor
+3. Auto-populate the config.json with model parameters
+4. Auto-populate requirements.txt with needed packages
+
+### 4B. Training Result Persistence
+
+After training, save the model configuration (classes, accuracy) to local state so users can return to the AI Models tab and see their last training result.
+
+---
+
+## Phase 5: Database Seeding
+
+Insert hackathon events with correct dates for the upcoming event:
+- One "live" hackathon (starts today or recently)
+- One "upcoming" hackathon (starts in 1-2 weeks)
+- Seed default community channels (general, help, showcase)
+
+---
+
+## Technical File Changes Summary
+
+| File | Change |
+|------|--------|
+| `src/components/hackathon/CodePlayground.tsx` | Complete redesign: 3-panel layout, file tabs, line numbers, syntax highlighting, bottom action bar, Live Preview chat panel |
+| `src/components/hackathon/PythonEditor.tsx` | **NEW** -- Custom code editor with line numbers and syntax highlighting |
+| `supabase/functions/python-ai-assist/index.ts` | Add `action: "run"` for simulated code execution |
+| `src/components/hackathon/AIModelsTab.tsx` | Fix Export Code flow to properly switch tabs with config |
+| `src/components/hackathon/Leaderboard.tsx` | Improve empty state with CTAs |
+| `src/pages/Hackathons.tsx` | Minor adjustments for new CodePlayground props |
+| Database | Seed hackathon events with correct dates, seed community channels |
 
