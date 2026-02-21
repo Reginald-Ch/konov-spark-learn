@@ -53,7 +53,7 @@ export const Hero = () => {
           >
             <ActionBurst>
               <span className="text-base md:text-lg font-bold">
-                Africa's First AI & ML Literacy Hub!
+                Young Innovators  AI & ML Literacy Hub!
               </span>
             </ActionBurst>
           </motion.div>
@@ -80,7 +80,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                “Konov helps children build the skills they need for the future — critical thinking, creativity, collaboration, and confidence — through fun, hands-on AI learning experiences designed for young minds.”
+                “Konov helps K-12 build the skills they need for the future — critical thinking, creativity, collaboration, and confidence — through fun, hands-on AI learning experiences designed for young minds.”
               </p>
             </SpeechBubble>
           </motion.div>
