@@ -1,160 +1,177 @@
-# MVP Plan: Production-Ready Hackathon Platform
 
-This plan focuses on making the hackathon page work reliably for 200+ users by fixing real issues, improving the IDE structure (inspired by the reference images), and ensuring all features connect properly.
 
----
+# Hackathon Platform MVP: 3 Project Types, Clean IDE, Real Deployment
 
-## Current State Assessment
+## The Core Idea
 
-**What works:**
-
-- 4-tab navigation (Build, Templates, Hackathons, AI Models)
-- Template selection loads code into IDE
-- AI mentor streaming (review, explain, suggest, idea-to-code)
-- Publish modal saves to database
-- Leaderboard fetches from multiple tables including ai_projects
-- AI Models tab has upload/train/predict flow
-- Real-time subscriptions on hackathon data
-
-**What is broken or incomplete:**
-
-- IDE is a plain textarea -- no syntax highlighting, line numbers, or file tabs (the reference images show a proper code editor with line numbers and file tabs)
-- No "Run" or "Save" buttons with clear actions in the IDE
-- No "Live Preview" panel for AI output (reference shows a chat-like preview panel)
-- The code cannot actually run in the browser (Python) -- need clear UX for this
-- Hackathon events have past dates (Feb 1-3 and Mar 15-17) but status is still "upcoming"
-- No bottom action bar like the reference (Run Tests / Save Agent / Deploy to Production)
-- AI Models training is purely simulated with no connection to actual AI generation
-- No file tab system (agent.py, config.json, requirements.txt like in reference)
+Strip everything down to one clear flow: **Pick a project type (Chatbot / Voice Assistant / Agent) → Get scaffolded code instantly → Build in a 3-panel editor → Deploy a live demo URL**. Zero model selection, zero local setup. The platform handles AI routing behind the scenes.
 
 ---
 
-## Phase 1: IDE Redesign (Inspired by Reference Images)
+## Current Problems
 
-### 1A. Restructure CodePlayground Layout
+1. **Too many choices**: The IDE has 6 AI model options (LangChain, PyTorch, HuggingFace, sklearn, Whisper, Stable Diffusion) plus 6 templates. Students face decision paralysis instead of building.
+2. **Code doesn't run**: The editor is a plain textarea with no line numbers, no file tabs, no "Run" button. Students write code but can't execute or test it.
+3. **No deployment**: "Open in Colab" sends users away from the platform. There's no live demo URL generation.
+4. **AI Models tab is disconnected**: The Teachable Machine-style tab exists separately from the IDE with no clear connection to project types.
+5. **Leaderboard works but is empty**: Real-time subscriptions are correctly wired, but there are no seeded events to generate activity.
 
-Redesign `CodePlayground.tsx` to match the 3-panel layout from the reference:
+---
 
-&nbsp;
+## New Architecture: 3 Panels, 3 Project Types, 3 Actions
+
+### Project Types (Replace all current templates and model options)
+
+| Type | What Students Build | Scaffolded Files |
+|------|-------------------|-----------------|
+| **AI Chatbot** | Conversational AI that answers questions on a topic | `main.py`, `config.json`, `requirements.txt` |
+| **Voice Assistant** | Speech-to-text + AI response + text-to-speech pipeline | `main.py`, `config.json`, `requirements.txt` |
+| **AI Agent** | Tool-using agent that can search, calculate, generate | `main.py`, `config.json`, `requirements.txt` |
+
+Each type comes with a **complete working codebase** that students can customize, not a blank skeleton.
+
+### The 3-Panel IDE (Matching Reference Images)
+
+```text
+┌──────────────┬──────────────────────────────┬─────────────────────┐
+│ CONFIGURATION│  agent.py │ config.json │ req…│  LIVE PREVIEW       │
+│              │─────────────────────────────│                     │
+│ PROJECT NAME │  1  from agent import Agent  │ ⚡ Agent initialized │
+│ [My Bot    ] │  2  from langchain import…   │                     │
+│              │  3                            │ 🔵 "Find research   │
+│ PROJECT TYPE │  4  # Initialize Agent       │    on AI safety"    │
+│ [Chatbot  v] │  5  agent = Agent(           │                     │
+│              │  6    name="ResearchBot",     │ 🟢 Searching...     │
+│ SYSTEM PROMPT│  7    model="gpt-4",         │    Found 3 papers.  │
+│ [You are a ] │  8    temperature=0.7,       │                     │
+│ [helpful…  ] │  9    tools=[WebSearch()]    │ ✓ Response in 1.2s  │
+│              │ 10  )                         │                     │
+│ CAPABILITIES │                              │ [Ask something…] ▶  │
+│ ☑ Web Search │                              │                     │
+│ ☑ Citations  │                              │                     │
+│ ☐ Image Gen  │                              │                     │
+├──────────────┴──────────────────────────────┴─────────────────────┤
+│  ▶ Run Tests          💾 Save Project         🚀 Deploy to Prod   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Left Panel: Configuration**
+- Project name input
+- Project type dropdown (Chatbot / Voice Assistant / Agent)
+- System prompt textarea
+- Capability toggles (Web Search, Citations, Image Gen, Code Exec, Memory)
+- Changing project type regenerates the scaffolded code automatically
 
 **Center Panel: Code Editor with File Tabs**
+- 3 file tabs: `main.py`, `config.json`, `requirements.txt`
+- Line numbers in the gutter
+- Basic Python syntax highlighting via CSS (keywords in different colors)
+- Green status dot + "Ready" indicator
+- Auto-generates `config.json` from left panel settings
+- Auto-generates `requirements.txt` from imports
 
-- File tab bar: `main.py`, `config.json`, `requirements.txt`
-- Line numbers on the left gutter
-- Syntax-highlighted textarea (using CSS-based highlighting for Python keywords)
-- Status indicator: green dot + "Ready"
+**Right Panel: Live Preview**
+- Chat-style output for testing the AI
+- Shows streaming AI responses from the backend function
+- Input field at bottom: "Ask your AI something..." + Send button
+- Status messages (initialized, thinking, responding)
+- Clear button to reset conversation
 
-&nbsp;
+**Bottom Action Bar**
+- **Run Tests** (green): Sends code to edge function with `action: "run"`, shows simulated output in Live Preview
+- **Save Project** (blue): Saves to `ai_projects` table with `is_published: false`, shows "Saved!" toast
+- **Deploy to Production** (gradient): Opens enhanced PublishModal that generates a shareable project page URL
 
-**Bottom Action Bar** (key addition from reference)
+### How "Run Tests" Works
 
-- "Run Tests" button (green) -- simulates running Python code and shows output
-- "Save Project" button (blue) -- saves to database via ai_projects table
-- "Deploy to Production" button (gradient) -- opens Publish modal
+The `python-ai-assist` edge function gets a new `action: "run"` handler. The AI reads the student's code and simulates what it would output, returning terminal-style results. This gives instant feedback without needing a Python runtime.
 
-### 1B. Add Line Numbers + Basic Syntax Highlighting
+### How "Deploy" Works
 
-Create a custom code editor component that overlays syntax highlighting on the textarea:
-
-- Line number gutter
-- Python keyword highlighting (import, def, class, return, etc.)
-- String and comment highlighting
-- Current line highlight
-
-### 1C. Multi-File Tab System
-
-Add state for multiple files per project:
-
-- `main.py` -- the main code (current code state)
-- `config.json` -- auto-generated config based on selected model
-- `requirements.txt` -- auto-generated from imports in code
-
-Switching tabs shows different content. Config and requirements are generated automatically.
+1. Student clicks "Deploy to Production"
+2. PublishModal opens (pre-filled with project name and system prompt from config)
+3. On publish: saves to `ai_projects` with `is_published: true`
+4. Generates a shareable URL: `konov-spark-learn.lovable.app/projects/{id}`
+5. Awards 10 leaderboard points
+6. Shows the URL prominently with a copy button
 
 ---
 
-## Phase 2: IDE Functionality (Save, Run, Deploy)
+## File Changes
 
-### 2A. "Run" Button -- Simulated Python Execution
+### Files to Create
 
-Since Python cannot run in the browser, the "Run" button will:
+1. **`src/components/hackathon/ProjectEditor.tsx`** -- The new 3-panel IDE component replacing CodePlayground. Contains:
+   - Left config panel with project type selector
+   - Center code editor with line numbers, file tabs, syntax highlighting
+   - Right live preview with chat-style AI testing
+   - Bottom action bar (Run / Save / Deploy)
+   - All 3 project type scaffolds built-in
 
-1. Send code to the `python-ai-assist` edge function with a new `action: "run"`
-2. The AI simulates running the code and returns expected output
-3. Display the output in the Live Preview panel as terminal-style text
-4. This gives users immediate feedback without leaving the platform
+2. **`src/pages/ProjectView.tsx`** -- Public project page for deployed projects. Shows:
+   - Project name, author, description
+   - Live code view (read-only)
+   - Demo interaction panel
+   - Route: `/projects/:id`
 
-Update `supabase/functions/python-ai-assist/index.ts` to add:
+### Files to Modify
+
+3. **`src/pages/Hackathons.tsx`** -- Simplify tabs:
+   - Replace `CodePlayground` import with `ProjectEditor`
+   - Keep 4 tabs but rename: Build → **Build**, Templates → **Templates** (simplified to 3 cards), Hackathons → **Hackathons**, AI Models → **AI Models**
+   - Templates tab now shows only 3 large cards (Chatbot, Voice Assistant, Agent) that open the Build tab with that type pre-selected
+
+4. **`src/components/hackathon/TemplatesTab.tsx`** -- Simplify from 6 generic templates to 3 focused project type cards (Chatbot, Voice Assistant, Agent) with clear descriptions of what students will build
+
+5. **`supabase/functions/python-ai-assist/index.ts`** -- Add `action: "run"` handler that simulates Python code execution and returns terminal output. Add `action: "test-agent"` handler that takes a user message and the project's system prompt to simulate a live agent conversation
+
+6. **`src/components/hackathon/PublishModal.tsx`** -- Add pre-fill from config, generate shareable URL after publish, show copy-to-clipboard for the project URL
+
+7. **`src/App.tsx`** -- Add route for `/projects/:id` pointing to `ProjectView`
+
+### Files Unchanged
+- `Leaderboard.tsx` -- Already working with real-time subscriptions and ai_projects integration
+- `AIModelsTab.tsx` -- Keep as-is for the Teachable Machine flow (separate from main build flow)
+
+### Edge Function Update
+
+Add to `python-ai-assist`:
 
 ```
-action === "run" -> AI simulates executing the Python code and returns expected output
+action === "run" → AI simulates executing the code, returns terminal output
+action === "test-agent" → AI acts as the student's configured agent, responds to test messages using the system prompt from config.json
 ```
 
-### 2B. "Save" Button -- Auto-Save to Database
+### Database
 
-- Save current project state to `ai_projects` table without publishing
-- Set `is_published: false` for saves (vs `true` for publish)
-- Show "Saved!" toast notification
-- Track last save time in the UI
+No schema changes needed. The `ai_projects` table already has all required columns (`project_name`, `description`, `code`, `template_id`, `author_name`, `author_email`, `is_published`, `demo_url`, `points_earned`).
 
-### 2C. "Deploy to Production" -- Enhanced Publish Flow
-
-- Opens the existing PublishModal
-- But now pre-fills project name and description if already saved
-- Shows the Colab link prominently as the "production" deployment option
+For the shareable project page, we query `ai_projects` where `is_published = true` -- the RLS policy already supports this.
 
 ---
 
-## Phase 3: Leaderboard Real-Time Data Fix
+## What Students Experience
 
-### 3A. Fix Hackathon Event Dates
-
-The two existing hackathons have dates that may not match their status. Insert seed data with correct dates so "live" events actually show as live during the hackathon.
-
-### 3B. Ensure Real-Time Leaderboard Updates
-
-The Leaderboard component already subscribes to real-time changes on `hackathon_teams`, `hackathon_registrations`, `hackathon_submissions`, and `ai_projects`. This is working. 
-
-The fix needed: The leaderboard currently shows empty when there are no registrations. Add a more helpful empty state with a CTA to register for a hackathon or publish a project.
-
----
-
-## Phase 4: AI Models Tab Polish
-
-### 4A. Connect "Export Code" to IDE Properly
-
-When users click "Export Code" after training, the code should:
-
-1. Switch to the Build tab
-2. Load the generated Python code into the editor
-3. Auto-populate the config.json with model parameters
-4. Auto-populate requirements.txt with needed packages
-
-### 4B. Training Result Persistence
-
-After training, save the model configuration (classes, accuracy) to local state so users can return to the AI Models tab and see their last training result.
+1. Land on Hackathons page → see "Build" tab by default
+2. A project type picker appears: **Chatbot** / **Voice Assistant** / **Agent** -- big cards, one click
+3. Instantly: 3-panel IDE loads with complete scaffolded code, config, and requirements
+4. Left panel lets them customize: change name, edit system prompt, toggle capabilities
+5. Code updates automatically when they change config (or they edit freely)
+6. Click "Run Tests" → see simulated output in Live Preview
+7. Type a test message in Live Preview → get a real AI response (streamed from edge function using their system prompt)
+8. Click "Save" → saved to database
+9. Click "Deploy" → publish modal → get a shareable URL they can show during their hackathon pitch
+10. Points appear on the leaderboard in real-time
 
 ---
 
-## Phase 5: Database Seeding
+## Implementation Order
 
-Insert hackathon events with correct dates for the upcoming event:
+1. Create `ProjectEditor.tsx` with the 3-panel layout, 3 project scaffolds, file tabs, and line numbers
+2. Update `TemplatesTab.tsx` to show 3 project type cards
+3. Update edge function with `run` and `test-agent` actions
+4. Update `Hackathons.tsx` to use ProjectEditor
+5. Create `ProjectView.tsx` for public project pages
+6. Update `PublishModal.tsx` with URL generation
+7. Add route in `App.tsx`
 
-- One "live" hackathon (starts today or recently)
-- One "upcoming" hackathon (starts in 1-2 weeks)
-- Seed default community channels (general, help, showcase)
-
----
-
-## Technical File Changes Summary
-
-
-| File                                           | Change                                                                                                                      |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/hackathon/CodePlayground.tsx`  | Complete redesign: 3-panel layout, file tabs, line numbers, syntax highlighting, bottom action bar, Live Preview chat panel |
-| `src/components/hackathon/PythonEditor.tsx`    | **NEW** -- Custom code editor with line numbers and syntax highlighting                                                     |
-| `supabase/functions/python-ai-assist/index.ts` | Add `action: "run"` for simulated code execution                                                                            |
-| `src/components/hackathon/AIModelsTab.tsx`     | Fix Export Code flow to properly switch tabs with config                                                                    |
-| `src/components/hackathon/Leaderboard.tsx`     | Improve empty state with CTAs                                                                                               |
-| `src/pages/Hackathons.tsx`                     | Minor adjustments for new CodePlayground props                                                                              |
-| Database                                       | Seed hackathon events with correct dates, seed community channels                                                           |
