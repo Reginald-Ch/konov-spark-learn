@@ -9,7 +9,7 @@ import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
-import { CodePlayground } from '@/components/hackathon/CodePlayground';
+import { ProjectEditor, ProjectType } from '@/components/hackathon/ProjectEditor';
 import { QuickSubmitModal } from '@/components/hackathon/QuickSubmitModal';
 import { CommunityChat } from '@/components/hackathon/CommunityChat';
 import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
@@ -59,7 +59,7 @@ const Hackathons = () => {
   
   // Build tab state
   const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
-  const [buildTemplate, setBuildTemplate] = useState<string | undefined>(undefined);
+  const [buildTemplate, setBuildTemplate] = useState<ProjectType | undefined>(undefined);
 
   useEffect(() => {
     fetchHackathons();
@@ -109,8 +109,8 @@ const Hackathons = () => {
   };
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    setBuildCode(code);
-    setBuildTemplate(templateId);
+    setBuildCode(code || undefined);
+    setBuildTemplate(templateId as ProjectType);
     setActiveTab('build');
   };
 
@@ -320,7 +320,7 @@ const Hackathons = () => {
             {/* BUILD TAB */}
             {activeTab === 'build' && (
               <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
-                <CodePlayground initialCode={buildCode} initialTemplate={buildTemplate} />
+                <ProjectEditor initialType={buildTemplate} initialCode={buildCode} />
               </motion.div>
             )}
 
