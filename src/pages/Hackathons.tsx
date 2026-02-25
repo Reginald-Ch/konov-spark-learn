@@ -320,7 +320,7 @@ const Hackathons = () => {
             {/* BUILD TAB */}
             {activeTab === 'build' && (
               <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
-                <ProjectEditor initialType={buildTemplate} initialCode={buildCode} />
+                <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
               </motion.div>
             )}
 

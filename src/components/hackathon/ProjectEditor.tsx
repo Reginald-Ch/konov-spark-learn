@@ -380,16 +380,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     toast.success('Copied!');
   }, [files, activeFile]);
 
+  const [scrollTop, setScrollTop] = useState(0);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+
   // Scroll sync handler
   const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
-    const { scrollTop, scrollLeft } = e.currentTarget;
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = scrollTop;
-    }
-    if (highlightRef.current) {
-      highlightRef.current.scrollTop = scrollTop;
-      highlightRef.current.scrollLeft = scrollLeft;
-    }
+    setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
   // Stream AI response helper
@@ -509,14 +505,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   // Save project (insert or update)
   const handleSave = async () => {
-    if (!authorEmail) {
-      const email = prompt('Enter your email to save your project:');
-      if (!email) return;
-      setAuthorEmail(email);
+    let emailToUse = authorEmail;
+    if (!emailToUse) {
+      emailToUse = prompt('Enter your email to save your project:') || '';
+      if (!emailToUse) return;
+      setAuthorEmail(emailToUse);
     }
-    const emailToUse = authorEmail || prompt('Enter your email to save your project:');
-    if (!emailToUse) return;
-    if (!authorEmail) setAuthorEmail(emailToUse);
 
     setIsSaving(true);
     try {
@@ -751,13 +745,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {/* Editor Area with Line Numbers - Scroll Synced */}
-          <div className="flex-1 flex min-h-0 relative overflow-hidden">
+          <div className="flex-1 flex min-h-0 overflow-hidden">
             {/* Line Numbers */}
             <div
               ref={lineNumbersRef}
               className="w-12 bg-[hsl(var(--discord-darker))] border-r border-[hsl(var(--discord-light)/0.1)] overflow-hidden flex-shrink-0"
             >
-              <div className="p-2 pt-4">
+              <div className="p-2 pt-4" style={{ transform: `translateY(-${scrollTop}px)` }}>
                 {lines.map((_, i) => (
                   <div key={i} className="text-[11px] font-mono text-[hsl(var(--discord-text-muted)/0.4)] text-right pr-2 leading-6 select-none">
                     {i + 1}
@@ -766,31 +760,41 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
             </div>
 
-            {/* Highlighted Code (background layer) - scroll synced */}
-            {activeFile === 'main.py' && highlightedLines && (
-              <div
-                ref={highlightRef}
-                className="absolute left-12 top-0 right-0 bottom-0 p-4 font-mono text-sm leading-6 pointer-events-none overflow-hidden whitespace-pre"
-                aria-hidden="true"
-              >
-                {highlightedLines.map((line, i) => (
-                  <div key={i} dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
-                ))}
-              </div>
-            )}
+            {/* Code area: highlight overlay + textarea stacked */}
+            <div className="flex-1 relative min-w-0">
+              {/* Highlighted Code (background layer) - transform synced */}
+              {activeFile === 'main.py' && highlightedLines && (
+                <div
+                  ref={highlightRef}
+                  className="absolute inset-0 p-4 font-mono text-sm leading-6 pointer-events-none overflow-hidden whitespace-pre"
+                  aria-hidden="true"
+                >
+                  <div style={{ transform: `translateY(-${scrollTop}px)` }}>
+                    {highlightedLines.map((line, i) => (
+                      <div key={i} dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {/* Textarea (input layer) - drives scroll */}
-            <textarea
-              ref={textareaRef}
-              value={files[activeFile]}
-              onChange={e => updateFile(e.target.value)}
-              onScroll={handleEditorScroll}
-              spellCheck={false}
-              className={`flex-1 resize-none bg-[hsl(var(--discord-darker))] font-mono text-sm p-4 leading-6 focus:outline-none placeholder:text-[hsl(var(--discord-text-muted)/0.5)] ${
-                activeFile === 'main.py' ? 'text-transparent caret-white' : 'text-[hsl(var(--discord-text))]'
-              }`}
-              placeholder="// Start coding..."
-            />
+              {/* Textarea (input layer) - drives scroll */}
+              <textarea
+                ref={textareaRef}
+                value={files[activeFile]}
+                onChange={e => updateFile(e.target.value)}
+                onScroll={handleEditorScroll}
+                spellCheck={false}
+                className={`absolute inset-0 w-full h-full resize-none bg-transparent font-mono text-sm p-4 leading-6 focus:outline-none placeholder:text-[hsl(var(--discord-text-muted)/0.5)] ${
+                  activeFile === 'main.py' ? 'text-transparent caret-white' : 'text-[hsl(var(--discord-text))]'
+                }`}
+                style={{ backgroundColor: activeFile === 'main.py' ? 'transparent' : 'hsl(var(--discord-darker))' }}
+                placeholder="// Start coding..."
+              />
+              {/* Background for non-highlighted files */}
+              {activeFile !== 'main.py' && (
+                <div className="absolute inset-0 bg-[hsl(var(--discord-darker))] -z-10" />
+              )}
+            </div>
           </div>
 
           {/* AI Output Panel (below editor when active) */}
@@ -822,12 +826,29 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: Live Preview / Chat */}
-        <div className="w-80 border-l border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-dark))] flex flex-col flex-shrink-0 hidden lg:flex">
+        {/* RIGHT: Live Preview / Chat - visible on lg+, toggleable on smaller */}
+        {/* Mobile preview toggle button */}
+        <button
+          onClick={() => setShowMobilePreview(!showMobilePreview)}
+          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-[hsl(var(--discord-blurple))] text-white shadow-lg flex items-center justify-center"
+        >
+          <Play className="w-5 h-5" />
+        </button>
+
+        <div className={`w-80 border-l border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-dark))] flex-col flex-shrink-0 ${
+          showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-80' : 'hidden lg:flex'
+        }`}>
           <div className="px-3 py-2 border-b border-[hsl(var(--discord-light)/0.2)] flex items-center gap-2">
             <Play className="w-4 h-4 text-[hsl(var(--discord-green))]" />
             <span className="text-xs font-bold text-white">Live Preview</span>
             <div className="flex-1" />
+            <Button
+              variant="ghost" size="icon"
+              onClick={() => setShowMobilePreview(false)}
+              className="h-6 w-6 text-[hsl(var(--discord-text-muted))] hover:text-white lg:hidden"
+            >
+              <X className="w-3 h-3" />
+            </Button>
             <Button
               variant="ghost" size="icon"
               onClick={() => setChatMessages([{ role: 'system', content: '⚡ Preview cleared.' }])}
