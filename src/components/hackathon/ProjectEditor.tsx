@@ -323,6 +323,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [authorEmail, setAuthorEmail] = useState('');
 
   // AI mentor
   const [aiOutput, setAiOutput] = useState('');
@@ -335,6 +338,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -375,58 +380,81 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     toast.success('Copied!');
   }, [files, activeFile]);
 
+  // Scroll sync handler
+  const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+    const { scrollTop, scrollLeft } = e.currentTarget;
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = scrollTop;
+    }
+    if (highlightRef.current) {
+      highlightRef.current.scrollTop = scrollTop;
+      highlightRef.current.scrollLeft = scrollLeft;
+    }
+  }, []);
+
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify(body),
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status === 401) throw new Error('Authentication error. Please refresh the page.');
+        if (resp.status === 429) throw new Error('Too many requests. Wait a moment and try again.');
+        if (resp.status === 402) throw new Error('AI credits exhausted. Try again later.');
+        throw new Error(err.error || 'AI service error');
       }
-    );
 
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ error: 'AI service error' }));
-      throw new Error(err.error || 'AI service error');
-    }
+      if (!resp.body) throw new Error('No response body');
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
 
-    if (!resp.body) throw new Error('No response body');
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullText = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      let newlineIdx: number;
-      while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
-        let line = buffer.slice(0, newlineIdx);
-        buffer = buffer.slice(newlineIdx + 1);
-        if (line.endsWith('\r')) line = line.slice(0, -1);
-        if (!line.startsWith('data: ')) continue;
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === '[DONE]') break;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            fullText += content;
-            onChunk(fullText);
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              onChunk(fullText);
+            }
+          } catch {
+            buffer = line + '\n' + buffer;
+            break;
           }
-        } catch {
-          buffer = line + '\n' + buffer;
-          break;
         }
       }
+      return fullText;
+    } finally {
+      clearTimeout(timeout);
     }
-    return fullText;
   };
 
   // Run Tests
@@ -479,23 +507,51 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     }
   };
 
-  // Save project
+  // Save project (insert or update)
   const handleSave = async () => {
+    if (!authorEmail) {
+      const email = prompt('Enter your email to save your project:');
+      if (!email) return;
+      setAuthorEmail(email);
+    }
+    const emailToUse = authorEmail || prompt('Enter your email to save your project:');
+    if (!emailToUse) return;
+    if (!authorEmail) setAuthorEmail(emailToUse);
+
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('ai_projects' as any)
-        .insert({
-          project_name: projectName,
-          description: systemPrompt,
-          code: files['main.py'],
-          template_id: projectType,
-          author_name: 'Anonymous',
-          author_email: 'anonymous@hackathon.com',
-          is_published: false,
-          points_earned: 0,
-        });
-      if (error) throw error;
+      if (currentProjectId) {
+        // Update existing
+        const { error } = await supabase
+          .from('ai_projects' as any)
+          .update({
+            project_name: projectName,
+            description: systemPrompt,
+            code: files['main.py'],
+            template_id: projectType,
+          } as any)
+          .eq('id', currentProjectId);
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('ai_projects' as any)
+          .insert({
+            project_name: projectName,
+            description: systemPrompt,
+            code: files['main.py'],
+            template_id: projectType,
+            author_name: 'Student',
+            author_email: emailToUse,
+            is_published: false,
+            points_earned: 0,
+          })
+          .select('id')
+          .single();
+        if (error) throw error;
+        setCurrentProjectId((data as any)?.id || null);
+      }
+      setLastSaved(new Date().toLocaleTimeString());
       toast.success('💾 Project saved!');
     } catch (e) {
       console.error(e);
@@ -694,10 +750,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </div>
           </div>
 
-          {/* Editor Area with Line Numbers */}
+          {/* Editor Area with Line Numbers - Scroll Synced */}
           <div className="flex-1 flex min-h-0 relative overflow-hidden">
             {/* Line Numbers */}
-            <div className="w-12 bg-[hsl(var(--discord-darker))] border-r border-[hsl(var(--discord-light)/0.1)] overflow-hidden flex-shrink-0">
+            <div
+              ref={lineNumbersRef}
+              className="w-12 bg-[hsl(var(--discord-darker))] border-r border-[hsl(var(--discord-light)/0.1)] overflow-hidden flex-shrink-0"
+            >
               <div className="p-2 pt-4">
                 {lines.map((_, i) => (
                   <div key={i} className="text-[11px] font-mono text-[hsl(var(--discord-text-muted)/0.4)] text-right pr-2 leading-6 select-none">
@@ -707,10 +766,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
             </div>
 
-            {/* Highlighted Code (background layer) */}
+            {/* Highlighted Code (background layer) - scroll synced */}
             {activeFile === 'main.py' && highlightedLines && (
               <div
-                className="absolute left-12 top-0 right-0 p-4 font-mono text-sm leading-6 pointer-events-none overflow-hidden whitespace-pre"
+                ref={highlightRef}
+                className="absolute left-12 top-0 right-0 bottom-0 p-4 font-mono text-sm leading-6 pointer-events-none overflow-hidden whitespace-pre"
                 aria-hidden="true"
               >
                 {highlightedLines.map((line, i) => (
@@ -719,11 +779,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
             )}
 
-            {/* Textarea (input layer) */}
+            {/* Textarea (input layer) - drives scroll */}
             <textarea
               ref={textareaRef}
               value={files[activeFile]}
               onChange={e => updateFile(e.target.value)}
+              onScroll={handleEditorScroll}
               spellCheck={false}
               className={`flex-1 resize-none bg-[hsl(var(--discord-darker))] font-mono text-sm p-4 leading-6 focus:outline-none placeholder:text-[hsl(var(--discord-text-muted)/0.5)] ${
                 activeFile === 'main.py' ? 'text-transparent caret-white' : 'text-[hsl(var(--discord-text))]'
@@ -845,6 +906,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
             Save Project
           </Button>
+          {lastSaved && (
+            <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Saved {lastSaved}</span>
+          )}
         </div>
         <Button
           size="sm"
