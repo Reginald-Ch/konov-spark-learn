@@ -1,74 +1,85 @@
 
 
-# Plan: Make IDE and Codes Work for MVP
+# Plan: Fix IDE Bugs and Make Templates Load Code Properly
 
-## Issues Found
+## Bugs Found
 
-### Critical Bug: Edge Function Blocked
-`supabase/config.toml` only has `project_id`. There is no `[functions.python-ai-assist]` section with `verify_jwt = false`. Every call to "Run Tests", "Review", "Explain", "Suggest", and Live Preview chat will fail with a 401 auth error. This is the single biggest blocker.
+### Bug 1: Templates Don't Load Code Into the Editor
+When a student clicks "Start Building" on a template card, the code never actually loads. Here's why:
 
-**Fix:** Add the function config to `supabase/config.toml`.
+- `TemplatesTab` calls `onStartBuilding('', type.id)` -- passes **empty string** for code
+- `Hackathons.tsx` sets `buildTemplate` and switches to the Build tab
+- But `ProjectEditor` uses `useState(initialType || 'chatbot')` which only reads the prop **once on mount**
+- If the editor is already mounted (student visited Build tab before), changing `initialType` does nothing
 
-### Critical Bug: Saved Projects Cannot Be Retrieved
-The `ai_projects` table RLS SELECT policy only allows `is_published = true`. When a student clicks "Save Project" (which sets `is_published: false`), the row is inserted but can never be queried back. Students lose their work.
+**Fix:** Add a `useEffect` in `ProjectEditor` that watches `initialType` and `initialCode` props. When they change, call `handleTypeChange` to reload the scaffold. Also pass the scaffold code from `TemplatesTab` instead of an empty string.
 
-**Fix:** Add a SELECT policy that allows users to read their own drafts by `author_email`, and add an UPDATE policy scoped to `author_email` match. Also track the saved project ID in state so subsequent saves update instead of creating duplicates.
+### Bug 2: Double Email Prompt on Save
+In `handleSave` (lines 512-519), if `authorEmail` is empty:
+1. Line 513: prompts for email
+2. Line 517: prompts **again** because `authorEmail` state hasn't updated yet (React batches)
 
-### Bug: Editor Scroll Desync
-The syntax highlighting overlay is positioned `absolute` while the textarea scrolls independently. As soon as the code is longer than the visible area, the highlighted layer and the actual text drift apart, making the editor unusable for real code.
+**Fix:** Restructure to use a single local variable for the email, only prompt once.
 
-**Fix:** Replace the dual-layer approach (absolute highlight div + transparent textarea) with a single synchronized scroll container. Both the line numbers div and the highlight div must scroll together with the textarea using a shared `onScroll` handler.
+### Bug 3: Scroll Sync Still Broken
+The highlight overlay is `absolute` positioned inside a `relative overflow-hidden` container, but the textarea is a flex child that scrolls independently. The `handleEditorScroll` sets `scrollTop` on the refs, but since the highlight div has `overflow-hidden`, it clips instead of scrolling.
 
-### Bug: Console Warning on PublishModal
-`PublishModal` is a function component being passed a ref by Radix Dialog. This triggers "Function components cannot be given refs" warnings.
+**Fix:** Change the highlight div from `overflow-hidden` to `overflow-hidden` on the wrapper but allow the inner content to be offset via `transform: translateY(-scrollTop)` instead. This ensures the visible highlight tracks the textarea scroll position pixel-perfectly.
 
-**Fix:** This is cosmetic -- the Dialog wraps properly. No functional break, but wrapping the export with `forwardRef` would silence it. Low priority.
+### Bug 4: Live Preview Hidden on Smaller Screens
+The right panel has `hidden lg:flex` (line 826), making it invisible on tablets and smaller laptops. Students on 13" screens can't test their AI.
 
-### UX Issue: No Visual Feedback on Errors
-When the edge function returns a 401 (due to the config issue above), the error message shown is just "AI service error" with no guidance. Students won't know what's wrong.
+**Fix:** Make the Live Preview toggle-able on smaller screens with a button in the top bar, or reduce the breakpoint.
 
-**Fix:** Add specific error messages for common HTTP status codes (401, 429, 402) in `streamFromEdgeFunction`.
+### Bug 5: No Loading State When Switching Project Types
+When a student switches from Chatbot to Agent in the config sidebar, the code swaps instantly with no visual feedback. Students might not notice the change happened.
+
+**Fix:** Add a brief flash/highlight animation on the editor when code reloads.
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix Edge Function Config
-Add to `supabase/config.toml`:
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-This unblocks all AI features immediately.
-
-### Step 2: Fix Editor Scroll Sync
-In `ProjectEditor.tsx`, refactor the editor area:
-- Add a `scrollTop` state tracked via `onScroll` on the textarea
-- Apply the same `scrollTop` to the line numbers div and the highlight overlay using refs
-- Both layers scroll in lockstep, preventing drift
-- Wrap line numbers + highlight + textarea in a single scrollable container where all three share the same scroll position
-
-### Step 3: Fix Save/Load with Project Persistence
+### Step 1: Fix Template Code Loading (Critical)
 In `ProjectEditor.tsx`:
-- Add `currentProjectId` state (null for new projects, UUID after first save)
-- On first save: INSERT into `ai_projects`, store returned `id` in state
-- On subsequent saves: UPDATE the existing row using `eq('id', currentProjectId)`
-- Show "Last saved: X" timestamp in the bottom bar
+- Add `useEffect` watching `initialType` prop:
+  ```
+  useEffect(() => {
+    if (initialType && initialType !== projectType) {
+      handleTypeChange(initialType);
+    }
+  }, [initialType]);
+  ```
+- Add a `key` prop to `ProjectEditor` in `Hackathons.tsx` based on `buildTemplate` so React remounts when the template changes. This is the simplest and most reliable fix.
 
-Database migration needed:
-- Add RLS SELECT policy: allow reading rows where `author_email` matches (for drafts)
-- This requires knowing the user's email -- currently stored as 'anonymous@hackathon.com' on save. Update save flow to prompt for email on first save (reuse the same email for all saves in that session via state).
+### Step 2: Fix Double Email Prompt
+Refactor `handleSave` to:
+```
+const handleSave = async () => {
+  let emailToUse = authorEmail;
+  if (!emailToUse) {
+    emailToUse = prompt('Enter your email to save:') || '';
+    if (!emailToUse) return;
+    setAuthorEmail(emailToUse);
+  }
+  // ... rest of save logic using emailToUse
+};
+```
 
-### Step 4: Better Error Handling in Stream Helper
-In `streamFromEdgeFunction` inside `ProjectEditor.tsx`:
-- Check `resp.status` before parsing
-- 401 → "Authentication error. Please refresh the page."
-- 429 → "Too many requests. Wait a moment and try again."  
-- 402 → "AI credits exhausted. Try again later."
-- Add a 30-second timeout to prevent hanging requests
+### Step 3: Fix Editor Scroll Sync
+Replace the absolute-positioned highlight approach:
+- Remove `absolute` from the highlight div
+- Use a shared scroll container: wrap line numbers + highlight + textarea in a single div
+- Use `transform: translateY(-${scrollTop}px)` on the line numbers and highlight content to sync with textarea scroll
+- Track `scrollTop` in state from textarea's `onScroll`
 
-### Step 5: Fix PublishModal Ref Warning
-Wrap `PublishModal` component with `forwardRef` to satisfy Radix Dialog's ref forwarding.
+### Step 4: Make Live Preview Accessible on Smaller Screens
+- Add a "Preview" toggle button in the top bar (visible only below `lg` breakpoint)
+- When toggled, show the preview as an overlay/drawer from the right
+- Keep the current side-panel behavior on large screens
+
+### Step 5: Pass Template Code from TemplatesTab
+Update `TemplatesTab` to import `PROJECT_SCAFFOLDS` from `ProjectEditor` (or export them) and pass the actual scaffold code instead of empty string. Or simpler: just use the `type.id` and let `ProjectEditor` handle loading the scaffold internally (which it already does via `handleTypeChange`).
 
 ---
 
@@ -76,15 +87,13 @@ Wrap `PublishModal` component with `forwardRef` to satisfy Radix Dialog's ref fo
 
 | File | Change |
 |------|--------|
-| `supabase/config.toml` | Add `[functions.python-ai-assist]` with `verify_jwt = false` |
-| `src/components/hackathon/ProjectEditor.tsx` | Fix scroll sync, add project ID tracking for save/update, improve error handling in stream helper |
-| `src/components/hackathon/PublishModal.tsx` | Add `forwardRef` wrapper |
-| Database migration | Add RLS policy for draft reads by `author_email` |
+| `src/pages/Hackathons.tsx` | Add `key={buildTemplate}` to `ProjectEditor` so it remounts on template change |
+| `src/components/hackathon/ProjectEditor.tsx` | Fix double email prompt, fix scroll sync with transform approach, add mobile preview toggle |
+| `src/components/hackathon/TemplatesTab.tsx` | No changes needed (passing type.id is sufficient) |
 
 ## Implementation Order
-1. Config fix (unblocks everything)
-2. Editor scroll sync (makes code usable)
-3. Save persistence + RLS (makes save work end-to-end)
-4. Error handling improvements
-5. PublishModal ref fix
+1. Add `key` prop fix in Hackathons.tsx (1 line, fixes template loading)
+2. Fix double email prompt in ProjectEditor
+3. Fix scroll sync with transform approach
+4. Add mobile preview toggle
 
