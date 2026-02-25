@@ -1,177 +1,90 @@
 
 
-# Hackathon Platform MVP: 3 Project Types, Clean IDE, Real Deployment
+# Plan: Make IDE and Codes Work for MVP
 
-## The Core Idea
+## Issues Found
 
-Strip everything down to one clear flow: **Pick a project type (Chatbot / Voice Assistant / Agent) → Get scaffolded code instantly → Build in a 3-panel editor → Deploy a live demo URL**. Zero model selection, zero local setup. The platform handles AI routing behind the scenes.
+### Critical Bug: Edge Function Blocked
+`supabase/config.toml` only has `project_id`. There is no `[functions.python-ai-assist]` section with `verify_jwt = false`. Every call to "Run Tests", "Review", "Explain", "Suggest", and Live Preview chat will fail with a 401 auth error. This is the single biggest blocker.
+
+**Fix:** Add the function config to `supabase/config.toml`.
+
+### Critical Bug: Saved Projects Cannot Be Retrieved
+The `ai_projects` table RLS SELECT policy only allows `is_published = true`. When a student clicks "Save Project" (which sets `is_published: false`), the row is inserted but can never be queried back. Students lose their work.
+
+**Fix:** Add a SELECT policy that allows users to read their own drafts by `author_email`, and add an UPDATE policy scoped to `author_email` match. Also track the saved project ID in state so subsequent saves update instead of creating duplicates.
+
+### Bug: Editor Scroll Desync
+The syntax highlighting overlay is positioned `absolute` while the textarea scrolls independently. As soon as the code is longer than the visible area, the highlighted layer and the actual text drift apart, making the editor unusable for real code.
+
+**Fix:** Replace the dual-layer approach (absolute highlight div + transparent textarea) with a single synchronized scroll container. Both the line numbers div and the highlight div must scroll together with the textarea using a shared `onScroll` handler.
+
+### Bug: Console Warning on PublishModal
+`PublishModal` is a function component being passed a ref by Radix Dialog. This triggers "Function components cannot be given refs" warnings.
+
+**Fix:** This is cosmetic -- the Dialog wraps properly. No functional break, but wrapping the export with `forwardRef` would silence it. Low priority.
+
+### UX Issue: No Visual Feedback on Errors
+When the edge function returns a 401 (due to the config issue above), the error message shown is just "AI service error" with no guidance. Students won't know what's wrong.
+
+**Fix:** Add specific error messages for common HTTP status codes (401, 429, 402) in `streamFromEdgeFunction`.
 
 ---
 
-## Current Problems
+## Implementation Plan
 
-1. **Too many choices**: The IDE has 6 AI model options (LangChain, PyTorch, HuggingFace, sklearn, Whisper, Stable Diffusion) plus 6 templates. Students face decision paralysis instead of building.
-2. **Code doesn't run**: The editor is a plain textarea with no line numbers, no file tabs, no "Run" button. Students write code but can't execute or test it.
-3. **No deployment**: "Open in Colab" sends users away from the platform. There's no live demo URL generation.
-4. **AI Models tab is disconnected**: The Teachable Machine-style tab exists separately from the IDE with no clear connection to project types.
-5. **Leaderboard works but is empty**: Real-time subscriptions are correctly wired, but there are no seeded events to generate activity.
-
----
-
-## New Architecture: 3 Panels, 3 Project Types, 3 Actions
-
-### Project Types (Replace all current templates and model options)
-
-| Type | What Students Build | Scaffolded Files |
-|------|-------------------|-----------------|
-| **AI Chatbot** | Conversational AI that answers questions on a topic | `main.py`, `config.json`, `requirements.txt` |
-| **Voice Assistant** | Speech-to-text + AI response + text-to-speech pipeline | `main.py`, `config.json`, `requirements.txt` |
-| **AI Agent** | Tool-using agent that can search, calculate, generate | `main.py`, `config.json`, `requirements.txt` |
-
-Each type comes with a **complete working codebase** that students can customize, not a blank skeleton.
-
-### The 3-Panel IDE (Matching Reference Images)
-
-```text
-┌──────────────┬──────────────────────────────┬─────────────────────┐
-│ CONFIGURATION│  agent.py │ config.json │ req…│  LIVE PREVIEW       │
-│              │─────────────────────────────│                     │
-│ PROJECT NAME │  1  from agent import Agent  │ ⚡ Agent initialized │
-│ [My Bot    ] │  2  from langchain import…   │                     │
-│              │  3                            │ 🔵 "Find research   │
-│ PROJECT TYPE │  4  # Initialize Agent       │    on AI safety"    │
-│ [Chatbot  v] │  5  agent = Agent(           │                     │
-│              │  6    name="ResearchBot",     │ 🟢 Searching...     │
-│ SYSTEM PROMPT│  7    model="gpt-4",         │    Found 3 papers.  │
-│ [You are a ] │  8    temperature=0.7,       │                     │
-│ [helpful…  ] │  9    tools=[WebSearch()]    │ ✓ Response in 1.2s  │
-│              │ 10  )                         │                     │
-│ CAPABILITIES │                              │ [Ask something…] ▶  │
-│ ☑ Web Search │                              │                     │
-│ ☑ Citations  │                              │                     │
-│ ☐ Image Gen  │                              │                     │
-├──────────────┴──────────────────────────────┴─────────────────────┤
-│  ▶ Run Tests          💾 Save Project         🚀 Deploy to Prod   │
-└───────────────────────────────────────────────────────────────────┘
+### Step 1: Fix Edge Function Config
+Add to `supabase/config.toml`:
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
 ```
+This unblocks all AI features immediately.
 
-**Left Panel: Configuration**
-- Project name input
-- Project type dropdown (Chatbot / Voice Assistant / Agent)
-- System prompt textarea
-- Capability toggles (Web Search, Citations, Image Gen, Code Exec, Memory)
-- Changing project type regenerates the scaffolded code automatically
+### Step 2: Fix Editor Scroll Sync
+In `ProjectEditor.tsx`, refactor the editor area:
+- Add a `scrollTop` state tracked via `onScroll` on the textarea
+- Apply the same `scrollTop` to the line numbers div and the highlight overlay using refs
+- Both layers scroll in lockstep, preventing drift
+- Wrap line numbers + highlight + textarea in a single scrollable container where all three share the same scroll position
 
-**Center Panel: Code Editor with File Tabs**
-- 3 file tabs: `main.py`, `config.json`, `requirements.txt`
-- Line numbers in the gutter
-- Basic Python syntax highlighting via CSS (keywords in different colors)
-- Green status dot + "Ready" indicator
-- Auto-generates `config.json` from left panel settings
-- Auto-generates `requirements.txt` from imports
+### Step 3: Fix Save/Load with Project Persistence
+In `ProjectEditor.tsx`:
+- Add `currentProjectId` state (null for new projects, UUID after first save)
+- On first save: INSERT into `ai_projects`, store returned `id` in state
+- On subsequent saves: UPDATE the existing row using `eq('id', currentProjectId)`
+- Show "Last saved: X" timestamp in the bottom bar
 
-**Right Panel: Live Preview**
-- Chat-style output for testing the AI
-- Shows streaming AI responses from the backend function
-- Input field at bottom: "Ask your AI something..." + Send button
-- Status messages (initialized, thinking, responding)
-- Clear button to reset conversation
+Database migration needed:
+- Add RLS SELECT policy: allow reading rows where `author_email` matches (for drafts)
+- This requires knowing the user's email -- currently stored as 'anonymous@hackathon.com' on save. Update save flow to prompt for email on first save (reuse the same email for all saves in that session via state).
 
-**Bottom Action Bar**
-- **Run Tests** (green): Sends code to edge function with `action: "run"`, shows simulated output in Live Preview
-- **Save Project** (blue): Saves to `ai_projects` table with `is_published: false`, shows "Saved!" toast
-- **Deploy to Production** (gradient): Opens enhanced PublishModal that generates a shareable project page URL
+### Step 4: Better Error Handling in Stream Helper
+In `streamFromEdgeFunction` inside `ProjectEditor.tsx`:
+- Check `resp.status` before parsing
+- 401 → "Authentication error. Please refresh the page."
+- 429 → "Too many requests. Wait a moment and try again."  
+- 402 → "AI credits exhausted. Try again later."
+- Add a 30-second timeout to prevent hanging requests
 
-### How "Run Tests" Works
-
-The `python-ai-assist` edge function gets a new `action: "run"` handler. The AI reads the student's code and simulates what it would output, returning terminal-style results. This gives instant feedback without needing a Python runtime.
-
-### How "Deploy" Works
-
-1. Student clicks "Deploy to Production"
-2. PublishModal opens (pre-filled with project name and system prompt from config)
-3. On publish: saves to `ai_projects` with `is_published: true`
-4. Generates a shareable URL: `konov-spark-learn.lovable.app/projects/{id}`
-5. Awards 10 leaderboard points
-6. Shows the URL prominently with a copy button
+### Step 5: Fix PublishModal Ref Warning
+Wrap `PublishModal` component with `forwardRef` to satisfy Radix Dialog's ref forwarding.
 
 ---
 
-## File Changes
+## Files to Modify
 
-### Files to Create
-
-1. **`src/components/hackathon/ProjectEditor.tsx`** -- The new 3-panel IDE component replacing CodePlayground. Contains:
-   - Left config panel with project type selector
-   - Center code editor with line numbers, file tabs, syntax highlighting
-   - Right live preview with chat-style AI testing
-   - Bottom action bar (Run / Save / Deploy)
-   - All 3 project type scaffolds built-in
-
-2. **`src/pages/ProjectView.tsx`** -- Public project page for deployed projects. Shows:
-   - Project name, author, description
-   - Live code view (read-only)
-   - Demo interaction panel
-   - Route: `/projects/:id`
-
-### Files to Modify
-
-3. **`src/pages/Hackathons.tsx`** -- Simplify tabs:
-   - Replace `CodePlayground` import with `ProjectEditor`
-   - Keep 4 tabs but rename: Build → **Build**, Templates → **Templates** (simplified to 3 cards), Hackathons → **Hackathons**, AI Models → **AI Models**
-   - Templates tab now shows only 3 large cards (Chatbot, Voice Assistant, Agent) that open the Build tab with that type pre-selected
-
-4. **`src/components/hackathon/TemplatesTab.tsx`** -- Simplify from 6 generic templates to 3 focused project type cards (Chatbot, Voice Assistant, Agent) with clear descriptions of what students will build
-
-5. **`supabase/functions/python-ai-assist/index.ts`** -- Add `action: "run"` handler that simulates Python code execution and returns terminal output. Add `action: "test-agent"` handler that takes a user message and the project's system prompt to simulate a live agent conversation
-
-6. **`src/components/hackathon/PublishModal.tsx`** -- Add pre-fill from config, generate shareable URL after publish, show copy-to-clipboard for the project URL
-
-7. **`src/App.tsx`** -- Add route for `/projects/:id` pointing to `ProjectView`
-
-### Files Unchanged
-- `Leaderboard.tsx` -- Already working with real-time subscriptions and ai_projects integration
-- `AIModelsTab.tsx` -- Keep as-is for the Teachable Machine flow (separate from main build flow)
-
-### Edge Function Update
-
-Add to `python-ai-assist`:
-
-```
-action === "run" → AI simulates executing the code, returns terminal output
-action === "test-agent" → AI acts as the student's configured agent, responds to test messages using the system prompt from config.json
-```
-
-### Database
-
-No schema changes needed. The `ai_projects` table already has all required columns (`project_name`, `description`, `code`, `template_id`, `author_name`, `author_email`, `is_published`, `demo_url`, `points_earned`).
-
-For the shareable project page, we query `ai_projects` where `is_published = true` -- the RLS policy already supports this.
-
----
-
-## What Students Experience
-
-1. Land on Hackathons page → see "Build" tab by default
-2. A project type picker appears: **Chatbot** / **Voice Assistant** / **Agent** -- big cards, one click
-3. Instantly: 3-panel IDE loads with complete scaffolded code, config, and requirements
-4. Left panel lets them customize: change name, edit system prompt, toggle capabilities
-5. Code updates automatically when they change config (or they edit freely)
-6. Click "Run Tests" → see simulated output in Live Preview
-7. Type a test message in Live Preview → get a real AI response (streamed from edge function using their system prompt)
-8. Click "Save" → saved to database
-9. Click "Deploy" → publish modal → get a shareable URL they can show during their hackathon pitch
-10. Points appear on the leaderboard in real-time
-
----
+| File | Change |
+|------|--------|
+| `supabase/config.toml` | Add `[functions.python-ai-assist]` with `verify_jwt = false` |
+| `src/components/hackathon/ProjectEditor.tsx` | Fix scroll sync, add project ID tracking for save/update, improve error handling in stream helper |
+| `src/components/hackathon/PublishModal.tsx` | Add `forwardRef` wrapper |
+| Database migration | Add RLS policy for draft reads by `author_email` |
 
 ## Implementation Order
-
-1. Create `ProjectEditor.tsx` with the 3-panel layout, 3 project scaffolds, file tabs, and line numbers
-2. Update `TemplatesTab.tsx` to show 3 project type cards
-3. Update edge function with `run` and `test-agent` actions
-4. Update `Hackathons.tsx` to use ProjectEditor
-5. Create `ProjectView.tsx` for public project pages
-6. Update `PublishModal.tsx` with URL generation
-7. Add route in `App.tsx`
+1. Config fix (unblocks everything)
+2. Editor scroll sync (makes code usable)
+3. Save persistence + RLS (makes save work end-to-end)
+4. Error handling improvements
+5. PublishModal ref fix
 
