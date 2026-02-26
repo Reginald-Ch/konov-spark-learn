@@ -858,7 +858,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {/* Highlighted Code Layer */}
                 {activeFile === 'main.py' && highlightedContent && (
                   <div
-                    className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre"
+                    className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre text-ide-text"
                     style={{ gridArea: 'stack' }}
                     aria-hidden="true"
                   >
