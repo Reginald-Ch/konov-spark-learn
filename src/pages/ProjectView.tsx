@@ -5,7 +5,8 @@ import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
-import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Project {
@@ -25,7 +26,7 @@ interface ChatMessage {
   content: string;
 }
 
-// Token-based Python syntax highlighter (same as ProjectEditor)
+// Token-based Python syntax highlighter
 interface Token {
   type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'text';
   value: string;
@@ -94,6 +95,7 @@ const ProjectView = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showCode, setShowCode] = useState(false);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -126,6 +128,13 @@ const ProjectView = () => {
     return match ? match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : 'You are a helpful AI assistant.';
   }, [project]);
 
+  const projectTitle = useMemo(() => {
+    if (!project) return '';
+    // Try to extract st.title from code
+    const match = project.code.match(/st\.title\(["'](.+?)["']\)/);
+    return match ? match[1] : project.project_name;
+  }, [project]);
+
   const highlightedLines = useMemo(() => {
     if (!project) return [];
     return project.code.split('\n').map(line => {
@@ -144,6 +153,16 @@ const ProjectView = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast.success('Code copied!');
+  };
+
+  const handleShareUrl = () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: project?.project_name, text: `Try my AI app: ${project?.project_name}`, url });
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success('Link copied!');
+    }
   };
 
   const handleChatSend = async () => {
@@ -170,7 +189,7 @@ const ProjectView = () => {
             code: userMsg,
             action: 'test-agent',
             systemPrompt,
-            messages: history.slice(0, -1), // exclude current user msg (it's in code)
+            messages: history.slice(0, -1),
           }),
         }
       );
@@ -243,130 +262,203 @@ const ProjectView = () => {
   const codeLines = project.code.split('\n');
 
   return (
-    <div className="min-h-screen bg-ide-bg">
-      <SEO title={`${project.project_name} - AI Project`} description={project.description || 'An AI project built on the hackathon platform'} />
+    <div className="min-h-screen bg-ide-bg flex flex-col">
+      <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} />
 
-      {/* Header */}
-      <div className="border-b border-ide-border bg-ide-bg-deep">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/hackathons" className="flex items-center gap-2 text-ide-text-muted hover:text-ide-text transition-colors text-sm">
-            <ArrowLeft className="w-4 h-4" /> Back to FORGE
-          </Link>
-          <div className="flex items-center gap-2">
-            {project.demo_url && (
-              <a href={project.demo_url} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" className="h-8 text-xs bg-ide-green text-ide-bg-deep">
-                  <ExternalLink className="w-3 h-3 mr-1" /> Live Demo
-                </Button>
-              </a>
-            )}
-            <Button size="sm" onClick={handleCopy} variant="outline" className="h-8 text-xs border-ide-border text-ide-text">
-              {copied ? <Check className="w-3 h-3 mr-1 text-ide-green" /> : <Copy className="w-3 h-3 mr-1" />}
-              {copied ? 'Copied!' : 'Copy Code'}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Project Info */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ide-text flex items-center gap-3 mb-2">
-            <span className="text-4xl">{typeEmoji}</span>
-            {project.project_name}
-          </h1>
-          {project.description && (
-            <p className="text-ide-text-muted text-lg max-w-2xl">{project.description}</p>
-          )}
-          <div className="flex items-center gap-4 mt-4 text-sm text-ide-text-muted">
-            <span className="flex items-center gap-1"><User className="w-4 h-4" /> {project.author_name}</span>
-            <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {new Date(project.created_at).toLocaleDateString()}</span>
-            <span className="flex items-center gap-1 text-ide-yellow"><Trophy className="w-4 h-4" /> {project.points_earned} pts</span>
-          </div>
-        </div>
-
-        {/* Two-column: Code + Chat */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Code View */}
-          <div className="lg:col-span-3 rounded-xl border border-ide-border overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 bg-ide-bg-deep border-b border-ide-border">
-              <Code className="w-4 h-4 text-ide-accent" />
-              <span className="text-xs font-mono text-ide-text-muted">main.py</span>
+      {/* ── App-like Header ── */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="flex-shrink-0 border-b border-ide-border bg-ide-bg-deep"
+      >
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
+              style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.2), rgba(0,204,102,0.2))' }}>
+              {typeEmoji}
             </div>
-            <div className="flex bg-ide-editor overflow-x-auto max-h-[600px] overflow-y-auto">
-              <div className="py-4 pr-2 select-none border-r border-ide-border flex-shrink-0">
-                {codeLines.map((_, i) => (
-                  <div key={i} className="text-right pr-2 pl-4 font-mono text-[12px] leading-6 text-ide-text-muted">{i + 1}</div>
+            <div>
+              <h1 className="text-base font-bold text-white leading-tight">{projectTitle}</h1>
+              <p className="text-[11px] text-ide-text-muted flex items-center gap-1.5">
+                <User className="w-3 h-3" /> {project.author_name}
+                <span className="text-ide-border">•</span>
+                <Trophy className="w-3 h-3 text-[#FFD700]" /> {project.points_earned} pts
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="ghost" onClick={handleShareUrl} className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
+              <Share2 className="w-3.5 h-3.5 mr-1" /> Share
+            </Button>
+            <Link to="/hackathons">
+              <Button size="sm" variant="ghost" className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> FORGE
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Main: Full-Screen App Experience ── */}
+      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+        {/* Description */}
+        {project.description && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="px-4 py-3 border-b border-ide-border/50"
+          >
+            <p className="text-sm text-ide-text-muted">{project.description}</p>
+          </motion.div>
+        )}
+
+        {/* ── Chat UI — THE APP ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          {/* Chat Header */}
+          <div className="px-4 py-2.5 border-b border-ide-border/50 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#00CC66] animate-pulse" />
+            <span className="text-xs font-bold text-white uppercase tracking-wider">Live AI Demo</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00CC66]/15 text-[#00CC66] border border-[#00CC66]/30 ml-auto">Online</span>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
+            {chatMessages.length === 0 && (
+              <div className="text-center py-16 space-y-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', delay: 0.3 }}
+                  className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(0,204,102,0.15))' }}
+                >
+                  <Bot className="w-10 h-10 text-ide-accent" />
+                </motion.div>
+                <div>
+                  <h2 className="text-lg font-bold text-white mb-1">{projectTitle}</h2>
+                  <p className="text-sm text-ide-text-muted max-w-sm mx-auto">
+                    {project.description || 'Send a message to start using this AI app!'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  {['Hello! What can you do?', 'Help me with something', 'Tell me about yourself'].map(example => (
+                    <button
+                      key={example}
+                      onClick={() => { setChatInput(example); }}
+                      className="text-xs px-3 py-2 rounded-full bg-ide-sidebar border border-ide-border text-ide-text-muted hover:text-white hover:border-ide-accent transition-all"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {chatMessages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-ide-accent text-white rounded-br-md'
+                    : 'bg-ide-sidebar text-ide-text rounded-bl-md'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : msg.content}
+                </div>
+              </motion.div>
+            ))}
+            {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
+              <div className="flex gap-1 pl-2">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <pre className="p-4 flex-1 min-w-0">
-                <code className="text-[13px] font-mono leading-6 whitespace-pre">
-                  {highlightedLines.map((line, i) => (
-                    <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
-                  ))}
-                </code>
-              </pre>
-            </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
 
-          {/* Live Demo Chat */}
-          <div className="lg:col-span-2 rounded-xl border border-ide-border overflow-hidden flex flex-col h-[600px]">
-            <div className="flex items-center gap-2 px-4 py-2 bg-ide-bg-deep border-b border-ide-border">
-              <MessageSquare className="w-4 h-4 text-ide-green" />
-              <span className="text-xs font-semibold text-ide-text">Try this AI</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-ide-green/20 text-ide-green ml-auto">Live</span>
-            </div>
+          {/* Input */}
+          <div className="border-t border-ide-border p-3 flex gap-2 bg-ide-bg-deep">
+            <Input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleChatSend()}
+              placeholder="Type a message..."
+              disabled={isStreaming}
+              className="h-10 text-sm border-0 bg-ide-sidebar text-white rounded-full px-4 focus-visible:ring-1 focus-visible:ring-ide-accent"
+            />
+            <Button onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+              className="h-10 w-10 rounded-full flex-shrink-0 bg-ide-accent text-white hover:bg-ide-accent/90 p-0">
+              {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </motion.div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {chatMessages.length === 0 && (
-                <div className="text-center py-12">
-                  <MessageSquare className="w-10 h-10 mx-auto mb-3 text-ide-text-muted/40" />
-                  <p className="text-sm text-ide-text-muted">Send a message to try this AI project</p>
-                  <p className="text-xs text-ide-text-muted/60 mt-1">The AI will respond using the student's system prompt</p>
-                </div>
+        {/* ── Collapsible Code Section ── */}
+        <div className="border-t border-ide-border">
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm text-ide-text-muted hover:text-white transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Code className="w-4 h-4" />
+              <span className="font-medium">View Source Code</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-ide-sidebar text-ide-text-muted">{codeLines.length} lines</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {showCode && (
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+                  className="h-7 text-[10px] text-ide-text-muted hover:text-white">
+                  {copied ? <Check className="w-3 h-3 mr-1 text-[#00CC66]" /> : <Copy className="w-3 h-3 mr-1" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
               )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-ide-accent text-white rounded-br-sm'
-                      : 'bg-ide-sidebar text-ide-text rounded-bl-sm'
-                  }`}>
-                    {msg.role === 'assistant' ? (
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : msg.content}
-                  </div>
-                </div>
-              ))}
-              {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
-                <div className="flex gap-1 pl-2">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              {showCode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </button>
+
+          {showCode && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="overflow-hidden"
+            >
+              <div className="flex bg-ide-editor max-h-[400px] overflow-auto border-t border-ide-border">
+                <div className="py-4 pr-2 select-none border-r border-ide-border flex-shrink-0">
+                  {codeLines.map((_, i) => (
+                    <div key={i} className="text-right pr-2 pl-4 font-mono text-[12px] leading-6 text-ide-text-muted">{i + 1}</div>
                   ))}
                 </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
+                <pre className="p-4 flex-1 min-w-0">
+                  <code className="text-[13px] font-mono leading-6 whitespace-pre">
+                    {highlightedLines.map((line, i) => (
+                      <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
+                    ))}
+                  </code>
+                </pre>
+              </div>
+            </motion.div>
+          )}
+        </div>
 
-            {/* Input */}
-            <div className="border-t border-ide-border p-3 flex gap-2">
-              <Input
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-                placeholder="Type a message..."
-                disabled={isStreaming}
-                className="h-9 text-sm border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
-              />
-              <Button size="sm" onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
-                className="h-9 px-3 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
-                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
+        {/* Footer */}
+        <div className="px-4 py-3 text-center border-t border-ide-border/50">
+          <p className="text-[11px] text-ide-text-muted">
+            Built with <span className="font-bold text-ide-accent">FORGE</span> — 
+            <Link to="/hackathons" className="text-ide-accent hover:underline ml-1">Build your own AI app →</Link>
+          </p>
         </div>
       </div>
     </div>

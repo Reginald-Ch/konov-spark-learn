@@ -269,10 +269,10 @@ const CountdownWidget = () => {
   const isWarning = totalSec < 1800 && !isUrgent; // < 30 min
 
   return (
-    <div className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
-      isUrgent ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse' 
-      : isWarning ? 'bg-ide-orange/20 border-ide-orange/40 text-ide-orange'
-      : 'bg-ide-border/50 border-ide-border text-ide-text-muted'
+    <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
+      isUrgent ? 'bg-red-500/25 border-red-500/50 text-red-300 animate-pulse' 
+      : isWarning ? 'bg-[#F7941D]/25 border-[#F7941D]/50 text-[#F7941D]'
+      : 'bg-[#00CC66]/15 border-[#00CC66]/30 text-[#00CC66]'
     }`}>
       <Clock className="w-3 h-3" />
       <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
