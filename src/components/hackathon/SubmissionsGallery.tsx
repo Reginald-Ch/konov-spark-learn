@@ -93,7 +93,7 @@ export const SubmissionsGallery = ({ hackathonId }: SubmissionsGalleryProps) => 
             </div>
           )}
           {index === 1 && (
-            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-gray-400 rounded-bl-lg">
+            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-muted-foreground rounded-bl-lg">
               🥈 2nd
             </div>
           )}
