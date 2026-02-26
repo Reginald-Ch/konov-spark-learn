@@ -225,14 +225,21 @@ const Hackathons = () => {
         <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link to="/">
-                <motion.div 
-                  whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                  className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
-                >
-                  <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
-                </motion.div>
-              </Link>
+              <motion.div 
+                whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                onClick={() => {
+                  if (activeTab === 'templates') {
+                    // If already on templates (welcome), go home
+                    window.location.href = '/';
+                  } else {
+                    // Go back to templates (welcome page)
+                    setActiveTab('templates');
+                  }
+                }}
+                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
+              >
+                <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
+              </motion.div>
             </TooltipTrigger>
             <TooltipContent side="right"><p>Back to Home</p></TooltipContent>
           </Tooltip>
