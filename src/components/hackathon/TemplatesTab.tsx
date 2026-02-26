@@ -28,16 +28,6 @@ const PROJECT_TYPES: {
     gradient: 'linear-gradient(135deg, #5865F2, #7289DA)',
   },
   {
-    id: 'voice-assistant',
-    title: 'Voice Assistant',
-    emoji: '🎙️',
-    description: 'Create a voice-powered AI: speak → transcribe → think → reply with speech. Build Siri-like assistants, language translators, or accessibility tools.',
-    features: ['Whisper speech-to-text', 'AI-powered responses', 'Text-to-speech output', 'Audio file upload'],
-    icon: Mic,
-    color: '#F7941D',
-    gradient: 'linear-gradient(135deg, #F7941D, #FFD700)',
-  },
-  {
     id: 'agent',
     title: 'AI Agent',
     emoji: '🧠',
