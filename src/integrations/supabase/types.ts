@@ -418,6 +418,44 @@ export type Database = {
         }
         Relationships: []
       }
+      point_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          hackathon_id: string | null
+          id: string
+          metadata: Json | null
+          participant_email: string
+          points: number
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          hackathon_id?: string | null
+          id?: string
+          metadata?: Json | null
+          participant_email: string
+          points: number
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          hackathon_id?: string | null
+          id?: string
+          metadata?: Json | null
+          participant_email?: string
+          points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_events_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       program_sessions: {
         Row: {
           age_group: string

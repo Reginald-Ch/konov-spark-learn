@@ -512,6 +512,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       );
       setTerminalOutput(prev => [...prev, result]);
       setChatMessages(prev => [...prev, { role: 'assistant', content: result }]);
+      // Award points for running tests
+      if (authorEmail) {
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 5, metadata: { project: projectName } } as any).then(() => {});
+      }
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ ${e.message}`]);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
@@ -572,6 +576,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setLastSaved(new Date().toLocaleTimeString());
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
+      // Award points for saving
+      supabase.from('point_events').insert({ participant_email: emailToUse, event_type: 'save_checkpoint', points: 2, metadata: { project: projectName } } as any).then(() => {});
     } catch (e) {
       console.error(e);
       toast.error('Failed to save');
@@ -590,6 +596,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         { code: files['main.py'], model: projectType, action },
         (text) => setAiOutput(text)
       );
+      // Award points for AI mentor usage
+      if (authorEmail) {
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'ai_mentor', points: 3, metadata: { action } } as any).then(() => {});
+      }
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
   };
