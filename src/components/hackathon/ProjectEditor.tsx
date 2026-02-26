@@ -11,7 +11,7 @@ import {
   Rocket, Loader2, Save, Bot, Mic, Brain,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen
+  PanelRightClose, PanelRightOpen, HelpCircle, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -61,35 +61,24 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+    st.chat_message(msg["role"]).write(msg["content"])
 
 if prompt := st.chat_input("Type your message..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
-
-    response = chain.predict(input=prompt)
+    st.chat_message("user").write(prompt)
+    
+    response = chain.run(prompt)
     st.session_state.messages.append({"role": "assistant", "content": response})
-    with st.chat_message("assistant"):
-        st.write(response)
-`,
+    st.chat_message("assistant").write(response)`,
     config: `{
-  "project_type": "chatbot",
   "model": "gpt-3.5-turbo",
   "temperature": 0.7,
-  "system_prompt": "You are a helpful AI assistant.",
-  "capabilities": {
-    "web_search": false,
-    "citations": false,
-    "memory": true
-  },
-  "max_tokens": 1024
+  "max_tokens": 500,
+  "capabilities": ["web_search", "citations", "memory"]
 }`,
-    requirements: `langchain==0.1.0
-openai==1.12.0
-streamlit==1.31.0
-python-dotenv==1.0.0`,
+    requirements: `streamlit>=1.28.0
+langchain>=0.1.0
+openai>=1.0.0`,
   },
   'voice-assistant': {
     name: 'Voice Assistant',
@@ -97,11 +86,12 @@ python-dotenv==1.0.0`,
     systemPrompt: 'You are a voice assistant. Respond in short, spoken-friendly sentences.',
     capabilities: ['Speech-to-Text', 'Text-to-Speech', 'Memory'],
     main: `# 🎙️ Voice Assistant
-# Speech-to-text + AI response + text-to-speech pipeline
+# A voice-powered AI assistant
 
 import whisper
 import openai
 from gtts import gTTS
+from pydub import AudioSegment
 import streamlit as st
 import tempfile
 import os
@@ -116,78 +106,67 @@ SYSTEM_PROMPT = "You are a voice assistant. Keep responses short and conversatio
 def load_whisper():
     return whisper.load_model(WHISPER_MODEL)
 
-model = load_whisper()
-
 # --- Streamlit UI ---
 st.title("🎙️ Voice Assistant")
-st.caption("Upload audio or type to interact")
+st.caption("Speak to interact with AI")
 
-# Audio upload
-audio_file = st.file_uploader("Upload audio", type=["mp3", "wav", "m4a"])
+model = load_whisper()
+
+audio_file = st.file_uploader("Upload audio", type=["wav", "mp3", "m4a"])
 
 if audio_file:
-    # Transcribe
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(audio_file.read())
         tmp_path = tmp.name
-
+    
     st.audio(audio_file)
-    with st.spinner("Transcribing..."):
-        result = model.transcribe(tmp_path)
-        transcript = result["text"]
-
-    st.success(f"📝 You said: {transcript}")
-
-    # Get AI response
-    with st.spinner("Thinking..."):
-        response = openai.ChatCompletion.create(
-            model=AI_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": transcript}
-            ]
-        )
-        reply = response.choices[0].message.content
-
-    st.info(f"🤖 Assistant: {reply}")
-
-    # Text-to-speech
-    tts = gTTS(text=reply, lang="en")
-    tts_path = tmp_path.replace(".mp3", "_reply.mp3")
+    st.info("Transcribing...")
+    
+    result = model.transcribe(tmp_path)
+    user_text = result["text"]
+    st.write(f"**You said:** {user_text}")
+    
+    response = openai.chat.completions.create(
+        model=AI_MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ]
+    )
+    
+    ai_text = response.choices[0].message.content
+    st.write(f"**AI:** {ai_text}")
+    
+    tts = gTTS(text=ai_text, lang='en')
+    tts_path = tmp_path.replace('.wav', '_response.mp3')
     tts.save(tts_path)
     st.audio(tts_path)
-
+    
     os.unlink(tmp_path)
-`,
+    os.unlink(tts_path)`,
     config: `{
-  "project_type": "voice-assistant",
   "whisper_model": "tiny",
   "ai_model": "gpt-3.5-turbo",
-  "system_prompt": "You are a voice assistant. Keep responses short.",
   "language": "en",
-  "capabilities": {
-    "speech_to_text": true,
-    "text_to_speech": true,
-    "memory": false
-  }
+  "capabilities": ["speech_to_text", "text_to_speech", "memory"]
 }`,
-    requirements: `openai-whisper==20231117
-openai==1.12.0
-gtts==2.5.1
-streamlit==1.31.0
-python-dotenv==1.0.0`,
+    requirements: `streamlit>=1.28.0
+openai>=1.0.0
+openai-whisper>=20230918
+gtts>=2.3.2
+pydub>=0.25.1`,
   },
   agent: {
     name: 'AI Agent',
     icon: '🧠',
     systemPrompt: 'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
-    capabilities: ['Web Search', 'Calculator', 'Code Execution', 'Image Gen'],
+    capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `# 🧠 AI Agent
-# A tool-using agent that can search, calculate, and generate
+# An autonomous AI agent with tool-use capabilities
 
-from langchain.agents import initialize_agent, AgentType, Tool
+from langchain.agents import initialize_agent, AgentType
 from langchain.llms import OpenAI
-from langchain.tools import DuckDuckGoSearchRun
+from langchain.tools import DuckDuckGoSearchResults, PythonREPLTool
 from langchain.utilities import WikipediaAPIWrapper
 import streamlit as st
 
@@ -196,72 +175,61 @@ MODEL_NAME = "gpt-3.5-turbo"
 SYSTEM_PROMPT = "You are a helpful AI agent with access to tools."
 
 # --- Define Tools ---
-search = DuckDuckGoSearchRun()
-wiki = WikipediaAPIWrapper()
-
-def calculator(expression: str) -> str:
-    """
-    Evaluate a math expression safely.
-    """
-    try:
-        result = eval(expression, {"__builtins__": {}})
-        return f"Result: {result}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-tools = [
-    Tool(name="Web Search", func=search.run,
-         description="Search the web for current information"),
-    Tool(name="Wikipedia", func=wiki.run,
-         description="Look up topics on Wikipedia"),
-    Tool(name="Calculator", func=calculator,
-         description="Calculate math expressions like '2+2' or '100*0.15'"),
+tools_list = [
+    DuckDuckGoSearchResults(name="Web Search"),
+    PythonREPLTool(name="Python Calculator"),
 ]
 
 # --- Initialize Agent ---
 llm = OpenAI(model_name=MODEL_NAME, temperature=0)
 agent = initialize_agent(
-    tools, llm,
+    tools=tools_list,
+    llm=llm,
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True
+    verbose=True,
+    handle_parsing_errors=True,
 )
 
 # --- Streamlit UI ---
 st.title("🧠 AI Agent")
-st.caption("I can search the web, look up Wikipedia, and calculate!")
+st.caption("I can search the web, calculate, and more!")
 
-if prompt := st.chat_input("Ask me to research, calculate, or find info..."):
-    with st.spinner("Agent thinking..."):
-        result = agent.run(prompt)
-    st.write(result)
-`,
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+for item in st.session_state.history:
+    st.chat_message(item["role"]).write(item["content"])
+
+if task := st.chat_input("Give me a task..."):
+    st.session_state.history.append({"role": "user", "content": task})
+    st.chat_message("user").write(task)
+    
+    with st.spinner("Thinking..."):
+        result = agent.run(task)
+    
+    st.session_state.history.append({"role": "assistant", "content": result})
+    st.chat_message("assistant").write(result)`,
     config: `{
-  "project_type": "agent",
   "model": "gpt-3.5-turbo",
   "temperature": 0,
-  "system_prompt": "You are a helpful AI agent with access to tools.",
-  "tools": ["web_search", "wikipedia", "calculator"],
-  "capabilities": {
-    "web_search": true,
-    "calculator": true,
-    "code_execution": false,
-    "image_generation": false
-  }
+  "agent_type": "zero_shot_react_description",
+  "capabilities": ["web_search", "calculator", "code_execution"]
 }`,
-    requirements: `langchain==0.1.0
-openai==1.12.0
-duckduckgo-search==4.4.3
-wikipedia==1.4.0
-streamlit==1.31.0
-python-dotenv==1.0.0`,
+    requirements: `streamlit>=1.28.0
+langchain>=0.1.0
+openai>=1.0.0
+duckduckgo-search>=3.9.0
+wikipedia>=1.4.0`,
   },
 };
 
 const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
-  chatbot: ['Web Search', 'Citations', 'Memory', 'Image Gen'],
+  chatbot: ['Web Search', 'Citations', 'Memory', 'Summarization'],
   'voice-assistant': ['Speech-to-Text', 'Text-to-Speech', 'Memory', 'Translation'],
-  agent: ['Web Search', 'Calculator', 'Code Execution', 'Image Gen'],
+  agent: ['Web Search', 'Calculator', 'Code Execution', 'File Reading'],
 };
+
+const KEYWORDS = new Set(['import', 'from', 'as', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'global', 'nonlocal', 'assert', 'del', 'True', 'False', 'None', 'async', 'await']);
 
 // Token-based Python syntax highlighter
 interface Token {
@@ -269,7 +237,6 @@ interface Token {
   value: string;
 }
 
-const KEYWORDS = new Set(['import', 'from', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'with', 'as', 'in', 'not', 'and', 'or', 'True', 'False', 'None', 'lambda', 'yield', 'raise', 'pass', 'break', 'continue', 'global', 'async', 'await']);
 const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
 
 const tokenizeLine = (line: string): Token[] => {
@@ -303,7 +270,6 @@ const tokenizeLine = (line: string): Token[] => {
       let end = i;
       while (end < line.length && /[\w.]/.test(line[end])) end++;
       const word = line.slice(i, end);
-      // Check if this is a dotted module path (after from/import)
       const prevTokens = tokens.map(t => t.value.trim()).filter(Boolean);
       const lastKeyword = prevTokens.length > 0 ? prevTokens[prevTokens.length - 1] : '';
       const isAfterImport = lastKeyword === 'from' || lastKeyword === 'import';
@@ -311,7 +277,6 @@ const tokenizeLine = (line: string): Token[] => {
         tokens.push({ type: 'module', value: word });
       } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
-      // Check if followed by '(' — likely a function call
       else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
       else tokens.push({ type: 'text', value: word });
       i = end; continue;
@@ -339,6 +304,14 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
+
+// Onboarding step definitions
+const ONBOARDING_STEPS = [
+  { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
+  { target: 'editor', title: '💻 Write Code', description: 'Edit your Python code here. The syntax highlighter shows your code in color. Switch between files using the tabs.' },
+  { target: 'preview', title: '💬 Test Your AI', description: 'Chat with your AI in real-time! Your system prompt controls how it responds. Try changing it and see the difference.' },
+  { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
+];
 
 export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) => {
   const isMobile = useIsMobile();
@@ -374,7 +347,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState('');
+  const [authorName, setAuthorName] = useState('');
   const [aiCallCount, setAiCallCount] = useState(0);
+
+  // Email prompt bar (replaces browser prompt())
+  const [showEmailBar, setShowEmailBar] = useState(false);
+  const [emailBarInput, setEmailBarInput] = useState('');
+  const [nameBarInput, setNameBarInput] = useState('');
+  const [pendingAction, setPendingAction] = useState<'save' | 'publish' | null>(null);
 
   // Bottom panel
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -392,17 +372,58 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
+  // Onboarding
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
+    const seen = localStorage.getItem('buildstudio-onboarded');
+    return seen ? null : 0;
+  });
+
+  // System prompt tooltip
+  const [showPromptHelp, setShowPromptHelp] = useState(false);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
 
-  // Refs for keyboard shortcut handlers (fixes stale closure bug)
+  // Refs for keyboard shortcut handlers
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // ── System Prompt ↔ Code Sync ──
+  // When sidebar system prompt changes, update SYSTEM_PROMPT in main.py
+  const prevSystemPromptRef = useRef(systemPrompt);
+  useEffect(() => {
+    if (prevSystemPromptRef.current !== systemPrompt) {
+      setFiles(prev => {
+        const code = prev['main.py'];
+        const regex = /SYSTEM_PROMPT\s*=\s*["'](.*)["']/;
+        if (regex.test(code)) {
+          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const updated = code.replace(regex, `SYSTEM_PROMPT = "${escaped}"`);
+          return { ...prev, 'main.py': updated };
+        }
+        return prev;
+      });
+      prevSystemPromptRef.current = systemPrompt;
+    }
+  }, [systemPrompt]);
+
+  // When code SYSTEM_PROMPT changes (user edits code), sync back to sidebar
+  useEffect(() => {
+    const code = files['main.py'];
+    const match = code.match(/SYSTEM_PROMPT\s*=\s*["'](.*)["']/);
+    if (match && match[1] !== systemPrompt) {
+      const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      if (unescaped !== prevSystemPromptRef.current) {
+        prevSystemPromptRef.current = unescaped;
+        setSystemPrompt(unescaped);
+      }
+    }
+  }, [files['main.py']]);
 
   const handleTypeChange = (type: ProjectType) => {
     const scaffold = PROJECT_SCAFFOLDS[type];
@@ -421,6 +442,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setShowBottomPanel(true);
     setBottomTab('terminal');
     setAiOutput('');
+    prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
@@ -438,8 +460,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setTimeout(() => setCopied(false), 2000);
     toast.success('Copied!');
   }, [files, activeFile]);
-
-
 
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
@@ -518,18 +538,16 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       let result = '';
       await streamFromEdgeFunction(
         { code: files['main.py'], model: projectType, action: 'run' },
-        (text) => { result = text; }
+        (text) => { result = text; setTerminalOutput(prev => { const updated = [...prev]; updated[updated.length - 1] = result; return updated; }); }
       );
-      setTerminalOutput(prev => [...prev, result]);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: result }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
       // Award points for running tests
       if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 5, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 1, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ ${e.message}`]);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
-      toast.error(e.message);
     } finally { setIsRunning(false); }
   };
 
@@ -558,13 +576,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } finally { setIsStreaming(false); }
   };
 
-  const handleSave = async () => {
-    let emailToUse = authorEmail;
-    if (!emailToUse) {
-      emailToUse = prompt('Enter your email to save your project:') || '';
-      if (!emailToUse) return;
-      setAuthorEmail(emailToUse);
-    }
+  // ── Improved Save: inline email bar instead of prompt() ──
+  const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
       if (currentProjectId) {
@@ -576,7 +589,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType, author_name: 'Student', author_email: emailToUse, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
@@ -586,12 +599,39 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setLastSaved(new Date().toLocaleTimeString());
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
-      // Award points for saving
-      supabase.from('point_events').insert({ participant_email: emailToUse, event_type: 'save_checkpoint', points: 2, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      supabase.from('point_events').insert({ participant_email: email, event_type: 'save_checkpoint', points: 2, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
     } catch (e) {
       console.error(e);
-      toast.error('Failed to save');
+      toast.error('Failed to save. Please try again.');
     } finally { setIsSaving(false); }
+  };
+
+  const handleSave = async () => {
+    if (!authorEmail) {
+      setShowEmailBar(true);
+      setPendingAction('save');
+      return;
+    }
+    await executeSave(authorEmail);
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!emailBarInput.trim() || !emailBarInput.includes('@')) {
+      toast.error('Please enter a valid email');
+      return;
+    }
+    const email = emailBarInput.trim();
+    const name = nameBarInput.trim() || 'Student';
+    setAuthorEmail(email);
+    setAuthorName(name);
+    setShowEmailBar(false);
+
+    if (pendingAction === 'save') {
+      await executeSave(email, name);
+    } else if (pendingAction === 'publish') {
+      setPublishOpen(true);
+    }
+    setPendingAction(null);
   };
 
   const handleAiAssist = async (action: string) => {
@@ -606,9 +646,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         { code: files['main.py'], model: projectType, action },
         (text) => setAiOutput(text)
       );
-      // Award points for AI mentor usage
       if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'ai_mentor', points: 3, metadata: { action } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'ai_mentor', points: 3, metadata: { action } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
@@ -635,11 +674,33 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     finally { setIsAiLoading(false); }
   };
 
+  const handleGoLive = () => {
+    if (!authorEmail) {
+      setShowEmailBar(true);
+      setPendingAction('publish');
+      return;
+    }
+    setPublishOpen(true);
+  };
+
+  // Onboarding helpers
+  const dismissOnboarding = () => {
+    setOnboardingStep(null);
+    localStorage.setItem('buildstudio-onboarded', 'true');
+  };
+  const nextOnboardingStep = () => {
+    if (onboardingStep !== null && onboardingStep < ONBOARDING_STEPS.length - 1) {
+      setOnboardingStep(onboardingStep + 1);
+    } else {
+      dismissOnboarding();
+    }
+  };
+
   // Keep refs up to date for keyboard shortcuts
   useEffect(() => { handleSaveRef.current = handleSave; });
   useEffect(() => { handleRunRef.current = handleRun; });
 
-  // Keyboard shortcuts (uses refs to avoid stale closures)
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -662,6 +723,87 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   return (
     <div className="flex flex-col h-full bg-ide-bg">
+      {/* ── Onboarding Overlay ── */}
+      <AnimatePresence>
+        {onboardingStep !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4"
+            onClick={dismissOnboarding}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-ide-sidebar border border-ide-border rounded-xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono text-ide-text-muted">Step {onboardingStep + 1} of {ONBOARDING_STEPS.length}</span>
+                <button onClick={dismissOnboarding} className="text-ide-text-muted hover:text-ide-text">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex gap-1 mb-4">
+                {ONBOARDING_STEPS.map((_, i) => (
+                  <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= onboardingStep ? 'bg-ide-accent' : 'bg-ide-border'}`} />
+                ))}
+              </div>
+              <h3 className="text-lg font-bold text-ide-text mb-2">{ONBOARDING_STEPS[onboardingStep].title}</h3>
+              <p className="text-sm text-ide-text-muted leading-relaxed mb-6">{ONBOARDING_STEPS[onboardingStep].description}</p>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={dismissOnboarding} className="flex-1 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                  Skip Tour
+                </Button>
+                <Button onClick={nextOnboardingStep} className="flex-1 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+                  {onboardingStep === ONBOARDING_STEPS.length - 1 ? "Let's Build! 🚀" : 'Next →'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Email Bar (replaces browser prompt) ── */}
+      <AnimatePresence>
+        {showEmailBar && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden bg-ide-sidebar border-b border-ide-accent/30"
+          >
+            <div className="flex items-center gap-2 px-3 py-2">
+              <Info className="w-4 h-4 text-ide-accent flex-shrink-0" />
+              <span className="text-xs text-ide-text">Enter your details to save:</span>
+              <Input
+                value={nameBarInput}
+                onChange={e => setNameBarInput(e.target.value)}
+                placeholder="Your name"
+                className="h-7 text-xs w-28 border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
+                autoFocus
+              />
+              <Input
+                value={emailBarInput}
+                onChange={e => setEmailBarInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
+                placeholder="your@email.com"
+                type="email"
+                className="h-7 text-xs w-40 border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
+              />
+              <Button size="sm" onClick={handleEmailSubmit} className="h-7 px-3 text-xs bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+                Continue
+              </Button>
+              <button onClick={() => { setShowEmailBar(false); setPendingAction(null); }} className="text-ide-text-muted hover:text-ide-text">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">
         <div className="flex items-center gap-2.5">
@@ -743,9 +885,34 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   </div>
                 </div>
 
-                {/* System Prompt */}
+                {/* System Prompt with help tooltip */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">System Prompt</label>
+                  <div className="flex items-center gap-1 mb-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">System Prompt</label>
+                    <button
+                      onClick={() => setShowPromptHelp(!showPromptHelp)}
+                      className="text-ide-text-muted hover:text-ide-accent transition-colors"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {showPromptHelp && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden mb-2"
+                      >
+                        <div className="text-[10px] leading-relaxed p-2 rounded bg-ide-accent/10 border border-ide-accent/20 text-ide-text">
+                          <strong className="text-ide-accent">💡 What is this?</strong><br />
+                          This controls how your AI responds in the <strong>Live Preview</strong> chat. It's like giving your AI a personality card.<br /><br />
+                          Try changing it to: <em>"You are a math tutor for SHS students"</em> — then test in the preview!
+                          <p className="mt-1 text-ide-text-muted">Changes here auto-sync to your code's SYSTEM_PROMPT variable.</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
                     className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
                 </div>
@@ -833,7 +1000,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </div>
           </div>
 
-          {/* Editor Area — CSS Grid overlay for synchronized scrolling */}
+          {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
             {/* Line Numbers */}
             <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
@@ -844,7 +1011,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
             </div>
 
-            {/* Code area — grid stack so both layers share one scroll context */}
+            {/* Code area */}
             <div
               className="flex-1 min-w-0 overflow-auto"
               onScroll={(e) => {
@@ -976,11 +1143,26 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </Button>
           </div>
 
+          {/* Active prompt indicator */}
+          <div className="px-3 py-1.5 border-b border-ide-border/50 bg-ide-bg-deep">
+            <div className="flex items-center gap-1.5">
+              <Bot className="w-3 h-3 text-ide-accent flex-shrink-0" />
+              <span className="text-[10px] text-ide-text-muted truncate">
+                Prompt: <span className="text-ide-text italic">"{systemPrompt.slice(0, 50)}{systemPrompt.length > 50 ? '...' : ''}"</span>
+              </span>
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
-                <Bot className="w-10 h-10 mx-auto text-ide-text-muted opacity-50" />
-                <p className="text-xs text-ide-text-muted">Test your AI by typing a message below</p>
+                <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
+                  <Bot className="w-8 h-8 text-ide-accent" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-ide-text mb-1">Test your AI here</p>
+                  <p className="text-[10px] text-ide-text-muted">Your system prompt controls how the AI responds. Change it in Config and see the difference!</p>
+                </div>
                 <div className="space-y-1.5">
                   {['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact'].map(example => (
                     <button
@@ -1013,6 +1195,16 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 </div>
               </div>
             ))}
+            {/* Typing indicator */}
+            {isStreaming && (
+              <div className="flex justify-start">
+                <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
             <div ref={chatEndRef} />
           </div>
 
@@ -1091,7 +1283,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
             <span className="hidden sm:inline">Save Checkpoint</span>
           </Button>
-          <Button size="sm" onClick={() => setPublishOpen(true)}
+          <Button size="sm" onClick={handleGoLive}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Go Live</span>
@@ -1106,6 +1298,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         templateId={projectType}
         projectName={projectName}
         description={systemPrompt}
+        prefillEmail={authorEmail}
+        prefillAuthorName={authorName}
       />
     </div>
   );

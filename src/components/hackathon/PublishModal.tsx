@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,11 @@ interface PublishModalProps {
   templateId: string | null;
   projectName?: string;
   description?: string;
+  prefillEmail?: string;
+  prefillAuthorName?: string;
 }
 
-export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc }: PublishModalProps) => {
+export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName }: PublishModalProps) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -32,8 +34,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
     if (isOpen) {
       if (prefillName) setProjectName(prefillName);
       if (prefillDesc) setDescription(prefillDesc);
+      if (prefillEmail) setAuthorEmail(prefillEmail);
+      if (prefillAuthorName) setAuthorName(prefillAuthorName);
     }
-  }, [isOpen, prefillName, prefillDesc]);
+  }, [isOpen, prefillName, prefillDesc, prefillEmail, prefillAuthorName]);
 
   const projectUrl = publishedId ? `${window.location.origin}/projects/${publishedId}` : '';
 
@@ -73,6 +77,9 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setPublishedId(data?.id || null);
       setIsPublished(true);
       toast.success('🎉 Project is live! You earned 10 points!');
+
+      // Award points
+      supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'go_live', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
     } catch (e) {
       console.error(e);
       toast.error('Failed to go live. Try again!');
@@ -120,7 +127,6 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               Your project is live! You earned <span className="text-[hsl(var(--ide-yellow))] font-bold">10 points</span>.
             </p>
 
-            {/* Shareable URL */}
             {projectUrl && (
               <div className="bg-[hsl(var(--ide-bg-deep))] rounded-lg p-3 mb-4 flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-[hsl(var(--ide-accent))] flex-shrink-0" />
