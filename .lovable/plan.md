@@ -2,108 +2,91 @@
 
 # Plan: Fix IDE Bugs and Improve Build Studio UI/UX
 
-## Bugs Found
+## Current State (from screenshots)
 
-### Bug 1: Editor Height is Unconstrained — Content Overflows Off Screen
-The `ProjectEditor` root div uses `flex flex-col h-full`, but its parent in `Hackathons.tsx` (line 322) is a `motion.div` with `flex-1 flex flex-col overflow-hidden`. The problem: the bottom action bar (lines 1013-1064) sits **outside** the main flex layout — it's a sibling of the editor area container, not inside the flex column. This means the action bar may be pushed off-screen or overlap content. The entire component structure has the action bar and publish modal outside the main `flex` layout, breaking the height calculation.
-
-**Fix:** Move the bottom action bar **inside** the main flex container and ensure the editor area uses `min-h-0` so it properly shrinks within the flex layout.
-
-### Bug 2: Textarea and Highlight Layer Don't Share the Same Coordinate Space
-The textarea (line 853) is `absolute inset-0` and the highlight layer (line 840) is also `absolute inset-0` but with `overflow-hidden`. The textarea scrolls natively, and `scrollTop` state updates on scroll — but the highlight layer uses `transform: translateY(-${scrollTop}px)` inside a div with `overflow-hidden`. The problem: the textarea's `scrollTop` resets when React re-renders `files[activeFile]` (e.g., on every keystroke), causing jitter. Also, on fast typing, the memoized `highlightedContent` recalculates on every keystroke since `files` is in the dependency array, causing lag on longer files.
-
-**Fix:** Debounce the highlight update (or use `requestAnimationFrame` for scroll sync). Use refs instead of state for `scrollTop` to avoid re-renders.
-
-### Bug 3: Config Sidebar Covers Code on Small/Medium Screens
-The config sidebar animates to `width: 240` (line 698) regardless of screen size. On tablets or small laptops, this leaves very little room for the code editor, making it unusable.
-
-**Fix:** Hide config sidebar by default on screens below `lg`. Add a slide-over/drawer pattern for mobile.
-
-### Bug 4: No Export of ProjectEditor Component
-Line 1077 shows the component is defined as `const ProjectEditor = (...)` but there's no `export default`. The import in `Hackathons.tsx` uses `{ ProjectEditor }` (named import, line 12). The component uses `export const ProjectEditor` on line 353, so this works. But `ProjectType` is only exported as a type (line 17), which is correct. No bug here — confirmed working.
-
-### Bug 5: Bottom Bar Not Visible — Layout Structure
-Looking at lines 661-1075, the structure is:
-```
-<div flex-col h-full>        ← root
-  <div h-11>                 ← top bar  
-  <div flex-1 overflow-hidden> ← main layout (editor + sidebar + preview)
-  </div>                     ← main layout ends at line 927
-  <button> mobile preview    ← floating button
-  <div> live preview panel   ← RIGHT panel is OUTSIDE the main flex-1
-  </div>
-  <div h-11> bottom bar      ← action bar
-  <PublishModal>
-</div>
-```
-The Live Preview panel (lines 938-1010) is a **sibling** of the main `flex-1` container, not inside it. This means the flex layout breaks: the right panel doesn't participate in the horizontal flex. The preview panel should be inside the `flex-1 overflow-hidden` container alongside the config sidebar and code editor.
-
-**Fix:** Restructure so the Live Preview panel is inside the main horizontal flex container (the `flex-1 flex overflow-hidden` on line 692).
-
-### Bug 6: Inline Styles Everywhere — Hard to Maintain
-Every element uses `style={{ background: '#282c34', color: '#abb2bf' }}` instead of Tailwind classes or CSS variables. This makes theming impossible and bloats the component.
-
-**Fix:** Define CSS variables for the One Dark theme colors and use Tailwind classes. This is a UX/maintainability improvement, not a critical bug — lower priority.
+The Build Studio loads and shows code with syntax highlighting. The 3-panel layout (config sidebar, editor, live preview) is functional. However, several bugs and UX issues degrade the experience.
 
 ---
 
-## UI/UX Improvements (Inspired by Reference Image)
+## Bugs to Fix
 
-### Improvement 1: Cleaner Top Bar with Breadcrumb Navigation
-The reference image shows a clean top bar with project name, file path breadcrumbs, and action buttons grouped on the right. Current top bar mixes AI actions (Review, Explain, Suggest) with project info.
+### Bug 1: Top Bar and File Tabs Scroll Off Screen
+The entire `ProjectEditor` component is inside a scrollable container. When the user scrolls down in the page, the top bar ("Build Studio" header with AI actions) and file tabs scroll away. These should be fixed/sticky — only the code area inside the editor should scroll, not the chrome around it.
 
-**Fix:** Move AI actions into a dropdown or toolbar below the file tabs. Top bar should show: logo + project name + deploy status indicator.
+**Root Cause:** The parent in `Hackathons.tsx` (line 322) is `flex-1 flex flex-col overflow-hidden`, which is correct. But the outer page may be scrolling. The `ProjectEditor` root `div` has `h-full` but no explicit height constraint from its parent chain when the page itself scrolls.
 
-### Improvement 2: Better File Tabs
-The reference shows tabs with close buttons and a "+" to add files. Current tabs are static and flat.
+**Fix:** Ensure the `min-h-screen` on the Hackathons page and `overflow-hidden` on the main content area prevent page-level scrolling. The top bar and file tabs are already `flex-shrink-0` which is correct — the issue is likely the parent not constraining height properly. Add `h-screen` or `h-full` chain from the root.
 
-**Fix:** Add subtle active state with rounded top corners and a background that blends into the editor. Add a small dot indicator for modified files.
+### Bug 2: Code Lines Truncated — No Horizontal Scroll
+Long lines like `SYSTEM_PROMPT = "You are a helpful AI assista..."` get cut off at the right edge. The editor textarea and highlight layer need horizontal scrolling.
 
-### Improvement 3: Integrated Terminal with Tab Switching
-Reference shows terminal as a proper bottom panel with tabs (Terminal, Output, Problems). Current terminal is a simple collapsible div.
+**Fix:** Add `overflow-x-auto` to the code area wrapper and ensure the textarea and highlight layer both support horizontal scroll. Use `white-space: pre` (already set) but also `min-width: max-content` on the content so it extends beyond the viewport.
 
-**Fix:** Add tab switching in the terminal panel for "Terminal" and "AI Mentor" output, collapsing them into a single toggleable bottom panel.
+### Bug 3: Live Preview Panel Sizing
+The Live Preview chat panel on the right appears but is squished — the chat input and messages take minimal space. On the screenshot, it shows "Type a message..." input at the bottom right, but the panel width seems inconsistent.
 
-### Improvement 4: Status Bar
-Reference has a proper VS Code-like status bar at the bottom showing language, line/col, encoding. Current bottom bar only has action buttons.
+**Fix:** Ensure the Live Preview panel has a minimum width of 280px and uses `flex-shrink-0` properly. The current `w-72` (288px) should work but verify the flex layout isn't compressing it.
 
-**Fix:** Add status info (line count, file type, project type indicator) to the bottom bar alongside the action buttons.
+### Bug 4: Config Sidebar Overlaps on Small Screens
+The config sidebar (left panel showing project type, system prompt, capabilities) is always visible and takes ~220px. On smaller screens this leaves very little room for the code editor.
+
+**Fix:** Already has mobile handling (`isMobile ? '100%' : 220`), but medium-sized screens (tablets, small laptops) still get squeezed. Default `showConfig` to `false` on screens below 1024px width.
+
+### Bug 5: Editor Line Numbers Misaligned After Scroll
+The line numbers use `transform: translateY(-${top}px)` via ref, but the line number container has no `overflow-hidden`, meaning numbers could visually leak outside the gutter area when scrolling fast.
+
+**Fix:** Add `overflow-hidden` to the line number container div (the one wrapping `lineNumberRef`).
+
+---
+
+## UX Improvements
+
+### Improvement 1: Sticky Top Bar with Better Hierarchy
+Move the AI action buttons (Review, Explain, Suggest) into a smaller toolbar or dropdown. The top bar should focus on: project identity (icon + name) and a deploy status indicator. This reduces visual noise.
+
+### Improvement 2: Editor Horizontal Scrolling
+Enable proper horizontal scrolling in the code editor so long lines aren't truncated. Both the textarea and the syntax highlight overlay need to scroll horizontally in sync.
+
+### Improvement 3: Keyboard Shortcuts
+Add `Ctrl+S` / `Cmd+S` to save, `Ctrl+Enter` to run tests. This is standard IDE behavior and currently missing.
+
+### Improvement 4: Better Empty State for Live Preview
+When no messages have been sent, show a more helpful empty state in the Live Preview panel — e.g., "Test your AI by typing a message below" with example prompts.
+
+### Improvement 5: Visual Feedback When Switching Project Types
+When clicking a different project type in the config sidebar, add a brief highlight flash on the editor to indicate the code has changed.
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix Layout Structure (Critical)
-Restructure `ProjectEditor.tsx` so that:
-- The main horizontal flex (`flex-1 flex overflow-hidden`) contains: config sidebar + code editor + live preview panel
-- The bottom action bar is outside but properly placed in the outer flex column
-- Add `min-h-0` to the flex-1 editor area to prevent overflow
+### Step 1: Fix Height Chain (Critical)
+In `Hackathons.tsx`, ensure the parent chain constrains height:
+- The root div already has `min-h-screen` and `flex` — change to `h-screen` to prevent page scrolling when in Build tab
+- Verify `overflow-hidden` propagates correctly
 
-### Step 2: Fix Scroll Sync Performance  
-- Change `scrollTop` from `useState` to `useRef` to avoid re-renders on every scroll event
-- Use `requestAnimationFrame` in the scroll handler
-- Apply scroll offset directly via ref manipulation instead of state-driven transform
+In `ProjectEditor.tsx`:
+- The root div `flex flex-col h-full bg-ide-bg` is correct
+- Verify `flex-1 min-h-0` on the main layout prevents overflow
 
-### Step 3: Add IDE Theme CSS Variables
-Add to `index.css`:
-```css
---ide-bg: 220 13% 18%;
---ide-sidebar: 220 13% 15%;
---ide-editor: 220 13% 18%;
---ide-border: 220 13% 22%;
---ide-text: 219 14% 71%;
---ide-text-muted: 219 10% 40%;
---ide-accent: 207 82% 66%;
---ide-green: 95 38% 62%;
-```
-Replace all inline `style={{ background: '#282c34' }}` with Tailwind classes using these variables.
+### Step 2: Fix Horizontal Scrolling in Editor
+In `ProjectEditor.tsx`:
+- Change the code area wrapper (line 747) from `overflow-hidden` to `overflow-auto`
+- Ensure the highlight layer div uses `min-width: fit-content` so highlighted content doesn't wrap
+- Sync horizontal scroll between textarea and highlight layer in `handleEditorScroll`
+- Add horizontal scroll sync to the line numbers (they should stay fixed horizontally)
 
-### Step 4: Restructure Bottom Panel
-Combine Terminal + AI Mentor into a single bottom panel with tabs. Add a proper status bar below it.
+### Step 3: Add Keyboard Shortcuts
+Add a `useEffect` with `keydown` listener:
+- `Ctrl+S` / `Cmd+S` → `handleSave()`
+- `Ctrl+Enter` → `handleRun()`
+- `Ctrl+B` → toggle config sidebar
 
-### Step 5: Responsive Config Sidebar
-- Default `showConfig` to `false` on screens below `md`
-- Use a Sheet/drawer on mobile instead of inline sidebar
+### Step 4: Overflow Guard on Line Numbers
+Add `overflow-hidden` to the line number gutter container (line 749).
+
+### Step 5: Improve Config Sidebar Responsiveness  
+Use `window.innerWidth` or a media query hook to default `showConfig` to `false` below 1024px (not just `isMobile` which is typically 768px).
 
 ---
 
@@ -111,13 +94,13 @@ Combine Terminal + AI Mentor into a single bottom panel with tabs. Add a proper 
 
 | File | Change |
 |------|--------|
-| `src/components/hackathon/ProjectEditor.tsx` | Fix layout structure, move preview inside flex container, fix scroll sync with refs, restructure bottom panels, add status bar, replace inline styles |
-| `src/index.css` | Add IDE theme CSS variables |
+| `src/components/hackathon/ProjectEditor.tsx` | Fix horizontal scroll, add overflow-hidden to line numbers, add keyboard shortcuts, improve empty state |
+| `src/pages/Hackathons.tsx` | Change `min-h-screen` to `h-screen` on root div to prevent page scrolling in Build tab |
 
 ## Implementation Order
-1. Fix layout structure (preview panel inside flex, action bar positioned correctly)
-2. Fix scroll sync (useRef instead of useState)
-3. Add CSS variables and replace inline styles
-4. Combine terminal + AI panels with tabs
-5. Responsive sidebar improvements
+1. Fix height chain in Hackathons.tsx (1 line)
+2. Fix horizontal scrolling in editor (textarea + highlight sync)
+3. Add overflow-hidden to line number gutter
+4. Add keyboard shortcuts (Ctrl+S, Ctrl+Enter)
+5. Improve sidebar responsiveness threshold
 
