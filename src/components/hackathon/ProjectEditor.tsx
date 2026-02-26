@@ -680,6 +680,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
+          {/* Countdown Timer */}
+          <CountdownWidget />
         </div>
         <div className="flex items-center gap-1">
           {[

@@ -239,7 +239,7 @@ const ProjectView = () => {
     );
   }
 
-  const typeEmoji = project.template_id === 'chatbot' ? '🤖' : project.template_id === 'voice-assistant' ? '🎙️' : project.template_id === 'agent' ? '🧠' : '💻';
+  const typeEmoji = project.template_id === 'chatbot' ? '🤖' : project.template_id === 'agent' ? '🧠' : '💻';
   const codeLines = project.code.split('\n');
 
   return (
