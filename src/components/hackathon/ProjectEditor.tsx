@@ -265,7 +265,7 @@ const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
 
 // Token-based Python syntax highlighter
 interface Token {
-  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'text';
+  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'text';
   value: string;
 }
 
@@ -301,10 +301,18 @@ const tokenizeLine = (line: string): Token[] => {
     }
     if (/[a-zA-Z_]/.test(line[i])) {
       let end = i;
-      while (end < line.length && /\w/.test(line[end])) end++;
+      while (end < line.length && /[\w.]/.test(line[end])) end++;
       const word = line.slice(i, end);
-      if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
+      // Check if this is a dotted module path (after from/import)
+      const prevTokens = tokens.map(t => t.value.trim()).filter(Boolean);
+      const lastKeyword = prevTokens.length > 0 ? prevTokens[prevTokens.length - 1] : '';
+      const isAfterImport = lastKeyword === 'from' || lastKeyword === 'import';
+      if (word.includes('.') && isAfterImport) {
+        tokens.push({ type: 'module', value: word });
+      } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
+      // Check if followed by '(' — likely a function call
+      else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
       else tokens.push({ type: 'text', value: word });
       i = end; continue;
     }
@@ -322,6 +330,8 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   decorator: 'text-ide-red',
   number: 'text-ide-orange',
   operator: 'text-ide-cyan',
+  module: 'text-ide-cyan',
+  function_name: 'text-ide-yellow',
   text: 'text-ide-text',
 };
 
