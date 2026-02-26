@@ -14,11 +14,13 @@ import { QuickSubmitModal } from '@/components/hackathon/QuickSubmitModal';
 import { CommunityChat } from '@/components/hackathon/CommunityChat';
 import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
 import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
+import { ProjectGallery } from '@/components/hackathon/ProjectGallery';
+import { LearnTab } from '@/components/hackathon/LearnTab';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, Sparkles, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award
+  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -39,7 +41,7 @@ interface Hackathon {
   prizes: string | null;
 }
 
-type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models';
+type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'gallery' | 'learn';
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
 
 const Hackathons = () => {
@@ -52,6 +54,7 @@ const Hackathons = () => {
   const [selectedEndedHackathon, setSelectedEndedHackathon] = useState<Hackathon | null>(null);
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<MainTab>('hackathons');
@@ -60,6 +63,16 @@ const Hackathons = () => {
   // Build tab state
   const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
   const [buildTemplate, setBuildTemplate] = useState<ProjectType | undefined>(undefined);
+
+  // First-time onboarding
+  useEffect(() => {
+    const visited = localStorage.getItem('hackathons_visited');
+    if (!visited) {
+      setShowOnboarding(true);
+      setActiveTab('templates');
+      localStorage.setItem('hackathons_visited', 'true');
+    }
+  }, []);
 
   useEffect(() => {
     fetchHackathons();
@@ -83,12 +96,12 @@ const Hackathons = () => {
   const fetchHackathons = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('hackathons' as any)
+      .from('hackathons')
       .select('*')
       .order('start_date', { ascending: true });
 
     if (!error && data) {
-      setHackathons(data as unknown as Hackathon[]);
+      setHackathons(data as Hackathon[]);
     }
     setIsLoading(false);
   };
@@ -138,6 +151,8 @@ const Hackathons = () => {
     { id: 'templates' as MainTab, name: 'Templates', icon: Rocket, color: '#F7941D', desc: '1-Click Starters' },
     { id: 'hackathons' as MainTab, name: 'Hackathons', icon: Trophy, color: '#C70110', desc: 'Events & Leaderboard' },
     { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
+    { id: 'gallery' as MainTab, name: 'Gallery', icon: Image, color: '#3498DB', desc: 'Browse Projects' },
+    { id: 'learn' as MainTab, name: 'Learn', icon: GraduationCap, color: '#006600', desc: 'Tutorials & Guides' },
   ];
 
   return (
@@ -147,6 +162,64 @@ const Hackathons = () => {
           title="AI Hackathon Platform - Tech Kids Africa"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
         />
+
+        {/* Onboarding Overlay */}
+        <AnimatePresence>
+          {showOnboarding && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+              onClick={() => setShowOnboarding(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-[hsl(var(--discord-dark))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-md w-full p-6 relative"
+              >
+                <button onClick={() => setShowOnboarding(false)} className="absolute top-3 right-3 text-[hsl(var(--discord-text-muted))] hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}>
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Welcome to Build Studio! 🎉</h2>
+                  <p className="text-[hsl(var(--discord-text-muted))] text-sm">Build AI projects with Python in 3 easy steps</p>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  {[
+                    { step: 1, icon: Rocket, text: 'Pick a template', desc: 'Choose from Chatbot, Voice Assistant, or AI Agent', color: '#F7941D' },
+                    { step: 2, icon: Code, text: 'Write your code', desc: 'Edit Python code in our browser IDE with AI help', color: '#5865F2' },
+                    { step: 3, icon: Zap, text: 'Deploy & share', desc: 'Publish your project and earn leaderboard points', color: '#006600' },
+                  ].map(item => (
+                    <div key={item.step} className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${item.color}20`, border: `1px solid ${item.color}40` }}>
+                        <item.icon className="w-5 h-5" style={{ color: item.color }} />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">{item.step}. {item.text}</p>
+                        <p className="text-[hsl(var(--discord-text-muted))] text-xs">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Button onClick={() => { setShowOnboarding(false); setActiveTab('templates'); }} className="w-full"
+                  style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Get Started — Pick a Template
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Left Icon Rail */}
         <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0">
@@ -338,6 +411,20 @@ const Hackathons = () => {
               </motion.div>
             )}
 
+            {/* GALLERY TAB */}
+            {activeTab === 'gallery' && (
+              <motion.div key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto p-6">
+                <ProjectGallery onViewCode={handleViewCode} />
+              </motion.div>
+            )}
+
+            {/* LEARN TAB */}
+            {activeTab === 'learn' && (
+              <motion.div key="learn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+                <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
+              </motion.div>
+            )}
+
             {/* HACKATHONS TAB */}
             {activeTab === 'hackathons' && (
               <motion.div key="hackathons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
@@ -426,7 +513,11 @@ const Hackathons = () => {
                               <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
                             </div>
                             <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
-                            <p className="text-[hsl(var(--discord-text-muted))]">Check back soon for new events!</p>
+                            <p className="text-[hsl(var(--discord-text-muted))] mb-4">Check back soon for new events!</p>
+                            <Button onClick={() => setActiveTab('templates')} style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+                              <Rocket className="w-4 h-4 mr-2" />
+                              Start Building Instead
+                            </Button>
                           </motion.div>
                         ) : (
                           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
