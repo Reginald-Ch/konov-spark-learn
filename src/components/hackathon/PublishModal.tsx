@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Rocket, Trophy, Link2, Loader2, CheckCircle2, Sparkles, Copy, Check, ExternalLink, QrCode, Share2 } from 'lucide-react';
+import { Rocket, Trophy, Link2, Loader2, CheckCircle2, Sparkles, Copy, Check, ExternalLink, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,7 +32,7 @@ const DEPLOY_MESSAGES = [
   '✅ Running final checks...',
 ];
 
-export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }: PublishModalProps) => {
+export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }, ref) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -42,8 +42,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
   const [urlCopied, setUrlCopied] = useState(false);
   const [deployMsgIndex, setDeployMsgIndex] = useState(0);
 
-  // Whether identity is already known (from Save Checkpoint)
-  const hasIdentity = !!(prefillEmail && prefillAuthorName);
+  // Name input for the Go Live form
+  const [showNameInput, setShowNameInput] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -51,6 +51,9 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       if (prefillDesc) setDescription(prefillDesc);
       if (prefillEmail) setAuthorEmail(prefillEmail);
       if (prefillAuthorName) setAuthorName(prefillAuthorName);
+      // Check if name looks auto-generated
+      const isAutoName = prefillAuthorName?.startsWith('Student-') || !prefillAuthorName;
+      setShowNameInput(!!isAutoName);
       setDeployStep('form');
       setPublishedId(null);
       setUrlCopied(false);
@@ -89,7 +92,15 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
   const handlePublish = async () => {
     if (!projectName.trim()) { toast.error('Give your project a name!'); return; }
-    if (!authorName.trim() || !authorEmail.trim()) { toast.error('Please fill in your name and email!'); return; }
+
+    // If user typed a real name, persist it
+    const finalName = authorName.trim() || prefillAuthorName || 'Student';
+    const finalEmail = authorEmail || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+
+    // Persist to localStorage for future use
+    if (finalName && !finalName.startsWith('Student-')) {
+      localStorage.setItem('forge-student-name', finalName);
+    }
 
     setDeployStep('deploying');
     setDeployMsgIndex(0);
@@ -108,13 +119,13 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
             description,
             code,
             template_id: templateId,
-            author_name: authorName,
+            author_name: finalName,
             demo_url: null,
             is_published: true,
             points_earned: 10,
           })
           .eq('id', currentProjectId)
-          .eq('author_email', authorEmail);
+          .eq('author_email', finalEmail);
 
         if (error) throw error;
         resultId = currentProjectId;
@@ -126,8 +137,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
             description,
             code,
             template_id: templateId,
-            author_name: authorName,
-            author_email: authorEmail,
+            author_name: finalName,
+            author_email: finalEmail,
             demo_url: null,
             is_published: true,
             points_earned: 10,
@@ -145,7 +156,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       toast.success('🎉 Your AI is live!');
 
       // Award points
-      supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'go_live', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'go_live', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');
@@ -156,19 +167,13 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
   const handleClose = () => {
     setDeployStep('form');
     setPublishedId(null);
-    setProjectName('');
-    setDescription('');
-    if (!hasIdentity) {
-      setAuthorName('');
-      setAuthorEmail('');
-    }
     setUrlCopied(false);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && deployStep !== 'deploying' && handleClose()}>
-      <DialogContent className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-md overflow-hidden">
+      <DialogContent ref={ref} className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-md overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-[hsl(var(--ide-text))]">
             <Rocket className="w-5 h-5 text-[hsl(var(--ide-accent))]" />
@@ -304,7 +309,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
             </motion.div>
           )}
 
-          {/* ── FORM ── */}
+          {/* ── FORM — minimal: just name + description ── */}
           {deployStep === 'form' && (
             <motion.div
               key="form"
@@ -313,11 +318,22 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              {/* Project Name — always show */}
+              {/* Your Name — only if auto-generated */}
+              {showNameInput && (
+                <div>
+                  <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Your Name</label>
+                  <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
+                    className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]"
+                    autoFocus />
+                </div>
+              )}
+
+              {/* Project Name */}
               <div>
-                <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Project Name *</label>
+                <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Project Name</label>
                 <Input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
-                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
+                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]"
+                  autoFocus={!showNameInput} />
               </div>
 
               {/* Description — the "2 sentences" */}
@@ -326,34 +342,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                   What does your AI do? <span className="text-[hsl(var(--ide-text-muted))] font-normal">(1-2 sentences)</span>
                 </label>
                 <Textarea value={description} onChange={e => setDescription(e.target.value)} 
-                  placeholder="My AI helps students study for exams by explaining difficult concepts in simple language and creating practice questions."
+                  placeholder="My AI helps students study for exams by explaining difficult concepts in simple language."
                   rows={2}
                   className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] resize-none" />
               </div>
-
-              {/* Name/Email — only show if not already known */}
-              {!hasIdentity && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Your Name *</label>
-                    <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="Ada Lovelace"
-                      className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Email *</label>
-                    <Input value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="you@email.com" type="email"
-                      className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
-                  </div>
-                </div>
-              )}
-
-              {/* Identity confirmation when known */}
-              {hasIdentity && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--ide-bg-deep))] text-xs text-[hsl(var(--ide-text-muted))]">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--ide-green))] flex-shrink-0" />
-                  Publishing as <span className="text-[hsl(var(--ide-text))] font-medium">{authorName}</span> ({authorEmail})
-                </div>
-              )}
 
               {/* Points banner */}
               <div className="flex items-center gap-2 p-3 rounded-lg bg-[hsl(var(--ide-accent)/0.1)] border border-[hsl(var(--ide-accent)/0.2)]">
@@ -363,7 +355,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                 </p>
               </div>
 
-              <Button onClick={handlePublish} disabled={!projectName.trim() || (!hasIdentity && (!authorName.trim() || !authorEmail.trim()))}
+              <Button onClick={handlePublish} disabled={!projectName.trim()}
                 className="w-full h-12 text-base font-bold" style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
                 <Rocket className="w-5 h-5 mr-2" />
                 Deploy My AI 🚀
@@ -374,4 +366,6 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+PublishModal.displayName = 'PublishModal';
