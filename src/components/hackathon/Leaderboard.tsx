@@ -198,7 +198,7 @@ export const Leaderboard = () => {
       case 0:
         return <Crown className="w-5 h-5 text-yellow-400" />;
       case 1:
-        return <Medal className="w-5 h-5 text-gray-300" />;
+        return <Medal className="w-5 h-5 text-[hsl(var(--ide-text))]" />;
       case 2:
         return <Medal className="w-5 h-5 text-amber-600" />;
       default:
@@ -211,7 +211,7 @@ export const Leaderboard = () => {
       case 0:
         return 'bg-gradient-to-r from-yellow-500/20 to-transparent border-yellow-500/30';
       case 1:
-        return 'bg-gradient-to-r from-gray-400/20 to-transparent border-gray-400/30';
+        return 'bg-gradient-to-r from-[hsl(var(--ide-text)/0.2)] to-transparent border-[hsl(var(--ide-text)/0.3)]';
       case 2:
         return 'bg-gradient-to-r from-amber-600/20 to-transparent border-amber-600/30';
       default:
