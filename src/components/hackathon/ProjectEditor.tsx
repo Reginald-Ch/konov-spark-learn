@@ -8,7 +8,7 @@ import { PublishModal } from './PublishModal';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
-  Rocket, Loader2, Save, Bot, Mic, Brain,
+  Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle
