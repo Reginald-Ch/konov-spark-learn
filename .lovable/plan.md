@@ -1,139 +1,135 @@
 
 
-# MVP Readiness Assessment — 3-Day Sprint Plan
+# Plan: Make Build Studio Production-Ready + Better Theme
 
-## What's Already Working
-- Build Studio with 3-panel IDE (config sidebar, code editor, live preview)
-- Python syntax highlighting with token-based lexer
-- 3 project scaffolds (Chatbot, Voice Assistant, Agent)
-- Templates tab with 1-click "Start Building"
-- AI-powered code review, explain, suggest, run tests (via edge function)
-- Live Preview chat panel for testing AI projects
-- Save/load projects to database (`ai_projects` table)
-- Publish modal for deployment
-- Hackathon events with registration, teams, submissions
-- Leaderboard with real-time updates
-- Community chat system
-- Getting Started guide and FAQ
+## Current State Assessment
 
-## What Needs Fixing (Bugs)
-
-### 1. Keyboard Shortcuts Have Stale Closures
-In `ProjectEditor.tsx` line 607, the `useEffect` for keyboard shortcuts has an empty dependency array `[]`, but calls `handleSave` and `handleRun` which depend on state (`files`, `authorEmail`, `projectName`, etc.). This means `Ctrl+S` always saves the **initial** code, not the current code.
-
-**Fix:** Add proper dependencies or use refs for the handlers.
-
-### 2. Editor Horizontal Scroll Breaks Highlight Alignment
-The editor area wrapper (line 761) has `overflow-auto`, but the textarea inside uses `absolute inset-0`. When the wrapper scrolls horizontally, the textarea doesn't move with it — only the highlight layer transforms. The textarea and highlight layer are in different scroll contexts.
-
-**Fix:** Both layers need to scroll together. Use a single scroll container approach: remove `absolute` positioning, stack layers via `position: relative` with a grid overlay pattern.
-
-### 3. No Auth — Anyone Can Overwrite Anyone's Project
-All database operations use `supabase.from('ai_projects' as any)` with no authentication. The `as any` cast bypasses type safety. There are no RLS policies protecting projects — any user can update or delete any project.
-
-**Fix (for MVP):** Keep the email-based save flow but add a simple verification step. Full auth can come post-MVP.
-
-### 4. `handleSave` Uses `as any` Everywhere
-Lines 558-570 cast all Supabase calls with `as any`, hiding type errors. The `ai_projects` table exists in the schema but the types aren't being used properly.
-
-**Fix:** Remove `as any` casts and use proper typed queries.
-
-## What Needs Improvement (UX)
-
-### 5. No "Learn" Tab Content
-The `MAIN_TABS` array in `Hackathons.tsx` has Build, Templates, Hackathons, AI Models — but there's no Learn tab despite the platform being educational. The Getting Started and FAQ are buried in the hackathons sub-sidebar.
-
-### 6. AI Models Tab Is Not Connected to Build
-Students can view AI model info in the AI Models tab but the "View Code" action that navigates to Build doesn't clearly show what happened.
-
-### 7. No Project Gallery / Browse Others' Work
-The `SubmissionsGallery` only shows submissions for a specific hackathon. There's no way for students to browse all published `ai_projects` for inspiration.
-
-### 8. No Onboarding / First-Time User Experience
-A student landing on `/hackathons` for the first time sees the Hackathons tab with possibly zero events. No guided tour, no "try the IDE" prompt.
+After thorough code review, here is the status of each of your questions:
 
 ---
 
-## 3-Day Sprint Plan
+## Question 1: "Can I start building a project, where it would run well and I can deploy and view?"
 
-### Day 1: Fix Critical Bugs + Polish Build Studio
+**Current status: Partially working.** The Build Studio loads code, you can edit it, save to database, and "publish" via the Deploy modal. However:
 
-**Task 1.1 — Fix keyboard shortcut stale closures** (30 min)
-- Use `useRef` for `handleSave` and `handleRun` so the `useEffect` always calls the latest version
-- File: `ProjectEditor.tsx`
+- **"Run Tests" works** — it calls the `python-ai-assist` edge function which simulates Python execution and returns terminal output. This uses Lovable AI (`google/gemini-3-flash-preview`), the best free model available.
+- **"Deploy to Production" does NOT actually deploy** — the Publish modal saves to the `ai_projects` database table and generates a URL like `/projects/{id}`, but the `ProjectView` page that renders this URL likely just displays the saved code. There is no actual Python runtime or Streamlit hosting.
+- **Live Preview chat works** — it calls the edge function with `action: 'test-agent'` and streams AI responses using the project's system prompt.
 
-**Task 1.2 — Fix editor scroll alignment** (1 hr)
-- Replace absolute positioning with CSS grid overlay for textarea + highlight layer
-- Both layers share the same native scroll context
-- File: `ProjectEditor.tsx`
+**What needs fixing:** Make the "Deploy" flow honest. Students should understand they're publishing their code to the Gallery, not deploying a running app. The project view page needs to work correctly.
 
-**Task 1.3 — Remove `as any` casts and fix Supabase types** (30 min)
-- Use proper typed queries against `ai_projects`, `hackathons`, etc.
-- Files: `ProjectEditor.tsx`, `Hackathons.tsx`, `Leaderboard.tsx`, `SubmissionsGallery.tsx`
+## Question 2: "Are we using the best free models, we don't run out of tokens?"
 
-**Task 1.4 — Add "unsaved changes" indicator** (20 min)
-- Track dirty state: show a dot on the file tab when code differs from last saved version
-- File: `ProjectEditor.tsx`
+**Current status: Yes, optimal.** The edge function uses `google/gemini-3-flash-preview` — this is the fastest, most cost-efficient model available through Lovable AI. It has generous rate limits and is included with your plan. For a 1:30 minute hackathon session, a student might make 10-20 AI calls. This model handles that well.
 
-### Day 2: Add Project Gallery + Default Hackathon Data
+**One issue:** The `PublishModal` still uses `as any` casts (line 56), which we removed elsewhere but missed here.
 
-**Task 2.1 — Create Project Gallery page/tab** (2 hrs)
-- Add a "Gallery" sub-view in the Hackathons tab or a new main tab
-- Query all `ai_projects` where `is_published = true`
-- Show cards with project name, description, author, template type, "View Code" button
-- File: New `src/components/hackathon/ProjectGallery.tsx`, update `Hackathons.tsx`
+## Question 3: "Is the Build Studio working 100%?"
 
-**Task 2.2 — Seed default hackathon event** (30 min)
-- Create a database migration to insert a default "always-open" hackathon so new users see at least one event
-- This prevents the empty state problem
+**Bugs found:**
 
-**Task 2.3 — Add "Learn" tab with curated resources** (1 hr)
-- Simple tab with cards linking to Python AI tutorials, documentation
-- Embed the Getting Started guide content here
-- File: New component or reuse `GettingStarted.tsx`
+1. **Console warning: "Function components cannot be given refs"** — `ProjectEditor` and `HackathonCard` are being passed refs by `Hackathons.tsx` (likely via framer-motion's `motion.div` wrapping). Need to wrap both with `forwardRef`.
 
-### Day 3: Onboarding, Testing, Deploy
+2. **`PublishModal` still uses `as any` casts** (lines 56, 73) — missed in the previous cleanup pass.
 
-**Task 3.1 — First-time user onboarding** (1 hr)
-- When a student visits `/hackathons` for the first time (localStorage flag), show a brief welcome overlay with 3 steps: "Pick a template → Write code → Deploy"
-- Auto-navigate to Templates tab on first visit
-- File: `Hackathons.tsx`
+3. **`config.toml` missing edge function config** — The `python-ai-assist` function isn't declared in `config.toml`, which means JWT verification defaults may cause issues. Need to add `[functions.python-ai-assist]` with `verify_jwt = false`.
 
-**Task 3.2 — End-to-end testing sweep** (2 hrs)
-- Test: Templates → Build flow (code loads correctly)
-- Test: Save project → Reload → Project persists
-- Test: Run Tests → AI responds in terminal
-- Test: Live Preview chat → AI responds
-- Test: Publish flow
-- Test: Hackathon registration → Team creation → Submission
-- Test: Leaderboard updates in real-time
-- Test: Mobile responsiveness (sidebar drawer, preview overlay)
+4. **Editor scroll: textarea is `absolute inset-0` but parent has `overflow-auto`** — The textarea doesn't scroll with the overflow container. Long code content extends beyond view and the highlight layer's `transform` approach only works for vertical scroll. Horizontal scrolling is broken because the textarea is positioned absolutely and doesn't participate in the parent's scroll flow.
 
-**Task 3.3 — Deploy and verify published URL** (30 min)
-- Verify `https://konov-spark-learn.lovable.app` loads correctly
-- Check edge function is deployed and responding
-- Test on mobile device
+5. **`ProjectView` page may not render published projects correctly** — Need to verify it loads the project from the database.
+
+## Question 4: "I don't like the grey color used for the IDE"
+
+**Current theme values (One Dark inspired):**
+```
+--ide-bg: 220 13% 18%        → #282c34 (dark charcoal)
+--ide-bg-deep: 220 14% 11%   → #1e2127 (deeper charcoal)
+--ide-sidebar: 220 13% 15%   → #21252b (dark grey)
+--ide-editor: 220 13% 18%    → #282c34
+--ide-border: 220 13% 20%    → #2c313a
+```
+
+These are technically blue-tinted dark greys, which can look flat/washed out. I'll shift the palette to a richer, deeper tone with more contrast — inspired by VS Code's default dark theme with a hint of the brand colors.
+
+---
+
+## Implementation Plan
+
+### Step 1: Update IDE Theme — Richer, Deeper Colors
+Replace the current grey-ish One Dark palette with a deeper, more vibrant dark theme:
+
+```css
+--ide-bg: 222 18% 14%;           /* #1e2030 — deep navy */
+--ide-bg-deep: 225 20% 10%;     /* #161924 — near-black navy */
+--ide-sidebar: 222 18% 12%;     /* #191c2a — slightly darker sidebar */
+--ide-editor: 222 18% 14%;      /* #1e2030 — matches bg */
+--ide-gutter: 222 18% 14%;      /* same as editor */
+--ide-border: 222 15% 22%;      /* #2d3247 — visible but subtle */
+--ide-border-subtle: 222 15% 16%; /* #232637 */
+--ide-text: 220 20% 80%;        /* #b8c0d4 — brighter text */
+--ide-text-muted: 220 12% 45%;  /* #636d83 — more readable muted */
+--ide-accent: 210 100% 60%;     /* #3399ff — vivid blue accent */
+--ide-green: 120 50% 60%;       /* #66cc66 — brighter green */
+--ide-yellow: 40 80% 65%;       /* #d4a845 — warm gold */
+--ide-red: 0 70% 65%;           /* #d45555 — clear red */
+--ide-purple: 270 60% 68%;      /* #9b6ed4 — vivid purple */
+--ide-cyan: 185 60% 55%;        /* #44b8b8 — teal */
+--ide-orange: 25 70% 60%;       /* #cc8844 — warm orange */
+--ide-line-highlight: 222 18% 18%; /* subtle highlight */
+--ide-selection: 210 50% 25%;   /* selection blue */
+--ide-cursor: 210 100% 60%;     /* bright blue cursor */
+```
+
+This shifts the IDE from "grey" to "deep navy" with more contrast and richer syntax colors.
+
+**File:** `src/index.css`
+
+### Step 2: Fix Editor Scroll — Grid Overlay Approach
+Replace the current absolute-positioned textarea + highlight layer with a CSS grid stack where both layers share the same scroll context:
+
+- Wrap both in a single `div` with `display: grid` and `grid-template: "stack" 1fr / 1fr`
+- Both children use `grid-area: stack` so they overlap
+- The parent div handles scrolling (`overflow: auto`)
+- Remove `absolute inset-0` from textarea
+- Remove the manual `transform` scroll sync — it's no longer needed since both layers scroll together natively
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+### Step 3: Fix forwardRef Warning
+Wrap `ProjectEditor` with `React.forwardRef` to suppress the console warning from framer-motion.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+### Step 4: Fix PublishModal `as any` Casts
+Remove `as any` on lines 56 and 73.
+
+**File:** `src/components/hackathon/PublishModal.tsx`
+
+### Step 5: Add Edge Function Config
+Add `[functions.python-ai-assist]` to `supabase/config.toml` with `verify_jwt = false` so the function works reliably.
+
+**Note:** `config.toml` is auto-managed — we cannot edit it. The function deploys automatically. Since the function already works (it's being called successfully), this is not blocking.
+
+### Step 6: Verify ProjectView Page
+Check that `/projects/:id` correctly loads and displays published projects from the database.
+
+**File:** `src/pages/ProjectView.tsx` (read and fix if needed)
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/hackathon/ProjectEditor.tsx` | Fix stale closures, fix scroll alignment, remove `as any`, add dirty state indicator |
-| `src/pages/Hackathons.tsx` | Remove `as any` casts, add onboarding overlay, optionally add Gallery/Learn tabs |
-| `src/components/hackathon/Leaderboard.tsx` | Remove `as any` casts |
-| `src/components/hackathon/SubmissionsGallery.tsx` | Remove `as any` casts |
-| `src/components/hackathon/ProjectGallery.tsx` | New file — published projects browser |
-| Database migration | Seed a default hackathon event |
+| File | Change |
+|------|--------|
+| `src/index.css` | Update IDE theme CSS variables to deep navy palette |
+| `src/components/hackathon/ProjectEditor.tsx` | Fix editor scroll with grid overlay, add forwardRef |
+| `src/components/hackathon/PublishModal.tsx` | Remove `as any` casts |
+| `src/pages/ProjectView.tsx` | Verify and fix project rendering |
 
-## Priority Order
-1. Fix keyboard shortcut stale closures (blocks core UX)
-2. Fix editor scroll alignment (visual bug)
-3. Remove `as any` casts (stability)
-4. Add unsaved changes indicator (UX polish)
-5. Project Gallery (content discovery)
-6. Seed default hackathon (empty state fix)
-7. First-time onboarding (retention)
-8. Full E2E testing sweep
+## Implementation Order
+1. Update IDE theme colors (visual impact, addresses "grey" complaint)
+2. Fix editor scroll with grid overlay (critical UX bug)
+3. Add forwardRef to ProjectEditor (console warning fix)
+4. Fix PublishModal type casts (code quality)
+5. Verify ProjectView page (deploy flow completeness)
 
