@@ -75,8 +75,13 @@ export const Leaderboard = () => {
       .from('ai_projects')
       .select('author_email, author_name, points_earned');
 
+    // Fetch activity-based points from point_events
+    const { data: pointEventsData } = await supabase
+      .from('point_events')
+      .select('participant_email, points, event_type') as any;
+
     const hackathonMap = new Map((hackathonsData || []).map(h => [h.id, h.title]));
-    
+
     // Calculate team scores
     const teamScores: TeamScore[] = (teamsData || []).map((team, index) => {
       const memberCount = (registrationsData || []).filter(r => r.team_id === team.id).length;
@@ -163,6 +168,15 @@ export const Leaderboard = () => {
         });
       }
     });
+
+    // Add activity-based points from point_events
+    (pointEventsData || []).forEach((evt: any) => {
+      const participant = participantMap.get(evt.participant_email);
+      if (participant) {
+        participant.points += (evt.points || 0);
+      }
+    });
+
     const participantScores = Array.from(participantMap.values())
       .sort((a, b) => b.points - a.points)
       .map((p, index) => {
