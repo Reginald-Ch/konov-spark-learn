@@ -53,7 +53,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
     setIsPublishing(true);
     try {
       const { data, error } = await supabase
-        .from('ai_projects' as any)
+        .from('ai_projects')
         .insert({
           project_name: projectName,
           description,
@@ -70,7 +70,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
       if (error) throw error;
 
-      setPublishedId((data as any)?.id || null);
+      setPublishedId(data?.id || null);
       setIsPublished(true);
       toast.success('🎉 Project published! You earned 10 points!');
     } catch (e) {
