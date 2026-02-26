@@ -8,7 +8,7 @@ import { PublishModal } from './PublishModal';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
-  Rocket, Loader2, Save, Bot, Mic, Brain,
+  Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle
@@ -235,6 +235,50 @@ const ONBOARDING_STEPS = [
   { target: 'preview', title: '💬 Test Your AI', description: 'Chat with your AI in real-time! Your system prompt controls how it responds. Try changing it and see the difference.' },
   { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
 ];
+
+// Compact countdown widget for IDE top bar
+const CountdownWidget = () => {
+  const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
+  
+  useEffect(() => {
+    // Check localStorage for hackathon end time, or set 90 min from first visit
+    const stored = localStorage.getItem('forge-session-end');
+    let endTime: number;
+    if (stored) {
+      endTime = parseInt(stored);
+    } else {
+      endTime = Date.now() + 90 * 60 * 1000; // 90 minutes
+      localStorage.setItem('forge-session-end', endTime.toString());
+    }
+    
+    const tick = () => {
+      const diff = Math.max(0, endTime - Date.now());
+      setTimeLeft({
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
+  const isUrgent = totalSec < 600; // < 10 min
+  const isWarning = totalSec < 1800 && !isUrgent; // < 30 min
+
+  return (
+    <div className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+      isUrgent ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse' 
+      : isWarning ? 'bg-ide-orange/20 border-ide-orange/40 text-ide-orange'
+      : 'bg-ide-border/50 border-ide-border text-ide-text-muted'
+    }`}>
+      <Clock className="w-3 h-3" />
+      <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
+    </div>
+  );
+};
 
 export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) => {
   const isMobile = useIsMobile();
@@ -680,6 +724,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
+          {/* Countdown Timer */}
+          <CountdownWidget />
         </div>
         <div className="flex items-center gap-1">
           {[
@@ -734,7 +780,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   <div className="space-y-1">
                     {([
                       { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
-                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', cls: 'text-ide-yellow' },
                       { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
                     ]).map(type => (
                       <button
