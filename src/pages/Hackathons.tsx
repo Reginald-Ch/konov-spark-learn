@@ -142,7 +142,7 @@ const Hackathons = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row">
+      <div className="h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row overflow-hidden">
         <SEO 
           title="AI Hackathon Platform - Tech Kids Africa"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"

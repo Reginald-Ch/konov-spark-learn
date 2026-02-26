@@ -336,7 +336,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [projectName, setProjectName] = useState('My AI Project');
   const [systemPrompt, setSystemPrompt] = useState(PROJECT_SCAFFOLDS[initialType || 'chatbot'].systemPrompt);
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
-  const [showConfig, setShowConfig] = useState(!isMobile);
+  const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
 
   // File state
@@ -423,13 +423,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const textarea = textareaRef.current;
     if (!textarea) return;
     const top = textarea.scrollTop;
+    const left = textarea.scrollLeft;
     if (lineNumberRef.current) {
       lineNumberRef.current.style.transform = `translateY(-${top}px)`;
     }
     if (highlightRef.current) {
-      highlightRef.current.style.transform = `translateY(-${top}px)`;
+      highlightRef.current.style.transform = `translate(-${left}px, -${top}px)`;
     }
   }, []);
+
 
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
@@ -592,6 +594,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     finally { setIsAiLoading(false); setActiveAiAction(null); }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 's') { e.preventDefault(); handleSave(); }
+      if (mod && e.key === 'Enter') { e.preventDefault(); handleRun(); }
+      if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
 
@@ -744,9 +758,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {/* Editor Area */}
-          <div className="flex-1 flex min-h-0 overflow-hidden bg-ide-editor">
+          <div className="flex-1 flex min-h-0 overflow-auto bg-ide-editor">
             {/* Line Numbers */}
-            <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border">
+            <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border" style={{ position: 'relative' }}>
               <div ref={lineNumberRef} className="pt-4 pr-2">
                 {lines.map((_, i) => (
                   <div key={i} className="text-right font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
@@ -758,7 +772,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div className="flex-1 relative min-w-0">
               {/* Highlighted Code Layer */}
               {activeFile === 'main.py' && highlightedContent && (
-                <div className="absolute inset-0 pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none overflow-hidden whitespace-pre" aria-hidden="true">
+                <div className="absolute inset-0 pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none overflow-hidden whitespace-pre" style={{ minWidth: 'max-content' }} aria-hidden="true">
                   <div ref={highlightRef}>
                     {highlightedContent.map((line, i) => (
                       <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
