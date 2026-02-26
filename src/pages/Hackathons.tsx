@@ -45,6 +45,7 @@ type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'gallery' | 
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
 
 const Hackathons = () => {
+  const navigate = useNavigate();
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
