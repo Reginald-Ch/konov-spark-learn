@@ -38,7 +38,6 @@ export const Leaderboard = () => {
   useEffect(() => {
     fetchLeaderboardData();
 
-    // Real-time updates
     const channel = supabase
       .channel('leaderboard-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_teams' }, () => fetchLeaderboardData())
@@ -55,43 +54,39 @@ export const Leaderboard = () => {
   const fetchLeaderboardData = async () => {
     setIsLoading(true);
 
-    // Fetch teams with their hackathon titles
     const { data: teamsData } = await supabase
-      .from('hackathon_teams' as any)
-      .select(`id, team_name, description, hackathon_id, created_at`)
+      .from('hackathon_teams')
+      .select('id, team_name, description, hackathon_id, created_at, created_by_email')
       .order('created_at', { ascending: true });
 
     const { data: hackathonsData } = await supabase
-      .from('hackathons' as any)
+      .from('hackathons')
       .select('id, title');
 
     const { data: submissionsData } = await supabase
-      .from('hackathon_submissions' as any)
+      .from('hackathon_submissions')
       .select('team_id');
 
     const { data: registrationsData } = await supabase
-      .from('hackathon_registrations' as any)
+      .from('hackathon_registrations')
       .select('*');
 
-    // Fetch published ai_projects for leaderboard points
     const { data: aiProjectsData } = await supabase
-      .from('ai_projects' as any)
+      .from('ai_projects')
       .select('author_email, author_name, points_earned');
 
-    const hackathonMap = new Map((hackathonsData || []).map((h: any) => [h.id, h.title]));
+    const hackathonMap = new Map((hackathonsData || []).map(h => [h.id, h.title]));
     
     // Calculate team scores
-    const teamScores: TeamScore[] = ((teamsData as any[]) || []).map((team, index) => {
-      const memberCount = ((registrationsData as any[]) || []).filter((r: any) => r.team_id === team.id).length;
-      const submissionCount = ((submissionsData as any[]) || []).filter((s: any) => s.team_id === team.id).length;
+    const teamScores: TeamScore[] = (teamsData || []).map((team, index) => {
+      const memberCount = (registrationsData || []).filter(r => r.team_id === team.id).length;
+      const submissionCount = (submissionsData || []).filter(s => s.team_id === team.id).length;
       
-      // Points calculation
-      const basePoints = 100; // For creating a team
+      const basePoints = 100;
       const memberPoints = memberCount * 50;
       const submissionPoints = submissionCount * 200;
       const points = basePoints + memberPoints + submissionPoints;
 
-      // Achievements
       const achievements: string[] = [];
       if (index === 0) achievements.push('🏆 First Team');
       if (memberCount >= 3) achievements.push('👥 Full Squad');
@@ -113,7 +108,7 @@ export const Leaderboard = () => {
     // Calculate participant scores
     const participantMap = new Map<string, ParticipantScore>();
     
-    ((registrationsData as any[]) || []).forEach((reg: any) => {
+    (registrationsData || []).forEach(reg => {
       const existing = participantMap.get(reg.participant_email);
       if (existing) {
         existing.hackathons_joined += 1;
@@ -134,7 +129,7 @@ export const Leaderboard = () => {
     });
 
     // Count team creations
-    ((teamsData as any[]) || []).forEach((team: any) => {
+    (teamsData || []).forEach(team => {
       const participant = participantMap.get(team.created_by_email);
       if (participant) {
         participant.teams_created += 1;
@@ -145,8 +140,8 @@ export const Leaderboard = () => {
       }
     });
 
-    // Add ai_projects points to participants
-    ((aiProjectsData as any[]) || []).forEach((project: any) => {
+    // Add ai_projects points
+    (aiProjectsData || []).forEach(project => {
       const participant = participantMap.get(project.author_email);
       if (participant) {
         participant.points += (project.points_earned || 10);

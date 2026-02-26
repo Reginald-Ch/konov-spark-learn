@@ -34,7 +34,7 @@ export const SubmissionsGallery = ({ hackathonId }: SubmissionsGalleryProps) => 
   const fetchSubmissions = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('hackathon_submissions' as any)
+      .from('hackathon_submissions')
       .select(`
         *,
         hackathon_teams (team_name)
