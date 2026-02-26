@@ -25,9 +25,9 @@ const resourcesBreadcrumb = createBreadcrumbSchema([
 const learningResourceSchema = {
   "@context": "https://schema.org",
   "@type": "LearningResource",
-  name: "AI Learning Resources for Kids",
-  description: "Interactive AI and ML learning resources for children including topics on What is AI, Machine Learning, Data & Decisions, Computer Vision, Natural Language Processing, and Creative AI.",
-  educationalLevel: "Ages 6-14",
+  name: "AI Learning Resources for Secondary Students",
+  description: "Interactive AI and ML learning resources for secondary students ages 13-18 including topics on What is AI, Machine Learning, Data & Decisions, Computer Vision, Natural Language Processing, and Creative AI.",
+  educationalLevel: "Ages 13-18",
   learningResourceType: "Interactive lesson",
   inLanguage: "en",
   provider: {
@@ -47,74 +47,74 @@ const aiTopics = [
   {
     id: 1,
     title: "What is AI?",
-    subtitle: "Meet Your Robot Friends!",
+    subtitle: "Understanding Intelligent Systems",
     icon: Bot,
     color: "primary",
     mascotType: "happy" as const,
-    description: "AI stands for Artificial Intelligence - it's like teaching computers to think and learn, just like you!",
-    funFact: "AI can recognize your face in photos faster than you can say 'cheese'! 📸",
-    whyLearn: "Understanding AI helps you know how your favorite apps and games work!",
-    activities: ["Draw your own robot friend", "Play 'Spot the AI' game", "Create an AI story"]
+    description: "Artificial Intelligence enables machines to perform tasks that normally require human intelligence — from pattern recognition to decision-making.",
+    funFact: "AI processes millions of data points per second to make real-time decisions in autonomous vehicles! 🚗",
+    whyLearn: "Understanding AI gives you the edge to build the next generation of apps, tools, and businesses.",
+    activities: ["Explore an AI model playground", "Analyse how AI powers your favourite apps", "Design an AI solution for a real problem"]
   },
   {
     id: 2,
     title: "Machine Learning",
-    subtitle: "Computers That Learn!",
+    subtitle: "Algorithms That Improve with Data",
     icon: Brain,
     color: "secondary",
     mascotType: "thinking" as const,
-    description: "Machine Learning is how computers get smarter by practicing - just like how you get better at riding a bike!",
-    funFact: "Your phone learns which emojis you use most and suggests them first! 🎯",
-    whyLearn: "ML powers video game characters that adapt to how you play!",
-    activities: ["Train a simple AI", "Pattern recognition games", "Build a sorting robot"]
+    description: "Machine Learning is a branch of AI where algorithms learn patterns from data instead of being explicitly programmed — powering recommendations, predictions, and more.",
+    funFact: "Spotify's Discover Weekly uses ML to analyse billions of playlists and predict what you'll enjoy! 🎯",
+    whyLearn: "ML skills are in massive demand — from fintech to healthcare to gaming.",
+    activities: ["Train a classification model", "Explore supervised vs unsupervised learning", "Build a recommendation engine"]
   },
   {
     id: 3,
     title: "Data & Decisions",
-    subtitle: "The Power of Information!",
+    subtitle: "Turning Information into Insight",
     icon: Database,
     color: "accent",
     mascotType: "teaching" as const,
-    description: "Data is like pieces of a puzzle. When AI puts them together, it can make smart decisions!",
-    funFact: "Netflix uses data to guess which shows you'll love! 🎬",
-    whyLearn: "Learn how to use data to solve problems like a detective!",
-    activities: ["Data treasure hunt", "Make a decision tree", "Survey your friends"]
+    description: "Data is the fuel for AI. Learning to collect, clean, and analyse data lets you make evidence-based decisions and build smarter systems.",
+    funFact: "Netflix analyses viewing data from 230+ million subscribers to decide which shows to produce! 🎬",
+    whyLearn: "Data literacy is a superpower in every career — science, business, policy, and tech.",
+    activities: ["Clean and visualise a real dataset", "Build a decision tree classifier", "Analyse survey data with Python"]
   },
   {
     id: 4,
     title: "Computer Vision",
-    subtitle: "Teaching Computers to See!",
+    subtitle: "How Machines Interpret Visual Data",
     icon: Eye,
     color: "primary",
     mascotType: "excited" as const,
-    description: "Computer Vision helps machines see and understand pictures and videos - like giving a robot eyes!",
-    funFact: "Self-driving cars use computer vision to spot traffic lights! 🚗",
-    whyLearn: "Create apps that recognize objects, faces, and even emotions!",
-    activities: ["Photo scavenger hunt", "Draw for AI to guess", "Create fun filters"]
+    description: "Computer Vision enables machines to interpret and act on visual information — from medical imaging to augmented reality and security systems.",
+    funFact: "Medical AI can detect certain cancers in scans more accurately than human radiologists! 🏥",
+    whyLearn: "CV powers AR filters, autonomous vehicles, and medical diagnostics — huge career opportunities.",
+    activities: ["Build an image classifier with a pre-trained model", "Experiment with object detection", "Create an AR prototype"]
   },
   {
     id: 5,
     title: "Natural Language",
-    subtitle: "Chatting with Computers!",
+    subtitle: "Making Machines Understand Text",
     icon: MessageSquare,
     color: "secondary",
     mascotType: "happy" as const,
-    description: "NLP helps computers understand human language - that's how Siri and Alexa understand you!",
-    funFact: "AI can translate 100+ languages in real-time! 🌍",
-    whyLearn: "Build your own chatbot that talks like your favorite character!",
-    activities: ["Create a story with AI", "Language puzzles", "Build a mini chatbot"]
+    description: "Natural Language Processing (NLP) enables AI to read, understand, and generate human language — powering chatbots, translators, and search engines.",
+    funFact: "Large Language Models are trained on trillions of words from the internet! 🌍",
+    whyLearn: "NLP is behind every chatbot, voice assistant, and AI writing tool — learn to build your own.",
+    activities: ["Build a sentiment analysis tool", "Create a custom chatbot", "Experiment with text generation"]
   },
   {
     id: 6,
     title: "Creative AI",
-    subtitle: "AI Makes Art Too!",
+    subtitle: "Generative Models & Digital Art",
     icon: Sparkles,
     color: "accent",
     mascotType: "excited" as const,
-    description: "AI can create music, art, and stories! It's like having a creative robot partner!",
-    funFact: "AI has composed music that was performed by orchestras! 🎵",
-    whyLearn: "Combine your creativity with AI to make amazing things!",
-    activities: ["AI art gallery", "Music with AI", "Collaborative stories"]
+    description: "Generative AI creates images, music, text, and video from prompts — opening new frontiers in design, media, and entertainment.",
+    funFact: "AI-generated artwork has sold for over $400,000 at auction! 🎵",
+    whyLearn: "Understanding generative AI lets you create content, prototype ideas, and explore the ethics of AI creativity.",
+    activities: ["Generate art with Stable Diffusion prompts", "Compose music with AI tools", "Build a creative AI project"]
   }
 ];
 
@@ -122,22 +122,22 @@ const whyLearnAI = [
   {
     icon: Rocket,
     title: "Future-Ready Skills",
-    description: "AI will be everywhere! Learning it now puts you ahead of the game."
+    description: "AI is transforming every industry. Students who understand it now will lead tomorrow's workforce."
   },
   {
     icon: Lightbulb,
-    title: "Solve Big Problems",
-    description: "From climate change to curing diseases - AI helps solve world problems!"
+    title: "Solve Real-World Problems",
+    description: "From climate modelling to healthcare — AI is the tool for tackling humanity's biggest challenges."
   },
   {
     icon: Gamepad2,
-    title: "Create Cool Stuff",
-    description: "Build games, apps, robots, and things we haven't even imagined yet!"
+    title: "Build What's Next",
+    description: "Create apps, automate workflows, design games, and prototype ideas that didn't exist yesterday."
   },
   {
     icon: CheckCircle2,
-    title: "Be a Creator, Not Just User",
-    description: "Don't just use AI - learn to build and shape it!"
+    title: "Be a Builder, Not Just a User",
+    description: "Move from consuming AI to creating it — understand the tech shaping your world."
   }
 ];
 
@@ -148,10 +148,10 @@ const Resources = () => {
   return (
     <div className="min-h-screen halftone-bg">
       <SEO 
-        title="AI Learning Resources for Kids"
-        description="Explore fun AI & ML learning resources for kids. Interactive comic panels teaching What is AI, Machine Learning, Computer Vision, and more!"
+        title="AI Learning Resources for Secondary Students"
+        description="Interactive AI & ML learning resources for secondary students ages 13-18. Explore What is AI, Machine Learning, Computer Vision, NLP, and Creative AI."
         canonical="/resources"
-        keywords={["AI resources for kids", "machine learning tutorials children", "free AI education", "kids tech learning materials"]}
+        keywords={["AI resources for teens", "machine learning tutorials secondary school", "AI education ages 13-18", "teen tech learning materials"]}
         jsonLd={[resourcesBreadcrumb, learningResourceSchema]}
       />
       <Navbar />
@@ -179,12 +179,12 @@ const Resources = () => {
               </motion.div>
               
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-fredoka font-bold mb-6 text-foreground leading-tight">
-                AI <span className="text-primary">Adventures</span> for{" "}
-                <span className="text-secondary">Kids!</span>
+                AI <span className="text-primary">Learning Lab</span> for{" "}
+                <span className="text-secondary">Students</span>
               </h1>
               
               <p className="text-xl md:text-2xl font-fredoka text-muted-foreground mb-8">
-                Discover the exciting world of Artificial Intelligence through fun comics and interactive lessons!
+                Master Artificial Intelligence concepts through interactive lessons, hands-on projects, and real-world applications.
               </p>
 
               <Button 
@@ -217,7 +217,7 @@ const Resources = () => {
                   transition={{ delay: 0.8, type: "spring" }}
                 >
                   <SpeechBubble direction="bottom" className="text-center">
-                    <span className="text-lg">Welcome, young inventor! 🎉</span>
+                    <span className="text-lg">Ready to level up? 🚀</span>
                   </SpeechBubble>
                 </motion.div>
               </div>
@@ -239,7 +239,7 @@ const Resources = () => {
               Why Learn <span className="text-primary">AI</span>?
             </h2>
             <p className="text-xl font-fredoka text-muted-foreground">
-              Here's why AI is the coolest thing to learn! 🚀
+              Why AI literacy matters for your future 🚀
             </p>
           </motion.div>
 
@@ -410,20 +410,20 @@ const Resources = () => {
               viewport={{ once: true }}
             >
               <span className="inline-block px-4 py-2 bg-primary/20 rounded-full font-fredoka text-primary text-sm mb-4">
-                👨‍👩‍👧 For Parents
+                🎓 For Parents & Educators
               </span>
               <h2 className="text-4xl md:text-5xl font-fredoka font-bold mb-6 text-foreground">
-                Why Your Child Should Learn{" "}
+                Why Secondary Students Should Learn{" "}
                 <span className="text-primary">AI & ML</span>
               </h2>
               <div className="space-y-4 font-space text-muted-foreground">
                 <p>
-                  AI literacy is becoming as essential as reading and math. Children who understand 
-                  how AI works will be better prepared for a future where these technologies are everywhere.
+                  AI literacy is becoming as essential as mathematics and science. Students who understand 
+                  how AI works will be better prepared for university, careers, and a future shaped by these technologies.
                 </p>
                 <p>
-                  Our comic-based approach makes complex concepts accessible and fun, building 
-                  critical thinking skills while nurturing creativity and problem-solving abilities.
+                  Our visual approach makes complex concepts accessible and engaging, building 
+                  computational thinking skills while developing problem-solving and analytical abilities.
                 </p>
               </div>
               
@@ -453,8 +453,8 @@ const Resources = () => {
                   <div>
                     <SpeechBubble direction="left" className="mb-4">
                       <p className="font-fredoka">
-                        "Learning AI is like learning a new superpower! 
-                        It helps kids understand the technology shaping their world."
+                        "Understanding AI gives students a competitive edge. 
+                        It builds the analytical and creative skills universities and employers value most."
                       </p>
                     </SpeechBubble>
                     <p className="font-fredoka text-muted-foreground text-sm">
@@ -488,8 +488,8 @@ const Resources = () => {
                 <span className="text-secondary">AI Journey</span>?
               </h2>
               <p className="text-xl font-fredoka text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Join thousands of young innovators learning AI through our fun, 
-                comic-style lessons and hands-on activities!
+                Join thousands of students learning AI through interactive 
+                lessons, hands-on projects, and real-world challenges!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

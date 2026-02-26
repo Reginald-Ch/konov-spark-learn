@@ -72,10 +72,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
       setPublishedId(data?.id || null);
       setIsPublished(true);
-      toast.success('🎉 Project published! You earned 10 points!');
+      toast.success('🎉 Project is live! You earned 10 points!');
     } catch (e) {
       console.error(e);
-      toast.error('Failed to publish. Try again!');
+      toast.error('Failed to go live. Try again!');
     } finally {
       setIsPublishing(false);
     }
@@ -95,14 +95,14 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white sm:max-w-md">
+      <DialogContent className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Rocket className="w-5 h-5 text-[hsl(var(--discord-blurple))]" />
-            Deploy to Production
+          <DialogTitle className="flex items-center gap-2 text-xl text-[hsl(var(--ide-text))]">
+            <Rocket className="w-5 h-5 text-[hsl(var(--ide-accent))]" />
+            Go Live
           </DialogTitle>
-          <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
-            Publish your AI project and get a shareable demo URL.
+          <DialogDescription className="text-[hsl(var(--ide-text-muted))]">
+            Publish your AI project and get a shareable pitch URL.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,30 +112,30 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
             animate={{ opacity: 1, scale: 1 }}
             className="text-center py-6"
           >
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[hsl(var(--discord-green)/0.2)] flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-[hsl(var(--discord-green))]" />
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[hsl(var(--ide-green)/0.2)] flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-[hsl(var(--ide-green))]" />
             </div>
-            <h3 className="text-2xl font-bold mb-2">🚀 Deployed!</h3>
-            <p className="text-[hsl(var(--discord-text-muted))] mb-4">
-              Your project is live! You earned <span className="text-[hsl(var(--discord-yellow))] font-bold">10 points</span>.
+            <h3 className="text-2xl font-bold mb-2 text-[hsl(var(--ide-text))]">🚀 You're Live!</h3>
+            <p className="text-[hsl(var(--ide-text-muted))] mb-4">
+              Your project is live! You earned <span className="text-[hsl(var(--ide-yellow))] font-bold">10 points</span>.
             </p>
 
             {/* Shareable URL */}
             {projectUrl && (
-              <div className="bg-[hsl(var(--discord-dark))] rounded-lg p-3 mb-4 flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
-                <span className="text-xs text-[hsl(var(--discord-text))] truncate flex-1 text-left font-mono">{projectUrl}</span>
+              <div className="bg-[hsl(var(--ide-bg-deep))] rounded-lg p-3 mb-4 flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-[hsl(var(--ide-accent))] flex-shrink-0" />
+                <span className="text-xs text-[hsl(var(--ide-text))] truncate flex-1 text-left font-mono">{projectUrl}</span>
                 <Button size="icon" variant="ghost" onClick={handleCopyUrl} className="h-7 w-7 flex-shrink-0">
-                  {urlCopied ? <Check className="w-3.5 h-3.5 text-[hsl(var(--discord-green))]" /> : <Copy className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />}
+                  {urlCopied ? <Check className="w-3.5 h-3.5 text-[hsl(var(--ide-green))]" /> : <Copy className="w-3.5 h-3.5 text-[hsl(var(--ide-text-muted))]" />}
                 </Button>
               </div>
             )}
 
-            <div className="flex items-center justify-center gap-2 text-sm text-[hsl(var(--discord-text-muted))] mb-6">
-              <Trophy className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
+            <div className="flex items-center justify-center gap-2 text-sm text-[hsl(var(--ide-text-muted))] mb-6">
+              <Trophy className="w-4 h-4 text-[hsl(var(--ide-yellow))]" />
               <span>Check the leaderboard to see your ranking!</span>
             </div>
-            <Button onClick={handleClose} className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]">
+            <Button onClick={handleClose} className="bg-[hsl(var(--ide-accent))] hover:bg-[hsl(var(--ide-accent)/0.8)] text-white">
               <Sparkles className="w-4 h-4 mr-2" />
               Awesome!
             </Button>
@@ -143,47 +143,47 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))] mb-1 block">Project Name *</label>
+              <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Project Name *</label>
               <Input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
-                className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+                className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
             </div>
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))] mb-1 block">Description</label>
+              <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Description</label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What does your project do?" rows={2}
-                className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
+                className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] resize-none" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-[hsl(var(--discord-text))] mb-1 block">Your Name *</label>
+                <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Your Name *</label>
                 <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="Ada Lovelace"
-                  className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
               </div>
               <div>
-                <label className="text-sm font-medium text-[hsl(var(--discord-text))] mb-1 block">Email *</label>
+                <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Email *</label>
                 <Input value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="you@email.com" type="email"
-                  className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))]" />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))] mb-1 block">Demo URL (optional)</label>
+              <label className="text-sm font-medium text-[hsl(var(--ide-text))] mb-1 block">Demo URL (optional)</label>
               <div className="relative">
-                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--ide-text-muted))]" />
                 <Input value={demoUrl} onChange={e => setDemoUrl(e.target.value)} placeholder="https://your-demo.streamlit.app"
-                  className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white pl-10" />
+                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] pl-10" />
               </div>
             </div>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[hsl(var(--discord-blurple)/0.1)] border border-[hsl(var(--discord-blurple)/0.2)]">
-              <Trophy className="w-5 h-5 text-[hsl(var(--discord-yellow))] flex-shrink-0" />
-              <p className="text-xs text-[hsl(var(--discord-text))]">
-                Publishing earns you <strong>10 leaderboard points</strong> and a shareable project page!
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[hsl(var(--ide-accent)/0.1)] border border-[hsl(var(--ide-accent)/0.2)]">
+              <Trophy className="w-5 h-5 text-[hsl(var(--ide-yellow))] flex-shrink-0" />
+              <p className="text-xs text-[hsl(var(--ide-text))]">
+                Going live earns you <strong>10 leaderboard points</strong> and a shareable pitch page!
               </p>
             </div>
             <Button onClick={handlePublish} disabled={isPublishing || !projectName.trim() || !authorName.trim() || !authorEmail.trim()}
               className="w-full h-11 text-base font-bold" style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
               {isPublishing ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deploying...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Going Live...</>
               ) : (
-                <><Rocket className="w-4 h-4 mr-2" />Deploy to Production 🚀</>
+                <><Rocket className="w-4 h-4 mr-2" />Go Live 🚀</>
               )}
             </Button>
           </div>
