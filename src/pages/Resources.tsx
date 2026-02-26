@@ -278,51 +278,7 @@ const Resources = () => {
         </div>
       </section>
 
-      {/* Why Learn AI Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl md:text-5xl font-fredoka font-bold mb-4 text-foreground">
-              Why Learn <span className="text-primary">AI</span>?
-            </h2>
-            <p className="text-xl font-fredoka text-muted-foreground">
-              Why AI literacy matters for your future 🚀
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {whyLearnAI.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <ComicPanel key={idx} color="primary" delay={idx * 0.1}>
-                  <div className="p-6 text-center">
-                    <motion.div 
-                      className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center"
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <Icon className="w-8 h-8 text-foreground" />
-                    </motion.div>
-                    <h3 className="text-xl font-fredoka font-bold mb-2 text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="font-space text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
-                </ComicPanel>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Platform Tutorial - How to Build Your AI */}
+      {/* Platform Tutorial - How to Build Your AI (FIRST - most important for students) */}
       <section className="py-16 px-4 bg-card/50">
         <div className="container mx-auto">
           <motion.div
@@ -406,6 +362,50 @@ const Resources = () => {
               </Button>
             </a>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Why Learn AI Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto">
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-fredoka font-bold mb-4 text-foreground">
+              Why Learn <span className="text-primary">AI</span>?
+            </h2>
+            <p className="text-xl font-fredoka text-muted-foreground">
+              Why AI literacy matters for your future 🚀
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {whyLearnAI.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <ComicPanel key={idx} color="primary" delay={idx * 0.1}>
+                  <div className="p-6 text-center">
+                    <motion.div 
+                      className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Icon className="w-8 h-8 text-foreground" />
+                    </motion.div>
+                    <h3 className="text-xl font-fredoka font-bold mb-2 text-foreground">
+                      {item.title}
+                    </h3>
+                    <p className="font-space text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </div>
+                </ComicPanel>
+              );
+            })}
+          </div>
         </div>
       </section>
 
