@@ -230,8 +230,8 @@ const Hackathons = () => {
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
                 onClick={() => {
                   if (activeTab === 'templates') {
-                    // If already on templates (welcome), go home
-                    window.location.href = '/';
+                    navigate('/');
+                  } else {
                   } else {
                     // Go back to templates (welcome page)
                     setActiveTab('templates');
