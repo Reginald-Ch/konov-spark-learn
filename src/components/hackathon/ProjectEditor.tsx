@@ -734,7 +734,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   <div className="space-y-1">
                     {([
                       { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
-                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', cls: 'text-ide-yellow' },
                       { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
                     ]).map(type => (
                       <button
