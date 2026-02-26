@@ -232,8 +232,6 @@ const Hackathons = () => {
                   if (activeTab === 'templates') {
                     navigate('/');
                   } else {
-                  } else {
-                    // Go back to templates (welcome page)
                     setActiveTab('templates');
                   }
                 }}
