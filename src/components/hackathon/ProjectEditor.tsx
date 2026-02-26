@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-export type ProjectType = 'chatbot' | 'voice-assistant' | 'agent';
+export type ProjectType = 'chatbot' | 'agent';
 
 interface ProjectEditorProps {
   initialType?: ProjectType;
@@ -79,82 +79,6 @@ if prompt := st.chat_input("Type your message..."):
     requirements: `streamlit>=1.28.0
 langchain>=0.1.0
 openai>=1.0.0`,
-  },
-  'voice-assistant': {
-    name: 'Voice Assistant',
-    icon: '🎙️',
-    systemPrompt: 'You are a voice assistant. Respond in short, spoken-friendly sentences.',
-    capabilities: ['Speech-to-Text', 'Text-to-Speech', 'Memory'],
-    main: `# 🎙️ Voice Assistant
-# A voice-powered AI assistant
-
-import whisper
-import openai
-from gtts import gTTS
-from pydub import AudioSegment
-import streamlit as st
-import tempfile
-import os
-
-# --- Configuration ---
-WHISPER_MODEL = "tiny"
-AI_MODEL = "gpt-3.5-turbo"
-SYSTEM_PROMPT = "You are a voice assistant. Keep responses short and conversational."
-
-# --- Load Whisper model ---
-@st.cache_resource
-def load_whisper():
-    return whisper.load_model(WHISPER_MODEL)
-
-# --- Streamlit UI ---
-st.title("🎙️ Voice Assistant")
-st.caption("Speak to interact with AI")
-
-model = load_whisper()
-
-audio_file = st.file_uploader("Upload audio", type=["wav", "mp3", "m4a"])
-
-if audio_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(audio_file.read())
-        tmp_path = tmp.name
-    
-    st.audio(audio_file)
-    st.info("Transcribing...")
-    
-    result = model.transcribe(tmp_path)
-    user_text = result["text"]
-    st.write(f"**You said:** {user_text}")
-    
-    response = openai.chat.completions.create(
-        model=AI_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_text}
-        ]
-    )
-    
-    ai_text = response.choices[0].message.content
-    st.write(f"**AI:** {ai_text}")
-    
-    tts = gTTS(text=ai_text, lang='en')
-    tts_path = tmp_path.replace('.wav', '_response.mp3')
-    tts.save(tts_path)
-    st.audio(tts_path)
-    
-    os.unlink(tmp_path)
-    os.unlink(tts_path)`,
-    config: `{
-  "whisper_model": "tiny",
-  "ai_model": "gpt-3.5-turbo",
-  "language": "en",
-  "capabilities": ["speech_to_text", "text_to_speech", "memory"]
-}`,
-    requirements: `streamlit>=1.28.0
-openai>=1.0.0
-openai-whisper>=20230918
-gtts>=2.3.2
-pydub>=0.25.1`,
   },
   agent: {
     name: 'AI Agent',
@@ -225,7 +149,6 @@ wikipedia>=1.4.0`,
 
 const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   chatbot: ['Web Search', 'Citations', 'Memory', 'Summarization'],
-  'voice-assistant': ['Speech-to-Text', 'Text-to-Speech', 'Memory', 'Translation'],
   agent: ['Web Search', 'Calculator', 'Code Execution', 'File Reading'],
 };
 

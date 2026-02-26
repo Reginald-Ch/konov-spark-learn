@@ -22,7 +22,7 @@ import {
   Rocket, Zap, Circle, Calendar, Hash,
   Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -45,6 +45,7 @@ type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'gallery' | 
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
 
 const Hackathons = () => {
+  const navigate = useNavigate();
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
@@ -194,7 +195,7 @@ const Hackathons = () => {
 
                 <div className="space-y-4 mb-6">
                   {[
-                    { step: 1, icon: Rocket, text: 'Pick a template', desc: 'Choose from Chatbot, Voice Assistant, or AI Agent', color: '#F7941D' },
+                    { step: 1, icon: Rocket, text: 'Pick a template', desc: 'Choose from AI Chatbot or AI Agent', color: '#F7941D' },
                     { step: 2, icon: Code, text: 'Write your code', desc: 'Edit Python code in our browser IDE with AI help', color: '#5865F2' },
                     { step: 3, icon: Zap, text: 'Deploy & share', desc: 'Publish your project and earn leaderboard points', color: '#006600' },
                   ].map(item => (
@@ -225,16 +226,21 @@ const Hackathons = () => {
         <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link to="/">
-                <motion.div 
-                  whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                  className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
-                >
-                  <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
-                </motion.div>
-              </Link>
+              <motion.div 
+                whileHover={{ scale: 1.1, borderRadius: '16px' }}
+                onClick={() => {
+                  if (activeTab === 'templates') {
+                    navigate('/');
+                  } else {
+                    setActiveTab('templates');
+                  }
+                }}
+                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
+              >
+                <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
+              </motion.div>
             </TooltipTrigger>
-            <TooltipContent side="right"><p>Back to Home</p></TooltipContent>
+            <TooltipContent side="right"><p>{activeTab === 'templates' ? 'Back to Home' : 'Back to Templates'}</p></TooltipContent>
           </Tooltip>
           
           <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
