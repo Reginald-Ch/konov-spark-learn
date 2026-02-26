@@ -1,106 +1,139 @@
 
 
-# Plan: Fix IDE Bugs and Improve Build Studio UI/UX
+# MVP Readiness Assessment — 3-Day Sprint Plan
 
-## Current State (from screenshots)
+## What's Already Working
+- Build Studio with 3-panel IDE (config sidebar, code editor, live preview)
+- Python syntax highlighting with token-based lexer
+- 3 project scaffolds (Chatbot, Voice Assistant, Agent)
+- Templates tab with 1-click "Start Building"
+- AI-powered code review, explain, suggest, run tests (via edge function)
+- Live Preview chat panel for testing AI projects
+- Save/load projects to database (`ai_projects` table)
+- Publish modal for deployment
+- Hackathon events with registration, teams, submissions
+- Leaderboard with real-time updates
+- Community chat system
+- Getting Started guide and FAQ
 
-The Build Studio loads and shows code with syntax highlighting. The 3-panel layout (config sidebar, editor, live preview) is functional. However, several bugs and UX issues degrade the experience.
+## What Needs Fixing (Bugs)
 
----
+### 1. Keyboard Shortcuts Have Stale Closures
+In `ProjectEditor.tsx` line 607, the `useEffect` for keyboard shortcuts has an empty dependency array `[]`, but calls `handleSave` and `handleRun` which depend on state (`files`, `authorEmail`, `projectName`, etc.). This means `Ctrl+S` always saves the **initial** code, not the current code.
 
-## Bugs to Fix
+**Fix:** Add proper dependencies or use refs for the handlers.
 
-### Bug 1: Top Bar and File Tabs Scroll Off Screen
-The entire `ProjectEditor` component is inside a scrollable container. When the user scrolls down in the page, the top bar ("Build Studio" header with AI actions) and file tabs scroll away. These should be fixed/sticky — only the code area inside the editor should scroll, not the chrome around it.
+### 2. Editor Horizontal Scroll Breaks Highlight Alignment
+The editor area wrapper (line 761) has `overflow-auto`, but the textarea inside uses `absolute inset-0`. When the wrapper scrolls horizontally, the textarea doesn't move with it — only the highlight layer transforms. The textarea and highlight layer are in different scroll contexts.
 
-**Root Cause:** The parent in `Hackathons.tsx` (line 322) is `flex-1 flex flex-col overflow-hidden`, which is correct. But the outer page may be scrolling. The `ProjectEditor` root `div` has `h-full` but no explicit height constraint from its parent chain when the page itself scrolls.
+**Fix:** Both layers need to scroll together. Use a single scroll container approach: remove `absolute` positioning, stack layers via `position: relative` with a grid overlay pattern.
 
-**Fix:** Ensure the `min-h-screen` on the Hackathons page and `overflow-hidden` on the main content area prevent page-level scrolling. The top bar and file tabs are already `flex-shrink-0` which is correct — the issue is likely the parent not constraining height properly. Add `h-screen` or `h-full` chain from the root.
+### 3. No Auth — Anyone Can Overwrite Anyone's Project
+All database operations use `supabase.from('ai_projects' as any)` with no authentication. The `as any` cast bypasses type safety. There are no RLS policies protecting projects — any user can update or delete any project.
 
-### Bug 2: Code Lines Truncated — No Horizontal Scroll
-Long lines like `SYSTEM_PROMPT = "You are a helpful AI assista..."` get cut off at the right edge. The editor textarea and highlight layer need horizontal scrolling.
+**Fix (for MVP):** Keep the email-based save flow but add a simple verification step. Full auth can come post-MVP.
 
-**Fix:** Add `overflow-x-auto` to the code area wrapper and ensure the textarea and highlight layer both support horizontal scroll. Use `white-space: pre` (already set) but also `min-width: max-content` on the content so it extends beyond the viewport.
+### 4. `handleSave` Uses `as any` Everywhere
+Lines 558-570 cast all Supabase calls with `as any`, hiding type errors. The `ai_projects` table exists in the schema but the types aren't being used properly.
 
-### Bug 3: Live Preview Panel Sizing
-The Live Preview chat panel on the right appears but is squished — the chat input and messages take minimal space. On the screenshot, it shows "Type a message..." input at the bottom right, but the panel width seems inconsistent.
+**Fix:** Remove `as any` casts and use proper typed queries.
 
-**Fix:** Ensure the Live Preview panel has a minimum width of 280px and uses `flex-shrink-0` properly. The current `w-72` (288px) should work but verify the flex layout isn't compressing it.
+## What Needs Improvement (UX)
 
-### Bug 4: Config Sidebar Overlaps on Small Screens
-The config sidebar (left panel showing project type, system prompt, capabilities) is always visible and takes ~220px. On smaller screens this leaves very little room for the code editor.
+### 5. No "Learn" Tab Content
+The `MAIN_TABS` array in `Hackathons.tsx` has Build, Templates, Hackathons, AI Models — but there's no Learn tab despite the platform being educational. The Getting Started and FAQ are buried in the hackathons sub-sidebar.
 
-**Fix:** Already has mobile handling (`isMobile ? '100%' : 220`), but medium-sized screens (tablets, small laptops) still get squeezed. Default `showConfig` to `false` on screens below 1024px width.
+### 6. AI Models Tab Is Not Connected to Build
+Students can view AI model info in the AI Models tab but the "View Code" action that navigates to Build doesn't clearly show what happened.
 
-### Bug 5: Editor Line Numbers Misaligned After Scroll
-The line numbers use `transform: translateY(-${top}px)` via ref, but the line number container has no `overflow-hidden`, meaning numbers could visually leak outside the gutter area when scrolling fast.
+### 7. No Project Gallery / Browse Others' Work
+The `SubmissionsGallery` only shows submissions for a specific hackathon. There's no way for students to browse all published `ai_projects` for inspiration.
 
-**Fix:** Add `overflow-hidden` to the line number container div (the one wrapping `lineNumberRef`).
-
----
-
-## UX Improvements
-
-### Improvement 1: Sticky Top Bar with Better Hierarchy
-Move the AI action buttons (Review, Explain, Suggest) into a smaller toolbar or dropdown. The top bar should focus on: project identity (icon + name) and a deploy status indicator. This reduces visual noise.
-
-### Improvement 2: Editor Horizontal Scrolling
-Enable proper horizontal scrolling in the code editor so long lines aren't truncated. Both the textarea and the syntax highlight overlay need to scroll horizontally in sync.
-
-### Improvement 3: Keyboard Shortcuts
-Add `Ctrl+S` / `Cmd+S` to save, `Ctrl+Enter` to run tests. This is standard IDE behavior and currently missing.
-
-### Improvement 4: Better Empty State for Live Preview
-When no messages have been sent, show a more helpful empty state in the Live Preview panel — e.g., "Test your AI by typing a message below" with example prompts.
-
-### Improvement 5: Visual Feedback When Switching Project Types
-When clicking a different project type in the config sidebar, add a brief highlight flash on the editor to indicate the code has changed.
+### 8. No Onboarding / First-Time User Experience
+A student landing on `/hackathons` for the first time sees the Hackathons tab with possibly zero events. No guided tour, no "try the IDE" prompt.
 
 ---
 
-## Implementation Plan
+## 3-Day Sprint Plan
 
-### Step 1: Fix Height Chain (Critical)
-In `Hackathons.tsx`, ensure the parent chain constrains height:
-- The root div already has `min-h-screen` and `flex` — change to `h-screen` to prevent page scrolling when in Build tab
-- Verify `overflow-hidden` propagates correctly
+### Day 1: Fix Critical Bugs + Polish Build Studio
 
-In `ProjectEditor.tsx`:
-- The root div `flex flex-col h-full bg-ide-bg` is correct
-- Verify `flex-1 min-h-0` on the main layout prevents overflow
+**Task 1.1 — Fix keyboard shortcut stale closures** (30 min)
+- Use `useRef` for `handleSave` and `handleRun` so the `useEffect` always calls the latest version
+- File: `ProjectEditor.tsx`
 
-### Step 2: Fix Horizontal Scrolling in Editor
-In `ProjectEditor.tsx`:
-- Change the code area wrapper (line 747) from `overflow-hidden` to `overflow-auto`
-- Ensure the highlight layer div uses `min-width: fit-content` so highlighted content doesn't wrap
-- Sync horizontal scroll between textarea and highlight layer in `handleEditorScroll`
-- Add horizontal scroll sync to the line numbers (they should stay fixed horizontally)
+**Task 1.2 — Fix editor scroll alignment** (1 hr)
+- Replace absolute positioning with CSS grid overlay for textarea + highlight layer
+- Both layers share the same native scroll context
+- File: `ProjectEditor.tsx`
 
-### Step 3: Add Keyboard Shortcuts
-Add a `useEffect` with `keydown` listener:
-- `Ctrl+S` / `Cmd+S` → `handleSave()`
-- `Ctrl+Enter` → `handleRun()`
-- `Ctrl+B` → toggle config sidebar
+**Task 1.3 — Remove `as any` casts and fix Supabase types** (30 min)
+- Use proper typed queries against `ai_projects`, `hackathons`, etc.
+- Files: `ProjectEditor.tsx`, `Hackathons.tsx`, `Leaderboard.tsx`, `SubmissionsGallery.tsx`
 
-### Step 4: Overflow Guard on Line Numbers
-Add `overflow-hidden` to the line number gutter container (line 749).
+**Task 1.4 — Add "unsaved changes" indicator** (20 min)
+- Track dirty state: show a dot on the file tab when code differs from last saved version
+- File: `ProjectEditor.tsx`
 
-### Step 5: Improve Config Sidebar Responsiveness  
-Use `window.innerWidth` or a media query hook to default `showConfig` to `false` below 1024px (not just `isMobile` which is typically 768px).
+### Day 2: Add Project Gallery + Default Hackathon Data
+
+**Task 2.1 — Create Project Gallery page/tab** (2 hrs)
+- Add a "Gallery" sub-view in the Hackathons tab or a new main tab
+- Query all `ai_projects` where `is_published = true`
+- Show cards with project name, description, author, template type, "View Code" button
+- File: New `src/components/hackathon/ProjectGallery.tsx`, update `Hackathons.tsx`
+
+**Task 2.2 — Seed default hackathon event** (30 min)
+- Create a database migration to insert a default "always-open" hackathon so new users see at least one event
+- This prevents the empty state problem
+
+**Task 2.3 — Add "Learn" tab with curated resources** (1 hr)
+- Simple tab with cards linking to Python AI tutorials, documentation
+- Embed the Getting Started guide content here
+- File: New component or reuse `GettingStarted.tsx`
+
+### Day 3: Onboarding, Testing, Deploy
+
+**Task 3.1 — First-time user onboarding** (1 hr)
+- When a student visits `/hackathons` for the first time (localStorage flag), show a brief welcome overlay with 3 steps: "Pick a template → Write code → Deploy"
+- Auto-navigate to Templates tab on first visit
+- File: `Hackathons.tsx`
+
+**Task 3.2 — End-to-end testing sweep** (2 hrs)
+- Test: Templates → Build flow (code loads correctly)
+- Test: Save project → Reload → Project persists
+- Test: Run Tests → AI responds in terminal
+- Test: Live Preview chat → AI responds
+- Test: Publish flow
+- Test: Hackathon registration → Team creation → Submission
+- Test: Leaderboard updates in real-time
+- Test: Mobile responsiveness (sidebar drawer, preview overlay)
+
+**Task 3.3 — Deploy and verify published URL** (30 min)
+- Verify `https://konov-spark-learn.lovable.app` loads correctly
+- Check edge function is deployed and responding
+- Test on mobile device
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/hackathon/ProjectEditor.tsx` | Fix horizontal scroll, add overflow-hidden to line numbers, add keyboard shortcuts, improve empty state |
-| `src/pages/Hackathons.tsx` | Change `min-h-screen` to `h-screen` on root div to prevent page scrolling in Build tab |
+| File | Changes |
+|------|---------|
+| `src/components/hackathon/ProjectEditor.tsx` | Fix stale closures, fix scroll alignment, remove `as any`, add dirty state indicator |
+| `src/pages/Hackathons.tsx` | Remove `as any` casts, add onboarding overlay, optionally add Gallery/Learn tabs |
+| `src/components/hackathon/Leaderboard.tsx` | Remove `as any` casts |
+| `src/components/hackathon/SubmissionsGallery.tsx` | Remove `as any` casts |
+| `src/components/hackathon/ProjectGallery.tsx` | New file — published projects browser |
+| Database migration | Seed a default hackathon event |
 
-## Implementation Order
-1. Fix height chain in Hackathons.tsx (1 line)
-2. Fix horizontal scrolling in editor (textarea + highlight sync)
-3. Add overflow-hidden to line number gutter
-4. Add keyboard shortcuts (Ctrl+S, Ctrl+Enter)
-5. Improve sidebar responsiveness threshold
+## Priority Order
+1. Fix keyboard shortcut stale closures (blocks core UX)
+2. Fix editor scroll alignment (visual bug)
+3. Remove `as any` casts (stability)
+4. Add unsaved changes indicator (UX polish)
+5. Project Gallery (content discovery)
+6. Seed default hackathon (empty state fix)
+7. First-time onboarding (retention)
+8. Full E2E testing sweep
 
