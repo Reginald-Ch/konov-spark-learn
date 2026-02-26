@@ -375,6 +375,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [aiOutput, setAiOutput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [activeAiAction, setActiveAiAction] = useState<string | null>(null);
+  const [mentorInput, setMentorInput] = useState('');
 
   // Publish
   const [publishOpen, setPublishOpen] = useState(false);
@@ -492,8 +493,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           } catch { buffer = line + '\n' + buffer; break; }
         }
       }
-      return fullText;
       setAiCallCount(prev => prev + 1);
+      return fullText;
     } finally { clearTimeout(timeout); }
   };
 
@@ -591,6 +592,27 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       );
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
+  };
+
+  const handleMentorChat = async () => {
+    if (!mentorInput.trim() || isAiLoading) return;
+    const question = mentorInput.trim();
+    setMentorInput('');
+    setIsAiLoading(true);
+    setShowBottomPanel(true);
+    setBottomTab('ai-mentor');
+    setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
+    try {
+      await streamFromEdgeFunction(
+        { code: files['main.py'], model: projectType, action: 'review', systemPrompt: `The student asks: "${question}"\n\nReview their code and answer their question.` },
+        (text) => setAiOutput(prev => {
+          const parts = prev.split('---');
+          const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+          return lastSection + text;
+        })
+      );
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsAiLoading(false); }
   };
 
   // Keep refs up to date for keyboard shortcuts
@@ -883,14 +905,30 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                       {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
                     </div>
                   ) : (
-                    <div className="text-sm text-ide-text">
-                      {aiOutput ? (
-                        <div className="prose prose-invert prose-sm max-w-none">
-                          <ReactMarkdown>{aiOutput}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <span className="text-ide-text-muted text-xs italic">Click Review, Explain, or Suggest to get AI feedback on your code.</span>
-                      )}
+                    <div className="text-sm text-ide-text flex flex-col h-full">
+                      <div className="flex-1 overflow-y-auto">
+                        {aiOutput ? (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown>{aiOutput}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <span className="text-ide-text-muted text-xs italic">Click Review, Explain, or Suggest — or ask a question below.</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-2 pt-2 border-t border-ide-border flex-shrink-0">
+                        <Input
+                          value={mentorInput}
+                          onChange={e => setMentorInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleMentorChat()}
+                          placeholder="Ask the AI Mentor..."
+                          disabled={isAiLoading}
+                          className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent"
+                        />
+                        <Button size="sm" onClick={handleMentorChat} disabled={isAiLoading || !mentorInput.trim()}
+                          className="h-7 px-2 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+                          {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
