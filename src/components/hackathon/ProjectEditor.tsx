@@ -560,8 +560,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+      // Collect conversation history for context
+      const history = chatMessages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
       await streamFromEdgeFunction(
-        { code: userMsg, model: projectType, action: 'test-agent', systemPrompt },
+        { code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history },
         (text) => {
           assistantReply = text;
           setChatMessages(prev => {
@@ -584,7 +588,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         const { error } = await supabase
           .from('ai_projects')
           .update({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType })
-          .eq('id', currentProjectId);
+          .eq('id', currentProjectId)
+          .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -808,7 +813,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">
         <div className="flex items-center gap-2.5">
           <Code className="w-4 h-4 text-ide-accent" />
-          <span className="font-semibold text-sm text-ide-text">Build Studio</span>
+          <span className="font-semibold text-sm text-ide-text">FORGE</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
@@ -1300,6 +1305,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         description={systemPrompt}
         prefillEmail={authorEmail}
         prefillAuthorName={authorName}
+        currentProjectId={currentProjectId}
+        onProjectIdUpdate={(id) => setCurrentProjectId(id)}
       />
     </div>
   );

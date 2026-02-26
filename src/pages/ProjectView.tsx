@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import ReactMarkdown from 'react-markdown';
+import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Project {
@@ -16,6 +18,11 @@ interface Project {
   created_at: string;
   demo_url: string | null;
   points_earned: number;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 // Token-based Python syntax highlighter (same as ProjectEditor)
@@ -88,6 +95,12 @@ const ProjectView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!id) return;
     const fetchProject = async () => {
@@ -102,6 +115,16 @@ const ProjectView = () => {
     };
     fetchProject();
   }, [id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const systemPrompt = useMemo(() => {
+    if (!project) return 'You are a helpful AI assistant.';
+    const match = project.code.match(/SYSTEM_PROMPT\s*=\s*["'](.*)["']/);
+    return match ? match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : 'You are a helpful AI assistant.';
+  }, [project]);
 
   const highlightedLines = useMemo(() => {
     if (!project) return [];
@@ -123,6 +146,75 @@ const ProjectView = () => {
     toast.success('Code copied!');
   };
 
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || isStreaming) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
+    setChatMessages(newMessages);
+    setIsStreaming(true);
+
+    try {
+      const history = newMessages.map(m => ({ role: m.role, content: m.content }));
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            code: userMsg,
+            action: 'test-agent',
+            systemPrompt,
+            messages: history.slice(0, -1), // exclude current user msg (it's in code)
+          }),
+        }
+      );
+
+      if (!resp.ok || !resp.body) throw new Error('AI service error');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              setChatMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: 'assistant', content: fullText };
+                return updated;
+              });
+            }
+          } catch { /* partial JSON */ }
+        }
+      }
+    } catch {
+      setChatMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: '❌ Failed to get a response. Please try again.' }]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-ide-bg flex items-center justify-center">
@@ -139,7 +231,7 @@ const ProjectView = () => {
           <p className="text-ide-text-muted mb-4">This project may not exist or hasn't been published yet.</p>
           <Link to="/hackathons">
             <Button className="bg-ide-accent text-ide-bg-deep">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Hackathons
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to FORGE
             </Button>
           </Link>
         </div>
@@ -156,9 +248,9 @@ const ProjectView = () => {
 
       {/* Header */}
       <div className="border-b border-ide-border bg-ide-bg-deep">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/hackathons" className="flex items-center gap-2 text-ide-text-muted hover:text-ide-text transition-colors text-sm">
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-4 h-4" /> Back to FORGE
           </Link>
           <div className="flex items-center gap-2">
             {project.demo_url && (
@@ -177,7 +269,7 @@ const ProjectView = () => {
       </div>
 
       {/* Project Info */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-ide-text flex items-center gap-3 mb-2">
             <span className="text-4xl">{typeEmoji}</span>
@@ -193,27 +285,87 @@ const ProjectView = () => {
           </div>
         </div>
 
-        {/* Code View with syntax highlighting */}
-        <div className="rounded-xl border border-ide-border overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2 bg-ide-bg-deep border-b border-ide-border">
-            <Code className="w-4 h-4 text-ide-accent" />
-            <span className="text-xs font-mono text-ide-text-muted">main.py</span>
-          </div>
-          <div className="flex bg-ide-editor overflow-x-auto">
-            {/* Line numbers */}
-            <div className="py-4 pr-2 select-none border-r border-ide-border flex-shrink-0">
-              {codeLines.map((_, i) => (
-                <div key={i} className="text-right pr-2 pl-4 font-mono text-[12px] leading-6 text-ide-text-muted">{i + 1}</div>
-              ))}
+        {/* Two-column: Code + Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Code View */}
+          <div className="lg:col-span-3 rounded-xl border border-ide-border overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-ide-bg-deep border-b border-ide-border">
+              <Code className="w-4 h-4 text-ide-accent" />
+              <span className="text-xs font-mono text-ide-text-muted">main.py</span>
             </div>
-            {/* Highlighted code */}
-            <pre className="p-4 flex-1 min-w-0">
-              <code className="text-[13px] font-mono leading-6 whitespace-pre">
-                {highlightedLines.map((line, i) => (
-                  <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
+            <div className="flex bg-ide-editor overflow-x-auto max-h-[600px] overflow-y-auto">
+              <div className="py-4 pr-2 select-none border-r border-ide-border flex-shrink-0">
+                {codeLines.map((_, i) => (
+                  <div key={i} className="text-right pr-2 pl-4 font-mono text-[12px] leading-6 text-ide-text-muted">{i + 1}</div>
                 ))}
-              </code>
-            </pre>
+              </div>
+              <pre className="p-4 flex-1 min-w-0">
+                <code className="text-[13px] font-mono leading-6 whitespace-pre">
+                  {highlightedLines.map((line, i) => (
+                    <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
+                  ))}
+                </code>
+              </pre>
+            </div>
+          </div>
+
+          {/* Live Demo Chat */}
+          <div className="lg:col-span-2 rounded-xl border border-ide-border overflow-hidden flex flex-col h-[600px]">
+            <div className="flex items-center gap-2 px-4 py-2 bg-ide-bg-deep border-b border-ide-border">
+              <MessageSquare className="w-4 h-4 text-ide-green" />
+              <span className="text-xs font-semibold text-ide-text">Try this AI</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-ide-green/20 text-ide-green ml-auto">Live</span>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatMessages.length === 0 && (
+                <div className="text-center py-12">
+                  <MessageSquare className="w-10 h-10 mx-auto mb-3 text-ide-text-muted/40" />
+                  <p className="text-sm text-ide-text-muted">Send a message to try this AI project</p>
+                  <p className="text-xs text-ide-text-muted/60 mt-1">The AI will respond using the student's system prompt</p>
+                </div>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    msg.role === 'user'
+                      ? 'bg-ide-accent text-white rounded-br-sm'
+                      : 'bg-ide-sidebar text-ide-text rounded-bl-sm'
+                  }`}>
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : msg.content}
+                  </div>
+                </div>
+              ))}
+              {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
+                <div className="flex gap-1 pl-2">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-ide-border p-3 flex gap-2">
+              <Input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleChatSend()}
+                placeholder="Type a message..."
+                disabled={isStreaming}
+                className="h-9 text-sm border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
+              />
+              <Button size="sm" onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+                className="h-9 px-3 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

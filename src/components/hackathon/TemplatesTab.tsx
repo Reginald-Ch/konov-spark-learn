@@ -58,7 +58,7 @@ export const TemplatesTab = ({ onStartBuilding }: TemplatesTabProps) => {
           <Sparkles className="w-4 h-4" />
           Pick a project type and start building instantly
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">What will you build?</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">What will you FORGE?</h1>
         <p className="text-[hsl(var(--discord-text-muted))] text-lg max-w-xl mx-auto">
           Choose one of three AI project types. You'll get a complete working codebase — just customize and deploy.
         </p>

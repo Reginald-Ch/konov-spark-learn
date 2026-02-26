@@ -9,12 +9,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { code, model, action, systemPrompt } = await req.json();
+    const { code, model, action, systemPrompt, messages: conversationHistory } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     let sysPrompt = "";
     let userPrompt = "";
+    let extraMessages: { role: string; content: string }[] = [];
 
     if (action === "run") {
       sysPrompt = `You are a Python code execution simulator for a student hackathon platform. The student has written Python code and clicked "Run Tests". 
@@ -39,6 +40,14 @@ Keep output under 300 words.`;
 "${agentPrompt}"
 
 Respond naturally as if you are the AI the student built. Keep responses concise (under 150 words). Be helpful and conversational. The student is testing their project in a live preview.`;
+      
+      // Build conversation with history
+      if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+        extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content,
+        }));
+      }
       userPrompt = code;
     } else if (action === "review") {
       sysPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). Review Python code and give clear, encouraging feedback. Focus on:
@@ -79,6 +88,13 @@ Return code in a \`\`\`python block.`;
       userPrompt = code;
     }
 
+    // Build messages array
+    const aiMessages = [
+      { role: "system", content: sysPrompt },
+      ...extraMessages,
+      { role: "user", content: userPrompt },
+    ];
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -87,10 +103,7 @@ Return code in a \`\`\`python block.`;
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: sysPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        messages: aiMessages,
         stream: true,
       }),
     });
