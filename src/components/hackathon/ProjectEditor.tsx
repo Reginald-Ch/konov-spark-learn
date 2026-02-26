@@ -11,7 +11,7 @@ import {
   Rocket, Loader2, Save, Bot, Mic, Brain,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle, Info
+  PanelRightClose, PanelRightOpen, HelpCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -346,15 +346,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [isSaving, setIsSaving] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [authorEmail, setAuthorEmail] = useState('');
-  const [authorName, setAuthorName] = useState('');
+  const [authorEmail, setAuthorEmail] = useState(() => {
+    const stored = localStorage.getItem('forge-student-email');
+    return stored || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+  });
+  const [authorName, setAuthorName] = useState(() => {
+    const stored = localStorage.getItem('forge-student-name');
+    return stored || `Student-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  });
   const [aiCallCount, setAiCallCount] = useState(0);
-
-  // Email prompt bar (replaces browser prompt())
-  const [showEmailBar, setShowEmailBar] = useState(false);
-  const [emailBarInput, setEmailBarInput] = useState('');
-  const [nameBarInput, setNameBarInput] = useState('');
-  const [pendingAction, setPendingAction] = useState<'save' | 'publish' | null>(null);
 
   // Bottom panel
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -612,31 +612,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   };
 
   const handleSave = async () => {
-    if (!authorEmail) {
-      setShowEmailBar(true);
-      setPendingAction('save');
-      return;
-    }
+    // Persist identity to localStorage
+    localStorage.setItem('forge-student-email', authorEmail);
+    localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
-  };
-
-  const handleEmailSubmit = async () => {
-    if (!emailBarInput.trim() || !emailBarInput.includes('@')) {
-      toast.error('Please enter a valid email');
-      return;
-    }
-    const email = emailBarInput.trim();
-    const name = nameBarInput.trim() || 'Student';
-    setAuthorEmail(email);
-    setAuthorName(name);
-    setShowEmailBar(false);
-
-    if (pendingAction === 'save') {
-      await executeSave(email, name);
-    } else if (pendingAction === 'publish') {
-      setPublishOpen(true);
-    }
-    setPendingAction(null);
   };
 
   const handleAiAssist = async (action: string) => {
@@ -680,11 +659,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   };
 
   const handleGoLive = () => {
-    if (!authorEmail) {
-      setShowEmailBar(true);
-      setPendingAction('publish');
-      return;
-    }
+    localStorage.setItem('forge-student-email', authorEmail);
+    localStorage.setItem('forge-student-name', authorName);
     setPublishOpen(true);
   };
 
@@ -771,43 +747,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         )}
       </AnimatePresence>
 
-      {/* ── Email Bar (replaces browser prompt) ── */}
-      <AnimatePresence>
-        {showEmailBar && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-ide-sidebar border-b border-ide-accent/30"
-          >
-            <div className="flex items-center gap-2 px-3 py-2">
-              <Info className="w-4 h-4 text-ide-accent flex-shrink-0" />
-              <span className="text-xs text-ide-text">Enter your details to save:</span>
-              <Input
-                value={nameBarInput}
-                onChange={e => setNameBarInput(e.target.value)}
-                placeholder="Your name"
-                className="h-7 text-xs w-28 border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
-                autoFocus
-              />
-              <Input
-                value={emailBarInput}
-                onChange={e => setEmailBarInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
-                placeholder="your@email.com"
-                type="email"
-                className="h-7 text-xs w-40 border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
-              />
-              <Button size="sm" onClick={handleEmailSubmit} className="h-7 px-3 text-xs bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
-                Continue
-              </Button>
-              <button onClick={() => { setShowEmailBar(false); setPendingAction(null); }} className="text-ide-text-muted hover:text-ide-text">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Email bar removed — identity is auto-generated */}
 
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">
@@ -1227,13 +1167,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </div>
             {/* Pitch Controls */}
             <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Pitch Controls</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Share</span>
               <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={() => { toast.success('🔴 Live pitch mode — share your screen!'); }}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-red/15 text-ide-red hover:bg-ide-red/25 border border-ide-red/30">
-                  <Circle className="w-2 h-2 fill-ide-red mr-1" /> Go Live
-                </Button>
                 <Button size="sm" variant="ghost"
                   onClick={() => {
                     const url = currentProjectId ? `${window.location.origin}/projects/${currentProjectId}` : window.location.href;
