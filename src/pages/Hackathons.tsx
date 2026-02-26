@@ -194,7 +194,7 @@ const Hackathons = () => {
 
                 <div className="space-y-4 mb-6">
                   {[
-                    { step: 1, icon: Rocket, text: 'Pick a template', desc: 'Choose from Chatbot, Voice Assistant, or AI Agent', color: '#F7941D' },
+                    { step: 1, icon: Rocket, text: 'Pick a template', desc: 'Choose from AI Chatbot or AI Agent', color: '#F7941D' },
                     { step: 2, icon: Code, text: 'Write your code', desc: 'Edit Python code in our browser IDE with AI help', color: '#5865F2' },
                     { step: 3, icon: Zap, text: 'Deploy & share', desc: 'Publish your project and earn leaderboard points', color: '#006600' },
                   ].map(item => (

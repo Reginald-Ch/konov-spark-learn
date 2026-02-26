@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bot, Mic, Brain, ArrowRight, Sparkles } from 'lucide-react';
+import { Bot, Brain, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ProjectType } from './ProjectEditor';
 

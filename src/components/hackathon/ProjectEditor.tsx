@@ -149,7 +149,6 @@ wikipedia>=1.4.0`,
 
 const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   chatbot: ['Web Search', 'Citations', 'Memory', 'Summarization'],
-  'voice-assistant': ['Speech-to-Text', 'Text-to-Speech', 'Memory', 'Translation'],
   agent: ['Web Search', 'Calculator', 'Code Execution', 'File Reading'],
 };
 
