@@ -28,12 +28,12 @@ const ProjectView = () => {
     if (!id) return;
     const fetchProject = async () => {
       const { data, error } = await supabase
-        .from('ai_projects' as any)
+        .from('ai_projects')
         .select('*')
         .eq('id', id)
         .eq('is_published', true)
         .single();
-      if (!error && data) setProject(data as unknown as Project);
+      if (!error && data) setProject(data as Project);
       setIsLoading(false);
     };
     fetchProject();

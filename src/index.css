@@ -63,26 +63,26 @@ All colors MUST be HSL.
     --discord-text: 210 9% 87%;
     --discord-text-muted: 214 8% 61%;
 
-    /* IDE One Dark Theme */
-    --ide-bg: 220 13% 18%;
-    --ide-bg-deep: 220 14% 11%;
-    --ide-sidebar: 220 13% 15%;
-    --ide-editor: 220 13% 18%;
-    --ide-gutter: 220 13% 18%;
-    --ide-border: 220 13% 20%;
-    --ide-border-subtle: 220 10% 13%;
-    --ide-text: 219 14% 71%;
-    --ide-text-muted: 220 9% 36%;
-    --ide-accent: 207 82% 66%;
-    --ide-green: 95 38% 62%;
-    --ide-yellow: 39 67% 69%;
-    --ide-red: 355 65% 65%;
-    --ide-purple: 286 60% 67%;
-    --ide-cyan: 187 47% 55%;
-    --ide-orange: 29 54% 61%;
-    --ide-line-highlight: 220 13% 22%;
-    --ide-selection: 220 13% 28%;
-    --ide-cursor: 220 80% 56%;
+    /* IDE Deep Navy Theme */
+    --ide-bg: 222 18% 14%;
+    --ide-bg-deep: 225 20% 10%;
+    --ide-sidebar: 222 18% 12%;
+    --ide-editor: 222 18% 14%;
+    --ide-gutter: 222 18% 14%;
+    --ide-border: 222 15% 22%;
+    --ide-border-subtle: 222 15% 16%;
+    --ide-text: 220 20% 80%;
+    --ide-text-muted: 220 12% 45%;
+    --ide-accent: 210 100% 60%;
+    --ide-green: 120 50% 60%;
+    --ide-yellow: 40 80% 65%;
+    --ide-red: 0 70% 65%;
+    --ide-purple: 270 60% 68%;
+    --ide-cyan: 185 60% 55%;
+    --ide-orange: 25 70% 60%;
+    --ide-line-highlight: 222 18% 18%;
+    --ide-selection: 210 50% 25%;
+    --ide-cursor: 210 100% 60%;
   }
 }
 
