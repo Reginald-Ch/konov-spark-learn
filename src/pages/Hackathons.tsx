@@ -241,7 +241,7 @@ const Hackathons = () => {
                 <ArrowLeft className="w-5 h-5 text-[hsl(var(--discord-text))] group-hover:text-white" />
               </motion.div>
             </TooltipTrigger>
-            <TooltipContent side="right"><p>Back to Home</p></TooltipContent>
+            <TooltipContent side="right"><p>{activeTab === 'templates' ? 'Back to Home' : 'Back to Templates'}</p></TooltipContent>
           </Tooltip>
           
           <div className="w-8 h-0.5 bg-[hsl(var(--discord-light))] rounded-full my-1" />
