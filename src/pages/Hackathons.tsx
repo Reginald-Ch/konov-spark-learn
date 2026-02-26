@@ -22,7 +22,7 @@ import {
   Rocket, Zap, Circle, Calendar, Hash,
   Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
