@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,9 @@ import { PublishModal } from './PublishModal';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
-  Rocket, Loader2, Save, Bot, Mic, Brain, ChevronDown,
+  Rocket, Loader2, Save, Bot, Mic, Brain,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
-  Circle, TestTube
+  Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -198,7 +198,9 @@ search = DuckDuckGoSearchRun()
 wiki = WikipediaAPIWrapper()
 
 def calculator(expression: str) -> str:
-    """Evaluate a math expression safely."""
+    """
+    Evaluate a math expression safely.
+    """
     try:
         result = eval(expression, {"__builtins__": {}})
         return f"Result: {result}"
@@ -259,44 +261,92 @@ const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   agent: ['Web Search', 'Calculator', 'Code Execution', 'Image Gen'],
 };
 
-// Simple Python syntax highlighting
-const highlightPython = (code: string) => {
-  const keywords = ['import', 'from', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'with', 'as', 'in', 'not', 'and', 'or', 'True', 'False', 'None', 'lambda', 'yield', 'raise', 'pass', 'break', 'continue', 'global'];
-  const builtins = ['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self'];
+// Token-based Python syntax highlighter (no nested regex corruption)
+interface Token {
+  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'text';
+  value: string;
+}
 
-  return code.split('\n').map(line => {
-    let highlighted = line
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+const KEYWORDS = new Set(['import', 'from', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'with', 'as', 'in', 'not', 'and', 'or', 'True', 'False', 'None', 'lambda', 'yield', 'raise', 'pass', 'break', 'continue', 'global', 'async', 'await']);
+const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
 
-    // Comments
-    const commentIdx = highlighted.indexOf('#');
-    if (commentIdx !== -1) {
-      const before = highlighted.slice(0, commentIdx);
-      const comment = highlighted.slice(commentIdx);
-      highlighted = before + `<span class="text-[hsl(var(--discord-text-muted))] italic">${comment}</span>`;
-      return highlighted;
+const tokenizeLine = (line: string): Token[] => {
+  const tokens: Token[] = [];
+  let i = 0;
+
+  while (i < line.length) {
+    // Comment
+    if (line[i] === '#') {
+      tokens.push({ type: 'comment', value: line.slice(i) });
+      break;
     }
-
-    // Strings (simple)
-    highlighted = highlighted.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '<span class="text-[hsl(var(--discord-green))]">$&</span>');
-    // Keywords
-    keywords.forEach(kw => {
-      const re = new RegExp(`\\b(${kw})\\b`, 'g');
-      highlighted = highlighted.replace(re, '<span class="text-[hsl(var(--discord-blurple))] font-semibold">$1</span>');
-    });
-    // Builtins
-    builtins.forEach(b => {
-      const re = new RegExp(`\\b(${b})\\b`, 'g');
-      highlighted = highlighted.replace(re, '<span class="text-[hsl(var(--discord-yellow))]">$1</span>');
-    });
-    // Decorators
-    highlighted = highlighted.replace(/(@\w+)/g, '<span class="text-[hsl(var(--discord-red))]">$1</span>');
-
-    return highlighted;
-  });
+    // Decorator
+    if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
+      let end = i + 1;
+      while (end < line.length && /[\w.]/.test(line[end])) end++;
+      tokens.push({ type: 'decorator', value: line.slice(i, end) });
+      i = end;
+      continue;
+    }
+    // Strings (triple-quoted or single/double)
+    if ((line[i] === '"' || line[i] === "'")) {
+      const quote = line[i];
+      const triple = line.slice(i, i + 3) === quote.repeat(3);
+      const delim = triple ? quote.repeat(3) : quote;
+      let end = i + delim.length;
+      while (end < line.length) {
+        if (line[end] === '\\') { end += 2; continue; }
+        if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
+        end++;
+      }
+      tokens.push({ type: 'string', value: line.slice(i, end) });
+      i = end;
+      continue;
+    }
+    // Numbers
+    if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
+      let end = i;
+      while (end < line.length && /[\d.eExXoObBa-fA-F_]/.test(line[end])) end++;
+      tokens.push({ type: 'number', value: line.slice(i, end) });
+      i = end;
+      continue;
+    }
+    // Words (identifiers / keywords)
+    if (/[a-zA-Z_]/.test(line[i])) {
+      let end = i;
+      while (end < line.length && /\w/.test(line[end])) end++;
+      const word = line.slice(i, end);
+      if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
+      else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
+      else tokens.push({ type: 'text', value: word });
+      i = end;
+      continue;
+    }
+    // Operators
+    if ('=+-*/<>!&|%^~:'.includes(line[i])) {
+      tokens.push({ type: 'operator', value: line[i] });
+      i++;
+      continue;
+    }
+    // Other (whitespace, parens, etc)
+    tokens.push({ type: 'text', value: line[i] });
+    i++;
+  }
+  return tokens;
 };
+
+const TOKEN_COLORS: Record<Token['type'], string> = {
+  keyword: 'text-[#c678dd]',
+  builtin: 'text-[#e5c07b]',
+  string: 'text-[#98c379]',
+  comment: 'text-[#5c6370] italic',
+  decorator: 'text-[#e06c75]',
+  number: 'text-[#d19a66]',
+  operator: 'text-[#56b6c2]',
+  text: 'text-[#abb2bf]',
+};
+
+const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 
@@ -327,6 +377,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState('');
 
+  // Terminal
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
+  const [showTerminal, setShowTerminal] = useState(false);
+
   // AI mentor
   const [aiOutput, setAiOutput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -335,11 +389,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   // Publish
   const [publishOpen, setPublishOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const highlightRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -359,6 +413,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
+    setTerminalOutput([`> Loaded ${scaffold.name} template`, `> 3 files ready`]);
+    setShowTerminal(true);
     setAiOutput('');
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
@@ -380,13 +436,25 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     toast.success('Copied!');
   }, [files, activeFile]);
 
-  const [scrollTop, setScrollTop] = useState(0);
-  const [showMobilePreview, setShowMobilePreview] = useState(false);
-
-  // Scroll sync handler
   const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
+
+  // Memoized highlighted lines
+  const highlightedContent = useMemo(() => {
+    if (activeFile !== 'main.py') return null;
+    const codeLines = files['main.py'].split('\n');
+    return codeLines.map((line) => {
+      if (!line) return '&nbsp;';
+      const tokens = tokenizeLine(line);
+      return tokens.map(t => {
+        const escaped = escapeHtml(t.value);
+        if (t.type === 'text') return escaped;
+        const cls = TOKEN_COLORS[t.type];
+        return `<span class="${cls}">${escaped}</span>`;
+      }).join('');
+    });
+  }, [files, activeFile]);
 
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
@@ -456,6 +524,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   // Run Tests
   const handleRun = async () => {
     setIsRunning(true);
+    setShowTerminal(true);
+    setTerminalOutput(prev => [...prev, '> Running tests...']);
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
 
     try {
@@ -464,8 +534,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         { code: files['main.py'], model: projectType, action: 'run' },
         (text) => { result = text; }
       );
+      setTerminalOutput(prev => [...prev, result]);
       setChatMessages(prev => [...prev, { role: 'assistant', content: result }]);
     } catch (e: any) {
+      setTerminalOutput(prev => [...prev, `❌ ${e.message}`]);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
       toast.error(e.message);
     } finally {
@@ -503,7 +575,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     }
   };
 
-  // Save project (insert or update)
+  // Save project
   const handleSave = async () => {
     let emailToUse = authorEmail;
     if (!emailToUse) {
@@ -515,7 +587,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setIsSaving(true);
     try {
       if (currentProjectId) {
-        // Update existing
         const { error } = await supabase
           .from('ai_projects' as any)
           .update({
@@ -527,7 +598,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           .eq('id', currentProjectId);
         if (error) throw error;
       } else {
-        // Insert new
         const { data, error } = await supabase
           .from('ai_projects' as any)
           .insert({
@@ -546,6 +616,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         setCurrentProjectId((data as any)?.id || null);
       }
       setLastSaved(new Date().toLocaleTimeString());
+      setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
     } catch (e) {
       console.error(e);
@@ -580,7 +651,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
-  const highlightedLines = activeFile === 'main.py' ? highlightPython(files[activeFile]) : null;
 
   const FILE_TABS: { id: FileTab; icon: React.ElementType; label: string }[] = [
     { id: 'main.py', icon: FileCode, label: 'main.py' },
@@ -589,82 +659,84 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[hsl(var(--discord-darker))]">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[hsl(var(--discord-dark))] border-b border-[hsl(var(--discord-light)/0.3)] flex-shrink-0">
+    <div className="flex flex-col h-full" style={{ background: '#1e2127' }}>
+      {/* Top Bar - clean dark header */}
+      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ background: '#16181d', borderBottom: '1px solid #2c313a' }}>
         <div className="flex items-center gap-3">
-          <Code className="w-5 h-5 text-[hsl(var(--discord-blurple))]" />
-          <span className="font-bold text-sm text-white">Build Studio</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-[hsl(var(--discord-blurple)/0.2)] text-[hsl(var(--discord-blurple))] border border-[hsl(var(--discord-blurple)/0.3)]">
+          <Code className="w-4 h-4" style={{ color: '#61afef' }} />
+          <span className="font-semibold text-sm" style={{ color: '#abb2bf' }}>Build Studio</span>
+          <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{ background: '#2c313a', color: '#61afef', border: '1px solid #3e4451' }}>
             {scaffold.icon} {scaffold.name}
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {/* AI Mentor buttons */}
           <Button size="sm" onClick={() => handleAiAssist('review')} disabled={isAiLoading}
-            className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white">
+            className="h-7 text-xs font-medium" style={{ background: '#61afef', color: '#1e2127' }}>
             {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
             Review
           </Button>
           <Button size="sm" onClick={() => handleAiAssist('explain')} disabled={isAiLoading} variant="ghost"
-            className="h-7 text-xs text-[hsl(var(--discord-text))] hover:text-white hover:bg-[hsl(var(--discord-light))]">
+            className="h-7 text-xs" style={{ color: '#abb2bf' }}>
             {isAiLoading && activeAiAction === 'explain' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <MessageSquare className="w-3 h-3 mr-1" />}
             Explain
           </Button>
           <Button size="sm" onClick={() => handleAiAssist('suggest')} disabled={isAiLoading} variant="ghost"
-            className="h-7 text-xs text-[hsl(var(--discord-text))] hover:text-white hover:bg-[hsl(var(--discord-light))]">
+            className="h-7 text-xs" style={{ color: '#abb2bf' }}>
             {isAiLoading && activeAiAction === 'suggest' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Lightbulb className="w-3 h-3 mr-1" />}
             Suggest
           </Button>
         </div>
       </div>
 
-      {/* Main 3-Panel Layout */}
+      {/* Main Layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* LEFT: Configuration Sidebar */}
+        {/* LEFT: Config Sidebar */}
         <AnimatePresence>
           {showConfig && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-r border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-dark))] overflow-y-auto flex-shrink-0 flex flex-col"
+              className="overflow-y-auto flex-shrink-0 flex flex-col"
+              style={{ background: '#21252b', borderRight: '1px solid #2c313a' }}
             >
               <div className="p-3 space-y-4">
                 {/* Project Name */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-1.5 block">
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
                     Project Name
                   </label>
                   <Input
                     value={projectName}
                     onChange={e => setProjectName(e.target.value)}
-                    className="h-8 text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
+                    className="h-8 text-xs border-0 focus-visible:ring-1" 
+                    style={{ background: '#282c34', color: '#abb2bf' }}
                   />
                 </div>
 
                 {/* Project Type */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-1.5 block">
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
                     Project Type
                   </label>
                   <div className="space-y-1">
                     {([
-                      { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', color: '#5865F2' },
-                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', color: '#F7941D' },
-                      { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', color: '#00B894' },
+                      { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', accent: '#61afef' },
+                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', accent: '#e5c07b' },
+                      { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', accent: '#98c379' },
                     ]).map(type => (
                       <button
                         key={type.id}
                         onClick={() => handleTypeChange(type.id)}
-                        className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2 ${
-                          projectType === type.id
-                            ? 'bg-[hsl(var(--discord-blurple)/0.2)] border border-[hsl(var(--discord-blurple)/0.4)] text-white'
-                            : 'hover:bg-[hsl(var(--discord-light)/0.4)] text-[hsl(var(--discord-text-muted))] border border-transparent'
-                        }`}
+                        className="w-full text-left p-2 rounded-md text-xs transition-all flex items-center gap-2"
+                        style={{
+                          background: projectType === type.id ? `${type.accent}15` : 'transparent',
+                          border: projectType === type.id ? `1px solid ${type.accent}40` : '1px solid transparent',
+                          color: projectType === type.id ? '#abb2bf' : '#5c6370',
+                        }}
                       >
-                        <type.icon className="w-4 h-4" />
-                        <span className="font-semibold">{type.label}</span>
+                        <type.icon className="w-4 h-4" style={{ color: type.accent }} />
+                        <span className="font-medium">{type.label}</span>
                       </button>
                     ))}
                   </div>
@@ -672,30 +744,32 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
                 {/* System Prompt */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-1.5 block">
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
                     System Prompt
                   </label>
                   <Textarea
                     value={systemPrompt}
                     onChange={e => setSystemPrompt(e.target.value)}
                     rows={4}
-                    className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none"
+                    className="text-xs border-0 resize-none focus-visible:ring-1"
+                    style={{ background: '#282c34', color: '#abb2bf' }}
                   />
                 </div>
 
                 {/* Capabilities */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-1.5 block">
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
                     Capabilities
                   </label>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {CAPABILITY_OPTIONS[projectType].map(cap => (
-                      <label key={cap} className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text))] cursor-pointer hover:bg-[hsl(var(--discord-light)/0.2)] p-1.5 rounded">
+                      <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors" style={{ color: '#abb2bf' }}>
                         <input
                           type="checkbox"
                           checked={capabilities.includes(cap)}
                           onChange={() => toggleCapability(cap)}
-                          className="rounded border-[hsl(var(--discord-light))] accent-[hsl(var(--discord-blurple))]"
+                          className="rounded"
+                          style={{ accentColor: '#61afef' }}
                         />
                         {cap}
                       </label>
@@ -710,25 +784,27 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         {/* CENTER: Code Editor */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* File Tabs */}
-          <div className="flex items-center bg-[hsl(var(--discord-dark)/0.5)] border-b border-[hsl(var(--discord-light)/0.2)] flex-shrink-0">
+          <div className="flex items-center flex-shrink-0 h-9" style={{ background: '#21252b', borderBottom: '1px solid #181a1f' }}>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowConfig(!showConfig)}
-              className="h-8 w-8 text-[hsl(var(--discord-text-muted))] hover:text-white ml-1"
+              className="h-8 w-8 ml-1"
+              style={{ color: '#5c6370' }}
             >
               <Settings className={`w-3.5 h-3.5 transition-transform ${showConfig ? 'rotate-90' : ''}`} />
             </Button>
-            <div className="h-4 w-px bg-[hsl(var(--discord-light)/0.2)] mx-1" />
+            <div className="h-4 w-px mx-1" style={{ background: '#2c313a' }} />
             {FILE_TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveFile(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors border-b-2 ${
-                  activeFile === tab.id
-                    ? 'text-white border-[hsl(var(--discord-blurple))] bg-[hsl(var(--discord-darker))]'
-                    : 'text-[hsl(var(--discord-text-muted))] border-transparent hover:text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]'
-                }`}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors"
+                style={{
+                  background: activeFile === tab.id ? '#282c34' : 'transparent',
+                  color: activeFile === tab.id ? '#abb2bf' : '#5c6370',
+                  borderBottom: activeFile === tab.id ? '2px solid #61afef' : '2px solid transparent',
+                }}
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
@@ -736,87 +812,111 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             ))}
             <div className="flex-1" />
             <div className="flex items-center gap-1 pr-2">
-              <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
-              <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Ready</span>
-              <Button variant="ghost" size="icon" onClick={handleCopy} className="h-6 w-6 text-[hsl(var(--discord-text-muted))] hover:text-white">
-                {copied ? <Check className="w-3 h-3 text-[hsl(var(--discord-green))]" /> : <Copy className="w-3 h-3" />}
+              <Circle className="w-2 h-2" style={{ fill: '#98c379', color: '#98c379' }} />
+              <span className="text-[10px]" style={{ color: '#5c6370' }}>Ready</span>
+              <Button variant="ghost" size="icon" onClick={handleCopy} className="h-6 w-6" style={{ color: '#5c6370' }}>
+                {copied ? <Check className="w-3 h-3" style={{ color: '#98c379' }} /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           </div>
 
-          {/* Editor Area with Line Numbers - Scroll Synced */}
-          <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Editor Area */}
+          <div className="flex-1 flex min-h-0 overflow-hidden" style={{ background: '#282c34' }}>
             {/* Line Numbers */}
-            <div
-              ref={lineNumbersRef}
-              className="w-12 bg-[hsl(var(--discord-darker))] border-r border-[hsl(var(--discord-light)/0.1)] overflow-hidden flex-shrink-0"
-            >
-              <div className="p-2 pt-4" style={{ transform: `translateY(-${scrollTop}px)` }}>
+            <div className="w-14 flex-shrink-0 overflow-hidden select-none" style={{ background: '#282c34', borderRight: '1px solid #2c313a' }}>
+              <div className="pt-4 pr-3" style={{ transform: `translateY(-${scrollTop}px)` }}>
                 {lines.map((_, i) => (
-                  <div key={i} className="text-[11px] font-mono text-[hsl(var(--discord-text-muted)/0.4)] text-right pr-2 leading-6 select-none">
+                  <div key={i} className="text-right font-mono leading-6 text-[12px]" style={{ color: '#4b5263' }}>
                     {i + 1}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Code area: highlight overlay + textarea stacked */}
+            {/* Code area */}
             <div className="flex-1 relative min-w-0">
-              {/* Highlighted Code (background layer) - transform synced */}
-              {activeFile === 'main.py' && highlightedLines && (
+              {/* Highlighted Code Layer */}
+              {activeFile === 'main.py' && highlightedContent && (
                 <div
-                  ref={highlightRef}
-                  className="absolute inset-0 p-4 font-mono text-sm leading-6 pointer-events-none overflow-hidden whitespace-pre"
+                  className="absolute inset-0 pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none overflow-hidden whitespace-pre"
                   aria-hidden="true"
                 >
                   <div style={{ transform: `translateY(-${scrollTop}px)` }}>
-                    {highlightedLines.map((line, i) => (
-                      <div key={i} dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
+                    {highlightedContent.map((line, i) => (
+                      <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Textarea (input layer) - drives scroll */}
+              {/* Textarea */}
               <textarea
                 ref={textareaRef}
                 value={files[activeFile]}
                 onChange={e => updateFile(e.target.value)}
                 onScroll={handleEditorScroll}
                 spellCheck={false}
-                className={`absolute inset-0 w-full h-full resize-none bg-transparent font-mono text-sm p-4 leading-6 focus:outline-none placeholder:text-[hsl(var(--discord-text-muted)/0.5)] ${
-                  activeFile === 'main.py' ? 'text-transparent caret-white' : 'text-[hsl(var(--discord-text))]'
-                }`}
-                style={{ backgroundColor: activeFile === 'main.py' ? 'transparent' : 'hsl(var(--discord-darker))' }}
-                placeholder="// Start coding..."
+                className="absolute inset-0 w-full h-full resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0"
+                style={{
+                  background: activeFile === 'main.py' ? 'transparent' : '#282c34',
+                  color: activeFile === 'main.py' ? 'transparent' : '#abb2bf',
+                  caretColor: '#528bff',
+                }}
+                placeholder="# Start coding..."
               />
-              {/* Background for non-highlighted files */}
-              {activeFile !== 'main.py' && (
-                <div className="absolute inset-0 bg-[hsl(var(--discord-darker))] -z-10" />
-              )}
             </div>
           </div>
 
-          {/* AI Output Panel (below editor when active) */}
+          {/* Terminal Panel (toggleable) */}
+          <AnimatePresence>
+            {showTerminal && (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: 140 }}
+                exit={{ height: 0 }}
+                className="overflow-hidden flex-shrink-0"
+                style={{ borderTop: '1px solid #181a1f' }}
+              >
+                <div className="flex items-center justify-between px-3 py-1" style={{ background: '#21252b', borderBottom: '1px solid #2c313a' }}>
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-3 h-3" style={{ color: '#98c379' }} />
+                    <span className="text-[10px] font-mono font-bold uppercase" style={{ color: '#5c6370' }}>Terminal</span>
+                  </div>
+                  <button onClick={() => setShowTerminal(false)} style={{ color: '#5c6370' }}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="p-3 overflow-y-auto font-mono text-xs" style={{ background: '#1e2127', color: '#98c379', height: 'calc(100% - 28px)' }}>
+                  {terminalOutput.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                  {terminalOutput.length === 0 && <span style={{ color: '#5c6370' }}>$ Ready</span>}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* AI Output Panel */}
           <AnimatePresence>
             {aiOutput && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 200, opacity: 1 }}
+                animate={{ height: 180, opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-t border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-dark))] overflow-hidden"
+                className="overflow-hidden flex-shrink-0"
+                style={{ borderTop: '1px solid #181a1f' }}
               >
-                <div className="px-3 py-1.5 text-[10px] font-mono text-[hsl(var(--discord-text-muted))] border-b border-[hsl(var(--discord-light)/0.1)] flex items-center justify-between">
+                <div className="px-3 py-1 flex items-center justify-between" style={{ background: '#21252b', borderBottom: '1px solid #2c313a' }}>
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
-                    AI Mentor
-                    {isAiLoading && <Loader2 className="w-3 h-3 animate-spin text-[hsl(var(--discord-blurple))]" />}
+                    <Sparkles className="w-3 h-3" style={{ color: '#61afef' }} />
+                    <span className="text-[10px] font-mono font-bold uppercase" style={{ color: '#5c6370' }}>AI Mentor</span>
+                    {isAiLoading && <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#61afef' }} />}
                   </div>
-                  <button onClick={() => setAiOutput('')} className="hover:text-white">
+                  <button onClick={() => setAiOutput('')} style={{ color: '#5c6370' }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-                <div className="p-3 overflow-y-auto h-[calc(100%-28px)] text-sm text-[hsl(var(--discord-text))]">
+                <div className="p-3 overflow-y-auto text-sm" style={{ background: '#1e2127', color: '#abb2bf', height: 'calc(100% - 28px)' }}>
                   <div className="prose prose-invert prose-sm max-w-none">
                     <ReactMarkdown>{aiOutput}</ReactMarkdown>
                   </div>
@@ -826,33 +926,36 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: Live Preview / Chat - visible on lg+, toggleable on smaller */}
-        {/* Mobile preview toggle button */}
+        {/* RIGHT: Live Preview / Chat */}
         <button
           onClick={() => setShowMobilePreview(!showMobilePreview)}
-          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-[hsl(var(--discord-blurple))] text-white shadow-lg flex items-center justify-center"
+          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
+          style={{ background: '#61afef', color: '#1e2127' }}
         >
-          <Play className="w-5 h-5" />
+          <Eye className="w-5 h-5" />
         </button>
 
-        <div className={`w-80 border-l border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-dark))] flex-col flex-shrink-0 ${
+        <div className={`w-80 flex-col flex-shrink-0 ${
           showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-80' : 'hidden lg:flex'
-        }`}>
-          <div className="px-3 py-2 border-b border-[hsl(var(--discord-light)/0.2)] flex items-center gap-2">
-            <Play className="w-4 h-4 text-[hsl(var(--discord-green))]" />
-            <span className="text-xs font-bold text-white">Live Preview</span>
+        }`} style={{ background: '#21252b', borderLeft: '1px solid #2c313a' }}>
+          {/* Header */}
+          <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid #2c313a' }}>
+            <Circle className="w-2 h-2" style={{ fill: '#98c379', color: '#98c379' }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#5c6370' }}>Live Preview</span>
             <div className="flex-1" />
             <Button
               variant="ghost" size="icon"
               onClick={() => setShowMobilePreview(false)}
-              className="h-6 w-6 text-[hsl(var(--discord-text-muted))] hover:text-white lg:hidden"
+              className="h-6 w-6 lg:hidden"
+              style={{ color: '#5c6370' }}
             >
               <X className="w-3 h-3" />
             </Button>
             <Button
               variant="ghost" size="icon"
               onClick={() => setChatMessages([{ role: 'system', content: '⚡ Preview cleared.' }])}
-              className="h-6 w-6 text-[hsl(var(--discord-text-muted))] hover:text-white"
+              className="h-6 w-6"
+              style={{ color: '#5c6370' }}
             >
               <Trash2 className="w-3 h-3" />
             </Button>
@@ -862,13 +965,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs ${
-                  msg.role === 'user'
-                    ? 'bg-[hsl(var(--discord-blurple))] text-white'
-                    : msg.role === 'system'
-                    ? 'bg-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text-muted))] italic'
-                    : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text))]'
-                }`}>
+                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed`}
+                  style={{
+                    background: msg.role === 'user' ? '#61afef' : msg.role === 'system' ? '#2c313a' : '#282c34',
+                    color: msg.role === 'user' ? '#1e2127' : msg.role === 'system' ? '#5c6370' : '#abb2bf',
+                    fontStyle: msg.role === 'system' ? 'italic' : 'normal',
+                  }}>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -883,21 +985,23 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {/* Chat Input */}
-          <div className="p-3 border-t border-[hsl(var(--discord-light)/0.2)]">
+          <div className="p-3" style={{ borderTop: '1px solid #2c313a' }}>
             <div className="flex gap-2">
               <Input
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
-                placeholder="Ask your AI something..."
+                placeholder="Type a message..."
                 disabled={isStreaming}
-                className="h-8 text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
+                className="h-9 text-xs border-0 focus-visible:ring-1"
+                style={{ background: '#282c34', color: '#abb2bf' }}
               />
               <Button
-                size="icon"
+                size="sm"
                 onClick={handleChatSend}
                 disabled={isStreaming || !chatInput.trim()}
-                className="h-8 w-8 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] flex-shrink-0"
+                className="h-9 px-3 flex-shrink-0"
+                style={{ background: '#61afef', color: '#1e2127' }}
               >
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
@@ -907,13 +1011,20 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[hsl(var(--discord-dark))] border-t border-[hsl(var(--discord-light)/0.3)] flex-shrink-0">
+      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ background: '#21252b', borderTop: '1px solid #2c313a' }}>
         <div className="flex items-center gap-2">
+          {lastSaved && (
+            <div className="flex items-center gap-1.5 mr-2">
+              <Circle className="w-1.5 h-1.5" style={{ fill: '#98c379', color: '#98c379' }} />
+              <span className="text-[10px] font-mono" style={{ color: '#5c6370' }}>All changes saved</span>
+            </div>
+          )}
           <Button
             size="sm"
             onClick={handleRun}
             disabled={isRunning}
-            className="h-8 text-xs font-bold bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white"
+            className="h-8 text-xs font-bold uppercase tracking-wide"
+            style={{ background: '#3e4451', color: '#abb2bf', border: '1px solid #4b5263' }}
           >
             {isRunning ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <TestTube className="w-3.5 h-3.5 mr-1.5" />}
             Run Tests
@@ -922,24 +1033,34 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             size="sm"
             onClick={handleSave}
             disabled={isSaving}
-            className="h-8 text-xs font-bold bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white"
+            className="h-8 text-xs font-bold uppercase tracking-wide"
+            style={{ background: '#61afef', color: '#1e2127' }}
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-            Save Project
+            Save Checkpoint
           </Button>
-          {lastSaved && (
-            <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Saved {lastSaved}</span>
-          )}
         </div>
-        <Button
-          size="sm"
-          onClick={() => setPublishOpen(true)}
-          className="h-8 text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}
-        >
-          <Rocket className="w-3.5 h-3.5 mr-1.5" />
-          Deploy to Production
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowTerminal(!showTerminal)}
+            className="h-8 text-xs"
+            style={{ color: '#5c6370' }}
+          >
+            <Terminal className="w-3.5 h-3.5 mr-1.5" />
+            Terminal
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setPublishOpen(true)}
+            className="h-8 text-xs font-bold uppercase tracking-wide"
+            style={{ background: 'linear-gradient(135deg, #98c379, #61afef)', color: '#1e2127' }}
+          >
+            <Rocket className="w-3.5 h-3.5 mr-1.5" />
+            Go Live
+          </Button>
+        </div>
       </div>
 
       {/* Publish Modal */}
