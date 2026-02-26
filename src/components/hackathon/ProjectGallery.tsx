@@ -130,14 +130,21 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                     <span className="text-xs text-[hsl(var(--discord-text-muted))]">
                       ⭐ {project.points_earned} pts
                     </span>
-                    <Button
-                      size="sm"
-                      onClick={() => onViewCode(project.code)}
-                      className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]"
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Code
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+                          💬 Try It
+                        </Button>
+                      </a>
+                      <Button
+                        size="sm"
+                        onClick={() => onViewCode(project.code)}
+                        className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Code
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>

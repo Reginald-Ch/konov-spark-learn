@@ -57,7 +57,7 @@ const Hackathons = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<MainTab>('hackathons');
+  const [activeTab, setActiveTab] = useState<MainTab>('templates');
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
   
   // Build tab state
@@ -159,7 +159,7 @@ const Hackathons = () => {
     <TooltipProvider>
       <div className="h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row overflow-hidden">
         <SEO 
-          title="AI Hackathon Platform - Tech Kids Africa"
+          title="FORGE — Build AI Projects"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
         />
 
@@ -188,7 +188,7 @@ const Hackathons = () => {
                     style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}>
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white mb-1">Welcome to Build Studio! 🎉</h2>
+                  <h2 className="text-2xl font-bold text-white mb-1">Welcome to FORGE! 🎉</h2>
                   <p className="text-[hsl(var(--discord-text-muted))] text-sm">Build AI projects with Python in 3 easy steps</p>
                 </div>
 

@@ -17,9 +17,11 @@ interface PublishModalProps {
   description?: string;
   prefillEmail?: string;
   prefillAuthorName?: string;
+  currentProjectId?: string | null;
+  onProjectIdUpdate?: (id: string) => void;
 }
 
-export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName }: PublishModalProps) => {
+export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }: PublishModalProps) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -56,25 +58,51 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
     setIsPublishing(true);
     try {
-      const { data, error } = await supabase
-        .from('ai_projects')
-        .insert({
-          project_name: projectName,
-          description,
-          code,
-          template_id: templateId,
-          author_name: authorName,
-          author_email: authorEmail,
-          demo_url: demoUrl || null,
-          is_published: true,
-          points_earned: 10,
-        })
-        .select('id')
-        .single();
+      let resultId: string | null = null;
 
-      if (error) throw error;
+      if (currentProjectId) {
+        // Update existing saved project to published
+        const { error } = await supabase
+          .from('ai_projects')
+          .update({
+            project_name: projectName,
+            description,
+            code,
+            template_id: templateId,
+            author_name: authorName,
+            demo_url: demoUrl || null,
+            is_published: true,
+            points_earned: 10,
+          })
+          .eq('id', currentProjectId)
+          .eq('author_email', authorEmail);
 
-      setPublishedId(data?.id || null);
+        if (error) throw error;
+        resultId = currentProjectId;
+      } else {
+        // Insert new project
+        const { data, error } = await supabase
+          .from('ai_projects')
+          .insert({
+            project_name: projectName,
+            description,
+            code,
+            template_id: templateId,
+            author_name: authorName,
+            author_email: authorEmail,
+            demo_url: demoUrl || null,
+            is_published: true,
+            points_earned: 10,
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        resultId = data?.id || null;
+        if (resultId && onProjectIdUpdate) onProjectIdUpdate(resultId);
+      }
+
+      setPublishedId(resultId);
       setIsPublished(true);
       toast.success('🎉 Project is live! You earned 10 points!');
 
