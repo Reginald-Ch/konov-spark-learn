@@ -62,6 +62,27 @@ All colors MUST be HSL.
     --discord-red: 359 83% 59%;
     --discord-text: 210 9% 87%;
     --discord-text-muted: 214 8% 61%;
+
+    /* IDE One Dark Theme */
+    --ide-bg: 220 13% 18%;
+    --ide-bg-deep: 220 14% 11%;
+    --ide-sidebar: 220 13% 15%;
+    --ide-editor: 220 13% 18%;
+    --ide-gutter: 220 13% 18%;
+    --ide-border: 220 13% 20%;
+    --ide-border-subtle: 220 10% 13%;
+    --ide-text: 219 14% 71%;
+    --ide-text-muted: 220 9% 36%;
+    --ide-accent: 207 82% 66%;
+    --ide-green: 95 38% 62%;
+    --ide-yellow: 39 67% 69%;
+    --ide-red: 355 65% 65%;
+    --ide-purple: 286 60% 67%;
+    --ide-cyan: 187 47% 55%;
+    --ide-orange: 29 54% 61%;
+    --ide-line-highlight: 220 13% 22%;
+    --ide-selection: 220 13% 28%;
+    --ide-cursor: 220 80% 56%;
   }
 }
 
