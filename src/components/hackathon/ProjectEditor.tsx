@@ -364,6 +364,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState('');
+  const [aiCallCount, setAiCallCount] = useState(0);
 
   // Bottom panel
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -492,6 +493,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         }
       }
       return fullText;
+      setAiCallCount(prev => prev + 1);
     } finally { clearTimeout(timeout); }
   };
 
@@ -719,6 +721,24 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                     ))}
                   </div>
                 </div>
+
+                {/* Resources Used */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between text-ide-text">
+                      <span>AI Calls</span>
+                      <span className="font-mono text-ide-accent">{aiCallCount}</span>
+                    </div>
+                    <div className="flex justify-between text-ide-text">
+                      <span>Limit</span>
+                      <span className="font-mono text-ide-text-muted">40 / session</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-ide-border mt-1">
+                      <div className="h-full rounded-full bg-ide-accent transition-all" style={{ width: `${Math.min((aiCallCount / 40) * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -938,7 +958,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-3 border-t border-ide-border">
+          <div className="p-3 border-t border-ide-border space-y-2">
             <div className="flex gap-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
@@ -950,6 +970,26 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
+            {/* Pitch Controls */}
+            <div className="pt-1 border-t border-ide-border">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Pitch Controls</span>
+              <div className="flex gap-1.5 mt-1.5">
+                <Button size="sm" variant="ghost"
+                  onClick={() => { toast.success('🔴 Live pitch mode — share your screen!'); }}
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-red/15 text-ide-red hover:bg-ide-red/25 border border-ide-red/30">
+                  <Circle className="w-2 h-2 fill-ide-red mr-1" /> Go Live
+                </Button>
+                <Button size="sm" variant="ghost"
+                  onClick={() => {
+                    const url = currentProjectId ? `${window.location.origin}/projects/${currentProjectId}` : window.location.href;
+                    navigator.clipboard.writeText(url);
+                    toast.success('Demo URL copied!');
+                  }}
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-border/70">
+                  <Copy className="w-3 h-3 mr-1" /> Copy URL
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -957,12 +997,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       {/* ── Status / Action Bar ── */}
       <div className="flex items-center justify-between px-3 h-8 flex-shrink-0 bg-ide-sidebar border-t border-ide-border">
         <div className="flex items-center gap-2">
-          {lastSaved && (
-            <div className="flex items-center gap-1.5 mr-2">
-              <Circle className="w-1.5 h-1.5 fill-ide-green text-ide-green" />
-              <span className="text-[10px] font-mono text-ide-text-muted">Saved {lastSaved}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 mr-2">
+            <Circle className={`w-1.5 h-1.5 ${isDirty ? 'fill-ide-orange text-ide-orange' : 'fill-ide-green text-ide-green'}`} />
+            <span className="text-[10px] font-mono text-ide-text-muted">{isDirty ? 'Unsaved changes' : 'All changes saved'}</span>
+          </div>
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
@@ -993,12 +1031,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <Button size="sm" onClick={handleSave} disabled={isSaving}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
-            <span className="hidden sm:inline">Save</span>
+            <span className="hidden sm:inline">Save Checkpoint</span>
           </Button>
           <Button size="sm" onClick={() => setPublishOpen(true)}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Deploy</span>
+            <span className="hidden sm:inline">Go Live</span>
           </Button>
         </div>
       </div>
