@@ -10,9 +10,11 @@ import {
   Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
   Rocket, Loader2, Save, Bot, Mic, Brain,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
-  Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye
+  Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
+  PanelRightClose, PanelRightOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type ProjectType = 'chatbot' | 'voice-assistant' | 'agent';
 
@@ -261,7 +263,7 @@ const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   agent: ['Web Search', 'Calculator', 'Code Execution', 'Image Gen'],
 };
 
-// Token-based Python syntax highlighter (no nested regex corruption)
+// Token-based Python syntax highlighter
 interface Token {
   type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'text';
   value: string;
@@ -273,22 +275,13 @@ const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list'
 const tokenizeLine = (line: string): Token[] => {
   const tokens: Token[] = [];
   let i = 0;
-
   while (i < line.length) {
-    // Comment
-    if (line[i] === '#') {
-      tokens.push({ type: 'comment', value: line.slice(i) });
-      break;
-    }
-    // Decorator
+    if (line[i] === '#') { tokens.push({ type: 'comment', value: line.slice(i) }); break; }
     if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
       let end = i + 1;
       while (end < line.length && /[\w.]/.test(line[end])) end++;
-      tokens.push({ type: 'decorator', value: line.slice(i, end) });
-      i = end;
-      continue;
+      tokens.push({ type: 'decorator', value: line.slice(i, end) }); i = end; continue;
     }
-    // Strings (triple-quoted or single/double)
     if ((line[i] === '"' || line[i] === "'")) {
       const quote = line[i];
       const triple = line.slice(i, i + 3) === quote.repeat(3);
@@ -299,19 +292,13 @@ const tokenizeLine = (line: string): Token[] => {
         if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
         end++;
       }
-      tokens.push({ type: 'string', value: line.slice(i, end) });
-      i = end;
-      continue;
+      tokens.push({ type: 'string', value: line.slice(i, end) }); i = end; continue;
     }
-    // Numbers
     if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
       let end = i;
       while (end < line.length && /[\d.eExXoObBa-fA-F_]/.test(line[end])) end++;
-      tokens.push({ type: 'number', value: line.slice(i, end) });
-      i = end;
-      continue;
+      tokens.push({ type: 'number', value: line.slice(i, end) }); i = end; continue;
     }
-    // Words (identifiers / keywords)
     if (/[a-zA-Z_]/.test(line[i])) {
       let end = i;
       while (end < line.length && /\w/.test(line[end])) end++;
@@ -319,43 +306,38 @@ const tokenizeLine = (line: string): Token[] => {
       if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
       else tokens.push({ type: 'text', value: word });
-      i = end;
-      continue;
+      i = end; continue;
     }
-    // Operators
-    if ('=+-*/<>!&|%^~:'.includes(line[i])) {
-      tokens.push({ type: 'operator', value: line[i] });
-      i++;
-      continue;
-    }
-    // Other (whitespace, parens, etc)
-    tokens.push({ type: 'text', value: line[i] });
-    i++;
+    if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
+    tokens.push({ type: 'text', value: line[i] }); i++;
   }
   return tokens;
 };
 
 const TOKEN_COLORS: Record<Token['type'], string> = {
-  keyword: 'text-[#c678dd]',
-  builtin: 'text-[#e5c07b]',
-  string: 'text-[#98c379]',
-  comment: 'text-[#5c6370] italic',
-  decorator: 'text-[#e06c75]',
-  number: 'text-[#d19a66]',
-  operator: 'text-[#56b6c2]',
-  text: 'text-[#abb2bf]',
+  keyword: 'text-ide-purple',
+  builtin: 'text-ide-yellow',
+  string: 'text-ide-green',
+  comment: 'text-ide-text-muted italic',
+  decorator: 'text-ide-red',
+  number: 'text-ide-orange',
+  operator: 'text-ide-cyan',
+  text: 'text-ide-text',
 };
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
+type BottomTab = 'terminal' | 'ai-mentor';
 
 export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) => {
+  const isMobile = useIsMobile();
   const [projectType, setProjectType] = useState<ProjectType>(initialType || 'chatbot');
   const [projectName, setProjectName] = useState('My AI Project');
   const [systemPrompt, setSystemPrompt] = useState(PROJECT_SCAFFOLDS[initialType || 'chatbot'].systemPrompt);
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
-  const [showConfig, setShowConfig] = useState(true);
+  const [showConfig, setShowConfig] = useState(!isMobile);
+  const [showPreview, setShowPreview] = useState(!isMobile);
 
   // File state
   const [activeFile, setActiveFile] = useState<FileTab>('main.py');
@@ -377,9 +359,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState('');
 
-  // Terminal
+  // Bottom panel
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
-  const [showTerminal, setShowTerminal] = useState(false);
+  const [showBottomPanel, setShowBottomPanel] = useState(false);
+  const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
 
   // AI mentor
   const [aiOutput, setAiOutput] = useState('');
@@ -393,13 +376,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
+  const lineNumberRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // When project type changes, regenerate all files
   const handleTypeChange = (type: ProjectType) => {
     const scaffold = PROJECT_SCAFFOLDS[type];
     setProjectType(type);
@@ -414,15 +397,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
     setTerminalOutput([`> Loaded ${scaffold.name} template`, `> 3 files ready`]);
-    setShowTerminal(true);
+    setShowBottomPanel(true);
+    setBottomTab('terminal');
     setAiOutput('');
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
   const toggleCapability = (cap: string) => {
-    setCapabilities(prev =>
-      prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap]
-    );
+    setCapabilities(prev => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap]);
   };
 
   const updateFile = (content: string) => {
@@ -436,11 +418,19 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     toast.success('Copied!');
   }, [files, activeFile]);
 
-  const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+  // Ref-based scroll sync — no re-renders
+  const handleEditorScroll = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const top = textarea.scrollTop;
+    if (lineNumberRef.current) {
+      lineNumberRef.current.style.transform = `translateY(-${top}px)`;
+    }
+    if (highlightRef.current) {
+      highlightRef.current.style.transform = `translateY(-${top}px)`;
+    }
   }, []);
 
-  // Memoized highlighted lines
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
@@ -450,8 +440,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       return tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
-        const cls = TOKEN_COLORS[t.type];
-        return `<span class="${cls}">${escaped}</span>`;
+        return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
     });
   }, [files, activeFile]);
@@ -460,7 +449,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
-
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -474,7 +462,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           signal: controller.signal,
         }
       );
-
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         if (resp.status === 401) throw new Error('Authentication error. Please refresh the page.');
@@ -482,18 +469,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         if (resp.status === 402) throw new Error('AI credits exhausted. Try again later.');
         throw new Error(err.error || 'AI service error');
       }
-
       if (!resp.body) throw new Error('No response body');
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let fullText = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         let newlineIdx: number;
         while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
           let line = buffer.slice(0, newlineIdx);
@@ -505,29 +489,20 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              onChunk(fullText);
-            }
-          } catch {
-            buffer = line + '\n' + buffer;
-            break;
-          }
+            if (content) { fullText += content; onChunk(fullText); }
+          } catch { buffer = line + '\n' + buffer; break; }
         }
       }
       return fullText;
-    } finally {
-      clearTimeout(timeout);
-    }
+    } finally { clearTimeout(timeout); }
   };
 
-  // Run Tests
   const handleRun = async () => {
     setIsRunning(true);
-    setShowTerminal(true);
+    setShowBottomPanel(true);
+    setBottomTab('terminal');
     setTerminalOutput(prev => [...prev, '> Running tests...']);
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
-
     try {
       let result = '';
       await streamFromEdgeFunction(
@@ -540,23 +515,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setTerminalOutput(prev => [...prev, `❌ ${e.message}`]);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
       toast.error(e.message);
-    } finally {
-      setIsRunning(false);
-    }
+    } finally { setIsRunning(false); }
   };
 
-  // Test agent with chat
   const handleChatSend = async () => {
     if (!chatInput.trim() || isStreaming) return;
     const userMsg = chatInput.trim();
     setChatInput('');
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
-
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
-
       await streamFromEdgeFunction(
         { code: userMsg, model: projectType, action: 'test-agent', systemPrompt },
         (text) => {
@@ -570,12 +540,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       );
     } catch (e: any) {
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
-    } finally {
-      setIsStreaming(false);
-    }
+    } finally { setIsStreaming(false); }
   };
 
-  // Save project
   const handleSave = async () => {
     let emailToUse = authorEmail;
     if (!emailToUse) {
@@ -583,33 +550,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       if (!emailToUse) return;
       setAuthorEmail(emailToUse);
     }
-
     setIsSaving(true);
     try {
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects' as any)
-          .update({
-            project_name: projectName,
-            description: systemPrompt,
-            code: files['main.py'],
-            template_id: projectType,
-          } as any)
+          .update({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType } as any)
           .eq('id', currentProjectId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects' as any)
-          .insert({
-            project_name: projectName,
-            description: systemPrompt,
-            code: files['main.py'],
-            template_id: projectType,
-            author_name: 'Student',
-            author_email: emailToUse,
-            is_published: false,
-            points_earned: 0,
-          })
+          .insert({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType, author_name: 'Student', author_email: emailToUse, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
@@ -621,32 +573,23 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } catch (e) {
       console.error(e);
       toast.error('Failed to save');
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
-  // AI mentor actions
   const handleAiAssist = async (action: string) => {
-    if (!files['main.py'].trim()) {
-      toast.error('Write some code first!');
-      return;
-    }
+    if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
     setIsAiLoading(true);
     setActiveAiAction(action);
     setAiOutput('');
-
+    setShowBottomPanel(true);
+    setBottomTab('ai-mentor');
     try {
       await streamFromEdgeFunction(
         { code: files['main.py'], model: projectType, action },
         (text) => setAiOutput(text)
       );
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setIsAiLoading(false);
-      setActiveAiAction(null);
-    }
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsAiLoading(false); setActiveAiAction(null); }
   };
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
@@ -659,83 +602,82 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   ];
 
   return (
-    <div className="flex flex-col h-full" style={{ background: '#1e2127' }}>
-      {/* Top Bar - clean dark header */}
-      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ background: '#16181d', borderBottom: '1px solid #2c313a' }}>
-        <div className="flex items-center gap-3">
-          <Code className="w-4 h-4" style={{ color: '#61afef' }} />
-          <span className="font-semibold text-sm" style={{ color: '#abb2bf' }}>Build Studio</span>
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{ background: '#2c313a', color: '#61afef', border: '1px solid #3e4451' }}>
+    <div className="flex flex-col h-full bg-ide-bg">
+      {/* ── Top Bar ── */}
+      <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">
+        <div className="flex items-center gap-2.5">
+          <Code className="w-4 h-4 text-ide-accent" />
+          <span className="font-semibold text-sm text-ide-text">Build Studio</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" onClick={() => handleAiAssist('review')} disabled={isAiLoading}
-            className="h-7 text-xs font-medium" style={{ background: '#61afef', color: '#1e2127' }}>
-            {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
-            Review
-          </Button>
-          <Button size="sm" onClick={() => handleAiAssist('explain')} disabled={isAiLoading} variant="ghost"
-            className="h-7 text-xs" style={{ color: '#abb2bf' }}>
-            {isAiLoading && activeAiAction === 'explain' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <MessageSquare className="w-3 h-3 mr-1" />}
-            Explain
-          </Button>
-          <Button size="sm" onClick={() => handleAiAssist('suggest')} disabled={isAiLoading} variant="ghost"
-            className="h-7 text-xs" style={{ color: '#abb2bf' }}>
-            {isAiLoading && activeAiAction === 'suggest' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Lightbulb className="w-3 h-3 mr-1" />}
-            Suggest
-          </Button>
+          {[
+            { action: 'review', icon: Sparkles, label: 'Review', primary: true },
+            { action: 'explain', icon: MessageSquare, label: 'Explain', primary: false },
+            { action: 'suggest', icon: Lightbulb, label: 'Suggest', primary: false },
+          ].map(({ action, icon: Icon, label, primary }) => (
+            <Button
+              key={action}
+              size="sm"
+              variant={primary ? 'default' : 'ghost'}
+              onClick={() => handleAiAssist(action)}
+              disabled={isAiLoading}
+              className={`h-7 text-xs font-medium ${primary ? 'bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90' : 'text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50'}`}
+            >
+              {isAiLoading && activeAiAction === action ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Icon className="w-3 h-3 mr-1" />}
+              <span className="hidden sm:inline">{label}</span>
+            </Button>
+          ))}
         </div>
       </div>
 
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Main 3-Panel Layout ── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* LEFT: Config Sidebar */}
         <AnimatePresence>
           {showConfig && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
+              animate={{ width: isMobile ? '100%' : 220, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="overflow-y-auto flex-shrink-0 flex flex-col"
-              style={{ background: '#21252b', borderRight: '1px solid #2c313a' }}
+              transition={{ duration: 0.2 }}
+              className={`overflow-y-auto flex-shrink-0 flex flex-col bg-ide-sidebar border-r border-ide-border ${isMobile ? 'absolute inset-0 z-30' : ''}`}
             >
+              {isMobile && (
+                <div className="flex items-center justify-between px-3 py-2 border-b border-ide-border">
+                  <span className="text-xs font-bold uppercase tracking-wider text-ide-text-muted">Config</span>
+                  <button onClick={() => setShowConfig(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-4 h-4" /></button>
+                </div>
+              )}
               <div className="p-3 space-y-4">
                 {/* Project Name */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
-                    Project Name
-                  </label>
-                  <Input
-                    value={projectName}
-                    onChange={e => setProjectName(e.target.value)}
-                    className="h-8 text-xs border-0 focus-visible:ring-1" 
-                    style={{ background: '#282c34', color: '#abb2bf' }}
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
+                  <Input value={projectName} onChange={e => setProjectName(e.target.value)}
+                    className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
                 </div>
 
                 {/* Project Type */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
-                    Project Type
-                  </label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Type</label>
                   <div className="space-y-1">
                     {([
-                      { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', accent: '#61afef' },
-                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', accent: '#e5c07b' },
-                      { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', accent: '#98c379' },
+                      { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
+                      { id: 'voice-assistant' as ProjectType, icon: Mic, label: '🎙️ Voice Assistant', cls: 'text-ide-yellow' },
+                      { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
                     ]).map(type => (
                       <button
                         key={type.id}
                         onClick={() => handleTypeChange(type.id)}
-                        className="w-full text-left p-2 rounded-md text-xs transition-all flex items-center gap-2"
-                        style={{
-                          background: projectType === type.id ? `${type.accent}15` : 'transparent',
-                          border: projectType === type.id ? `1px solid ${type.accent}40` : '1px solid transparent',
-                          color: projectType === type.id ? '#abb2bf' : '#5c6370',
-                        }}
+                        className={`w-full text-left p-2 rounded-md text-xs transition-all flex items-center gap-2 border ${
+                          projectType === type.id
+                            ? 'bg-ide-selection border-ide-accent/40 text-ide-text'
+                            : 'border-transparent text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text'
+                        }`}
                       >
-                        <type.icon className="w-4 h-4" style={{ color: type.accent }} />
+                        <type.icon className={`w-4 h-4 ${type.cls}`} />
                         <span className="font-medium">{type.label}</span>
                       </button>
                     ))}
@@ -744,33 +686,19 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
                 {/* System Prompt */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
-                    System Prompt
-                  </label>
-                  <Textarea
-                    value={systemPrompt}
-                    onChange={e => setSystemPrompt(e.target.value)}
-                    rows={4}
-                    className="text-xs border-0 resize-none focus-visible:ring-1"
-                    style={{ background: '#282c34', color: '#abb2bf' }}
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">System Prompt</label>
+                  <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
+                    className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
                 </div>
 
                 {/* Capabilities */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: '#5c6370' }}>
-                    Capabilities
-                  </label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Capabilities</label>
                   <div className="space-y-0.5">
                     {CAPABILITY_OPTIONS[projectType].map(cap => (
-                      <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors" style={{ color: '#abb2bf' }}>
-                        <input
-                          type="checkbox"
-                          checked={capabilities.includes(cap)}
-                          onChange={() => toggleCapability(cap)}
-                          className="rounded"
-                          style={{ accentColor: '#61afef' }}
-                        />
+                      <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors text-ide-text hover:bg-ide-border/30">
+                        <input type="checkbox" checked={capabilities.includes(cap)} onChange={() => toggleCapability(cap)}
+                          className="rounded accent-ide-accent" />
                         {cap}
                       </label>
                     ))}
@@ -782,29 +710,23 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </AnimatePresence>
 
         {/* CENTER: Code Editor */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* File Tabs */}
-          <div className="flex items-center flex-shrink-0 h-9" style={{ background: '#21252b', borderBottom: '1px solid #181a1f' }}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowConfig(!showConfig)}
-              className="h-8 w-8 ml-1"
-              style={{ color: '#5c6370' }}
-            >
+          <div className="flex items-center flex-shrink-0 h-9 bg-ide-sidebar border-b border-ide-border-subtle">
+            <Button variant="ghost" size="icon" onClick={() => setShowConfig(!showConfig)}
+              className="h-8 w-8 ml-1 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
               <Settings className={`w-3.5 h-3.5 transition-transform ${showConfig ? 'rotate-90' : ''}`} />
             </Button>
-            <div className="h-4 w-px mx-1" style={{ background: '#2c313a' }} />
+            <div className="h-4 w-px mx-1 bg-ide-border" />
             {FILE_TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveFile(tab.id)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors"
-                style={{
-                  background: activeFile === tab.id ? '#282c34' : 'transparent',
-                  color: activeFile === tab.id ? '#abb2bf' : '#5c6370',
-                  borderBottom: activeFile === tab.id ? '2px solid #61afef' : '2px solid transparent',
-                }}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors border-b-2 ${
+                  activeFile === tab.id
+                    ? 'bg-ide-editor text-ide-text border-ide-accent'
+                    : 'text-ide-text-muted border-transparent hover:text-ide-text hover:bg-ide-border/30'
+                }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
@@ -812,23 +734,22 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             ))}
             <div className="flex-1" />
             <div className="flex items-center gap-1 pr-2">
-              <Circle className="w-2 h-2" style={{ fill: '#98c379', color: '#98c379' }} />
-              <span className="text-[10px]" style={{ color: '#5c6370' }}>Ready</span>
-              <Button variant="ghost" size="icon" onClick={handleCopy} className="h-6 w-6" style={{ color: '#5c6370' }}>
-                {copied ? <Check className="w-3 h-3" style={{ color: '#98c379' }} /> : <Copy className="w-3 h-3" />}
+              <Circle className="w-2 h-2 fill-ide-green text-ide-green" />
+              <span className="text-[10px] text-ide-text-muted">Ready</span>
+              <Button variant="ghost" size="icon" onClick={handleCopy}
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                {copied ? <Check className="w-3 h-3 text-ide-green" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           </div>
 
           {/* Editor Area */}
-          <div className="flex-1 flex min-h-0 overflow-hidden" style={{ background: '#282c34' }}>
+          <div className="flex-1 flex min-h-0 overflow-hidden bg-ide-editor">
             {/* Line Numbers */}
-            <div className="w-14 flex-shrink-0 overflow-hidden select-none" style={{ background: '#282c34', borderRight: '1px solid #2c313a' }}>
-              <div className="pt-4 pr-3" style={{ transform: `translateY(-${scrollTop}px)` }}>
+            <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border">
+              <div ref={lineNumberRef} className="pt-4 pr-2">
                 {lines.map((_, i) => (
-                  <div key={i} className="text-right font-mono leading-6 text-[12px]" style={{ color: '#4b5263' }}>
-                    {i + 1}
-                  </div>
+                  <div key={i} className="text-right font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
                 ))}
               </div>
             </div>
@@ -837,11 +758,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div className="flex-1 relative min-w-0">
               {/* Highlighted Code Layer */}
               {activeFile === 'main.py' && highlightedContent && (
-                <div
-                  className="absolute inset-0 pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none overflow-hidden whitespace-pre"
-                  aria-hidden="true"
-                >
-                  <div style={{ transform: `translateY(-${scrollTop}px)` }}>
+                <div className="absolute inset-0 pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none overflow-hidden whitespace-pre" aria-hidden="true">
+                  <div ref={highlightRef}>
                     {highlightedContent.map((line, i) => (
                       <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
                     ))}
@@ -856,70 +774,65 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 onChange={e => updateFile(e.target.value)}
                 onScroll={handleEditorScroll}
                 spellCheck={false}
-                className="absolute inset-0 w-full h-full resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0"
-                style={{
-                  background: activeFile === 'main.py' ? 'transparent' : '#282c34',
-                  color: activeFile === 'main.py' ? 'transparent' : '#abb2bf',
-                  caretColor: '#528bff',
-                }}
+                className={`absolute inset-0 w-full h-full resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent ${
+                  activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text bg-ide-editor'
+                }`}
                 placeholder="# Start coding..."
               />
             </div>
           </div>
 
-          {/* Terminal Panel (toggleable) */}
+          {/* ── Combined Bottom Panel (Terminal + AI Mentor) ── */}
           <AnimatePresence>
-            {showTerminal && (
+            {showBottomPanel && (
               <motion.div
                 initial={{ height: 0 }}
-                animate={{ height: 140 }}
+                animate={{ height: 160 }}
                 exit={{ height: 0 }}
-                className="overflow-hidden flex-shrink-0"
-                style={{ borderTop: '1px solid #181a1f' }}
+                className="overflow-hidden flex-shrink-0 flex flex-col border-t border-ide-border-subtle"
               >
-                <div className="flex items-center justify-between px-3 py-1" style={{ background: '#21252b', borderBottom: '1px solid #2c313a' }}>
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-3 h-3" style={{ color: '#98c379' }} />
-                    <span className="text-[10px] font-mono font-bold uppercase" style={{ color: '#5c6370' }}>Terminal</span>
-                  </div>
-                  <button onClick={() => setShowTerminal(false)} style={{ color: '#5c6370' }}>
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-                <div className="p-3 overflow-y-auto font-mono text-xs" style={{ background: '#1e2127', color: '#98c379', height: 'calc(100% - 28px)' }}>
-                  {terminalOutput.map((line, i) => (
-                    <div key={i}>{line}</div>
+                {/* Bottom Panel Tabs */}
+                <div className="flex items-center px-2 bg-ide-sidebar border-b border-ide-border h-7 flex-shrink-0">
+                  {[
+                    { id: 'terminal' as BottomTab, icon: Terminal, label: 'Terminal', color: 'text-ide-green' },
+                    { id: 'ai-mentor' as BottomTab, icon: Sparkles, label: 'AI Mentor', color: 'text-ide-accent' },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setBottomTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors ${
+                        bottomTab === tab.id ? `${tab.color} bg-ide-bg` : 'text-ide-text-muted hover:text-ide-text'
+                      }`}
+                    >
+                      <tab.icon className="w-3 h-3" />
+                      {tab.label}
+                      {tab.id === 'ai-mentor' && isAiLoading && <Loader2 className="w-3 h-3 animate-spin text-ide-accent" />}
+                    </button>
                   ))}
-                  {terminalOutput.length === 0 && <span style={{ color: '#5c6370' }}>$ Ready</span>}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* AI Output Panel */}
-          <AnimatePresence>
-            {aiOutput && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 180, opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden flex-shrink-0"
-                style={{ borderTop: '1px solid #181a1f' }}
-              >
-                <div className="px-3 py-1 flex items-center justify-between" style={{ background: '#21252b', borderBottom: '1px solid #2c313a' }}>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3 h-3" style={{ color: '#61afef' }} />
-                    <span className="text-[10px] font-mono font-bold uppercase" style={{ color: '#5c6370' }}>AI Mentor</span>
-                    {isAiLoading && <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#61afef' }} />}
-                  </div>
-                  <button onClick={() => setAiOutput('')} style={{ color: '#5c6370' }}>
+                  <div className="flex-1" />
+                  <button onClick={() => setShowBottomPanel(false)} className="text-ide-text-muted hover:text-ide-text p-1">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-                <div className="p-3 overflow-y-auto text-sm" style={{ background: '#1e2127', color: '#abb2bf', height: 'calc(100% - 28px)' }}>
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown>{aiOutput}</ReactMarkdown>
-                  </div>
+
+                {/* Panel Content */}
+                <div className="flex-1 overflow-y-auto p-3 bg-ide-bg">
+                  {bottomTab === 'terminal' ? (
+                    <div className="font-mono text-xs text-ide-green space-y-0.5">
+                      {terminalOutput.map((line, i) => <div key={i}>{line}</div>)}
+                      {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-ide-text">
+                      {aiOutput ? (
+                        <div className="prose prose-invert prose-sm max-w-none">
+                          <ReactMarkdown>{aiOutput}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <span className="text-ide-text-muted text-xs italic">Click Review, Explain, or Suggest to get AI feedback on your code.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -927,50 +840,34 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </div>
 
         {/* RIGHT: Live Preview / Chat */}
-        <button
-          onClick={() => setShowMobilePreview(!showMobilePreview)}
-          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
-          style={{ background: '#61afef', color: '#1e2127' }}
-        >
-          <Eye className="w-5 h-5" />
-        </button>
-
-        <div className={`w-80 flex-col flex-shrink-0 ${
-          showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-80' : 'hidden lg:flex'
-        }`} style={{ background: '#21252b', borderLeft: '1px solid #2c313a' }}>
-          {/* Header */}
-          <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid #2c313a' }}>
-            <Circle className="w-2 h-2" style={{ fill: '#98c379', color: '#98c379' }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#5c6370' }}>Live Preview</span>
+        <div className={`w-72 flex-col flex-shrink-0 bg-ide-sidebar border-l border-ide-border ${
+          showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
+        }`}>
+          <div className="px-3 py-2 flex items-center gap-2 border-b border-ide-border h-9 flex-shrink-0">
+            <Circle className="w-2 h-2 fill-ide-green text-ide-green" />
+            <span className="text-xs font-bold uppercase tracking-wider text-ide-text-muted">Live Preview</span>
             <div className="flex-1" />
-            <Button
-              variant="ghost" size="icon"
-              onClick={() => setShowMobilePreview(false)}
-              className="h-6 w-6 lg:hidden"
-              style={{ color: '#5c6370' }}
-            >
+            <Button variant="ghost" size="icon" onClick={() => { setShowMobilePreview(false); setShowPreview(false); }}
+              className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 lg:hidden">
               <X className="w-3 h-3" />
             </Button>
-            <Button
-              variant="ghost" size="icon"
+            <Button variant="ghost" size="icon"
               onClick={() => setChatMessages([{ role: 'system', content: '⚡ Preview cleared.' }])}
-              className="h-6 w-6"
-              style={{ color: '#5c6370' }}
-            >
+              className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
 
-          {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed`}
-                  style={{
-                    background: msg.role === 'user' ? '#61afef' : msg.role === 'system' ? '#2c313a' : '#282c34',
-                    color: msg.role === 'user' ? '#1e2127' : msg.role === 'system' ? '#5c6370' : '#abb2bf',
-                    fontStyle: msg.role === 'system' ? 'italic' : 'normal',
-                  }}>
+                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-ide-accent text-ide-bg-deep'
+                    : msg.role === 'system'
+                    ? 'bg-ide-border text-ide-text-muted italic'
+                    : 'bg-ide-editor text-ide-text'
+                }`}>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -984,25 +881,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div ref={chatEndRef} />
           </div>
 
-          {/* Chat Input */}
-          <div className="p-3" style={{ borderTop: '1px solid #2c313a' }}>
+          <div className="p-3 border-t border-ide-border">
             <div className="flex gap-2">
-              <Input
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
+              <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder="Type a message..."
                 disabled={isStreaming}
-                className="h-9 text-xs border-0 focus-visible:ring-1"
-                style={{ background: '#282c34', color: '#abb2bf' }}
-              />
-              <Button
-                size="sm"
-                onClick={handleChatSend}
-                disabled={isStreaming || !chatInput.trim()}
-                className="h-9 px-3 flex-shrink-0"
-                style={{ background: '#61afef', color: '#1e2127' }}
-              >
+                className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+              <Button size="sm" onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+                className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
@@ -1010,60 +897,55 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ background: '#21252b', borderTop: '1px solid #2c313a' }}>
+      {/* ── Status / Action Bar ── */}
+      <div className="flex items-center justify-between px-3 h-8 flex-shrink-0 bg-ide-sidebar border-t border-ide-border">
         <div className="flex items-center gap-2">
           {lastSaved && (
             <div className="flex items-center gap-1.5 mr-2">
-              <Circle className="w-1.5 h-1.5" style={{ fill: '#98c379', color: '#98c379' }} />
-              <span className="text-[10px] font-mono" style={{ color: '#5c6370' }}>All changes saved</span>
+              <Circle className="w-1.5 h-1.5 fill-ide-green text-ide-green" />
+              <span className="text-[10px] font-mono text-ide-text-muted">Saved {lastSaved}</span>
             </div>
           )}
-          <Button
-            size="sm"
-            onClick={handleRun}
-            disabled={isRunning}
-            className="h-8 text-xs font-bold uppercase tracking-wide"
-            style={{ background: '#3e4451', color: '#abb2bf', border: '1px solid #4b5263' }}
-          >
-            {isRunning ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <TestTube className="w-3.5 h-3.5 mr-1.5" />}
-            Run Tests
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="h-8 text-xs font-bold uppercase tracking-wide"
-            style={{ background: '#61afef', color: '#1e2127' }}
-          >
-            {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-            Save Checkpoint
-          </Button>
+          <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
+          <span className="text-[10px] font-mono text-ide-text-muted">•</span>
+          <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowTerminal(!showTerminal)}
-            className="h-8 text-xs"
-            style={{ color: '#5c6370' }}
-          >
-            <Terminal className="w-3.5 h-3.5 mr-1.5" />
-            Terminal
+        <div className="flex items-center gap-1.5">
+          <Button size="sm" onClick={() => { setShowBottomPanel(v => !v); setBottomTab('terminal'); }}
+            variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+            <Terminal className="w-3 h-3 mr-1" />
+            <span className="hidden sm:inline">Terminal</span>
           </Button>
-          <Button
-            size="sm"
-            onClick={() => setPublishOpen(true)}
-            className="h-8 text-xs font-bold uppercase tracking-wide"
-            style={{ background: 'linear-gradient(135deg, #98c379, #61afef)', color: '#1e2127' }}
-          >
-            <Rocket className="w-3.5 h-3.5 mr-1.5" />
-            Go Live
+          {/* Mobile preview toggle */}
+          <Button size="sm" onClick={() => { setShowMobilePreview(true); setShowPreview(true); }}
+            variant="ghost" className="h-6 text-[10px] lg:hidden text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+            <Eye className="w-3 h-3 mr-1" />
+            Preview
+          </Button>
+          {/* Desktop preview toggle */}
+          <Button size="sm" onClick={() => setShowPreview(v => !v)}
+            variant="ghost" className="h-6 text-[10px] hidden lg:flex text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+            {showPreview ? <PanelRightClose className="w-3 h-3 mr-1" /> : <PanelRightOpen className="w-3 h-3 mr-1" />}
+            Preview
+          </Button>
+          <Button size="sm" onClick={handleRun} disabled={isRunning}
+            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-border text-ide-text hover:bg-ide-selection border border-ide-border">
+            {isRunning ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <TestTube className="w-3 h-3 mr-1" />}
+            <span className="hidden sm:inline">Run Tests</span>
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={isSaving}
+            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+            {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
+            <span className="hidden sm:inline">Save</span>
+          </Button>
+          <Button size="sm" onClick={() => setPublishOpen(true)}
+            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
+            <Rocket className="w-3 h-3 mr-1" />
+            <span className="hidden sm:inline">Deploy</span>
           </Button>
         </div>
       </div>
 
-      {/* Publish Modal */}
       <PublishModal
         isOpen={publishOpen}
         onClose={() => setPublishOpen(false)}
