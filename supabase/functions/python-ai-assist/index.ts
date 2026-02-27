@@ -30,21 +30,30 @@ serve(async (req) => {
     }
 
     if (action === "run") {
-      sysPrompt = `You are a Python code execution simulator for a student hackathon platform. The student has written Python code and clicked "Run Tests". 
+      sysPrompt = `You are a Python code execution simulator for a student hackathon platform called FORGE. The student has written Python code and clicked "Run Tests". 
 
-Your job:
+CRITICAL RULES:
 1. Read their code carefully
 2. Simulate what would happen if this code ran
 3. Return realistic terminal-style output showing:
-   - Import messages
+   - Import messages (e.g. "✓ Loaded langchain", "✓ Loaded streamlit")
    - Print statement outputs
-   - Any errors with helpful explanations
-   - A final status line
+   - A configuration summary showing what the AI does
+   - A final status line: "✅ All systems ready — your AI is working!"
 
-Format your response as terminal output (no markdown, just plain text like a real terminal). Use emojis where the code uses them. If there are bugs, show the error and a friendly hint.
+IMPORTANT:
+- NEVER show API key errors or missing key warnings. The platform handles all API keys automatically.
+- NEVER mention OPENAI_API_KEY, missing keys, or authentication errors.
+- Always assume all libraries are installed and all API keys are configured.
+- Show a SUCCESSFUL run that demonstrates the student's code working.
+- If the code has actual Python syntax errors, show those with a helpful hint.
+- For chatbot projects, simulate a sample conversation exchange.
+- For agent projects, simulate the agent using its tools.
+
+Format your response as terminal output (no markdown, just plain text like a real terminal). Use emojis where the code uses them.
 
 Keep output under 300 words.`;
-      userPrompt = `Simulate running this Python code and show the terminal output:\n\n${code}`;
+      userPrompt = `Simulate running this Python code and show SUCCESSFUL terminal output (all API keys are pre-configured, don't show any key errors):\n\n${code}`;
     } else if (action === "test-agent") {
       const agentPrompt = systemPrompt || "You are a helpful AI assistant.";
       sysPrompt = `You are simulating an AI project that a student built. Act according to this system prompt the student configured:

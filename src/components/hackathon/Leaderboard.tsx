@@ -29,6 +29,8 @@ const SCORING_CONFIG = {
   // Tier 3 – Quality
   submitted_on_time: { points: 5,  tier: 3, label: 'Submitted On Time',  icon: '⏰', desc: 'Before deadline' },
   app_runs_live:     { points: 20, tier: 3, label: 'App Runs Live',      icon: '✅', desc: 'Tested without crashing' },
+  // Judge Score (up to 25 pts)
+  judge_score:       { points: 25, tier: 4, label: 'Judge Score',        icon: '⭐', desc: 'Scored by judges' },
 } as const;
 
 type ScoringEvent = keyof typeof SCORING_CONFIG;
@@ -37,9 +39,10 @@ const TIER_META = [
   { tier: 1, name: 'Foundation', max: 20, color: 'from-blue-500 to-cyan-400', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
   { tier: 2, name: 'Execution',  max: 30, color: 'from-amber-500 to-orange-400', textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
   { tier: 3, name: 'Quality',    max: 25, color: 'from-emerald-500 to-green-400', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
+  { tier: 4, name: 'Judge Score', max: 25, color: 'from-yellow-500 to-amber-400', textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
 ];
 
-const MAX_SCORE = 75;
+const MAX_SCORE = 100;
 
 interface ParticipantScore {
   email: string;
@@ -48,6 +51,7 @@ interface ParticipantScore {
   tier1: number;
   tier2: number;
   tier3: number;
+  tier4: number;
   events: Set<string>;
   rank: number;
 }
@@ -95,21 +99,29 @@ export const Leaderboard = () => {
         p = {
           email: evt.participant_email,
           name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0],
-          points: 0, tier1: 0, tier2: 0, tier3: 0,
+          points: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0,
           events: new Set<string>(),
           rank: 0,
         };
         participantMap.set(evt.participant_email, p);
       }
 
-      // Deduplicate: each event type counts once
-      if (!p.events.has(evt.event_type)) {
+      // For judge_score, allow accumulation (multiple judges), for others deduplicate
+      if (evt.event_type === 'judge_score') {
+        const pts = Math.min(evt.points, 25);
+        // Take the max judge score, not accumulate
+        if (pts > p.tier4) {
+          p.points = p.points - p.tier4 + pts;
+          p.tier4 = pts;
+        }
+        p.events.add(evt.event_type);
+      } else if (!p.events.has(evt.event_type)) {
         p.events.add(evt.event_type);
         const pts = config.points;
         p.points += pts;
         if (config.tier === 1) p.tier1 += pts;
         else if (config.tier === 2) p.tier2 += pts;
-        else p.tier3 += pts;
+        else if (config.tier === 3) p.tier3 += pts;
       }
     });
 
@@ -147,7 +159,7 @@ export const Leaderboard = () => {
   const TierBreakdown = ({ participant }: { participant: ParticipantScore }) => (
     <div className="space-y-3 mt-3">
       {TIER_META.map(tier => {
-        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : participant.tier3;
+        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : tier.tier === 3 ? participant.tier3 : participant.tier4;
         const pct = Math.round((tierPts / tier.max) * 100);
         const tierEvents = Object.entries(SCORING_CONFIG).filter(([_, c]) => c.tier === tier.tier);
         return (
@@ -266,7 +278,8 @@ export const Leaderboard = () => {
                         {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
                         {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
                         {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
-                        {p.points >= MAX_SCORE && <span className="text-[10px]">⭐</span>}
+                        {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
+                        {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                       </div>
                     </div>
                     <div className="text-right">
