@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-const JUDGE_ACCESS_CODE = 'FORGE2026';
+const JUDGE_ACCESS_CODE = '2059';
 
 interface Project {
   id: string;
@@ -46,7 +46,7 @@ const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
 const JudgeDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<(Project & { is_published: boolean })[]>([]);
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -80,7 +80,7 @@ const JudgeDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true);
     const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-      supabase.from('ai_projects').select('*').eq('is_published', true).order('created_at', { ascending: false }),
+      supabase.from('ai_projects').select('*').order('created_at', { ascending: false }),
       supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
       supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
     ]);
@@ -201,6 +201,21 @@ const JudgeDashboard = () => {
     );
   }
 
+  const handleTogglePublish = async (project: Project) => {
+    try {
+      const newStatus = !project.is_published;
+      const { error } = await supabase
+        .from('ai_projects')
+        .update({ is_published: newStatus } as any)
+        .eq('id', project.id);
+      if (error) throw error;
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
+      toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
+    } catch (e) {
+      toast.error('Failed to update project status');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[hsl(var(--discord-darker))]">
       <SEO title="Judge Dashboard - FORGE" description="Judge dashboard for hackathon scoring" />
@@ -261,6 +276,11 @@ const JudgeDashboard = () => {
                       End Hackathon
                     </Button>
                   )}
+                  {h.status === 'ended' && (
+                    <Button size="sm" onClick={() => handleGoLive(h.id)} className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+                      <Play className="w-3 h-3 mr-1" /> Restart
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -302,13 +322,18 @@ const JudgeDashboard = () => {
                   >
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold text-white text-sm">{project.project_name}</h3>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white text-sm truncate">{project.project_name}</h3>
                           <p className="text-xs text-[hsl(var(--discord-text-muted))]">by {project.author_name}</p>
                         </div>
-                        <Badge className="text-[10px]" style={{ backgroundColor: '#5865F220', color: '#5865F2' }}>
-                          {meta.icon} {meta.label}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Badge className="text-[10px]" style={{ backgroundColor: '#5865F220', color: '#5865F2' }}>
+                            {meta.icon} {meta.label}
+                          </Badge>
+                          <Badge className={`text-[10px] ${project.is_published ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                            {project.is_published ? '🟢 Live' : '🔴 Offline'}
+                          </Badge>
+                        </div>
                       </div>
                       {project.description && (
                         <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
@@ -321,6 +346,14 @@ const JudgeDashboard = () => {
                             <ExternalLink className="w-3 h-3 mr-1" /> Try Live
                           </Button>
                         </a>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleTogglePublish(project)}
+                          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}
+                        >
+                          {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
+                        </Button>
                       </div>
 
                       {/* Scoring */}
