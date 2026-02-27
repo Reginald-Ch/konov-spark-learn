@@ -515,23 +515,38 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   };
 
   const handleRun = async () => {
+    if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
     setIsRunning(true);
     setShowBottomPanel(true);
     setBottomTab('terminal');
-    setTerminalOutput(prev => [...prev, '> Running tests...']);
+    const startIdx = terminalOutput.length;
+    setTerminalOutput(prev => [...prev, `$ python main.py  [${projectType}]`, '⏳ Running...']);
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
     try {
       let result = '';
       await streamFromEdgeFunction(
-        { code: files['main.py'], model: projectType, action: 'run' },
-        (text) => { result = text; setTerminalOutput(prev => { const updated = [...prev]; updated[updated.length - 1] = result; return updated; }); }
+        { code: files['main.py'], model: projectType, action: 'run', systemPrompt, projectName, projectType },
+        (text) => { 
+          result = text; 
+          setTerminalOutput(prev => {
+            const updated = [...prev];
+            // Replace the '⏳ Running...' line with streamed output
+            updated[startIdx + 1] = result;
+            return updated;
+          });
+        }
       );
+      if (!result) {
+        setTerminalOutput(prev => [...prev, '⚠ No output received. Check your code for issues.']);
+      } else {
+        setTerminalOutput(prev => [...prev, '───────────────────', '✅ Run complete']);
+      }
       setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
       if (authorEmail) {
         supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 1, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
     } catch (e: any) {
-      setTerminalOutput(prev => [...prev, `❌ ${e.message}`]);
+      setTerminalOutput(prev => [...prev, `❌ Error: ${e.message}`, '', '💡 Tip: Check your code for syntax errors, or try again in a moment.']);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
     } finally { setIsRunning(false); }
   };

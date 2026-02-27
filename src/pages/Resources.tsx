@@ -7,10 +7,10 @@ import { ActionBurst } from "@/components/ActionBurst";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
-  Brain, Sparkles, Lightbulb, Zap, Target, 
+  Brain, Sparkles, Lightbulb, Zap, 
   Rocket, CheckCircle2, Heart, Code, Bot, 
-  Database, Cpu, Eye, MessageSquare, 
-  Gamepad2, Music, Camera, BookOpen,
+  Database, Eye, MessageSquare, 
+  Gamepad2,
   ChevronRight, Play
 } from "lucide-react";
 import { useState } from "react";
@@ -118,57 +118,7 @@ const aiTopics = [
   }
 ];
 
-// Step-by-step tutorial for using the platform
-const platformTutorial = [
-  {
-    step: 1,
-    title: "Pick a Template",
-    icon: Rocket,
-    description: "Go to the Hackathons page and click 'AI Chatbot' template. This gives you a working Python project instantly — no setup needed!",
-    example: "For our Maths Chatbot, we'll start with the AI Chatbot template.",
-    color: "#F7941D"
-  },
-  {
-    step: 2,
-    title: "Set Your System Prompt",
-    icon: MessageSquare,
-    description: "In the Config panel on the left, change the System Prompt to tell your AI what it should do. This is the personality and knowledge of your AI.",
-    example: 'Change the system prompt to: "You are a friendly maths tutor for SHS students. You explain algebra, geometry, and calculus step by step. Use simple language and give examples."',
-    color: "#5865F2"
-  },
-  {
-    step: 3,
-    title: "Edit Your Code",
-    icon: Code,
-    description: "The code editor in the centre shows your main.py file. You can change the model name, temperature, and add custom logic. The syntax highlighter helps you read code easily.",
-    example: 'Change the title to: st.title("📐 Maths Tutor AI") and update SYSTEM_PROMPT in the code to match your config.',
-    color: "#006600"
-  },
-  {
-    step: 4,
-    title: "Test in Live Preview",
-    icon: Bot,
-    description: "On the right panel, chat with your AI in real-time. Try asking it questions to see how it responds. If you don't like the responses, tweak your system prompt!",
-    example: 'Try asking: "Explain Pythagoras theorem" or "Solve 2x + 5 = 15" — see how it responds!',
-    color: "#9B59B6"
-  },
-  {
-    step: 5,
-    title: "Use AI Mentor for Help",
-    icon: Brain,
-    description: "Click 'Review', 'Explain', or 'Suggest' in the top bar to get AI feedback on your code. You can also ask the AI Mentor questions in the bottom panel.",
-    example: 'Click "Review" to get feedback on your code, or ask: "How do I add a quiz feature?"',
-    color: "#E74C3C"
-  },
-  {
-    step: 6,
-    title: "Save & Go Live!",
-    icon: Zap,
-    description: "Click 'Save Checkpoint' to save your progress. When you're ready, click 'Go Live' to deploy your AI and get a real URL that anyone can visit and use!",
-    example: "Your Maths Chatbot gets a public URL like /projects/abc123 — share it with friends and judges!",
-    color: "#C70110"
-  },
-];
+// Tutorial moved to hackathon LearnTab
 
 const whyLearnAI = [
   {
@@ -275,93 +225,6 @@ const Resources = () => {
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* Platform Tutorial - How to Build Your AI (FIRST - most important for students) */}
-      <section className="py-16 px-4 bg-card/50">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ type: "spring" }}
-              className="inline-block mb-4"
-            >
-              <ActionBurst>
-                <span className="text-foreground">BUILD!</span>
-              </ActionBurst>
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-fredoka font-bold mb-4 text-foreground">
-              How to Build Your <span className="text-primary">AI App</span> 🚀
-            </h2>
-            <p className="text-xl font-fredoka text-muted-foreground max-w-2xl mx-auto">
-              Follow these 6 steps to go from zero to a live AI project. We'll build a <strong>Maths Chatbot</strong> as an example!
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {platformTutorial.map((step, idx) => {
-              const Icon = step.icon;
-              return (
-                <motion.div
-                  key={step.step}
-                  initial={{ y: 30, opacity: 0 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <ComicPanel color={idx % 3 === 0 ? "primary" : idx % 3 === 1 ? "secondary" : "accent"}>
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-fredoka font-bold text-lg flex-shrink-0"
-                          style={{ backgroundColor: step.color }}
-                        >
-                          {step.step}
-                        </div>
-                        <div>
-                          <h3 className="font-fredoka font-bold text-foreground text-lg">{step.title}</h3>
-                        </div>
-                        <Icon className="w-5 h-5 ml-auto flex-shrink-0" style={{ color: step.color }} />
-                      </div>
-                      <p className="font-space text-muted-foreground text-sm mb-3">
-                        {step.description}
-                      </p>
-                      <div className="bg-secondary/10 rounded-lg p-3 border-2 border-secondary/20">
-                        <span className="font-fredoka font-bold text-secondary text-xs">💡 EXAMPLE:</span>
-                        <p className="font-space text-foreground text-xs mt-1">{step.example}</p>
-                      </div>
-                    </div>
-                  </ComicPanel>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* CTA to start building */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center"
-          >
-            <a href="/hackathons">
-              <Button 
-                size="lg" 
-                className="font-fredoka text-lg px-8 py-6 rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
-              >
-                <Rocket className="mr-2 w-6 h-6" />
-                Start Building Now!
-              </Button>
-            </a>
-          </motion.div>
         </div>
       </section>
 
