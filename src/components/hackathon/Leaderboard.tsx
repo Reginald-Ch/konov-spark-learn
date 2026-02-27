@@ -51,6 +51,7 @@ interface ParticipantScore {
   tier1: number;
   tier2: number;
   tier3: number;
+  tier4: number;
   events: Set<string>;
   rank: number;
 }
