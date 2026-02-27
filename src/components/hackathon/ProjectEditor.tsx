@@ -1009,7 +1009,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   </>
                 )}
 
-                {/* ── Theme Tab ── */}
+                {/* ── Theme & Design Tab ── */}
                 {configTab === 'theme' && (
                   <>
                     <div>
@@ -1033,17 +1033,90 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                     </div>
 
                     <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">📝 App Title</label>
+                      <Input 
+                        value={projectName} 
+                        onChange={e => setProjectName(e.target.value)}
+                        placeholder="My AI Assistant"
+                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">👋 Welcome Message</label>
+                      <Textarea 
+                        value={welcomeMessage} 
+                        onChange={e => setWelcomeMessage(e.target.value)}
+                        rows={2}
+                        placeholder="Hi! I'm your AI assistant. Ask me anything!"
+                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🔗 Logo URL (optional)</label>
+                      <Input 
+                        value={logoUrl} 
+                        onChange={e => setLogoUrl(e.target.value)}
+                        placeholder="https://example.com/logo.png"
+                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                      />
+                      {logoUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          <span className="text-[10px] text-ide-green">Logo loaded</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">💬 Quick Reply Buttons</label>
+                      <p className="text-[10px] text-ide-text-muted mb-2">Preset questions visitors can click to start chatting.</p>
+                      <div className="space-y-1.5">
+                        {quickReplies.map((reply, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <Input
+                              value={reply}
+                              onChange={e => {
+                                const updated = [...quickReplies];
+                                updated[idx] = e.target.value;
+                                setQuickReplies(updated);
+                              }}
+                              placeholder={`Button ${idx + 1}`}
+                              className="h-7 text-[11px] border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
+                            />
+                            <button onClick={() => setQuickReplies(prev => prev.filter((_, i) => i !== idx))} className="text-ide-text-muted hover:text-red-400 p-0.5">
+                              <Minus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {quickReplies.length < 5 && (
+                          <button onClick={() => setQuickReplies(prev => [...prev, ''])} className="w-full p-1.5 rounded border border-dashed border-ide-border text-ide-text-muted text-[10px] hover:border-ide-accent hover:text-ide-accent transition-colors">
+                            + Add button
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🧩 UI Widgets</label>
-                      <p className="text-[10px] text-ide-text-muted mb-2">Add extra elements to your app's chat interface.</p>
                       <div className="space-y-1.5">
                         {[
-                          { id: 'welcome', label: 'Welcome Banner', desc: 'Show a greeting at the top', default: true },
-                          { id: 'suggestions', label: 'Quick Reply Buttons', desc: 'Preset questions visitors can click', default: true },
-                          { id: 'branding', label: 'Custom Header', desc: 'Your project name & description', default: true },
-                          { id: 'codeview', label: 'View Source Code', desc: 'Let visitors see your Python code', default: true },
+                          { id: 'welcome', label: 'Welcome Banner', desc: 'Show greeting at the top' },
+                          { id: 'branding', label: 'Custom Header', desc: 'Logo + project name' },
+                          { id: 'codeview', label: 'View Source Code', desc: 'Let visitors see your code' },
                         ].map(widget => (
                           <label key={widget.id} className="flex items-start gap-2 text-xs cursor-pointer p-2 rounded transition-colors text-ide-text hover:bg-ide-border/30 bg-ide-editor border border-ide-border/50">
-                            <input type="checkbox" defaultChecked={widget.default} className="rounded accent-ide-accent mt-0.5" />
+                            <input 
+                              type="checkbox" 
+                              checked={enabledWidgets.includes(widget.id)}
+                              onChange={() => {
+                                setEnabledWidgets(prev => 
+                                  prev.includes(widget.id) ? prev.filter(w => w !== widget.id) : [...prev, widget.id]
+                                );
+                              }}
+                              className="rounded accent-ide-accent mt-0.5" 
+                            />
                             <div>
                               <span className="font-medium block">{widget.label}</span>
                               <span className="text-[10px] text-ide-text-muted">{widget.desc}</span>
@@ -1055,7 +1128,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
                     <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20">
                       <p className="text-[10px] text-ide-text leading-relaxed">
-                        <strong className="text-ide-accent">💡 Preview:</strong> Theme and widgets apply to your <strong>deployed app</strong> when visitors open your live URL. Try different themes and Go Live to see the result!
+                        <strong className="text-ide-accent">💡 Preview:</strong> Theme, welcome message, logo, and quick replies will appear in your deployed app. Go Live to see the result!
                       </p>
                     </div>
                   </>
