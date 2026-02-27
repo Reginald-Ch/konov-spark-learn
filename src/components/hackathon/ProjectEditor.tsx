@@ -423,6 +423,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setMentorHistory([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
+    // Tier 1: Project Setup (10 pts, awarded once)
+    if (authorEmail) {
+      const setupKey = `forge-scored-project_setup-${authorEmail}`;
+      if (!localStorage.getItem(setupKey)) {
+        localStorage.setItem(setupKey, 'true');
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      }
+    }
   };
 
   const toggleCapability = (cap: string) => {
@@ -542,8 +550,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ Run complete']);
       }
       setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
+      // Tier 2: First Successful Run (10 pts, awarded once)
       if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 1, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        const runKey = `forge-scored-first_run_success-${authorEmail}`;
+        if (!localStorage.getItem(runKey)) {
+          localStorage.setItem(runKey, 'true');
+          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        }
       }
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ Error: ${e.message}`, '', '💡 Tip: Check your code for syntax errors, or try again in a moment.']);
@@ -606,7 +619,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setLastSaved(new Date().toLocaleTimeString());
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
-      supabase.from('point_events').insert({ participant_email: email, event_type: 'save_checkpoint', points: 2, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      // No points for saves — scoring is milestone-based only
     } catch (e) {
       console.error(e);
       toast.error('Failed to save. Please try again.');
@@ -631,9 +644,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         { code: files['main.py'], model: projectType, action, systemPrompt, projectName, projectType },
         (text) => setAiOutput(text)
       );
-      if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'ai_mentor', points: 3, metadata: { action } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
-      }
+      // No points for mentor usage — scoring is milestone-based only
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
   };

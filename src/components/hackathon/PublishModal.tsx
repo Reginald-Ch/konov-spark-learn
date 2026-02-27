@@ -120,7 +120,12 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
-      supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'go_live', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      // Tier 2: Project Deployed (20 pts, awarded once)
+      const deployKey = `forge-scored-project_deployed-${finalEmail}`;
+      if (!localStorage.getItem(deployKey)) {
+        localStorage.setItem(deployKey, 'true');
+        supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'project_deployed', points: 20, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      }
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');
@@ -234,7 +239,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(247,148,29,0.15))', border: '1px solid rgba(255,215,0,0.3)' }}
               >
                 <Trophy className="w-4 h-4 text-[#FFD700]" />
-                <span className="text-sm font-bold text-[#FFD700]">+10 Points Earned!</span>
+                <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned!</span>
               </motion.div>
 
               {/* URL Box — the main event */}
@@ -340,7 +345,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(247,148,29,0.1), rgba(199,1,16,0.1))', border: '1px solid rgba(247,148,29,0.2)' }}>
                 <Trophy className="w-5 h-5 text-[#FFD700] flex-shrink-0" />
                 <p className="text-xs text-white">
-                  Going live earns you <strong className="text-[#FFD700]">10 leaderboard points</strong> and a real public URL!
+                  Going live earns you <strong className="text-[#FFD700]">20 leaderboard points</strong> and a real public URL!
                 </p>
               </div>
 
