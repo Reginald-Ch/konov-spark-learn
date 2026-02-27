@@ -39,9 +39,10 @@ const TIER_META = [
   { tier: 1, name: 'Foundation', max: 20, color: 'from-blue-500 to-cyan-400', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
   { tier: 2, name: 'Execution',  max: 30, color: 'from-amber-500 to-orange-400', textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
   { tier: 3, name: 'Quality',    max: 25, color: 'from-emerald-500 to-green-400', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
+  { tier: 4, name: 'Judge Score', max: 25, color: 'from-yellow-500 to-amber-400', textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
 ];
 
-const MAX_SCORE = 75;
+const MAX_SCORE = 100;
 
 interface ParticipantScore {
   email: string;
