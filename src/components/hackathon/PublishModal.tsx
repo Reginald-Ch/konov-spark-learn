@@ -345,7 +345,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(247,148,29,0.1), rgba(199,1,16,0.1))', border: '1px solid rgba(247,148,29,0.2)' }}>
                 <Trophy className="w-5 h-5 text-[#FFD700] flex-shrink-0" />
                 <p className="text-xs text-white">
-                  Going live earns you <strong className="text-[#FFD700]">10 leaderboard points</strong> and a real public URL!
+                  Going live earns you <strong className="text-[#FFD700]">20 leaderboard points</strong> and a real public URL!
                 </p>
               </div>
 
