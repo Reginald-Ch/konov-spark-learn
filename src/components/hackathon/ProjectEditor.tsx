@@ -309,6 +309,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   // Theme state
   const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
+  const [welcomeMessage, setWelcomeMessage] = useState('Hi! Ask me anything.');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [quickReplies, setQuickReplies] = useState<string[]>(['Hello!', 'What can you do?', 'Help me with something']);
+  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(['welcome', 'branding', 'codeview']);
 
   // File state
   const [activeFile, setActiveFile] = useState<FileTab>('main.py');
