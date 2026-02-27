@@ -239,7 +239,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(247,148,29,0.15))', border: '1px solid rgba(255,215,0,0.3)' }}
               >
                 <Trophy className="w-4 h-4 text-[#FFD700]" />
-                <span className="text-sm font-bold text-[#FFD700]">+10 Points Earned!</span>
+                <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned!</span>
               </motion.div>
 
               {/* URL Box — the main event */}
