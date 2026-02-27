@@ -66,6 +66,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     return () => clearInterval(interval);
   }, [deployStep]);
 
+  // Use the published app URL (works on any domain where the app is hosted)
   const projectUrl = publishedId ? `${window.location.origin}/projects/${publishedId}` : '';
 
   const handleCopyUrl = () => {
