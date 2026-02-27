@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, Sparkles, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X
+  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -358,6 +358,11 @@ const Hackathons = () => {
                   <span>{ch.name}</span>
                 </motion.button>
               ))}
+
+              <a href="/judge" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors mb-0.5">
+                <Shield className="w-4 h-4 text-[#FFD700]" />
+                <span>Judge Dashboard</span>
+              </a>
 
               {/* Past events showcase */}
               {endedHackathons.length > 0 && (
