@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
 import Hackathons from "./pages/Hackathons";
 import ProjectView from "./pages/ProjectView";
+import JudgeDashboard from "./pages/JudgeDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
