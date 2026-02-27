@@ -159,7 +159,7 @@ export const Leaderboard = () => {
   const TierBreakdown = ({ participant }: { participant: ParticipantScore }) => (
     <div className="space-y-3 mt-3">
       {TIER_META.map(tier => {
-        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : participant.tier3;
+        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : tier.tier === 3 ? participant.tier3 : participant.tier4;
         const pct = Math.round((tierPts / tier.max) * 100);
         const tierEvents = Object.entries(SCORING_CONFIG).filter(([_, c]) => c.tier === tier.tier);
         return (
