@@ -46,7 +46,7 @@ const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
 const JudgeDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<(Project & { is_published: boolean })[]>([]);
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
