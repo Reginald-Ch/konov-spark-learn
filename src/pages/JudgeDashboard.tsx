@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-const JUDGE_ACCESS_CODE = 'FORGE2026';
+const JUDGE_ACCESS_CODE = '2059';
 
 interface Project {
   id: string;
