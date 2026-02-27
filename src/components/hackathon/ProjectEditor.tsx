@@ -636,9 +636,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         { code: files['main.py'], model: projectType, action, systemPrompt, projectName, projectType },
         (text) => setAiOutput(text)
       );
-      if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'ai_mentor', points: 3, metadata: { action } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
-      }
+      // No points for mentor usage — scoring is milestone-based only
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
   };
