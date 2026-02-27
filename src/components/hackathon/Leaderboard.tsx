@@ -106,14 +106,22 @@ export const Leaderboard = () => {
         participantMap.set(evt.participant_email, p);
       }
 
-      // Deduplicate: each event type counts once
-      if (!p.events.has(evt.event_type)) {
+      // For judge_score, allow accumulation (multiple judges), for others deduplicate
+      if (evt.event_type === 'judge_score') {
+        const pts = Math.min(evt.points, 25);
+        // Take the max judge score, not accumulate
+        if (pts > p.tier4) {
+          p.points = p.points - p.tier4 + pts;
+          p.tier4 = pts;
+        }
+        p.events.add(evt.event_type);
+      } else if (!p.events.has(evt.event_type)) {
         p.events.add(evt.event_type);
         const pts = config.points;
         p.points += pts;
         if (config.tier === 1) p.tier1 += pts;
         else if (config.tier === 2) p.tier2 += pts;
-        else p.tier3 += pts;
+        else if (config.tier === 3) p.tier3 += pts;
       }
     });
 
