@@ -611,7 +611,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setLastSaved(new Date().toLocaleTimeString());
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
-      supabase.from('point_events').insert({ participant_email: email, event_type: 'save_checkpoint', points: 2, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      // No points for saves — scoring is milestone-based only
     } catch (e) {
       console.error(e);
       toast.error('Failed to save. Please try again.');
