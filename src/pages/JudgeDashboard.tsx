@@ -80,7 +80,7 @@ const JudgeDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true);
     const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-      supabase.from('ai_projects').select('*').eq('is_published', true).order('created_at', { ascending: false }),
+      supabase.from('ai_projects').select('*').order('created_at', { ascending: false }),
       supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
       supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
     ]);

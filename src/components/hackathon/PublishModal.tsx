@@ -184,32 +184,32 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-6 px-6"
+              className="text-center py-8 px-6"
             >
               {/* Celebration header */}
-              <div className="relative mb-4">
+              <div className="relative mb-6">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 }}
-                  className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #006600, #00CC66)' }}
+                  className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/30"
+                  style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}
                 >
-                  <CheckCircle2 className="w-10 h-10 text-white" />
+                  <CheckCircle2 className="w-12 h-12 text-white" />
                 </motion.div>
                 {/* Confetti particles */}
-                {[...Array(6)].map((_, i) => (
+                {[...Array(8)].map((_, i) => (
                   <motion.div
                     key={i}
                     initial={{ scale: 0, x: 0, y: 0 }}
                     animate={{ 
-                      scale: [0, 1, 0], 
-                      x: [0, (i % 2 === 0 ? 1 : -1) * (40 + i * 15)], 
-                      y: [0, -(30 + i * 10)] 
+                      scale: [0, 1.2, 0], 
+                      x: [0, (i % 2 === 0 ? 1 : -1) * (50 + i * 12)], 
+                      y: [0, -(40 + i * 8)] 
                     }}
-                    transition={{ duration: 0.8, delay: 0.2 + i * 0.08 }}
-                    className="absolute top-8 left-1/2 w-2 h-2 rounded-full"
-                    style={{ backgroundColor: ['#F7941D', '#C70110', '#006600', '#5865F2', '#FFD700', '#00CC66'][i] }}
+                    transition={{ duration: 1, delay: 0.2 + i * 0.06 }}
+                    className="absolute top-10 left-1/2 w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: ['#F7941D', '#C70110', '#059669', '#5865F2', '#FFD700', '#10B981', '#8B5CF6', '#EC4899'][i] }}
                   />
                 ))}
               </div>
@@ -218,7 +218,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-2xl font-bold mb-1 text-white"
+                className="text-3xl font-black mb-2 text-white"
               >
                 🎉 You're LIVE!
               </motion.h3>
@@ -226,40 +226,40 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-[hsl(var(--ide-text-muted))] mb-4 text-sm"
+                className="text-[hsl(var(--ide-text-muted))] mb-5 text-sm max-w-xs mx-auto"
               >
-                Your AI app is deployed. Anyone with the link can use it!
+                Your AI app is deployed and ready for the world. Share your link!
               </motion.p>
 
               {/* Points earned */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.35 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
-                style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(247,148,29,0.15))', border: '1px solid rgba(255,215,0,0.3)' }}
+                transition={{ delay: 0.35, type: 'spring' }}
+                className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full mb-5"
+                style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(247,148,29,0.2))', border: '1px solid rgba(255,215,0,0.4)' }}
               >
-                <Trophy className="w-4 h-4 text-[#FFD700]" />
-                <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned!</span>
+                <Trophy className="w-5 h-5 text-[#FFD700]" />
+                <span className="text-base font-black text-[#FFD700]">+20 Points Earned!</span>
               </motion.div>
 
-              {/* URL Box — the main event */}
+              {/* URL Box */}
               {projectUrl && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="rounded-xl p-4 mb-4 text-left"
-                  style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.1), rgba(0,102,0,0.1))', border: '1px solid rgba(88,101,242,0.25)' }}
+                  className="rounded-xl p-4 mb-5 text-left"
+                  style={{ background: 'rgba(88,101,242,0.08)', border: '1px solid rgba(88,101,242,0.2)' }}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Globe className="w-4 h-4 text-[#5865F2]" />
                     <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--ide-text-muted))] font-bold">Your Live URL</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-[hsl(var(--ide-bg-deep))] rounded-lg px-3 py-2">
-                    <span className="text-xs text-white truncate flex-1 font-mono">{projectUrl}</span>
+                  <div className="flex items-center gap-2 bg-[hsl(var(--ide-bg-deep))] rounded-lg px-3 py-2.5">
+                    <span className="text-xs text-white truncate flex-1 font-mono select-all">{projectUrl}</span>
                     <Button size="icon" variant="ghost" onClick={handleCopyUrl} className="h-7 w-7 flex-shrink-0 hover:bg-white/10">
-                      {urlCopied ? <Check className="w-3.5 h-3.5 text-[#00CC66]" /> : <Copy className="w-3.5 h-3.5 text-[hsl(var(--ide-text-muted))]" />}
+                      {urlCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[hsl(var(--ide-text-muted))]" />}
                     </Button>
                   </div>
                 </motion.div>
@@ -270,17 +270,17 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="grid grid-cols-2 gap-2 mb-4"
+                className="grid grid-cols-2 gap-3 mb-5"
               >
                 <a href={projectUrl} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full h-10 text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #5865F2, #3498DB)' }}>
-                    <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  <Button className="w-full h-11 text-sm font-bold text-white rounded-xl" style={{ background: 'linear-gradient(135deg, #5865F2, #3B82F6)' }}>
+                    <ExternalLink className="w-4 h-4 mr-2" />
                     Open My App
                   </Button>
                 </a>
-                <Button onClick={handleShareNative} className="w-full h-10 text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #006600, #00CC66)' }}>
-                  <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                  Share with Friends
+                <Button onClick={handleShareNative} className="w-full h-11 text-sm font-bold text-white rounded-xl" style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
                 </Button>
               </motion.div>
 
@@ -288,12 +288,12 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-[11px] text-[hsl(var(--ide-text-muted))] mb-4"
+                className="text-[11px] text-[hsl(var(--ide-text-muted))] mb-5"
               >
                 📱 Open the URL on your phone to demo your AI to anyone!
               </motion.p>
 
-              <Button onClick={handleClose} variant="ghost" className="text-[hsl(var(--ide-text-muted))] hover:text-white hover:bg-white/10 w-full">
+              <Button onClick={handleClose} variant="ghost" className="text-[hsl(var(--ide-text-muted))] hover:text-white hover:bg-white/10 w-full h-10">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Back to Building
               </Button>
