@@ -278,7 +278,8 @@ export const Leaderboard = () => {
                         {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
                         {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
                         {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
-                        {p.points >= MAX_SCORE && <span className="text-[10px]">⭐</span>}
+                        {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
+                        {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                       </div>
                     </div>
                     <div className="text-right">
