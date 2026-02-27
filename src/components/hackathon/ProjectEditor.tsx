@@ -11,7 +11,7 @@ import {
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle
+  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,6 +26,11 @@ interface ProjectEditorProps {
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+interface QAPair {
+  q: string;
+  a: string;
 }
 
 const PROJECT_SCAFFOLDS: Record<ProjectType, { main: string; config: string; requirements: string; name: string; icon: string; systemPrompt: string; capabilities: string[] }> = {
@@ -152,9 +157,18 @@ const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   agent: ['Web Search', 'Calculator', 'Code Execution', 'File Reading'],
 };
 
+// Theme options for student customization
+const THEMES = [
+  { id: 'default', name: 'Default', accent: '#5865F2', bg: '#0d1117', chat: '#161b22' },
+  { id: 'ocean', name: 'Ocean', accent: '#00B4D8', bg: '#0a1628', chat: '#0f2035' },
+  { id: 'forest', name: 'Forest', accent: '#22C55E', bg: '#0a1a0f', chat: '#0f2614' },
+  { id: 'sunset', name: 'Sunset', accent: '#F97316', bg: '#1a0f0a', chat: '#26140f' },
+  { id: 'purple', name: 'Neon', accent: '#A855F7', bg: '#0f0a1a', chat: '#140f26' },
+  { id: 'rose', name: 'Rose', accent: '#F43F5E', bg: '#1a0a0f', chat: '#260f14' },
+];
+
 const KEYWORDS = new Set(['import', 'from', 'as', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'global', 'nonlocal', 'assert', 'del', 'True', 'False', 'None', 'async', 'await']);
 
-// Token-based Python syntax highlighter
 interface Token {
   type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'text';
   value: string;
@@ -227,27 +241,26 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
+type ConfigTab = 'settings' | 'knowledge' | 'theme';
 
-// Onboarding step definitions
 const ONBOARDING_STEPS = [
   { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
   { target: 'editor', title: '💻 Write Code', description: 'Edit your Python code here. The syntax highlighter shows your code in color. Switch between files using the tabs.' },
   { target: 'preview', title: '💬 Test Your AI', description: 'Chat with your AI in real-time! Your system prompt controls how it responds. Try changing it and see the difference.' },
+  { target: 'knowledge', title: '📚 Add Knowledge', description: 'Add custom text and Q&A pairs to make your bot smarter! Your bot will reference this data when answering.' },
   { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
 ];
 
-// Compact countdown widget for IDE top bar
 const CountdownWidget = () => {
   const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
   
   useEffect(() => {
-    // Check localStorage for hackathon end time, or set 90 min from first visit
     const stored = localStorage.getItem('forge-session-end');
     let endTime: number;
     if (stored) {
       endTime = parseInt(stored);
     } else {
-      endTime = Date.now() + 90 * 60 * 1000; // 90 minutes
+      endTime = Date.now() + 90 * 60 * 1000;
       localStorage.setItem('forge-session-end', endTime.toString());
     }
     
@@ -265,14 +278,14 @@ const CountdownWidget = () => {
   }, []);
 
   const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
-  const isUrgent = totalSec < 600; // < 10 min
-  const isWarning = totalSec < 1800 && !isUrgent; // < 30 min
+  const isUrgent = totalSec < 600;
+  const isWarning = totalSec < 1800 && !isUrgent;
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-      isUrgent ? 'bg-red-500/25 border-red-500/50 text-red-300 animate-pulse' 
-      : isWarning ? 'bg-[#F7941D]/25 border-[#F7941D]/50 text-[#F7941D]'
-      : 'bg-[#00CC66]/15 border-[#00CC66]/30 text-[#00CC66]'
+      isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
+      : isWarning ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
+      : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
       <Clock className="w-3 h-3" />
       <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
@@ -288,6 +301,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
   const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
+  const [configTab, setConfigTab] = useState<ConfigTab>('settings');
+
+  // Knowledge base state
+  const [knowledgeBase, setKnowledgeBase] = useState('');
+  const [qaData, setQaData] = useState<QAPair[]>([]);
+
+  // Theme state
+  const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
 
   // File state
   const [activeFile, setActiveFile] = useState<FileTab>('main.py');
@@ -297,13 +318,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
   });
 
-  // Dirty state tracking
   const [savedFiles, setSavedFiles] = useState<Record<string, string>>({});
   const isDirty = useMemo(() => {
     return Object.keys(files).some(key => files[key as FileTab] !== savedFiles[key]);
   }, [files, savedFiles]);
 
-  // Chat / preview state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'system', content: '⚡ Project initialized. Click "Run Tests" or type a message to test your AI.' },
   ]);
@@ -323,36 +342,31 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   });
   const [aiCallCount, setAiCallCount] = useState(0);
 
-  // Bottom panel
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
 
-  // AI mentor
   const [aiOutput, setAiOutput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [activeAiAction, setActiveAiAction] = useState<string | null>(null);
   const [mentorInput, setMentorInput] = useState('');
+  const [mentorHistory, setMentorHistory] = useState<{ role: string; content: string }[]>([]);
 
-  // Publish
   const [publishOpen, setPublishOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
-  // Onboarding
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
     const seen = localStorage.getItem('buildstudio-onboarded');
     return seen ? null : 0;
   });
 
-  // System prompt tooltip
   const [showPromptHelp, setShowPromptHelp] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
 
-  // Refs for keyboard shortcut handlers
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
@@ -360,8 +374,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // ── System Prompt ↔ Code Sync ──
-  // When sidebar system prompt changes, update SYSTEM_PROMPT in main.py
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
     if (prevSystemPromptRef.current !== systemPrompt) {
@@ -379,7 +391,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     }
   }, [systemPrompt]);
 
-  // When code SYSTEM_PROMPT changes (user edits code), sync back to sidebar
   useEffect(() => {
     const code = files['main.py'];
     const match = code.match(/SYSTEM_PROMPT\s*=\s*["'](.*)["']/);
@@ -409,6 +420,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setShowBottomPanel(true);
     setBottomTab('terminal');
     setAiOutput('');
+    setMentorHistory([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
@@ -441,6 +453,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       }).join('');
     });
   }, [files, activeFile]);
+
+  // Q&A helpers
+  const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
+  const removeQA = (idx: number) => setQaData(prev => prev.filter((_, i) => i !== idx));
+  const updateQA = (idx: number, field: 'q' | 'a', value: string) => {
+    setQaData(prev => prev.map((pair, i) => i === idx ? { ...pair, [field]: value } : pair));
+  };
 
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
@@ -508,7 +527,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         (text) => { result = text; setTerminalOutput(prev => { const updated = [...prev]; updated[updated.length - 1] = result; return updated; }); }
       );
       setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
-      // Award points for running tests
       if (authorEmail) {
         supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 1, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
@@ -527,12 +545,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
-      // Collect conversation history for context
       const history = chatMessages
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
       await streamFromEdgeFunction(
-        { code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history },
+        { 
+          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history,
+          knowledgeBase: knowledgeBase || undefined,
+          qaData: qaData.filter(p => p.q.trim() && p.a.trim()).length > 0 ? qaData.filter(p => p.q.trim() && p.a.trim()) : undefined,
+        },
         (text) => {
           assistantReply = text;
           setChatMessages(prev => {
@@ -547,7 +568,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } finally { setIsStreaming(false); }
   };
 
-  // ── Improved Save: inline email bar instead of prompt() ──
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
@@ -579,7 +599,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   };
 
   const handleSave = async () => {
-    // Persist identity to localStorage
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
@@ -594,7 +613,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setBottomTab('ai-mentor');
     try {
       await streamFromEdgeFunction(
-        { code: files['main.py'], model: projectType, action },
+        { code: files['main.py'], model: projectType, action, systemPrompt, projectName, projectType },
         (text) => setAiOutput(text)
       );
       if (authorEmail) {
@@ -611,16 +630,33 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setIsAiLoading(true);
     setShowBottomPanel(true);
     setBottomTab('ai-mentor');
+    
+    // Add user message to mentor display
+    const newHistory = [...mentorHistory, { role: 'user', content: question }];
+    setMentorHistory(newHistory);
     setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
+    
     try {
       await streamFromEdgeFunction(
-        { code: files['main.py'], model: projectType, action: 'review', systemPrompt: `The student asks: "${question}"\n\nReview their code and answer their question.` },
-        (text) => setAiOutput(prev => {
-          const parts = prev.split('---');
-          const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
-          return lastSection + text;
-        })
+        { 
+          code: files['main.py'], 
+          model: projectType, 
+          action: 'mentor-chat', 
+          systemPrompt, 
+          projectName, 
+          projectType,
+          messages: newHistory,
+        },
+        (text) => {
+          setAiOutput(prev => {
+            const parts = prev.split('---');
+            const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+            return lastSection + text;
+          });
+        }
       );
+      // Add assistant reply to history
+      setMentorHistory(prev => [...prev, { role: 'assistant', content: 'responded' }]);
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); }
   };
@@ -631,7 +667,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setPublishOpen(true);
   };
 
-  // Onboarding helpers
   const dismissOnboarding = () => {
     setOnboardingStep(null);
     localStorage.setItem('buildstudio-onboarded', 'true');
@@ -644,11 +679,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     }
   };
 
-  // Keep refs up to date for keyboard shortcuts
   useEffect(() => { handleSaveRef.current = handleSave; });
   useEffect(() => { handleRunRef.current = handleRun; });
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -714,8 +747,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         )}
       </AnimatePresence>
 
-      {/* Email bar removed — identity is auto-generated */}
-
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">
         <div className="flex items-center gap-2.5">
@@ -724,7 +755,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
-          {/* Countdown Timer */}
           <CountdownWidget />
         </div>
         <div className="flex items-center gap-1">
@@ -755,7 +785,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           {showConfig && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: isMobile ? '100%' : 220, opacity: 1 }}
+              animate={{ width: isMobile ? '100%' : 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className={`overflow-y-auto flex-shrink-0 flex flex-col bg-ide-sidebar border-r border-ide-border ${isMobile ? 'absolute inset-0 z-30' : ''}`}
@@ -766,101 +796,244 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   <button onClick={() => setShowConfig(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-4 h-4" /></button>
                 </div>
               )}
-              <div className="p-3 space-y-4">
-                {/* Project Name */}
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
-                  <Input value={projectName} onChange={e => setProjectName(e.target.value)}
-                    className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
-                </div>
 
-                {/* Project Type */}
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Type</label>
-                  <div className="space-y-1">
-                    {([
-                      { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
-                      { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
-                    ]).map(type => (
-                      <button
-                        key={type.id}
-                        onClick={() => handleTypeChange(type.id)}
-                        className={`w-full text-left p-2 rounded-md text-xs transition-all flex items-center gap-2 border ${
-                          projectType === type.id
-                            ? 'bg-ide-selection border-ide-accent/40 text-ide-text'
-                            : 'border-transparent text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text'
-                        }`}
-                      >
-                        <type.icon className={`w-4 h-4 ${type.cls}`} />
-                        <span className="font-medium">{type.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Config Tab Switcher */}
+              <div className="flex border-b border-ide-border flex-shrink-0">
+                {[
+                  { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
+                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
+                  { id: 'theme' as ConfigTab, icon: Palette, label: 'Theme' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setConfigTab(tab.id)}
+                    className={`flex-1 flex items-center justify-center gap-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      configTab === tab.id ? 'text-ide-accent border-b-2 border-ide-accent bg-ide-bg' : 'text-ide-text-muted hover:text-ide-text'
+                    }`}
+                  >
+                    <tab.icon className="w-3 h-3" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-                {/* System Prompt with help tooltip */}
-                <div>
-                  <div className="flex items-center gap-1 mb-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">System Prompt</label>
-                    <button
-                      onClick={() => setShowPromptHelp(!showPromptHelp)}
-                      className="text-ide-text-muted hover:text-ide-accent transition-colors"
-                    >
-                      <HelpCircle className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <AnimatePresence>
-                    {showPromptHelp && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden mb-2"
-                      >
-                        <div className="text-[10px] leading-relaxed p-2 rounded bg-ide-accent/10 border border-ide-accent/20 text-ide-text">
-                          <strong className="text-ide-accent">💡 What is this?</strong><br />
-                          This controls how your AI responds in the <strong>Live Preview</strong> chat. It's like giving your AI a personality card.<br /><br />
-                          Try changing it to: <em>"You are a math tutor for SHS students"</em> — then test in the preview!
-                          <p className="mt-1 text-ide-text-muted">Changes here auto-sync to your code's SYSTEM_PROMPT variable.</p>
+              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+                {/* ── Settings Tab ── */}
+                {configTab === 'settings' && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
+                      <Input value={projectName} onChange={e => setProjectName(e.target.value)}
+                        className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Type</label>
+                      <div className="space-y-1">
+                        {([
+                          { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
+                          { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
+                        ]).map(type => (
+                          <button
+                            key={type.id}
+                            onClick={() => handleTypeChange(type.id)}
+                            className={`w-full text-left p-2 rounded-md text-xs transition-all flex items-center gap-2 border ${
+                              projectType === type.id
+                                ? 'bg-ide-selection border-ide-accent/40 text-ide-text'
+                                : 'border-transparent text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text'
+                            }`}
+                          >
+                            <type.icon className={`w-4 h-4 ${type.cls}`} />
+                            <span className="font-medium">{type.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1 mb-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">System Prompt</label>
+                        <button
+                          onClick={() => setShowPromptHelp(!showPromptHelp)}
+                          className="text-ide-text-muted hover:text-ide-accent transition-colors"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <AnimatePresence>
+                        {showPromptHelp && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden mb-2"
+                          >
+                            <div className="text-[10px] leading-relaxed p-2 rounded bg-ide-accent/10 border border-ide-accent/20 text-ide-text">
+                              <strong className="text-ide-accent">💡 What is this?</strong><br />
+                              This controls how your AI responds in the <strong>Live Preview</strong> chat. It's like giving your AI a personality card.<br /><br />
+                              Try changing it to: <em>"You are a math tutor for SHS students"</em> — then test in the preview!
+                              <p className="mt-1 text-ide-text-muted">Changes here auto-sync to your code's SYSTEM_PROMPT variable.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
+                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Capabilities</label>
+                      <div className="space-y-0.5">
+                        {CAPABILITY_OPTIONS[projectType].map(cap => (
+                          <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors text-ide-text hover:bg-ide-border/30">
+                            <input type="checkbox" checked={capabilities.includes(cap)} onChange={() => toggleCapability(cap)}
+                              className="rounded accent-ide-accent" />
+                            {cap}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between text-ide-text">
+                          <span>AI Calls</span>
+                          <span className="font-mono text-ide-accent">{aiCallCount}</span>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
-                    className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
-                </div>
+                        <div className="flex justify-between text-ide-text">
+                          <span>Limit</span>
+                          <span className="font-mono text-ide-text-muted">40 / session</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-ide-border mt-1">
+                          <div className="h-full rounded-full bg-ide-accent transition-all" style={{ width: `${Math.min((aiCallCount / 40) * 100, 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-                {/* Capabilities */}
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Capabilities</label>
-                  <div className="space-y-0.5">
-                    {CAPABILITY_OPTIONS[projectType].map(cap => (
-                      <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors text-ide-text hover:bg-ide-border/30">
-                        <input type="checkbox" checked={capabilities.includes(cap)} onChange={() => toggleCapability(cap)}
-                          className="rounded accent-ide-accent" />
-                        {cap}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                {/* ── Knowledge Base Tab ── */}
+                {configTab === 'knowledge' && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">📚 Knowledge Base</label>
+                      <p className="text-[10px] text-ide-text-muted mb-2">Paste text, notes, or data your bot should reference when answering questions.</p>
+                      <Textarea 
+                        value={knowledgeBase} 
+                        onChange={e => setKnowledgeBase(e.target.value)} 
+                        rows={6}
+                        placeholder="e.g. Pythagoras theorem: a² + b² = c². It applies to right-angled triangles..."
+                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                      />
+                      {knowledgeBase && (
+                        <div className="mt-1 flex items-center gap-1 text-[10px] text-ide-green">
+                          <Check className="w-3 h-3" />
+                          <span>{knowledgeBase.split(/\s+/).length} words loaded</span>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Resources Used */}
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between text-ide-text">
-                      <span>AI Calls</span>
-                      <span className="font-mono text-ide-accent">{aiCallCount}</span>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">❓ Q&A Pairs</label>
+                        <Button size="sm" variant="ghost" onClick={addQA} className="h-5 px-1.5 text-[10px] text-ide-accent hover:bg-ide-border/50">
+                          <Plus className="w-3 h-3 mr-0.5" /> Add
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-ide-text-muted mb-2">Add specific question-answer pairs your bot should know.</p>
+                      
+                      {qaData.length === 0 && (
+                        <button onClick={addQA} className="w-full p-3 rounded-lg border-2 border-dashed border-ide-border text-ide-text-muted text-xs hover:border-ide-accent hover:text-ide-accent transition-colors">
+                          + Add your first Q&A pair
+                        </button>
+                      )}
+
+                      <div className="space-y-2">
+                        {qaData.map((pair, idx) => (
+                          <div key={idx} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-ide-accent">Q{idx + 1}</span>
+                              <button onClick={() => removeQA(idx)} className="text-ide-text-muted hover:text-red-400">
+                                <Minus className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <Input 
+                              value={pair.q} 
+                              onChange={e => updateQA(idx, 'q', e.target.value)}
+                              placeholder="What is Pythagoras theorem?"
+                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
+                            />
+                            <Input 
+                              value={pair.a} 
+                              onChange={e => updateQA(idx, 'a', e.target.value)}
+                              placeholder="a² + b² = c² for right triangles"
+                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between text-ide-text">
-                      <span>Limit</span>
-                      <span className="font-mono text-ide-text-muted">40 / session</span>
+
+                    <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20">
+                      <p className="text-[10px] text-ide-text leading-relaxed">
+                        <strong className="text-ide-accent">💡 How it works:</strong> Your knowledge base and Q&A pairs are sent to the AI when visitors chat with your app. The AI will reference this data to give better answers!
+                      </p>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-ide-border mt-1">
-                      <div className="h-full rounded-full bg-ide-accent transition-all" style={{ width: `${Math.min((aiCallCount / 40) * 100, 100)}%` }} />
+                  </>
+                )}
+
+                {/* ── Theme Tab ── */}
+                {configTab === 'theme' && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🎨 App Theme</label>
+                      <p className="text-[10px] text-ide-text-muted mb-3">Choose a color theme for your deployed AI app.</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {THEMES.map(theme => (
+                          <button
+                            key={theme.id}
+                            onClick={() => setSelectedTheme(theme)}
+                            className={`p-2 rounded-lg border-2 transition-all ${
+                              selectedTheme.id === theme.id ? 'border-ide-accent' : 'border-ide-border hover:border-ide-text-muted'
+                            }`}
+                          >
+                            <div className="w-full h-6 rounded-md mb-1" style={{ background: `linear-gradient(135deg, ${theme.bg}, ${theme.accent}40)` }} />
+                            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+                            <span className="text-[9px] text-ide-text-muted mt-1 block">{theme.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🧩 UI Widgets</label>
+                      <p className="text-[10px] text-ide-text-muted mb-2">Add extra elements to your app's chat interface.</p>
+                      <div className="space-y-1.5">
+                        {[
+                          { id: 'welcome', label: 'Welcome Banner', desc: 'Show a greeting at the top', default: true },
+                          { id: 'suggestions', label: 'Quick Reply Buttons', desc: 'Preset questions visitors can click', default: true },
+                          { id: 'branding', label: 'Custom Header', desc: 'Your project name & description', default: true },
+                          { id: 'codeview', label: 'View Source Code', desc: 'Let visitors see your Python code', default: true },
+                        ].map(widget => (
+                          <label key={widget.id} className="flex items-start gap-2 text-xs cursor-pointer p-2 rounded transition-colors text-ide-text hover:bg-ide-border/30 bg-ide-editor border border-ide-border/50">
+                            <input type="checkbox" defaultChecked={widget.default} className="rounded accent-ide-accent mt-0.5" />
+                            <div>
+                              <span className="font-medium block">{widget.label}</span>
+                              <span className="text-[10px] text-ide-text-muted">{widget.desc}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20">
+                      <p className="text-[10px] text-ide-text leading-relaxed">
+                        <strong className="text-ide-accent">💡 Preview:</strong> Theme and widgets apply to your <strong>deployed app</strong> when visitors open your live URL. Try different themes and Go Live to see the result!
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
@@ -915,7 +1088,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
           {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
-            {/* Line Numbers */}
             <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
               <div ref={lineNumberRef}>
                 {lines.map((_, i) => (
@@ -924,7 +1096,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
             </div>
 
-            {/* Code area */}
             <div
               className="flex-1 min-w-0 overflow-auto"
               onScroll={(e) => {
@@ -935,7 +1106,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               }}
             >
               <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content' }}>
-                {/* Highlighted Code Layer */}
                 {activeFile === 'main.py' && highlightedContent && (
                   <div
                     className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre text-ide-text"
@@ -948,7 +1118,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   </div>
                 )}
 
-                {/* Textarea */}
                 <textarea
                   ref={textareaRef}
                   value={files[activeFile]}
@@ -969,15 +1138,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {showBottomPanel && (
               <motion.div
                 initial={{ height: 0 }}
-                animate={{ height: 160 }}
+                animate={{ height: 180 }}
                 exit={{ height: 0 }}
                 className="overflow-hidden flex-shrink-0 flex flex-col border-t border-ide-border-subtle"
               >
-                {/* Bottom Panel Tabs */}
                 <div className="flex items-center px-2 bg-ide-sidebar border-b border-ide-border h-7 flex-shrink-0">
                   {[
                     { id: 'terminal' as BottomTab, icon: Terminal, label: 'Terminal', color: 'text-ide-green' },
-                    { id: 'ai-mentor' as BottomTab, icon: Sparkles, label: 'AI Mentor', color: 'text-ide-accent' },
+                    { id: 'ai-mentor' as BottomTab, icon: Brain, label: 'AI Mentor (Pair Programmer)', color: 'text-ide-accent' },
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -997,7 +1165,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   </button>
                 </div>
 
-                {/* Panel Content */}
                 <div className="flex-1 overflow-y-auto p-3 bg-ide-bg">
                   {bottomTab === 'terminal' ? (
                     <div className="font-mono text-xs text-ide-green space-y-0.5">
@@ -1012,7 +1179,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                             <ReactMarkdown>{aiOutput}</ReactMarkdown>
                           </div>
                         ) : (
-                          <span className="text-ide-text-muted text-xs italic">Click Review, Explain, or Suggest — or ask a question below.</span>
+                          <div className="text-center py-4 space-y-2">
+                            <Brain className="w-8 h-8 mx-auto text-ide-accent/50" />
+                            <p className="text-ide-text-muted text-xs">Your AI Mentor can see your code and will guide you — not build for you!</p>
+                            <p className="text-ide-text-muted text-[10px] italic">Try: "How do I add a quiz feature?" or click Review above</p>
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-2 mt-2 pt-2 border-t border-ide-border flex-shrink-0">
@@ -1020,7 +1191,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                           value={mentorInput}
                           onChange={e => setMentorInput(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && handleMentorChat()}
-                          placeholder="Ask the AI Mentor..."
+                          placeholder="Ask your mentor... (they can see your code!)"
                           disabled={isAiLoading}
                           className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent"
                         />
@@ -1056,7 +1227,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </Button>
           </div>
 
-          {/* Active prompt indicator */}
           <div className="px-3 py-1.5 border-b border-ide-border/50 bg-ide-bg-deep">
             <div className="flex items-center gap-1.5">
               <Bot className="w-3 h-3 text-ide-accent flex-shrink-0" />
@@ -1064,6 +1234,14 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 Prompt: <span className="text-ide-text italic">"{systemPrompt.slice(0, 50)}{systemPrompt.length > 50 ? '...' : ''}"</span>
               </span>
             </div>
+            {(knowledgeBase || qaData.some(p => p.q.trim())) && (
+              <div className="flex items-center gap-1 mt-1">
+                <Database className="w-3 h-3 text-ide-green flex-shrink-0" />
+                <span className="text-[10px] text-ide-green">
+                  {knowledgeBase ? `${knowledgeBase.split(/\s+/).length} words` : ''}{knowledgeBase && qaData.some(p => p.q.trim()) ? ' + ' : ''}{qaData.filter(p => p.q.trim()).length > 0 ? `${qaData.filter(p => p.q.trim()).length} Q&A` : ''} loaded
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -1108,7 +1286,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 </div>
               </div>
             ))}
-            {/* Typing indicator */}
             {isStreaming && (
               <div className="flex justify-start">
                 <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
@@ -1133,7 +1310,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            {/* Pitch Controls */}
             <div className="pt-1 border-t border-ide-border">
               <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Share</span>
               <div className="flex gap-1.5 mt-1.5">
@@ -1169,13 +1345,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <Terminal className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Terminal</span>
           </Button>
-          {/* Mobile preview toggle */}
           <Button size="sm" onClick={() => { setShowMobilePreview(true); setShowPreview(true); }}
             variant="ghost" className="h-6 text-[10px] lg:hidden text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
             <Eye className="w-3 h-3 mr-1" />
             Preview
           </Button>
-          {/* Desktop preview toggle */}
           <Button size="sm" onClick={() => setShowPreview(v => !v)}
             variant="ghost" className="h-6 text-[10px] hidden lg:flex text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
             {showPreview ? <PanelRightClose className="w-3 h-3 mr-1" /> : <PanelRightOpen className="w-3 h-3 mr-1" />}
