@@ -7,10 +7,10 @@ import { ActionBurst } from "@/components/ActionBurst";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
-  Brain, Sparkles, Lightbulb, Zap, Target, 
+  Brain, Sparkles, Lightbulb, Zap, 
   Rocket, CheckCircle2, Heart, Code, Bot, 
-  Database, Cpu, Eye, MessageSquare, 
-  Gamepad2, Music, Camera, BookOpen,
+  Database, Eye, MessageSquare, 
+  Gamepad2,
   ChevronRight, Play
 } from "lucide-react";
 import { useState } from "react";
