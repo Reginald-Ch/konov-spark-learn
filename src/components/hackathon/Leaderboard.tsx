@@ -29,6 +29,8 @@ const SCORING_CONFIG = {
   // Tier 3 – Quality
   submitted_on_time: { points: 5,  tier: 3, label: 'Submitted On Time',  icon: '⏰', desc: 'Before deadline' },
   app_runs_live:     { points: 20, tier: 3, label: 'App Runs Live',      icon: '✅', desc: 'Tested without crashing' },
+  // Judge Score (up to 25 pts)
+  judge_score:       { points: 25, tier: 4, label: 'Judge Score',        icon: '⭐', desc: 'Scored by judges' },
 } as const;
 
 type ScoringEvent = keyof typeof SCORING_CONFIG;
