@@ -120,7 +120,12 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
-      supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'go_live', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      // Tier 2: Project Deployed (20 pts, awarded once)
+      const deployKey = `forge-scored-project_deployed-${finalEmail}`;
+      if (!localStorage.getItem(deployKey)) {
+        localStorage.setItem(deployKey, 'true');
+        supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'project_deployed', points: 20, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+      }
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');
