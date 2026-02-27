@@ -210,7 +210,7 @@ export const Leaderboard = () => {
       </div>
 
       {/* Scoring Tiers Legend */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
         {TIER_META.map(tier => (
           <div key={tier.tier} className={`rounded-lg p-2.5 border ${tier.bgColor} ${tier.borderColor}`}>
             <div className={`text-[10px] font-bold ${tier.textColor} mb-0.5`}>TIER {tier.tier}</div>
