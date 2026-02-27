@@ -542,8 +542,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ Run complete']);
       }
       setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
+      // Tier 2: First Successful Run (10 pts, awarded once)
       if (authorEmail) {
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'run_tests', points: 1, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        const runKey = `forge-scored-first_run_success-${authorEmail}`;
+        if (!localStorage.getItem(runKey)) {
+          localStorage.setItem(runKey, 'true');
+          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        }
       }
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ Error: ${e.message}`, '', '💡 Tip: Check your code for syntax errors, or try again in a moment.']);
