@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Eye, User, Sparkles, Search } from 'lucide-react';
+import { Code, Eye, User, Sparkles, Search, Trash2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface Project {
   id: string;
@@ -24,7 +26,6 @@ interface ProjectGalleryProps {
 
 const TEMPLATE_META: Record<string, { icon: string; label: string; color: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot', color: '#5865F2' },
-  'voice-assistant': { icon: '🎙️', label: 'Voice', color: '#F7941D' },
   agent: { icon: '🧠', label: 'Agent', color: '#006600' },
 };
 
@@ -32,6 +33,10 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const currentEmail = localStorage.getItem('forge-student-email') || '';
 
   useEffect(() => {
     fetchProjects();
@@ -49,6 +54,26 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       setProjects(data);
     }
     setIsLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('ai_projects')
+        .delete()
+        .eq('id', deleteTarget.id)
+        .eq('author_email', currentEmail);
+      if (error) throw error;
+      setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
+      toast.success('Project deleted');
+      setDeleteTarget(null);
+    } catch (e) {
+      toast.error('Failed to delete. You can only delete your own projects.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const filtered = projects.filter(p =>
@@ -99,6 +124,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((project, index) => {
             const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project', color: '#5865F2' };
+            const isOwner = project.author_email === currentEmail;
             return (
               <motion.div
                 key={project.id}
@@ -131,6 +157,12 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                       ⭐ {project.points_earned} pts
                     </span>
                     <div className="flex gap-1.5">
+                      {isOwner && (
+                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(project)}
+                          className="h-7 w-7 p-0 text-[hsl(var(--discord-text-muted))] hover:text-red-400 hover:bg-red-500/10">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                       <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                           💬 Try It
@@ -152,6 +184,26 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-red-400" /> Delete Project
+            </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              Are you sure you want to delete "{deleteTarget?.project_name}"? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+            <Button onClick={handleDelete} disabled={isDeleting} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
