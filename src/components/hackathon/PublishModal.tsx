@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Rocket, Trophy, Link2, Loader2, CheckCircle2, Sparkles, Copy, Check, ExternalLink, Share2, PartyPopper, Globe } from 'lucide-react';
+import { Rocket, Trophy, Loader2, CheckCircle2, Sparkles, Copy, Check, ExternalLink, Share2, Globe, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -66,7 +66,6 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     return () => clearInterval(interval);
   }, [deployStep]);
 
-  // Use the published app URL (works on any domain where the app is hosted)
   const projectUrl = publishedId ? `${window.location.origin}/projects/${publishedId}` : '';
 
   const handleCopyUrl = () => {
@@ -121,7 +120,6 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
-      // Tier 2: Project Deployed (20 pts, awarded once)
       const deployKey = `forge-scored-project_deployed-${finalEmail}`;
       if (!localStorage.getItem(deployKey)) {
         localStorage.setItem(deployKey, 'true');
@@ -143,7 +141,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && deployStep !== 'deploying' && handleClose()}>
-      <DialogContent ref={ref} className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-lg overflow-hidden p-0">
+      <DialogContent ref={ref} className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-md overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
         <AnimatePresence mode="wait">
           {/* ── DEPLOYING ANIMATION ── */}
           {deployStep === 'deploying' && (
@@ -154,24 +152,29 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               exit={{ opacity: 0, y: -20 }}
               className="py-12 px-6 text-center"
             >
-              <div className="w-24 h-24 mx-auto mb-6 relative">
+              <div className="w-20 h-20 mx-auto mb-6 relative">
                 <div className="absolute inset-0 rounded-full border-4 border-[hsl(var(--ide-border))]" />
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#F7941D] border-r-[#C70110] animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Rocket className="w-10 h-10 text-[#F7941D] animate-bounce" />
+                  <Rocket className="w-8 h-8 text-[#F7941D]" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Deploying Your AI...</h3>
-              <div className="space-y-2 min-h-[140px]">
+              <h3 className="text-lg font-bold text-white mb-4">Deploying Your AI...</h3>
+              <div className="space-y-1.5 min-h-[130px]">
                 {DEPLOY_MESSAGES.slice(0, deployMsgIndex + 1).map((msg, i) => (
-                  <motion.p
+                  <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: i === deployMsgIndex ? 1 : 0.4, x: 0 }}
-                    className={`text-sm ${i === deployMsgIndex ? 'text-white font-semibold' : 'text-[hsl(var(--ide-text-muted))]'}`}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex items-center gap-2 text-sm px-4 py-1 rounded ${i === deployMsgIndex ? 'text-white font-medium' : 'text-white/40'}`}
                   >
-                    {msg}
-                  </motion.p>
+                    {i < deployMsgIndex ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    ) : i === deployMsgIndex ? (
+                      <Loader2 className="w-3.5 h-3.5 text-[#F7941D] animate-spin flex-shrink-0" />
+                    ) : null}
+                    <span>{msg}</span>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
@@ -181,122 +184,99 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           {deployStep === 'deployed' && (
             <motion.div
               key="deployed"
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-8 px-6"
+              className="py-8 px-6"
             >
-              {/* Celebration header */}
-              <div className="relative mb-6">
+              {/* Success icon */}
+              <div className="text-center mb-6">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 }}
-                  className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/30"
+                  className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
                   style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}
                 >
-                  <CheckCircle2 className="w-12 h-12 text-white" />
+                  <CheckCircle2 className="w-8 h-8 text-white" />
                 </motion.div>
-                {/* Confetti particles */}
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0, x: 0, y: 0 }}
-                    animate={{ 
-                      scale: [0, 1.2, 0], 
-                      x: [0, (i % 2 === 0 ? 1 : -1) * (50 + i * 12)], 
-                      y: [0, -(40 + i * 8)] 
-                    }}
-                    transition={{ duration: 1, delay: 0.2 + i * 0.06 }}
-                    className="absolute top-10 left-1/2 w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: ['#F7941D', '#C70110', '#059669', '#5865F2', '#FFD700', '#10B981', '#8B5CF6', '#EC4899'][i] }}
-                  />
-                ))}
+
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-xl font-bold text-white mb-1"
+                >
+                  Project Submitted! 🎉
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-sm text-white/50"
+                >
+                  Your AI app is live and visible to judges.
+                </motion.p>
               </div>
 
-              <motion.h3
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl font-black mb-2 text-white"
-              >
-                🎉 You're LIVE!
-              </motion.h3>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-[hsl(var(--ide-text-muted))] mb-5 text-sm max-w-xs mx-auto"
-              >
-                Your AI app is deployed and ready for the world. Share your link!
-              </motion.p>
-
-              {/* Points earned */}
+              {/* Points badge */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.35, type: 'spring' }}
-                className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full mb-5"
-                style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(247,148,29,0.2))', border: '1px solid rgba(255,215,0,0.4)' }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg mb-5 mx-auto w-fit"
+                style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.25)' }}
               >
-                <Trophy className="w-5 h-5 text-[#FFD700]" />
-                <span className="text-base font-black text-[#FFD700]">+20 Points Earned!</span>
+                <Trophy className="w-4 h-4 text-[#FFD700]" />
+                <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned</span>
               </motion.div>
 
-              {/* URL Box */}
+              {/* URL section */}
               {projectUrl && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="rounded-xl p-4 mb-5 text-left"
-                  style={{ background: 'rgba(88,101,242,0.08)', border: '1px solid rgba(88,101,242,0.2)' }}
+                  className="rounded-lg p-3 mb-4"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Globe className="w-4 h-4 text-[#5865F2]" />
-                    <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--ide-text-muted))] font-bold">Your Live URL</span>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Globe className="w-3.5 h-3.5 text-white/40" />
+                    <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Live URL</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-[hsl(var(--ide-bg-deep))] rounded-lg px-3 py-2.5">
-                    <span className="text-xs text-white truncate flex-1 font-mono select-all">{projectUrl}</span>
-                    <Button size="icon" variant="ghost" onClick={handleCopyUrl} className="h-7 w-7 flex-shrink-0 hover:bg-white/10">
-                      {urlCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[hsl(var(--ide-text-muted))]" />}
-                    </Button>
+                  <div className="flex items-center gap-2 bg-black/30 rounded-md px-3 py-2">
+                    <span className="text-xs text-white/70 truncate flex-1 font-mono select-all">{projectUrl}</span>
+                    <button onClick={handleCopyUrl} className="flex-shrink-0 p-1 rounded hover:bg-white/10 transition-colors">
+                      {urlCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-white/40" />}
+                    </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Action Buttons */}
+              {/* Action buttons */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="grid grid-cols-2 gap-3 mb-5"
+                className="space-y-2"
               >
-                <a href={projectUrl} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full h-11 text-sm font-bold text-white rounded-xl" style={{ background: 'linear-gradient(135deg, #5865F2, #3B82F6)' }}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open My App
+                <div className="grid grid-cols-2 gap-2">
+                  <a href={projectUrl} target="_blank" rel="noopener noreferrer" className="block">
+                    <Button className="w-full h-10 text-sm font-semibold text-white rounded-lg bg-[#5865F2] hover:bg-[#4752C4]">
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                      Open App
+                    </Button>
+                  </a>
+                  <Button onClick={handleShareNative} className="w-full h-10 text-sm font-semibold text-white rounded-lg bg-[#059669] hover:bg-[#047857]">
+                    <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                    Share
                   </Button>
-                </a>
-                <Button onClick={handleShareNative} className="w-full h-11 text-sm font-bold text-white rounded-xl" style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                </div>
+                <Button onClick={handleClose} variant="ghost" className="w-full h-9 text-sm text-white/50 hover:text-white hover:bg-white/5">
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  Back to Building
                 </Button>
               </motion.div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-[11px] text-[hsl(var(--ide-text-muted))] mb-5"
-              >
-                📱 Open the URL on your phone to demo your AI to anyone!
-              </motion.p>
-
-              <Button onClick={handleClose} variant="ghost" className="text-[hsl(var(--ide-text-muted))] hover:text-white hover:bg-white/10 w-full h-10">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Back to Building
-              </Button>
             </motion.div>
           )}
 
@@ -310,12 +290,12 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               className="p-6 space-y-4"
             >
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-xl text-white">
-                  <Rocket className="w-5 h-5 text-[#F7941D]" />
-                  Go Live
+                <DialogTitle className="flex items-center gap-2 text-lg text-white">
+                  <Send className="w-5 h-5 text-[#F7941D]" />
+                  Submit Project
                 </DialogTitle>
-                <DialogDescription className="text-[hsl(var(--ide-text-muted))]">
-                  Deploy your AI app and get a real URL anyone can visit.
+                <DialogDescription className="text-white/50">
+                  Publish your AI app to the showcase and judges dashboard.
                 </DialogDescription>
               </DialogHeader>
 
@@ -323,37 +303,37 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 <div>
                   <label className="text-sm font-medium text-white mb-1 block">Your Name</label>
                   <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
-                    className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-white" autoFocus />
+                    className="bg-black/30 border-white/10 text-white" autoFocus />
                 </div>
               )}
 
               <div>
                 <label className="text-sm font-medium text-white mb-1 block">Project Name</label>
                 <Input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
-                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-white" autoFocus={!showNameInput} />
+                  className="bg-black/30 border-white/10 text-white" autoFocus={!showNameInput} />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-white mb-1 block">
-                  What does your AI do? <span className="text-[hsl(var(--ide-text-muted))] font-normal">(1-2 sentences)</span>
+                  What does your AI do? <span className="text-white/40 font-normal">(1-2 sentences)</span>
                 </label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} 
-                  placeholder="My AI helps students study for exams by explaining difficult concepts in simple language."
+                <Textarea value={description} onChange={e => setDescription(e.target.value)}
+                  placeholder="My AI helps students study for exams by explaining difficult concepts."
                   rows={2}
-                  className="bg-[hsl(var(--ide-bg-deep))] border-[hsl(var(--ide-border))] text-white resize-none" />
+                  className="bg-black/30 border-white/10 text-white resize-none" />
               </div>
 
-              <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(247,148,29,0.1), rgba(199,1,16,0.1))', border: '1px solid rgba(247,148,29,0.2)' }}>
-                <Trophy className="w-5 h-5 text-[#FFD700] flex-shrink-0" />
-                <p className="text-xs text-white">
-                  Going live earns you <strong className="text-[#FFD700]">20 leaderboard points</strong> and a real public URL!
+              <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
+                <Trophy className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
+                <p className="text-xs text-white/70">
+                  Submitting earns <strong className="text-[#FFD700]">20 leaderboard points</strong> and sends your project to judges.
                 </p>
               </div>
 
               <Button onClick={handlePublish} disabled={!projectName.trim()}
-                className="w-full h-12 text-base font-bold text-white" style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
-                <Rocket className="w-5 h-5 mr-2" />
-                Deploy My AI 🚀
+                className="w-full h-11 text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+                <Send className="w-4 h-4 mr-2" />
+                Submit Project 🚀
               </Button>
             </motion.div>
           )}

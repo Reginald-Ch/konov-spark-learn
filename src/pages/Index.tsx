@@ -55,6 +55,7 @@ const Index = () => {
       <Timeline />
       <SuccessStories />
       <Gallery />
+      <HackathonBanner />
       <Testimonials />
       <FAQ />
       <CTA />
