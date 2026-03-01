@@ -16,6 +16,7 @@ import { FAQ } from "@/components/FAQ";
 import { SuccessStories } from "@/components/SuccessStories";
 import { Gallery } from "@/components/Gallery";
 import { BookFreeTrial } from "@/components/BookFreeTrial";
+import { HackathonBanner } from "@/components/HackathonBanner";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { SEO, createFAQSchema } from "@/components/SEO";
 
@@ -54,6 +55,7 @@ const Index = () => {
       <Timeline />
       <SuccessStories />
       <Gallery />
+      <HackathonBanner />
       <Testimonials />
       <FAQ />
       <CTA />

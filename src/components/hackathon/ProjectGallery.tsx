@@ -91,8 +91,8 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
           <Sparkles className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">Project Gallery</h2>
-          <p className="text-[hsl(var(--discord-text-muted))] text-sm">Browse published AI projects for inspiration</p>
+          <h2 className="text-2xl font-bold text-white">Project Showcase</h2>
+          <p className="text-[hsl(var(--discord-text-muted))] text-sm">Browse submitted AI projects</p>
         </div>
       </div>
 
@@ -114,10 +114,10 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
         <div className="text-center py-20">
           <Code className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--discord-text-muted))]" />
           <h3 className="text-lg font-semibold text-white mb-2">
-            {projects.length === 0 ? 'No published projects yet' : 'No matching projects'}
+            {projects.length === 0 ? 'No submitted projects yet' : 'No matching projects'}
           </h3>
           <p className="text-[hsl(var(--discord-text-muted))]">
-            {projects.length === 0 ? 'Be the first to publish a project from the Build tab!' : 'Try a different search term'}
+            {projects.length === 0 ? 'Be the first to submit a project from the Build tab!' : 'Try a different search term'}
           </p>
         </div>
       ) : (
@@ -156,11 +156,16 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                     <span className="text-xs text-[hsl(var(--discord-text-muted))]">
                       ⭐ {project.points_earned} pts
                     </span>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-2">
                       {isOwner && (
-                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(project)}
-                          className="h-7 w-7 p-0 text-[hsl(var(--discord-text-muted))] hover:text-red-400 hover:bg-red-500/10">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(project); }}
+                          className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete
                         </Button>
                       )}
                       <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">

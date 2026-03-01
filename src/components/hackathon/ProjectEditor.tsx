@@ -1414,16 +1414,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </Button>
             </div>
             <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Share</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
               <div className="flex gap-1.5 mt-1.5">
                 <Button size="sm" variant="ghost"
-                  onClick={() => {
-                    const url = currentProjectId ? `${window.location.origin}/projects/${currentProjectId}` : window.location.href;
-                    navigator.clipboard.writeText(url);
-                    toast.success('Demo URL copied!');
-                  }}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-border/70">
-                  <Copy className="w-3 h-3 mr-1" /> Copy URL
+                  onClick={handleGoLive}
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                  <Send className="w-3 h-3 mr-1" /> Submit Project
                 </Button>
               </div>
             </div>
