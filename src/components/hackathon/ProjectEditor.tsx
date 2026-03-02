@@ -971,19 +971,50 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🔗 Logo URL (optional)</label>
-                      <Input 
-                        value={logoUrl} 
-                        onChange={e => setLogoUrl(e.target.value)}
-                        placeholder="https://example.com/logo.png"
-                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
-                      />
-                      {logoUrl && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                          <span className="text-[10px] text-ide-green">Logo loaded</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🖼️ Logo</label>
+                      <div className="space-y-2">
+                        <div className="flex gap-1.5">
+                          <Input 
+                            value={logoUrl} 
+                            onChange={e => setLogoUrl(e.target.value)}
+                            placeholder="Paste URL or upload below"
+                            className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1" 
+                          />
+                          <input
+                            ref={logoInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 500 * 1024) { toast.error('Logo must be under 500KB'); return; }
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const dataUrl = ev.target?.result as string;
+                                setLogoUrl(dataUrl);
+                                toast.success('Logo uploaded!');
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => logoInputRef.current?.click()}
+                            className="h-7 px-2 text-[10px] text-ide-accent hover:bg-ide-border/50"
+                          >
+                            Upload
+                          </Button>
                         </div>
-                      )}
+                        {logoUrl && (
+                          <div className="flex items-center gap-2">
+                            <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            <span className="text-[10px] text-ide-green">Logo loaded</span>
+                            <button onClick={() => setLogoUrl('')} className="text-[10px] text-ide-text-muted hover:text-red-400 ml-auto">Remove</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
