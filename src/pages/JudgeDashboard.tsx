@@ -295,6 +295,11 @@ const JudgeDashboard = () => {
       <div className="border-b border-[hsl(var(--discord-light)/0.2)] bg-[hsl(var(--discord-dark))]">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link to="/hackathons">
+              <Button size="sm" variant="ghost" className="text-[hsl(var(--discord-text-muted))] hover:text-white mr-1 h-10 w-10 p-0">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
               <Shield className="w-5 h-5 text-white" />
             </div>
@@ -305,11 +310,6 @@ const JudgeDashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
-            <Link to="/hackathons">
-              <Button size="sm" variant="ghost" className="text-[hsl(var(--discord-text-muted))] hover:text-white">
-                <ArrowLeft className="w-4 h-4 mr-1" /> FORGE
-              </Button>
-            </Link>
           </div>
         </div>
       </div>

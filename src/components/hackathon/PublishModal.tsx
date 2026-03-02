@@ -142,10 +142,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
 
-      // Auto-award all achievable leaderboard milestones on submission
+      // Auto-award leaderboard milestones (deduplicated via localStorage)
       const milestones = [
-        { event_type: 'project_setup', points: 10, metadata: { project: projectName } },
-        { event_type: 'first_run_success', points: 10, metadata: { project: projectName } },
         { event_type: 'project_deployed', points: 20, metadata: { project: projectName } },
         { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
         { event_type: 'app_runs_live', points: 20, metadata: { project: projectName, project_id: resultId } },
@@ -175,7 +173,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && deployStep !== 'deploying' && handleClose()}>
-      <DialogContent className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-lg overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
+      <DialogContent className="bg-[#0d1117] border-[#30363d] text-white sm:max-w-md overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
         <AnimatePresence mode="wait">
           {/* ── DEPLOYING ANIMATION ── */}
           {deployStep === 'deploying' && (
@@ -184,10 +182,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="py-12 px-8 text-center"
+              className="py-12 px-6 text-center"
             >
               <div className="w-20 h-20 mx-auto mb-6 relative">
-                <div className="absolute inset-0 rounded-full border-4 border-[hsl(var(--ide-border))]" />
+                <div className="absolute inset-0 rounded-full border-4 border-[#30363d]" />
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#F7941D] border-r-[#C70110] animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Rocket className="w-8 h-8 text-[#F7941D]" />
@@ -218,123 +216,125 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
           {deployStep === 'deployed' && (
             <motion.div
               key="deployed"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="py-8 px-8"
+              className="flex flex-col"
             >
-              {/* Celebration header */}
-              <div className="text-center mb-6">
-                {/* Confetti dots */}
-                <div className="relative w-24 h-24 mx-auto mb-5">
-                  {[...Array(8)].map((_, i) => (
+              {/* Green success banner */}
+              <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)' }}>
+                <div className="px-6 py-8 text-center relative z-10">
+                  {/* Confetti particles */}
+                  {[...Array(12)].map((_, i) => (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5], x: [0, Math.cos(i * 45 * Math.PI / 180) * 40], y: [0, Math.sin(i * 45 * Math.PI / 180) * 40] }}
-                      transition={{ delay: 0.2 + i * 0.05, duration: 1.2, repeat: Infinity, repeatDelay: 2 }}
-                      className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: ['#F7941D', '#C70110', '#006600', '#5865F2', '#FFD700', '#00B894', '#E91E63', '#9B59B6'][i] }}
+                      initial={{ opacity: 0, y: 0 }}
+                      animate={{
+                        opacity: [0, 1, 1, 0],
+                        y: [0, -60 - Math.random() * 40],
+                        x: [(Math.random() - 0.5) * 120],
+                        rotate: [0, 360],
+                      }}
+                      transition={{ delay: 0.1 + i * 0.06, duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
+                      className="absolute w-1.5 h-1.5 rounded-full"
+                      style={{
+                        left: `${20 + Math.random() * 60}%`,
+                        top: '60%',
+                        backgroundColor: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF9FF3', '#54A0FF', '#5F27CD', '#FF6348', '#2ED573'][i],
+                      }}
                     />
                   ))}
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 }}
-                    className="absolute inset-0 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}
+                    className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm"
                   >
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                    <CheckCircle2 className="w-9 h-9 text-white" />
                   </motion.div>
+                  <motion.h3
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-xl font-bold text-white mb-1"
+                  >
+                    You're Live! 🎉
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-sm text-white/80"
+                  >
+                    Your AI app is deployed and visible to judges
+                  </motion.p>
                 </div>
-
-                <motion.h3
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="text-2xl font-bold text-white mb-2"
-                >
-                  Project Submitted! 🎉
-                </motion.h3>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.35 }}
-                  className="text-sm text-white/60"
-                >
-                  Your AI app is now live and visible to judges
-                </motion.p>
               </div>
 
-              {/* Points badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, type: 'spring' }}
-                className="flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl mb-6 mx-auto w-fit"
-                style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(247,148,29,0.1))', border: '1px solid rgba(255,215,0,0.3)' }}
-              >
-                <Trophy className="w-5 h-5 text-[#FFD700]" />
-                <span className="text-base font-bold text-[#FFD700]">+20 Points Earned</span>
-                <Sparkles className="w-4 h-4 text-[#FFD700]/60" />
-              </motion.div>
-
-              {/* URL section */}
-              {projectUrl && (
+              {/* Content area */}
+              <div className="px-6 py-5 space-y-4">
+                {/* Points badge */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.35, type: 'spring' }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg"
+                  style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(247,148,29,0.08))', border: '1px solid rgba(255,215,0,0.25)' }}
+                >
+                  <Trophy className="w-4 h-4 text-[#FFD700]" />
+                  <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned</span>
+                </motion.div>
+
+                {/* URL card */}
+                {projectUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="rounded-lg p-3 bg-[#161b22] border border-[#30363d]"
+                  >
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Globe className="w-3 h-3 text-emerald-400" />
+                      <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Live URL</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/50 rounded-md px-3 py-2 border border-[#30363d]">
+                      <span className="text-[11px] text-white/70 truncate flex-1 font-mono select-all">{projectUrl}</span>
+                      <button onClick={handleCopyUrl} className="flex-shrink-0 p-1 rounded hover:bg-white/10 transition-colors">
+                        {urlCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-white/40" />}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="rounded-xl p-4 mb-5"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  className="space-y-2"
                 >
-                  <div className="flex items-center gap-1.5 mb-2.5">
-                    <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[11px] uppercase tracking-wider text-emerald-400 font-bold">Live URL</span>
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
+                  <a href={projectUrl} target="_blank" rel="noopener noreferrer" className="block">
+                    <Button className="w-full h-11 text-sm font-bold text-white rounded-lg" style={{ background: 'linear-gradient(135deg, #5865F2, #7289DA)' }}>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open My App
+                    </Button>
+                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button onClick={handleShareNative} variant="outline" className="h-9 text-xs font-medium text-white/70 rounded-lg border-[#30363d] bg-[#161b22] hover:bg-[#21262d] hover:text-white">
+                      <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                      Share
+                    </Button>
+                    <Button onClick={handleCopyUrl} variant="outline" className="h-9 text-xs font-medium text-white/70 rounded-lg border-[#30363d] bg-[#161b22] hover:bg-[#21262d] hover:text-white">
+                      {urlCopied ? <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                      {urlCopied ? 'Copied!' : 'Copy URL'}
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 bg-black/40 rounded-lg px-3 py-2.5 border border-white/5">
-                    <span className="text-xs text-white/80 truncate flex-1 font-mono select-all">{projectUrl}</span>
-                    <button onClick={handleCopyUrl} className="flex-shrink-0 p-1.5 rounded-md hover:bg-white/10 transition-colors" title="Copy URL">
-                      {urlCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-white/50 hover:text-white" />}
-                    </button>
-                  </div>
+                  <Button onClick={handleClose} variant="ghost" className="w-full h-9 text-xs text-white/40 hover:text-white/70 hover:bg-white/5 rounded-lg mt-1">
+                    ← Back to Building
+                  </Button>
                 </motion.div>
-              )}
-
-              {/* Action buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="space-y-3"
-              >
-                <a href={projectUrl} target="_blank" rel="noopener noreferrer" className="block">
-                  <Button className="w-full h-12 text-sm font-bold text-white rounded-xl" style={{ background: 'linear-gradient(135deg, #5865F2, #7289DA)' }}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open My App
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </a>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleShareNative} variant="outline" className="h-10 text-sm font-semibold text-white rounded-xl border-white/10 bg-white/5 hover:bg-white/10">
-                    <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                    Share
-                  </Button>
-                  <Button onClick={handleCopyUrl} variant="outline" className="h-10 text-sm font-semibold text-white rounded-xl border-white/10 bg-white/5 hover:bg-white/10">
-                    {urlCopied ? <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
-                    {urlCopied ? 'Copied!' : 'Copy URL'}
-                  </Button>
-                </div>
-
-                <div className="pt-2 border-t border-white/5">
-                  <Button onClick={handleClose} variant="ghost" className="w-full h-10 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-xl">
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Back to Building
-                  </Button>
-                </div>
-              </motion.div>
+              </div>
             </motion.div>
           )}
 
@@ -361,14 +361,14 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                 <div>
                   <label className="text-sm font-medium text-white mb-1 block">Your Name</label>
                   <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
-                    className="bg-black/30 border-white/10 text-white" autoFocus />
+                    className="bg-black/30 border-[#30363d] text-white" autoFocus />
                 </div>
               )}
 
               <div>
                 <label className="text-sm font-medium text-white mb-1 block">Project Name</label>
                 <Input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
-                  className="bg-black/30 border-white/10 text-white" autoFocus={!showNameInput} />
+                  className="bg-black/30 border-[#30363d] text-white" autoFocus={!showNameInput} />
               </div>
 
               <div>
@@ -378,7 +378,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                 <Textarea value={description} onChange={e => setDescription(e.target.value)}
                   placeholder="My AI helps students study for exams by explaining difficult concepts."
                   rows={2}
-                  className="bg-black/30 border-white/10 text-white resize-none" />
+                  className="bg-black/30 border-[#30363d] text-white resize-none" />
               </div>
 
               <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
