@@ -173,7 +173,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && deployStep !== 'deploying' && handleClose()}>
-      <DialogContent className="bg-[#0d1117] border-[#30363d] text-white sm:max-w-md overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
+      <DialogContent className="bg-[#0d1117] border-[#30363d] text-white sm:max-w-md p-0 max-h-[90vh] overflow-y-auto" hideCloseButton={deployStep === 'deploying'}>
         <AnimatePresence mode="wait">
           {/* ── DEPLOYING ANIMATION ── */}
           {deployStep === 'deploying' && (
