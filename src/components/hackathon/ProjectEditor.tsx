@@ -16,7 +16,8 @@ import {
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-export type ProjectType = 'chatbot' | 'agent';
+import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
   initialType?: ProjectType;
