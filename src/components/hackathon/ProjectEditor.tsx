@@ -513,23 +513,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
-      // Save all files as a JSON bundle so config.json and requirements.txt aren't lost
-      const allCode = JSON.stringify({
-        'main.py': files['main.py'],
-        'config.json': files['config.json'],
-        'requirements.txt': files['requirements.txt'],
-      });
+      const codePayload = files['main.py'];
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType })
+          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
