@@ -125,6 +125,10 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
+  .caret-ide-cursor {
+    caret-color: hsl(var(--ide-cursor));
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
