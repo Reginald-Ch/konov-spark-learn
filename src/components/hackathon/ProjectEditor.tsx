@@ -458,6 +458,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
       const history = chatMessages
         .filter(m => m.role === 'user' || m.role === 'assistant')
+        .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
       await streamFromEdgeFunction(
         { 

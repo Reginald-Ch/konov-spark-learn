@@ -346,7 +346,7 @@ const JudgeDashboard = () => {
                       
                       {/* Actions */}
                       <div className="flex gap-1.5 mb-3">
-                        <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+                        <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                           <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                             <ExternalLink className="w-3 h-3 mr-1" /> Try Live
                           </Button>

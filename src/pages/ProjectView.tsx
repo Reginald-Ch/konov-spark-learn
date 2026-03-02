@@ -231,8 +231,13 @@ const ProjectView = () => {
           } catch { /* partial JSON */ }
         }
       }
-    } catch {
-      setChatMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: '❌ Failed to get a response. Please try again.' }]);
+    } catch (e) {
+      console.error('Chat error:', e);
+      setChatMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: '❌ Failed to get a response. Please try again.' };
+        return updated;
+      });
     } finally {
       setIsStreaming(false);
     }

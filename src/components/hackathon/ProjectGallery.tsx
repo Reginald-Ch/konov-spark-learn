@@ -44,16 +44,23 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
   const fetchProjects = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('ai_projects')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('ai_projects')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setProjects(data);
+      if (error) {
+        console.error('Failed to fetch projects:', error);
+      } else if (data) {
+        setProjects(data);
+      }
+    } catch (e) {
+      console.error('Unexpected error fetching projects:', e);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleDelete = async () => {
