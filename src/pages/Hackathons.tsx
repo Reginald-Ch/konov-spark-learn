@@ -422,12 +422,7 @@ const Hackathons = () => {
               </motion.div>
             )}
 
-            {/* GALLERY TAB */}
-            {activeTab === 'gallery' && (
-              <motion.div key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto p-6">
-                <ProjectGallery onViewCode={handleViewCode} />
-              </motion.div>
-            )}
+            {/* GALLERY TAB removed — Showcase is now under Hackathons sub-view */}
 
             {/* LEARN TAB */}
             {activeTab === 'learn' && (
