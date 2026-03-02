@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, Trophy, Zap, ArrowRight, Gamepad2 } from 'lucide-react';
+import { Calendar, Users, Clock, Trophy, Zap, ArrowRight, Gamepad2, Code, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CountdownTimer } from './CountdownTimer';
@@ -32,6 +31,11 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
   
   const spotsLeft = hackathon.max_participants - hackathon.current_participants;
   const isRegistrationOpen = now < registrationDeadline && spotsLeft > 0;
+
+  // Calculate duration
+  const durationMs = endDate.getTime() - startDate.getTime();
+  const durationHours = Math.round(durationMs / (1000 * 60 * 60));
+  const durationLabel = durationHours < 24 ? `${durationHours}h event` : `${Math.round(durationHours / 24)}d event`;
 
   const getStatusStyles = () => {
     switch (hackathon.status) {
@@ -73,10 +77,8 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
   };
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.02, y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`relative rounded-lg overflow-hidden bg-[hsl(var(--discord-dark))] border ${styles.border} ${styles.glow} transition-all duration-300 group`}
+    <div
+      className={`relative rounded-lg overflow-hidden bg-[hsl(var(--discord-dark))] border ${styles.border} ${styles.glow} transition-all duration-300 group hover:scale-[1.02] hover:-translate-y-1`}
     >
       {/* Live indicator pulse */}
       {hackathon.status === 'live' && (
@@ -119,10 +121,26 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
         </h3>
 
         {hackathon.description && (
-          <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-4">
+          <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-3 mb-3">
             {hackathon.description}
           </p>
         )}
+
+        {/* What you'll build */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded-full px-2.5 py-1">
+            <Code className="w-3 h-3 text-[#5865F2]" />
+            <span>Python</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded-full px-2.5 py-1">
+            <Brain className="w-3 h-3 text-[#9B59B6]" />
+            <span>AI Projects</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded-full px-2.5 py-1">
+            <Clock className="w-3 h-3" />
+            <span>{durationLabel}</span>
+          </div>
+        </div>
       </div>
 
       {/* Countdown */}
@@ -146,15 +164,15 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
           </div>
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded px-2 py-1.5">
             <Users className="w-3 h-3" />
-            <span>{hackathon.current_participants}/{hackathon.max_participants}</span>
+            <span>{hackathon.current_participants}/{hackathon.max_participants} joined</span>
           </div>
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded px-2 py-1.5">
             <Clock className="w-3 h-3" />
-            <span>{format(registrationDeadline, 'MMM d')}</span>
+            <span>Reg. by {format(registrationDeadline, 'MMM d')}</span>
           </div>
           <div className="flex items-center gap-2 bg-[hsl(var(--discord-darker))] rounded px-2 py-1.5">
             {spotsLeft > 0 ? (
-              <span className="text-[hsl(var(--discord-green))] font-medium">{spotsLeft} spots</span>
+              <span className="text-[hsl(var(--discord-green))] font-medium">{spotsLeft} spots left</span>
             ) : (
               <span className="text-[hsl(var(--discord-red))] font-medium">Full</span>
             )}
@@ -194,16 +212,16 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
         {hackathon.status === 'live' && (
           <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
             <Zap className="w-3 h-3 mr-1 animate-pulse" />
-            Live — Submit from Build Studio
+            Live — Build in IDE
           </Badge>
         )}
         {hackathon.status === 'ended' && (
           <Badge className="flex-1 justify-center py-2 bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]">
             <Trophy className="w-3 h-3 mr-1" />
-            Event Ended
+            Event Ended — View Results
           </Badge>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };

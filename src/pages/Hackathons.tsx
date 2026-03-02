@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
 import { SEO } from '@/components/SEO';
 import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
-// SubmissionsGallery removed - Showcase tab uses ProjectGallery instead
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
@@ -16,6 +14,7 @@ import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
 import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
 import { ProjectGallery } from '@/components/hackathon/ProjectGallery';
 import { LearnTab } from '@/components/hackathon/LearnTab';
+import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, Sparkles, ArrowLeft, Brain,
@@ -26,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Hackathon {
   id: string;
@@ -42,7 +42,7 @@ interface Hackathon {
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq' | 'judge';
 
 const Hackathons = () => {
   const navigate = useNavigate();
@@ -83,28 +83,27 @@ const Hackathons = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathons' }, () => fetchHackathons())
       .subscribe();
 
-    const registrationsChannel = supabase
-      .channel('registrations-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hackathon_registrations' }, () => fetchHackathons())
-      .subscribe();
-
     return () => {
       supabase.removeChannel(hackathonsChannel);
-      supabase.removeChannel(registrationsChannel);
     };
   }, []);
 
   const fetchHackathons = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('hackathons')
-      .select('*')
-      .order('start_date', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('hackathons')
+        .select('*')
+        .order('start_date', { ascending: true });
 
-    if (!error && data) {
-      setHackathons(data as Hackathon[]);
+      if (!error && data) {
+        setHackathons(data as Hackathon[]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch hackathons:', e);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleRegister = (hackathonId: string) => {
@@ -129,9 +128,7 @@ const Hackathons = () => {
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    if (!hasLiveEvent) {
-      return;
-    }
+    if (!hasLiveEvent) return;
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setActiveTab('build');
@@ -161,6 +158,90 @@ const Hackathons = () => {
     { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
     { id: 'learn' as MainTab, name: 'Learn', icon: GraduationCap, color: '#006600', desc: 'Tutorials & Guides' },
   ];
+
+  // Render the active hackathon sub-view content directly (no AnimatePresence for instant switching)
+  const renderHackathonContent = () => {
+    switch (hackathonSubView) {
+      case 'showcase':
+        return <ProjectGallery onViewCode={handleViewCode} />;
+      case 'leaderboard':
+        return <Leaderboard />;
+      case 'getting-started':
+        return <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />;
+      case 'faq':
+        return <HackathonFAQ />;
+      case 'judge':
+        return <JudgeDashboardPanel onRefreshHackathons={fetchHackathons} />;
+      default:
+        return (
+          <>
+            {/* Welcome Banner */}
+            <div 
+              className="rounded-lg p-6 mb-8 relative overflow-hidden"
+              style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
+            >
+              <div className="absolute inset-0 opacity-10">
+                <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
+                <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
+              </div>
+              <div className="relative z-10">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                  <Sparkles className="w-8 h-8" />
+                  Build AI Projects with Python!
+                </h1>
+                <p className="text-white/90 text-lg max-w-2xl">
+                  Use Python, PyTorch, TensorFlow, and AI models to build innovative solutions.
+                </p>
+                <div className="flex flex-wrap items-center gap-6 mt-4">
+                  <div className="flex items-center gap-2 text-white">
+                    <Circle className="w-3 h-3 fill-green-400 text-green-400" />
+                    <span className="font-medium">{onlineMembers} hackers active</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white">
+                    <Rocket className="w-4 h-4" />
+                    <span className="font-medium">{liveHackathons.length} live events</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hackathon Cards */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+                  <p className="text-[hsl(var(--discord-text-muted))]">Loading hackathons...</p>
+                </div>
+              </div>
+            ) : getFilteredHackathons().length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+                  <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
+                <p className="text-[hsl(var(--discord-text-muted))] mb-4">Check back soon for new events!</p>
+                <Button onClick={() => setActiveTab('templates')} style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Start Building Instead
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {getFilteredHackathons().map((hackathon) => (
+                  <HackathonCard
+                    key={hackathon.id}
+                    hackathon={hackathon}
+                    onRegister={handleRegister}
+                    onViewTeams={handleViewTeams}
+                    onSubmitProject={handleSubmitProject}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        );
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -321,13 +402,12 @@ const Hackathons = () => {
                 { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap, count: liveHackathons.length, live: true },
                 { id: 'upcoming' as HackathonSubView, name: 'Upcoming', icon: Calendar, count: upcomingHackathons.length },
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
-              { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
-              { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
+                { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+                { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
               ].map(ch => (
-                <motion.button
+                <button
                   key={ch.id}
-                  onClick={() => { setHackathonSubView(ch.id); }}
-                  whileHover={{ scale: 1.02 }}
+                  onClick={() => setHackathonSubView(ch.id)}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
                     hackathonSubView === ch.id 
                       ? 'bg-[hsl(var(--discord-light)/0.6)] text-white' 
@@ -341,7 +421,7 @@ const Hackathons = () => {
                       ch.live ? 'bg-[hsl(var(--discord-red))] text-white' : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
                     }`}>{ch.count}</span>
                   )}
-                </motion.button>
+                </button>
               ))}
 
               <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
@@ -351,10 +431,9 @@ const Hackathons = () => {
                 { id: 'getting-started' as HackathonSubView, name: 'Getting Started', icon: BookOpen },
                 { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
               ].map(ch => (
-                <motion.button
+                <button
                   key={ch.id}
                   onClick={() => setHackathonSubView(ch.id)}
-                  whileHover={{ scale: 1.02 }}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
                     hackathonSubView === ch.id
                       ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
@@ -363,13 +442,23 @@ const Hackathons = () => {
                 >
                   <ch.icon className="w-4 h-4" />
                   <span>{ch.name}</span>
-                </motion.button>
+                </button>
               ))}
 
-              <a href="/judge" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))] transition-colors mb-0.5">
+              <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
+
+              {/* Judge Dashboard — integrated as sub-view */}
+              <button
+                onClick={() => setHackathonSubView('judge')}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                  hackathonSubView === 'judge'
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                }`}
+              >
                 <Shield className="w-4 h-4 text-[#FFD700]" />
                 <span>Judge Dashboard</span>
-              </a>
+              </button>
 
               {/* Past events info */}
               {endedHackathons.length > 0 && (
@@ -377,15 +466,14 @@ const Hackathons = () => {
                   <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
                   <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Past Events</p>
                   {endedHackathons.map(h => (
-                    <motion.button
+                    <button
                       key={h.id}
                       onClick={() => setHackathonSubView('past-events')}
-                      whileHover={{ scale: 1.02 }}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]"
                     >
                       <Trophy className="w-3.5 h-3.5 text-[hsl(var(--discord-yellow))]" />
                       <span className="truncate">{h.title}</span>
-                    </motion.button>
+                    </button>
                   ))}
                 </>
               )}
@@ -403,177 +491,88 @@ const Hackathons = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))] overflow-hidden">
-        <>
-            {/* BUILD TAB */}
-            {activeTab === 'build' && (
-              <div key="build" className="flex-1 flex flex-col overflow-hidden">
-                {hasLiveEvent ? (
-                  <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="text-center max-w-md">
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)', opacity: 0.3 }}>
-                        <Code className="w-10 h-10 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-2">🔒 IDE Opens When Event Goes Live</h3>
-                      <p className="text-[hsl(var(--discord-text-muted))] mb-6">The Build Studio will unlock once a hackathon event is set to <strong className="text-[hsl(var(--discord-green))]">Live</strong> by the judges. Check back soon!</p>
-                      <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        View Events
-                      </Button>
+          {/* BUILD TAB */}
+          {activeTab === 'build' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {hasLiveEvent ? (
+                <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
+              ) : (
+                <div className="flex-1 flex items-center justify-center p-8">
+                  <div className="text-center max-w-md">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)', opacity: 0.3 }}>
+                      <Code className="w-10 h-10 text-white" />
                     </div>
+                    <h3 className="text-xl font-bold text-white mb-2">🔒 IDE Opens When Event Goes Live</h3>
+                    <p className="text-[hsl(var(--discord-text-muted))] mb-6">The Build Studio will unlock once a hackathon event is set to <strong className="text-[hsl(var(--discord-green))]">Live</strong> by the judges. Check back soon!</p>
+                    <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
+                      <Trophy className="w-4 h-4 mr-2" />
+                      View Events
+                    </Button>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* TEMPLATES TAB */}
-            {activeTab === 'templates' && (
-              <div key="templates" className="flex-1 overflow-auto">
-                {hasLiveEvent ? (
-                  <TemplatesTab onStartBuilding={handleStartBuilding} />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center p-8 min-h-[60vh]">
-                    <div className="text-center max-w-md">
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F7941D 0%, #006600 100%)', opacity: 0.3 }}>
-                        <Rocket className="w-10 h-10 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-2">🔒 Templates Unlock When Event Goes Live</h3>
-                      <p className="text-[hsl(var(--discord-text-muted))] mb-6">Pick a template and start building once a hackathon event is <strong className="text-[hsl(var(--discord-green))]">Live</strong>.</p>
-                      <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        View Events
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* AI MODELS TAB */}
-            {activeTab === 'ai-models' && (
-              <div key="ai-models" className="flex-1 overflow-auto">
-                <AIModelsTab onViewCode={handleViewCode} />
-              </div>
-            )}
-
-            {/* GALLERY TAB removed — Showcase is now under Hackathons sub-view */}
-
-            {/* LEARN TAB */}
-            {activeTab === 'learn' && (
-              <div key="learn" className="flex-1 overflow-auto">
-                <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
-              </div>
-            )}
-
-            {/* HACKATHONS TAB */}
-            {activeTab === 'hackathons' && (
-              <div key="hackathons" className="flex-1 flex flex-col overflow-hidden">
-                {/* Header Bar */}
-                <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm flex-shrink-0">
-                  {hackathonSubView === 'leaderboard' ? (
-                    <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
-                  ) : (
-                    <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
-                  )}
-                  <span className="font-semibold text-white">
-                    {hackathonSubView.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                  </span>
                 </div>
+              )}
+            </div>
+          )}
 
-                <ScrollArea className="flex-1 p-6">
-                  <AnimatePresence mode="wait">
-                    {hackathonSubView === 'showcase' ? (
-                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-0">
-                        <ProjectGallery onViewCode={handleViewCode} />
-                      </motion.div>
-                    ) : hackathonSubView === 'leaderboard' ? (
-                      <motion.div key="lb" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <Leaderboard />
-                      </motion.div>
-                    ) : hackathonSubView === 'getting-started' ? (
-                      <motion.div key="gs" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />
-                      </motion.div>
-                    ) : hackathonSubView === 'faq' ? (
-                      <motion.div key="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <HackathonFAQ ref={null} />
-                      </motion.div>
-                    ) : (
-                      <motion.div key="events" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        {/* Welcome Banner */}
-                        <motion.div 
-                          initial={{ opacity: 0, y: -20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="rounded-lg p-6 mb-8 relative overflow-hidden"
-                          style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
-                        >
-                          <div className="absolute inset-0 opacity-10">
-                            <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
-                            <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
-                          </div>
-                          <div className="relative z-10">
-                            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                              <Sparkles className="w-8 h-8" />
-                              Build AI Projects with Python!
-                            </h1>
-                            <p className="text-white/90 text-lg max-w-2xl">
-                              Use Python, PyTorch, TensorFlow, and AI models to build innovative solutions.
-                            </p>
-                            <div className="flex flex-wrap items-center gap-6 mt-4">
-                              <div className="flex items-center gap-2 text-white">
-                                <Circle className="w-3 h-3 fill-green-400 text-green-400" />
-                                <span className="font-medium">{onlineMembers} hackers active</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-white">
-                                <Rocket className="w-4 h-4" />
-                                <span className="font-medium">{liveHackathons.length} live events</span>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
+          {/* TEMPLATES TAB */}
+          {activeTab === 'templates' && (
+            <div className="flex-1 overflow-auto">
+              {hasLiveEvent ? (
+                <TemplatesTab onStartBuilding={handleStartBuilding} />
+              ) : (
+                <div className="flex-1 flex items-center justify-center p-8 min-h-[60vh]">
+                  <div className="text-center max-w-md">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F7941D 0%, #006600 100%)', opacity: 0.3 }}>
+                      <Rocket className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">🔒 Templates Unlock When Event Goes Live</h3>
+                    <p className="text-[hsl(var(--discord-text-muted))] mb-6">Pick a template and start building once a hackathon event is <strong className="text-[hsl(var(--discord-green))]">Live</strong>.</p>
+                    <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
+                      <Trophy className="w-4 h-4 mr-2" />
+                      View Events
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                        {/* Hackathon Cards */}
-                        {isLoading ? (
-                          <div className="flex items-center justify-center py-20">
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="w-12 h-12 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
-                              <p className="text-[hsl(var(--discord-text-muted))]">Loading hackathons...</p>
-                            </div>
-                          </div>
-                        ) : getFilteredHackathons().length === 0 ? (
-                          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-20">
-                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
-                              <Code className="w-12 h-12 text-[hsl(var(--discord-text-muted))]" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
-                            <p className="text-[hsl(var(--discord-text-muted))] mb-4">Check back soon for new events!</p>
-                            <Button onClick={() => setActiveTab('templates')} style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
-                              <Rocket className="w-4 h-4 mr-2" />
-                              Start Building Instead
-                            </Button>
-                          </motion.div>
-                        ) : (
-                          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {getFilteredHackathons().map((hackathon, index) => (
-                              <motion.div key={hackathon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                                <HackathonCard
-                                  hackathon={hackathon}
-                                  onRegister={handleRegister}
-                                  onViewTeams={handleViewTeams}
-                                  onSubmitProject={handleSubmitProject}
-                                />
-                              </motion.div>
-                            ))}
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </ScrollArea>
+          {/* AI MODELS TAB */}
+          {activeTab === 'ai-models' && (
+            <div className="flex-1 overflow-auto">
+              <AIModelsTab onViewCode={handleViewCode} />
+            </div>
+          )}
+
+          {/* LEARN TAB */}
+          {activeTab === 'learn' && (
+            <div className="flex-1 overflow-auto">
+              <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
+            </div>
+          )}
+
+          {/* HACKATHONS TAB — instant sub-view switching */}
+          {activeTab === 'hackathons' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Header Bar */}
+              <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm flex-shrink-0">
+                {hackathonSubView === 'leaderboard' ? (
+                  <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
+                ) : hackathonSubView === 'judge' ? (
+                  <Shield className="w-5 h-5 text-[#FFD700]" />
+                ) : (
+                  <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
+                )}
+                <span className="font-semibold text-white">
+                  {hackathonSubView === 'judge' ? 'Judge Dashboard' : hackathonSubView.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </span>
               </div>
-            )}
-          </>
+
+              <ScrollArea className="flex-1 p-6">
+                {renderHackathonContent()}
+              </ScrollArea>
+            </div>
+          )}
         </div>
 
         {/* Modals */}
