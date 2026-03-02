@@ -122,25 +122,28 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setSubmissionModalOpen(true); }
   };
 
+  const liveHackathons = hackathons.filter(h => h.status === 'live');
+  const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
+  const endedHackathons = hackathons.filter(h => h.status === 'ended');
+  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
+  const hasLiveEvent = liveHackathons.length > 0;
+
   const handleStartBuilding = (code: string, templateId: string) => {
+    if (!hasLiveEvent) {
+      return;
+    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setActiveTab('build');
   };
 
   const handleViewCode = (code: string) => {
-    // Open code in read-only view — don't destroy current build session
     const confirmed = !buildCode || confirm('This will load new code into the editor. Any unsaved changes will be lost. Continue?');
     if (!confirmed) return;
     setBuildCode(code);
     setBuildTemplate(undefined);
     setActiveTab('build');
   };
-
-  const liveHackathons = hackathons.filter(h => h.status === 'live');
-  const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
-  const endedHackathons = hackathons.filter(h => h.status === 'ended');
-  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
 
   const getFilteredHackathons = () => {
     switch (hackathonSubView) {
@@ -404,14 +407,46 @@ const Hackathons = () => {
             {/* BUILD TAB */}
             {activeTab === 'build' && (
               <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
-                <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
+                {hasLiveEvent ? (
+                  <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="text-center max-w-md">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)', opacity: 0.3 }}>
+                        <Code className="w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">🔒 IDE Opens When Event Goes Live</h3>
+                      <p className="text-[hsl(var(--discord-text-muted))] mb-6">The Build Studio will unlock once a hackathon event is set to <strong className="text-[hsl(var(--discord-green))]">Live</strong> by the judges. Check back soon!</p>
+                      <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
+                        <Trophy className="w-4 h-4 mr-2" />
+                        View Events
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
             {/* TEMPLATES TAB */}
             {activeTab === 'templates' && (
               <motion.div key="templates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
-                <TemplatesTab onStartBuilding={handleStartBuilding} />
+                {hasLiveEvent ? (
+                  <TemplatesTab onStartBuilding={handleStartBuilding} />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center p-8 min-h-[60vh]">
+                    <div className="text-center max-w-md">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F7941D 0%, #006600 100%)', opacity: 0.3 }}>
+                        <Rocket className="w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">🔒 Templates Unlock When Event Goes Live</h3>
+                      <p className="text-[hsl(var(--discord-text-muted))] mb-6">Pick a template and start building once a hackathon event is <strong className="text-[hsl(var(--discord-green))]">Live</strong>.</p>
+                      <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
+                        <Trophy className="w-4 h-4 mr-2" />
+                        View Events
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 

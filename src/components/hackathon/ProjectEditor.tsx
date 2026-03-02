@@ -859,32 +859,49 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {/* ── Knowledge Base Tab ── */}
                 {configTab === 'knowledge' && (
                   <>
+                    {/* Explainer card */}
+                    <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20 mb-1">
+                      <p className="text-[10px] text-ide-text leading-relaxed">
+                        <strong className="text-ide-accent">📚 Teach Your AI</strong> — Add facts, notes, or Q&A pairs below. Your bot will use this data to answer questions in the Live Preview and deployed app.
+                      </p>
+                    </div>
+
+                    {/* Knowledge Base */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">📚 Knowledge Base</label>
-                      <p className="text-[10px] text-ide-text-muted mb-2">Paste text, notes, or data your bot should reference when answering questions.</p>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">Knowledge Base</label>
+                      <p className="text-[10px] text-ide-text-muted mb-1.5">Paste any text your bot should know — notes, formulas, facts.</p>
                       <Textarea 
                         value={knowledgeBase} 
                         onChange={e => setKnowledgeBase(e.target.value)} 
-                        rows={6}
-                        placeholder="e.g. Pythagoras theorem: a² + b² = c². It applies to right-angled triangles..."
+                        rows={5}
+                        placeholder={"e.g.\nPythagoras theorem: a² + b² = c²\nIt applies to right-angled triangles.\n\nOhm's law: V = IR\nVoltage equals current times resistance."}
                         className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
                       />
-                      {knowledgeBase && (
-                        <div className="mt-1 flex items-center gap-1 text-[10px] text-ide-green">
-                          <Check className="w-3 h-3" />
-                          <span>{knowledgeBase.split(/\s+/).length} words loaded</span>
+                      {knowledgeBase ? (
+                        <div className="mt-1 flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-[10px] text-ide-green">
+                            <Check className="w-3 h-3" />
+                            <span>{knowledgeBase.split(/\s+/).filter(Boolean).length} words loaded</span>
+                          </div>
+                          <button onClick={() => setKnowledgeBase('')} className="text-[10px] text-ide-text-muted hover:text-red-400 transition-colors">Clear</button>
                         </div>
+                      ) : (
+                        <p className="mt-1 text-[10px] text-ide-text-muted italic">No knowledge added yet</p>
                       )}
                     </div>
 
+                    {/* Divider */}
+                    <div className="h-px bg-ide-border/50" />
+
+                    {/* Q&A Pairs */}
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">❓ Q&A Pairs</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">Q&A Pairs</label>
                         <Button size="sm" variant="ghost" onClick={addQA} className="h-5 px-1.5 text-[10px] text-ide-accent hover:bg-ide-border/50">
                           <Plus className="w-3 h-3 mr-0.5" /> Add
                         </Button>
                       </div>
-                      <p className="text-[10px] text-ide-text-muted mb-2">Add specific question-answer pairs your bot should know.</p>
+                      <p className="text-[10px] text-ide-text-muted mb-2">Add exact question → answer pairs for precise responses.</p>
                       
                       {qaData.length === 0 && (
                         <button onClick={addQA} className="w-full p-3 rounded-lg border-2 border-dashed border-ide-border text-ide-text-muted text-xs hover:border-ide-accent hover:text-ide-accent transition-colors">
@@ -896,7 +913,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                         {qaData.map((pair, idx) => (
                           <div key={idx} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold text-ide-accent">Q{idx + 1}</span>
+                              <span className="text-[10px] font-bold text-ide-accent">Pair {idx + 1}</span>
                               <button onClick={() => removeQA(idx)} className="text-ide-text-muted hover:text-red-400">
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -904,13 +921,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                             <Input 
                               value={pair.q} 
                               onChange={e => updateQA(idx, 'q', e.target.value)}
-                              placeholder="What is Pythagoras theorem?"
+                              placeholder="Q: What is Pythagoras theorem?"
                               className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
                             />
                             <Input 
                               value={pair.a} 
                               onChange={e => updateQA(idx, 'a', e.target.value)}
-                              placeholder="a² + b² = c² for right triangles"
+                              placeholder="A: a² + b² = c² for right triangles"
                               className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
                             />
                           </div>
@@ -918,11 +935,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                       </div>
                     </div>
 
-                    <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20">
-                      <p className="text-[10px] text-ide-text leading-relaxed">
-                        <strong className="text-ide-accent">💡 How it works:</strong> Your knowledge base and Q&A pairs are sent to the AI when visitors chat with your app. The AI will reference this data to give better answers!
-                      </p>
-                    </div>
+                    {/* Status summary */}
+                    {(knowledgeBase || qaData.some(p => p.q.trim())) && (
+                      <div className="bg-ide-green/10 rounded-lg p-2.5 border border-ide-green/20">
+                        <p className="text-[10px] text-ide-green font-medium">
+                          ✅ Your bot has custom knowledge: {knowledgeBase ? `${knowledgeBase.split(/\s+/).filter(Boolean).length} words` : ''}
+                          {knowledgeBase && qaData.filter(p => p.q.trim()).length > 0 ? ' + ' : ''}
+                          {qaData.filter(p => p.q.trim()).length > 0 ? `${qaData.filter(p => p.q.trim()).length} Q&A pairs` : ''}
+                        </p>
+                        <p className="text-[10px] text-ide-text-muted mt-0.5">Test it in the Live Preview panel →</p>
+                      </div>
+                    )}
                   </>
                 )}
 
