@@ -318,7 +318,8 @@ const Hackathons = () => {
                 { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap, count: liveHackathons.length, live: true },
                 { id: 'upcoming' as HackathonSubView, name: 'Upcoming', icon: Calendar, count: upcomingHackathons.length },
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
-                { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
               ].map(ch => (
                 <motion.button
                   key={ch.id}
