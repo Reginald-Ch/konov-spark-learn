@@ -68,24 +68,23 @@ MODEL = "gpt-4o-mini"           # AI model (FORGE provides the API key)
 TEMPERATURE = 0.7               # 0.0 = precise, 1.0 = creative
 MAX_TOKENS = 1024               # Max length of each response
 MEMORY_WINDOW = 20              # Remember last N messages
+BOT_NAME = "My AI Chatbot"      # Name shown in the UI header
 
 # ──────────────────────────────────────────────
 # 🎨 App Setup — Customise your chat interface
 # ──────────────────────────────────────────────
 st.set_page_config(
-    page_title="My AI Chatbot",
+    page_title=BOT_NAME,
     page_icon="🤖",
     layout="wide",
 )
 
-st.title("🤖 My AI Chatbot")
+st.title(f"🤖 {BOT_NAME}")
 st.caption("Built with FORGE • Powered by LangChain")
 
 # ──────────────────────────────────────────────
 # 🧠 Chat Memory — Remembers the conversation
 # ──────────────────────────────────────────────
-# This stores previous messages so your bot can
-# reference earlier parts of the conversation.
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationBufferWindowMemory(
         memory_key="history",
@@ -96,13 +95,15 @@ if "memory" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "msg_count" not in st.session_state:
+    st.session_state.msg_count = 0
+
 # ──────────────────────────────────────────────
 # 🔧 Sidebar — Settings Panel
 # ──────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    # Let users adjust temperature live
     temperature = st.slider(
         "Creativity Level",
         min_value=0.0,
@@ -112,7 +113,12 @@ with st.sidebar:
         help="Higher = more creative, Lower = more focused",
     )
 
-    # Show current system prompt
+    response_style = st.selectbox(
+        "Response Style",
+        ["Balanced", "Concise", "Detailed", "Friendly"],
+        help="Changes how verbose the AI responds",
+    )
+
     st.text_area(
         "System Prompt (edit in code)",
         value=SYSTEM_PROMPT,
@@ -127,6 +133,7 @@ with st.sidebar:
     with col1:
         if st.button("🗑️ Clear Chat", use_container_width=True):
             st.session_state.messages = []
+            st.session_state.msg_count = 0
             st.session_state.memory = ConversationBufferWindowMemory(
                 memory_key="history",
                 return_messages=True,
@@ -150,11 +157,23 @@ with st.sidebar:
 # ──────────────────────────────────────────────
 # 🤖 Build the AI Chain
 # ──────────────────────────────────────────────
-# The chain connects: System Prompt + Memory + User Input → AI Response
+
+def build_enhanced_prompt():
+    """Build system prompt with response style modifier."""
+    base = SYSTEM_PROMPT
+
+    style_modifiers = {
+        "Concise": " Keep your answers short (2-3 sentences max). Be direct.",
+        "Detailed": " Provide thorough, well-structured answers with examples.",
+        "Friendly": " Use a warm, encouraging tone with emojis. Be supportive!",
+        "Balanced": "",
+    }
+
+    return base + style_modifiers.get(response_style, "")
+
 
 def build_chain():
     """Create the conversation chain with memory."""
-    # FORGE provides the API key automatically — no setup needed!
     llm = ChatOpenAI(
         model_name=MODEL,
         temperature=temperature,
@@ -163,7 +182,7 @@ def build_chain():
     )
 
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=SYSTEM_PROMPT),
+        SystemMessage(content=build_enhanced_prompt()),
         MessagesPlaceholder(variable_name="history"),
         ("human", "{input}"),
     ])
@@ -187,10 +206,10 @@ for msg in st.session_state.messages:
 # Handle new user input
 if user_input := st.chat_input("Type your message..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
+    st.session_state.msg_count += 1
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Generate AI response
     with st.chat_message("assistant"):
         try:
             chain = build_chain()
@@ -204,7 +223,13 @@ if user_input := st.chat_input("Type your message..."):
             )
 
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            error_msg = str(e)
+            if "rate" in error_msg.lower() or "limit" in error_msg.lower():
+                st.warning("⏳ Too many requests. Wait a moment and try again!")
+            elif "token" in error_msg.lower():
+                st.warning("📏 Message too long. Try a shorter question!")
+            else:
+                st.error(f"❌ Error: {error_msg}")
             st.info("💡 Tip: Check your system prompt and try again!")`,
     config: `{
   "project_type": "chatbot",
