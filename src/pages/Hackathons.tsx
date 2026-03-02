@@ -452,7 +452,7 @@ const Hackathons = () => {
 
             {/* AI MODELS TAB */}
             {activeTab === 'ai-models' && (
-              <motion.div key="ai-models" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="ai-models" className="flex-1 overflow-auto">
                 <AIModelsTab onViewCode={handleViewCode} />
               </motion.div>
             )}
