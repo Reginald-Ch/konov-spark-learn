@@ -90,7 +90,7 @@ export const Leaderboard = () => {
 
     const participantMap = new Map<string, ParticipantScore>();
 
-    (pointEventsData || []).forEach((evt: any) => {
+    (pointEventsRes.data || []).forEach((evt: any) => {
       const config = SCORING_CONFIG[evt.event_type as ScoringEvent];
       if (!config) return; // skip legacy events
 
