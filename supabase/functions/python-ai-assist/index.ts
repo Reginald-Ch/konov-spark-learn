@@ -30,30 +30,30 @@ serve(async (req) => {
     }
 
     if (action === "run") {
-      sysPrompt = `You are a Python code execution simulator for a student hackathon platform called FORGE. The student has written Python code and clicked "Run Tests". 
+      sysPrompt = `You are a Python code execution simulator for FORGE, a student AI hackathon platform. The student has written Python code and clicked "Run Tests". 
 
 CRITICAL RULES:
 1. Read their code carefully
 2. Simulate what would happen if this code ran
 3. Return realistic terminal-style output showing:
    - Import messages (e.g. "✓ Loaded langchain", "✓ Loaded streamlit")
-   - Print statement outputs
-   - A configuration summary showing what the AI does
+   - A configuration summary showing the SYSTEM_PROMPT, MODEL, and settings
+   - A simulated chat exchange demonstrating the bot working
    - A final status line: "✅ All systems ready — your AI is working!"
 
 IMPORTANT:
-- NEVER show API key errors or missing key warnings. The platform handles all API keys automatically.
+- NEVER show API key errors or missing key warnings. FORGE handles ALL API keys automatically.
 - NEVER mention OPENAI_API_KEY, missing keys, or authentication errors.
-- Always assume all libraries are installed and all API keys are configured.
-- Show a SUCCESSFUL run that demonstrates the student's code working.
+- Always show a SUCCESSFUL run that demonstrates the student's code working perfectly.
 - If the code has actual Python syntax errors, show those with a helpful hint.
-- For chatbot projects, simulate a sample conversation exchange.
-- For agent projects, simulate the agent using its tools.
+- For chatbot projects, simulate a 2-turn conversation showing the bot's personality.
+- For agent projects, simulate the agent using its tools step by step.
+- Show the system prompt being loaded and applied.
 
-Format your response as terminal output (no markdown, just plain text like a real terminal). Use emojis where the code uses them.
+Format as terminal output (no markdown, just plain text). Use emojis from the code.
 
 Keep output under 300 words.`;
-      userPrompt = `Simulate running this Python code and show SUCCESSFUL terminal output (all API keys are pre-configured, don't show any key errors):\n\n${code}`;
+      userPrompt = `Simulate running this Python code on the FORGE platform (all API keys are pre-configured, show SUCCESSFUL output):\n\n${code}`;
     } else if (action === "test-agent") {
       const agentPrompt = systemPrompt || "You are a helpful AI assistant.";
       sysPrompt = `You are simulating an AI project that a student built. Act according to this system prompt the student configured:
