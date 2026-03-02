@@ -459,15 +459,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     if (!chatInput.trim() || isStreaming) return;
     const userMsg = chatInput.trim();
     setChatInput('');
+    // Build history from current messages BEFORE adding new ones (to avoid stale closure)
+    const history = chatMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .filter(m => m.content !== '...')
+      .map(m => ({ role: m.role, content: m.content }));
+    // Add the new user message to history
+    history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
-      const history = chatMessages
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .filter(m => m.content !== '...')
-        .map(m => ({ role: m.role, content: m.content }));
       await streamFromEdgeFunction(
         { 
           code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history,
