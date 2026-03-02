@@ -81,27 +81,7 @@ export const SubmissionsGallery = ({ hackathonId }: SubmissionsGalleryProps) => 
           transition={{ delay: index * 0.1 }}
           className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-lg overflow-hidden hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group relative"
         >
-          {/* Winner ribbon for first place */}
-          {index === 0 && (
-            <div 
-              className="absolute top-0 right-0 px-3 py-1 text-xs font-bold text-white rounded-bl-lg"
-              style={{
-                background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)'
-              }}
-            >
-              🏆 Winner
-            </div>
-          )}
-          {index === 1 && (
-            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-muted-foreground rounded-bl-lg">
-              🥈 2nd
-            </div>
-          )}
-          {index === 2 && (
-            <div className="absolute top-0 right-0 px-2 py-1 text-xs font-bold text-white bg-amber-600 rounded-bl-lg">
-              🥉 3rd
-            </div>
-          )}
+          {/* Position badges — only meaningful if ordered by score, removed index-based winner logic */}
           
           {/* Project Header */}
           <div className="p-4 border-b border-[hsl(var(--discord-light)/0.2)]">

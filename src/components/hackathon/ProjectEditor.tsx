@@ -401,7 +401,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) { fullText += content; onChunk(fullText); }
-          } catch { buffer = line + '\n' + buffer; break; }
+          } catch { /* skip malformed JSON chunk */ }
         }
       }
       setAiCallCount(prev => prev + 1);
@@ -459,18 +459,21 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     if (!chatInput.trim() || isStreaming) return;
     const userMsg = chatInput.trim();
     setChatInput('');
+    // Build history from current messages BEFORE adding new ones (to avoid stale closure)
+    const history = chatMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .filter(m => m.content !== '...')
+      .map(m => ({ role: m.role, content: m.content }));
+    // Add the new user message to history
+    history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
-      const history = chatMessages
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .filter(m => m.content !== '...')
-        .map(m => ({ role: m.role, content: m.content }));
       await streamFromEdgeFunction(
         { 
-          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history,
+          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history.slice(0, -1),
           knowledgeBase: knowledgeBase || undefined,
           qaData: qaData.filter(p => p.q.trim() && p.a.trim()).length > 0 ? qaData.filter(p => p.q.trim() && p.a.trim()) : undefined,
         },
@@ -491,6 +494,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
+      // Save all files as a JSON bundle so config.json and requirements.txt aren't lost
+      const allCode = JSON.stringify({
+        'main.py': files['main.py'],
+        'config.json': files['config.json'],
+        'requirements.txt': files['requirements.txt'],
+      });
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
@@ -1081,7 +1090,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
           {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
-            <div ref={lineNumberRef} className="w-12 flex-shrink-0 overflow-y-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
+            <div ref={lineNumberRef} className="w-12 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
               {lines.map((_, i) => (
                 <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
               ))}
@@ -1331,6 +1340,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
             <Terminal className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Terminal</span>
+          </Button>
+          <Button size="sm" onClick={() => { setTerminalOutput([]); toast.success('Terminal cleared'); }}
+            variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50"
+            title="Clear terminal">
+            <Trash2 className="w-3 h-3" />
           </Button>
           <Button size="sm" onClick={() => { setShowMobilePreview(true); setShowPreview(true); }}
             variant="ghost" className="h-6 text-[10px] lg:hidden text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">

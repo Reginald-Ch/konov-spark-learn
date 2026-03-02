@@ -111,6 +111,7 @@ const ProjectView = () => {
           .from('ai_projects')
           .select('*')
           .eq('id', id)
+          .eq('is_published', true)
           .single();
         if (!error && data) setProject(data as Project);
       } catch (e) {
@@ -178,7 +179,9 @@ const ProjectView = () => {
     setIsStreaming(true);
 
     try {
-      const history = newMessages.map(m => ({ role: m.role, content: m.content }));
+      const history = newMessages
+        .filter(m => m.content !== '...')
+        .map(m => ({ role: m.role, content: m.content }));
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
       const resp = await fetch(
