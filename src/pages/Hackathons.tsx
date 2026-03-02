@@ -465,17 +465,6 @@ const Hackathons = () => {
                       <motion.div key="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <HackathonFAQ />
                       </motion.div>
-                    ) : selectedEndedHackathon ? (
-                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <Button variant="ghost" onClick={() => setSelectedEndedHackathon(null)} className="text-[hsl(var(--discord-text-muted))] hover:text-white mb-4">
-                          <ArrowLeft className="w-4 h-4 mr-2" />Back to events
-                        </Button>
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-4">
-                          <Trophy className="w-6 h-6 text-[hsl(var(--discord-yellow))]" />
-                          {selectedEndedHackathon.title} - Showcase
-                        </h2>
-                        <SubmissionsGallery hackathonId={selectedEndedHackathon.id} />
-                      </motion.div>
                     ) : (
                       <motion.div key="events" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         {/* Welcome Banner */}

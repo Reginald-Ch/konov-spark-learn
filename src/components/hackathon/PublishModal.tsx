@@ -141,10 +141,23 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
-      const deployKey = `forge-scored-project_deployed-${finalEmail}`;
-      if (!localStorage.getItem(deployKey)) {
-        localStorage.setItem(deployKey, 'true');
-        supabase.from('point_events').insert({ participant_email: finalEmail, event_type: 'project_deployed', points: 20, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+
+      // Auto-award all achievable leaderboard milestones on submission
+      const milestones = [
+        { event_type: 'project_setup', points: 10, metadata: { project: projectName } },
+        { event_type: 'first_run_success', points: 10, metadata: { project: projectName } },
+        { event_type: 'project_deployed', points: 20, metadata: { project: projectName } },
+        { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
+        { event_type: 'app_runs_live', points: 20, metadata: { project: projectName, project_id: resultId } },
+      ];
+      for (const m of milestones) {
+        const key = `forge-scored-${m.event_type}-${finalEmail}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'true');
+          supabase.from('point_events').insert({ participant_email: finalEmail, ...m } as any).then(({ error }) => {
+            if (error) console.warn(`point_events ${m.event_type} insert failed:`, error);
+          });
+        }
       }
     } catch (e) {
       console.error(e);
