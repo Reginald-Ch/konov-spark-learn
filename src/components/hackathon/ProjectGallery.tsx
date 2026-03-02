@@ -168,7 +168,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                           Delete
                         </Button>
                       )}
-                      <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                           💬 Try It
                         </Button>
