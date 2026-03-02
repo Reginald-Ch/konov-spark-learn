@@ -555,6 +555,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
     
     try {
+      let assistantReply = '';
       await streamFromEdgeFunction(
         { 
           code: files['main.py'], 
@@ -566,6 +567,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           messages: newHistory,
         },
         (text) => {
+          assistantReply = text;
           setAiOutput(prev => {
             const parts = prev.split('---');
             const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
@@ -573,8 +575,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           });
         }
       );
-      // Add assistant reply to history
-      setMentorHistory(prev => [...prev, { role: 'assistant', content: 'responded' }]);
+      // Store actual assistant response for proper conversation context
+      setMentorHistory(prev => [...prev, { role: 'assistant', content: assistantReply || 'No response' }]);
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); }
   };
