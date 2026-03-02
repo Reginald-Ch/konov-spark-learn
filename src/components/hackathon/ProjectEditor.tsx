@@ -744,8 +744,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
-                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
-                  { id: 'theme' as ConfigTab, icon: Palette, label: 'Theme' },
+                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Knowledge' },
+                  { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
                 ].map(tab => (
                   <button
                     key={tab.id}
