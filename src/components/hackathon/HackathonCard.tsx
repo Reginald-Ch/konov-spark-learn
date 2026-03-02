@@ -192,17 +192,10 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
           Teams
         </Button>
         {hackathon.status === 'live' && (
-          <Button 
-            onClick={() => onSubmitProject(hackathon.id)}
-            className="flex-1 font-medium text-white"
-            style={{
-              background: 'linear-gradient(135deg, #006600 0%, #00aa00 100%)'
-            }}
-            size="sm"
-          >
-            Submit Project
-            <Zap className="w-4 h-4 ml-1" />
-          </Button>
+          <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
+            <Zap className="w-3 h-3 mr-1 animate-pulse" />
+            Live — Submit from Build Studio
+          </Badge>
         )}
         {hackathon.status === 'ended' && (
           <Badge className="flex-1 justify-center py-2 bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]">

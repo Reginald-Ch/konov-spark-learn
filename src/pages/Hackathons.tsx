@@ -448,7 +448,11 @@ const Hackathons = () => {
 
                 <ScrollArea className="flex-1 p-6">
                   <AnimatePresence mode="wait">
-                    {hackathonSubView === 'leaderboard' ? (
+                    {hackathonSubView === 'showcase' ? (
+                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-0">
+                        <ProjectGallery onViewCode={handleViewCode} />
+                      </motion.div>
+                    ) : hackathonSubView === 'leaderboard' ? (
                       <motion.div key="lb" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <Leaderboard />
                       </motion.div>

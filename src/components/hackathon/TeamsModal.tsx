@@ -259,19 +259,6 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="team_email" className="text-[hsl(var(--discord-text))]">Your Email *</Label>
-                <Input
-                  id="team_email"
-                  type="email"
-                  value={formData.created_by_email}
-                  onChange={(e) => setFormData({ ...formData, created_by_email: e.target.value })}
-                  placeholder="Enter your email"
-                  required
-                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="team_description" className="text-[hsl(var(--discord-text))]">Description</Label>
                 <Textarea
                   id="team_description"
