@@ -44,16 +44,23 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
   const fetchProjects = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('ai_projects')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('ai_projects')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setProjects(data);
+      if (error) {
+        console.error('Failed to fetch projects:', error);
+      } else if (data) {
+        setProjects(data);
+      }
+    } catch (e) {
+      console.error('Unexpected error fetching projects:', e);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleDelete = async () => {
@@ -168,7 +175,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                           Delete
                         </Button>
                       )}
-                      <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                           💬 Try It
                         </Button>

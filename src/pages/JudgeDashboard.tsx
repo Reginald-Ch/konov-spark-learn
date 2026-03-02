@@ -65,7 +65,7 @@ const JudgeDashboard = () => {
   }, []);
 
   const handleLogin = () => {
-    if (accessCode.trim().toUpperCase() === JUDGE_ACCESS_CODE) {
+    if (accessCode.trim() === JUDGE_ACCESS_CODE) {
       if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
       setAuthenticated(true);
       sessionStorage.setItem('judge-authenticated', 'true');
@@ -79,27 +79,32 @@ const JudgeDashboard = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-      supabase.from('ai_projects').select('*').order('created_at', { ascending: false }),
-      supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
-      supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
-    ]);
-    if (projectsRes.data) setProjects(projectsRes.data);
-    if (hackathonsRes.data) setHackathons(hackathonsRes.data as Hackathon[]);
-    // Mark already-scored projects
-    if (existingScores.data) {
-      const scored = new Set<string>();
-      const scoreMap: Record<string, number> = {};
-      (existingScores.data as any[]).forEach((evt: any) => {
-        if (evt.metadata?.project_id) {
-          scored.add(evt.metadata.project_id);
-          scoreMap[evt.metadata.project_id] = evt.points;
-        }
-      });
-      setSubmittedScores(scored);
-      setScores(prev => ({ ...prev, ...scoreMap }));
+    try {
+      const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
+        supabase.from('ai_projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
+        supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
+      ]);
+      if (projectsRes.data) setProjects(projectsRes.data);
+      if (hackathonsRes.data) setHackathons(hackathonsRes.data as Hackathon[]);
+      if (existingScores.data) {
+        const scored = new Set<string>();
+        const scoreMap: Record<string, number> = {};
+        (existingScores.data as any[]).forEach((evt: any) => {
+          if (evt.metadata?.project_id) {
+            scored.add(evt.metadata.project_id);
+            scoreMap[evt.metadata.project_id] = evt.points;
+          }
+        });
+        setSubmittedScores(scored);
+        setScores(prev => ({ ...prev, ...scoreMap }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch data:', e);
+      toast.error('Failed to load data. Please refresh.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleSubmitScore = async (project: Project) => {
@@ -341,7 +346,7 @@ const JudgeDashboard = () => {
                       
                       {/* Actions */}
                       <div className="flex gap-1.5 mb-3">
-                        <a href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+                        <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                           <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                             <ExternalLink className="w-3 h-3 mr-1" /> Try Live
                           </Button>

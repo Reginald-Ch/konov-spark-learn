@@ -106,13 +106,18 @@ const ProjectView = () => {
   useEffect(() => {
     if (!id) return;
     const fetchProject = async () => {
-      const { data, error } = await supabase
-        .from('ai_projects')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (!error && data) setProject(data as Project);
-      setIsLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('ai_projects')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (!error && data) setProject(data as Project);
+      } catch (e) {
+        console.error('Failed to fetch project:', e);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchProject();
   }, [id]);
@@ -226,8 +231,13 @@ const ProjectView = () => {
           } catch { /* partial JSON */ }
         }
       }
-    } catch {
-      setChatMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: '❌ Failed to get a response. Please try again.' }]);
+    } catch (e) {
+      console.error('Chat error:', e);
+      setChatMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: '❌ Failed to get a response. Please try again.' };
+        return updated;
+      });
     } finally {
       setIsStreaming(false);
     }

@@ -86,9 +86,14 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
   const handlePublish = async () => {
     if (!projectName.trim()) { toast.error('Give your project a name!'); return; }
     const finalName = authorName.trim() || prefillAuthorName || 'Student';
-    const finalEmail = authorEmail || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+    const finalEmail = authorEmail.trim() || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+    
+    // Persist email/name for future use
     if (finalName && !finalName.startsWith('Student-')) {
       localStorage.setItem('forge-student-name', finalName);
+    }
+    if (finalEmail) {
+      localStorage.setItem('forge-student-email', finalEmail);
     }
 
     setDeployStep('deploying');
@@ -99,13 +104,29 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       let resultId: string | null = null;
 
       if (currentProjectId) {
-        const { error } = await supabase
+        // Try updating existing project
+        const { data: updateData, error } = await supabase
           .from('ai_projects')
           .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true, points_earned: 10 })
           .eq('id', currentProjectId)
-          .eq('author_email', finalEmail);
-        if (error) throw error;
-        resultId = currentProjectId;
+          .eq('author_email', finalEmail)
+          .select('id')
+          .single();
+        
+        if (error || !updateData) {
+          // Update failed (email mismatch or other issue) — insert new instead
+          console.warn('Update failed, inserting new project:', error?.message);
+          const { data: insertData, error: insertError } = await supabase
+            .from('ai_projects')
+            .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 10 })
+            .select('id')
+            .single();
+          if (insertError) throw insertError;
+          resultId = insertData?.id || null;
+          if (resultId && onProjectIdUpdate) onProjectIdUpdate(resultId);
+        } else {
+          resultId = currentProjectId;
+        }
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
