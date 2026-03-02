@@ -414,7 +414,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setIsRunning(true);
     setShowBottomPanel(true);
     setBottomTab('terminal');
-    const startIdx = terminalOutput.length;
     setTerminalOutput(prev => [...prev, `$ python main.py  [${projectType}]`, '⏳ Running...']);
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
     try {
@@ -425,8 +424,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           result = text; 
           setTerminalOutput(prev => {
             const updated = [...prev];
-            // Replace the '⏳ Running...' line with streamed output
-            updated[startIdx + 1] = result;
+            // Replace the last '⏳ Running...' entry with streamed output
+            const runningIdx = updated.lastIndexOf('⏳ Running...');
+            if (runningIdx !== -1) {
+              updated[runningIdx] = result;
+            } else {
+              updated[updated.length - 1] = result;
+            }
             return updated;
           });
         }
