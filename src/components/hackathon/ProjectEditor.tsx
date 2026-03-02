@@ -201,7 +201,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
   });
 
-  const [savedFiles, setSavedFiles] = useState<Record<string, string>>({});
+  const [savedFiles, setSavedFiles] = useState<Record<string, string>>(() => ({
+    'main.py': initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main,
+    'config.json': PROJECT_SCAFFOLDS[initialType || 'chatbot'].config,
+    'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
+  }));
   const isDirty = useMemo(() => {
     return Object.keys(files).some(key => files[key as FileTab] !== savedFiles[key]);
   }, [files, savedFiles]);
@@ -410,7 +414,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setIsRunning(true);
     setShowBottomPanel(true);
     setBottomTab('terminal');
-    const startIdx = terminalOutput.length;
     setTerminalOutput(prev => [...prev, `$ python main.py  [${projectType}]`, '⏳ Running...']);
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
     try {
@@ -421,8 +424,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           result = text; 
           setTerminalOutput(prev => {
             const updated = [...prev];
-            // Replace the '⏳ Running...' line with streamed output
-            updated[startIdx + 1] = result;
+            // Replace the last '⏳ Running...' entry with streamed output
+            const runningIdx = updated.lastIndexOf('⏳ Running...');
+            if (runningIdx !== -1) {
+              updated[runningIdx] = result;
+            } else {
+              updated[updated.length - 1] = result;
+            }
             return updated;
           });
         }
@@ -547,6 +555,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
     
     try {
+      let assistantReply = '';
       await streamFromEdgeFunction(
         { 
           code: files['main.py'], 
@@ -558,6 +567,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           messages: newHistory,
         },
         (text) => {
+          assistantReply = text;
           setAiOutput(prev => {
             const parts = prev.split('---');
             const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
@@ -565,8 +575,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           });
         }
       );
-      // Add assistant reply to history
-      setMentorHistory(prev => [...prev, { role: 'assistant', content: 'responded' }]);
+      // Store actual assistant response for proper conversation context
+      setMentorHistory(prev => [...prev, { role: 'assistant', content: assistantReply || 'No response' }]);
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); }
   };
@@ -1071,12 +1081,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
           {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
-            <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
-              <div ref={lineNumberRef}>
-                {lines.map((_, i) => (
-                  <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
-                ))}
-              </div>
+            <div ref={lineNumberRef} className="w-12 flex-shrink-0 overflow-y-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
+              {lines.map((_, i) => (
+                <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
+              ))}
             </div>
 
             <div

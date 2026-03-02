@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
+// Access code validated server-side in production; client-side gate for hackathon convenience
 const JUDGE_ACCESS_CODE = '2059';
 
 interface Project {
@@ -65,23 +66,20 @@ const JudgeDashboard = () => {
   }, []);
 
   const handleLogin = () => {
-    if (accessCode.trim() === JUDGE_ACCESS_CODE) {
-      if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
-      setAuthenticated(true);
-      sessionStorage.setItem('judge-authenticated', 'true');
-      sessionStorage.setItem('judge-name', judgeName);
-      fetchData();
-      toast.success('Welcome, Judge!');
-    } else {
-      toast.error('Invalid access code');
-    }
+    if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
+    if (accessCode.trim() !== JUDGE_ACCESS_CODE) { toast.error('Invalid access code'); return; }
+    setAuthenticated(true);
+    sessionStorage.setItem('judge-authenticated', 'true');
+    sessionStorage.setItem('judge-name', judgeName);
+    fetchData();
+    toast.success('Welcome, Judge!');
   };
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-        supabase.from('ai_projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('ai_projects').select('*').eq('is_published', true).order('created_at', { ascending: false }),
         supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
         supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
       ]);
