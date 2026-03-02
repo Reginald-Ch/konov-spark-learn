@@ -111,6 +111,7 @@ const ProjectView = () => {
           .from('ai_projects')
           .select('*')
           .eq('id', id)
+          .eq('is_published', true)
           .single();
         if (!error && data) setProject(data as Project);
       } catch (e) {
