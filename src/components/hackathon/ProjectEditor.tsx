@@ -34,6 +34,7 @@ interface QAPair {
 }
 
 const PROJECT_SCAFFOLDS: Record<ProjectType, { main: string; config: string; requirements: string; name: string; icon: string; systemPrompt: string; capabilities: string[] }> = {
+  /* TEMPLATES REPLACED BELOW */
   chatbot: {
     name: 'AI Chatbot',
     icon: '🤖',
