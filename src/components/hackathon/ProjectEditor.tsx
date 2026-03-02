@@ -473,7 +473,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
       await streamFromEdgeFunction(
         { 
-          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history,
+          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history.slice(0, -1),
           knowledgeBase: knowledgeBase || undefined,
           qaData: qaData.filter(p => p.q.trim() && p.a.trim()).length > 0 ? qaData.filter(p => p.q.trim() && p.a.trim()) : undefined,
         },
