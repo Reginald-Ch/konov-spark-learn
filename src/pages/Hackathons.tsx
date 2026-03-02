@@ -368,21 +368,17 @@ const Hackathons = () => {
                 <span>Judge Dashboard</span>
               </a>
 
-              {/* Past events showcase */}
+              {/* Past events info */}
               {endedHackathons.length > 0 && (
                 <>
                   <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
-                  <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Showcase</p>
+                  <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Past Events</p>
                   {endedHackathons.map(h => (
                     <motion.button
                       key={h.id}
-                      onClick={() => setSelectedEndedHackathon(selectedEndedHackathon?.id === h.id ? null : h)}
+                      onClick={() => setHackathonSubView('past-events')}
                       whileHover={{ scale: 1.02 }}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 ${
-                        selectedEndedHackathon?.id === h.id
-                          ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                          : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]'
-                      }`}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]"
                     >
                       <Trophy className="w-3.5 h-3.5 text-[hsl(var(--discord-yellow))]" />
                       <span className="truncate">{h.title}</span>
