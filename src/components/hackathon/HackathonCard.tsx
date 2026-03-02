@@ -140,7 +140,9 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded px-2 py-1.5">
             <Calendar className="w-3 h-3" />
-            <span>{format(startDate, 'MMM d')} - {format(endDate, 'd')}</span>
+            <span>
+              {format(startDate, 'MMM d')} - {startDate.getMonth() === endDate.getMonth() ? format(endDate, 'd') : format(endDate, 'MMM d')}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded px-2 py-1.5">
             <Users className="w-3 h-3" />
