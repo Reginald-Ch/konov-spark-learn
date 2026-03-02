@@ -447,7 +447,7 @@ const Hackathons = () => {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* AI MODELS TAB */}
