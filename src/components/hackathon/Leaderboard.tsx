@@ -76,17 +76,17 @@ export const Leaderboard = () => {
   const fetchLeaderboardData = async () => {
     setIsLoading(true);
 
-    const { data: pointEventsData } = await supabase
-      .from('point_events')
-      .select('participant_email, points, event_type, metadata') as any;
-
-    // Also pull names from ai_projects
-    const { data: projectsData } = await supabase
-      .from('ai_projects')
-      .select('author_email, author_name');
+    const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
+      supabase.from('point_events').select('participant_email, points, event_type, metadata') as any,
+      supabase.from('ai_projects').select('author_email, author_name'),
+      supabase.from('hackathon_registrations').select('participant_email, participant_name') as any,
+    ]);
 
     const nameMap = new Map<string, string>();
-    (projectsData || []).forEach((p: any) => { if (p.author_name) nameMap.set(p.author_email, p.author_name); });
+    // Names from registrations (lower priority)
+    (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
+    // Names from projects (higher priority — overwrite registration names)
+    (projectsRes.data || []).forEach((p: any) => { if (p.author_name && !p.author_name.startsWith('Student-')) nameMap.set(p.author_email, p.author_name); });
 
     const participantMap = new Map<string, ParticipantScore>();
 
