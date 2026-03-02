@@ -5,7 +5,7 @@ import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
-import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
+// SubmissionsGallery removed - Showcase tab uses ProjectGallery instead
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
@@ -52,7 +52,7 @@ const Hackathons = () => {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [teamsModalOpen, setTeamsModalOpen] = useState(false);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-  const [selectedEndedHackathon, setSelectedEndedHackathon] = useState<Hackathon | null>(null);
+  
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -323,7 +323,7 @@ const Hackathons = () => {
               ].map(ch => (
                 <motion.button
                   key={ch.id}
-                  onClick={() => { setHackathonSubView(ch.id); setSelectedEndedHackathon(null); }}
+                  onClick={() => { setHackathonSubView(ch.id); }}
                   whileHover={{ scale: 1.02 }}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
                     hackathonSubView === ch.id 
@@ -368,21 +368,17 @@ const Hackathons = () => {
                 <span>Judge Dashboard</span>
               </a>
 
-              {/* Past events showcase */}
+              {/* Past events info */}
               {endedHackathons.length > 0 && (
                 <>
                   <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
-                  <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Showcase</p>
+                  <p className="px-2 text-xs font-semibold text-[hsl(var(--discord-text-muted))] uppercase tracking-wide mb-1">Past Events</p>
                   {endedHackathons.map(h => (
                     <motion.button
                       key={h.id}
-                      onClick={() => setSelectedEndedHackathon(selectedEndedHackathon?.id === h.id ? null : h)}
+                      onClick={() => setHackathonSubView('past-events')}
                       whileHover={{ scale: 1.02 }}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 ${
-                        selectedEndedHackathon?.id === h.id
-                          ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                          : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]'
-                      }`}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]"
                     >
                       <Trophy className="w-3.5 h-3.5 text-[hsl(var(--discord-yellow))]" />
                       <span className="truncate">{h.title}</span>
@@ -468,17 +464,6 @@ const Hackathons = () => {
                     ) : hackathonSubView === 'faq' ? (
                       <motion.div key="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <HackathonFAQ />
-                      </motion.div>
-                    ) : selectedEndedHackathon ? (
-                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <Button variant="ghost" onClick={() => setSelectedEndedHackathon(null)} className="text-[hsl(var(--discord-text-muted))] hover:text-white mb-4">
-                          <ArrowLeft className="w-4 h-4 mr-2" />Back to events
-                        </Button>
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-4">
-                          <Trophy className="w-6 h-6 text-[hsl(var(--discord-yellow))]" />
-                          {selectedEndedHackathon.title} - Showcase
-                        </h2>
-                        <SubmissionsGallery hackathonId={selectedEndedHackathon.id} />
                       </motion.div>
                     ) : (
                       <motion.div key="events" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>

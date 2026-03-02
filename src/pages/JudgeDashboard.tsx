@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Shield, Trophy, ExternalLink, Star, Users, Play, Eye, Lock,
-  CheckCircle2, Loader2, Send, ArrowLeft, Rocket, Flame, Award
+  CheckCircle2, Loader2, Send, ArrowLeft, Rocket, Flame, Award,
+  Plus, Pencil, Trash2, Calendar, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-// Access code validated server-side in production; client-side gate for hackathon convenience
 const JUDGE_ACCESS_CODE = '2059';
 
 interface Project {
@@ -33,16 +34,34 @@ interface Project {
 interface Hackathon {
   id: string;
   title: string;
+  description: string | null;
+  theme: string | null;
   status: 'upcoming' | 'live' | 'ended';
   start_date: string;
   end_date: string;
+  registration_deadline: string;
+  max_participants: number;
   current_participants: number;
+  prizes: string | null;
+  rules: string | null;
 }
 
 const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot' },
   agent: { icon: '🧠', label: 'Agent' },
 };
+
+const emptyHackathon = (): Partial<Hackathon> => ({
+  title: '',
+  description: '',
+  theme: '',
+  start_date: new Date().toISOString().slice(0, 16),
+  end_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
+  registration_deadline: new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 16),
+  max_participants: 100,
+  prizes: '',
+  rules: '',
+});
 
 const JudgeDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
@@ -54,6 +73,13 @@ const JudgeDashboard = () => {
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [submittedScores, setSubmittedScores] = useState<Set<string>>(new Set());
   const [judgeName, setJudgeName] = useState('');
+
+  // Event CRUD state
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [eventForm, setEventForm] = useState<Partial<Hackathon>>(emptyHackathon());
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [deleteEventTarget, setDeleteEventTarget] = useState<Hackathon | null>(null);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('judge-authenticated');
@@ -134,64 +160,121 @@ const JudgeDashboard = () => {
 
   const handleGoLive = async (hackathonId: string) => {
     try {
-      const { error } = await supabase
-        .from('hackathons')
-        .update({ status: 'live' } as any)
-        .eq('id', hackathonId);
+      const { error } = await supabase.from('hackathons').update({ status: 'live' } as any).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon is now LIVE!');
       fetchData();
-    } catch (e) {
-      toast.error('Failed to update hackathon status');
-    }
+    } catch (e) { toast.error('Failed to update hackathon status'); }
   };
 
   const handleEndHackathon = async (hackathonId: string) => {
     try {
-      const { error } = await supabase
-        .from('hackathons')
-        .update({ status: 'ended' } as any)
-        .eq('id', hackathonId);
+      const { error } = await supabase.from('hackathons').update({ status: 'ended' } as any).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon ended');
       fetchData();
+    } catch (e) { toast.error('Failed to end hackathon'); }
+  };
+
+  // ── Event CRUD ──
+  const openCreateEvent = () => {
+    setEditingEventId(null);
+    setEventForm(emptyHackathon());
+    setEventModalOpen(true);
+  };
+
+  const openEditEvent = (h: Hackathon) => {
+    setEditingEventId(h.id);
+    setEventForm({
+      title: h.title,
+      description: h.description || '',
+      theme: h.theme || '',
+      start_date: h.start_date.slice(0, 16),
+      end_date: h.end_date.slice(0, 16),
+      registration_deadline: h.registration_deadline.slice(0, 16),
+      max_participants: h.max_participants,
+      prizes: h.prizes || '',
+      rules: h.rules || '',
+    });
+    setEventModalOpen(true);
+  };
+
+  const handleSaveEvent = async () => {
+    if (!eventForm.title?.trim()) { toast.error('Title is required'); return; }
+    setIsSavingEvent(true);
+    try {
+      const payload = {
+        title: eventForm.title,
+        description: eventForm.description || null,
+        theme: eventForm.theme || null,
+        start_date: new Date(eventForm.start_date!).toISOString(),
+        end_date: new Date(eventForm.end_date!).toISOString(),
+        registration_deadline: new Date(eventForm.registration_deadline!).toISOString(),
+        max_participants: eventForm.max_participants || 100,
+        prizes: eventForm.prizes || null,
+        rules: eventForm.rules || null,
+      };
+
+      if (editingEventId) {
+        const { error } = await supabase.from('hackathons').update(payload as any).eq('id', editingEventId);
+        if (error) throw error;
+        toast.success('Event updated');
+      } else {
+        const { error } = await supabase.from('hackathons').insert(payload as any);
+        if (error) throw error;
+        toast.success('Event created');
+      }
+      setEventModalOpen(false);
+      fetchData();
     } catch (e) {
-      toast.error('Failed to end hackathon');
+      console.error(e);
+      toast.error('Failed to save event');
+    } finally {
+      setIsSavingEvent(false);
     }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!deleteEventTarget) return;
+    try {
+      const { error } = await supabase.from('hackathons').delete().eq('id', deleteEventTarget.id);
+      if (error) throw error;
+      toast.success('Event deleted');
+      setDeleteEventTarget(null);
+      fetchData();
+    } catch (e) {
+      toast.error('Failed to delete event');
+    }
+  };
+
+  const handleTogglePublish = async (project: Project) => {
+    try {
+      const newStatus = !project.is_published;
+      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus } as any).eq('id', project.id);
+      if (error) throw error;
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
+      toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
+    } catch (e) { toast.error('Failed to update project status'); }
   };
 
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex items-center justify-center p-4">
         <SEO title="Judge Dashboard - FORGE" description="Judge dashboard for hackathon scoring" />
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-[hsl(var(--discord-dark))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-sm w-full p-6"
-        >
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          className="bg-[hsl(var(--discord-dark))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-sm w-full p-6">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
+            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white">Judge Dashboard</h2>
             <p className="text-sm text-[hsl(var(--discord-text-muted))]">Enter access code to continue</p>
           </div>
           <div className="space-y-3">
-            <Input
-              value={judgeName}
-              onChange={e => setJudgeName(e.target.value)}
-              placeholder="Your name"
-              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
-            />
-            <Input
-              value={accessCode}
-              onChange={e => setAccessCode(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="Access code"
-              type="password"
-              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
-            />
+            <Input value={judgeName} onChange={e => setJudgeName(e.target.value)} placeholder="Your name"
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+            <Input value={accessCode} onChange={e => setAccessCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="Access code" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             <Button onClick={handleLogin} className="w-full" style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
               <Lock className="w-4 h-4 mr-2" /> Enter Dashboard
             </Button>
@@ -203,21 +286,6 @@ const JudgeDashboard = () => {
       </div>
     );
   }
-
-  const handleTogglePublish = async (project: Project) => {
-    try {
-      const newStatus = !project.is_published;
-      const { error } = await supabase
-        .from('ai_projects')
-        .update({ is_published: newStatus } as any)
-        .eq('id', project.id);
-      if (error) throw error;
-      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
-      toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
-    } catch (e) {
-      toast.error('Failed to update project status');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[hsl(var(--discord-darker))]">
@@ -249,14 +317,19 @@ const JudgeDashboard = () => {
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Hackathon Controls */}
         <div>
-          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-[#F7941D]" /> Hackathon Control
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-[#F7941D]" /> Hackathon Control
+            </h2>
+            <Button size="sm" onClick={openCreateEvent} className="h-8 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+              <Plus className="w-3 h-3 mr-1" /> Create Event
+            </Button>
+          </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {hackathons.map(h => (
               <div key={h.id} className="bg-[hsl(var(--discord-dark))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)]">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-white text-sm">{h.title}</h3>
+                  <h3 className="font-semibold text-white text-sm truncate flex-1 mr-2">{h.title}</h3>
                   <Badge className={
                     h.status === 'live' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                     h.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
@@ -265,10 +338,13 @@ const JudgeDashboard = () => {
                     {h.status.toUpperCase()}
                   </Badge>
                 </div>
-                <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-3">
+                <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-1">
                   <Users className="w-3 h-3 inline mr-1" /> {h.current_participants} participants
                 </p>
-                <div className="flex gap-2">
+                <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-3">
+                  <Calendar className="w-3 h-3 inline mr-1" /> {new Date(h.start_date).toLocaleDateString()} — {new Date(h.end_date).toLocaleDateString()}
+                </p>
+                <div className="flex gap-2 flex-wrap">
                   {h.status === 'upcoming' && (
                     <Button size="sm" onClick={() => handleGoLive(h.id)} className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white">
                       <Play className="w-3 h-3 mr-1" /> Go Live
@@ -284,11 +360,25 @@ const JudgeDashboard = () => {
                       <Play className="w-3 h-3 mr-1" /> Restart
                     </Button>
                   )}
+                  <Button size="sm" variant="outline" onClick={() => openEditEvent(h)}
+                    className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
+                    <Pencil className="w-3 h-3 mr-1" /> Edit
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setDeleteEventTarget(h)}
+                    className="h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 </div>
               </div>
             ))}
             {hackathons.length === 0 && (
-              <p className="text-[hsl(var(--discord-text-muted))] text-sm col-span-full">No hackathons found</p>
+              <div className="col-span-full text-center py-8">
+                <Calendar className="w-10 h-10 mx-auto mb-3 text-[hsl(var(--discord-text-muted))] opacity-50" />
+                <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-3">No hackathon events yet</p>
+                <Button size="sm" onClick={openCreateEvent} className="bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+                  <Plus className="w-3 h-3 mr-1" /> Create Your First Event
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -315,14 +405,8 @@ const JudgeDashboard = () => {
                 const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' };
                 const isScored = submittedScores.has(project.id);
                 return (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${
-                      isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'
-                    }`}
-                  >
+                  <motion.div key={project.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 min-w-0">
@@ -342,24 +426,18 @@ const JudgeDashboard = () => {
                         <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
                       )}
                       
-                      {/* Actions */}
                       <div className="flex gap-1.5 mb-3">
                         <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                           <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                             <ExternalLink className="w-3 h-3 mr-1" /> Try Live
                           </Button>
                         </a>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleTogglePublish(project)}
-                          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => handleTogglePublish(project)}
+                          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
                           {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
                         </Button>
                       </div>
 
-                      {/* Scoring */}
                       <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
                         <div className="flex items-center gap-2">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-25)</label>
@@ -367,36 +445,19 @@ const JudgeDashboard = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           {[5, 10, 15, 20, 25].map(val => (
-                            <button
-                              key={val}
-                              onClick={() => setScores(prev => ({ ...prev, [project.id]: val }))}
-                              disabled={isScored}
-                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                                scores[project.id] === val
-                                  ? 'bg-[#FFD700] text-black'
-                                  : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'
-                              } ${isScored ? 'opacity-60 cursor-not-allowed' : ''}`}
-                            >
+                            <button key={val} onClick={() => setScores(prev => ({ ...prev, [project.id]: val }))} disabled={isScored}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${scores[project.id] === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'} ${isScored ? 'opacity-60 cursor-not-allowed' : ''}`}>
                               {val}
                             </button>
                           ))}
                         </div>
-                        <Textarea
-                          value={feedback[project.id] || ''}
-                          onChange={e => setFeedback(prev => ({ ...prev, [project.id]: e.target.value }))}
-                          placeholder="Optional feedback..."
-                          disabled={isScored}
-                          rows={2}
-                          className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none"
-                        />
+                        <Textarea value={feedback[project.id] || ''} onChange={e => setFeedback(prev => ({ ...prev, [project.id]: e.target.value }))}
+                          placeholder="Optional feedback..." disabled={isScored} rows={2}
+                          className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
                         {!isScored && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSubmitScore(project)}
-                            disabled={scores[project.id] === undefined}
+                          <Button size="sm" onClick={() => handleSubmitScore(project)} disabled={scores[project.id] === undefined}
                             className="w-full h-8 text-xs font-bold"
-                            style={{ background: scores[project.id] !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}
-                          >
+                            style={{ background: scores[project.id] !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
                             <Send className="w-3 h-3 mr-1" /> Submit Score
                           </Button>
                         )}
@@ -409,6 +470,101 @@ const JudgeDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Create/Edit Event Modal */}
+      <Dialog open={eventModalOpen} onOpenChange={setEventModalOpen}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              {editingEventId ? <Pencil className="w-5 h-5 text-[#F7941D]" /> : <Plus className="w-5 h-5 text-[hsl(var(--discord-green))]" />}
+              {editingEventId ? 'Edit Event' : 'Create New Event'}
+            </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              {editingEventId ? 'Update hackathon event details.' : 'Set up a new hackathon event for participants.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">Title *</label>
+              <Input value={eventForm.title || ''} onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="AI Innovation Hackathon" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">Description</label>
+              <Textarea value={eventForm.description || ''} onChange={e => setEventForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Build innovative AI solutions..." rows={2}
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-white mb-1 block">Theme</label>
+                <Input value={eventForm.theme || ''} onChange={e => setEventForm(f => ({ ...f, theme: e.target.value }))}
+                  placeholder="Education, Health..." className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-white mb-1 block">Max Participants</label>
+                <Input type="number" value={eventForm.max_participants || 100} onChange={e => setEventForm(f => ({ ...f, max_participants: parseInt(e.target.value) || 100 }))}
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-white mb-1 block">Start Date</label>
+                <Input type="datetime-local" value={eventForm.start_date || ''} onChange={e => setEventForm(f => ({ ...f, start_date: e.target.value }))}
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-white mb-1 block">End Date</label>
+                <Input type="datetime-local" value={eventForm.end_date || ''} onChange={e => setEventForm(f => ({ ...f, end_date: e.target.value }))}
+                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">Registration Deadline</label>
+              <Input type="datetime-local" value={eventForm.registration_deadline || ''} onChange={e => setEventForm(f => ({ ...f, registration_deadline: e.target.value }))}
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">Prizes</label>
+              <Textarea value={eventForm.prizes || ''} onChange={e => setEventForm(f => ({ ...f, prizes: e.target.value }))}
+                placeholder="1st: Certificate + Feature, 2nd: Certificate..." rows={2}
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">Rules</label>
+              <Textarea value={eventForm.rules || ''} onChange={e => setEventForm(f => ({ ...f, rules: e.target.value }))}
+                placeholder="1. Teams of 1-5 members..." rows={2}
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setEventModalOpen(false)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+              <Button onClick={handleSaveEvent} disabled={isSavingEvent} className="flex-1"
+                style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
+                {isSavingEvent ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                {editingEventId ? 'Update Event' : 'Create Event'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Event Confirmation */}
+      <Dialog open={!!deleteEventTarget} onOpenChange={() => setDeleteEventTarget(null)}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-red-400" /> Delete Event
+            </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              Are you sure you want to delete "{deleteEventTarget?.title}"? This will remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setDeleteEventTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+            <Button onClick={handleDeleteEvent} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
