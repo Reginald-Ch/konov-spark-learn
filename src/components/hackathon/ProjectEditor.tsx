@@ -494,6 +494,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
+      // Save all files as a JSON bundle so config.json and requirements.txt aren't lost
+      const allCode = JSON.stringify({
+        'main.py': files['main.py'],
+        'config.json': files['config.json'],
+        'requirements.txt': files['requirements.txt'],
+      });
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
