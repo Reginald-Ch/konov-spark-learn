@@ -571,9 +571,9 @@ const Hackathons = () => {
                     )}
                   </AnimatePresence>
                 </ScrollArea>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
         </div>
 
         {/* Modals */}
