@@ -454,7 +454,7 @@ const Hackathons = () => {
             {activeTab === 'ai-models' && (
               <div key="ai-models" className="flex-1 overflow-auto">
                 <AIModelsTab onViewCode={handleViewCode} />
-              </motion.div>
+              </div>
             )}
 
             {/* GALLERY TAB removed — Showcase is now under Hackathons sub-view */}
