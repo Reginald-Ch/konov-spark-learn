@@ -142,10 +142,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
 
-      // Auto-award all achievable leaderboard milestones on submission
+      // Auto-award leaderboard milestones (deduplicated via localStorage)
       const milestones = [
-        { event_type: 'project_setup', points: 10, metadata: { project: projectName } },
-        { event_type: 'first_run_success', points: 10, metadata: { project: projectName } },
         { event_type: 'project_deployed', points: 20, metadata: { project: projectName } },
         { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
         { event_type: 'app_runs_live', points: 20, metadata: { project: projectName, project_id: resultId } },
