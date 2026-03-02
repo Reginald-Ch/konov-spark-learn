@@ -497,7 +497,7 @@ const Hackathons = () => {
                       </motion.div>
                     ) : hackathonSubView === 'faq' ? (
                       <motion.div key="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <HackathonFAQ />
+                        <HackathonFAQ ref={null} />
                       </motion.div>
                     ) : (
                       <motion.div key="events" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>

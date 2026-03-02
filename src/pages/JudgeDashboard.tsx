@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
@@ -66,7 +66,7 @@ const emptyHackathon = (): Partial<Hackathon> => ({
 const JudgeDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
-  const [projects, setProjects] = useState<(Project & { is_published: boolean })[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -101,15 +101,16 @@ const JudgeDashboard = () => {
     toast.success('Welcome, Judge!');
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Parallel fetch with minimal select fields for speed
       const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-        supabase.from('ai_projects').select('*').eq('is_published', true).order('created_at', { ascending: false }),
+        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('is_published', true).order('created_at', { ascending: false }).limit(100),
         supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
-        supabase.from('point_events').select('*').eq('event_type', 'judge_score') as any,
+        supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score'),
       ]);
-      if (projectsRes.data) setProjects(projectsRes.data);
+      if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (hackathonsRes.data) setHackathons(hackathonsRes.data as Hackathon[]);
       if (existingScores.data) {
         const scored = new Set<string>();
@@ -129,7 +130,7 @@ const JudgeDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleSubmitScore = async (project: Project) => {
     const score = scores[project.id];
@@ -176,7 +177,6 @@ const JudgeDashboard = () => {
     } catch (e) { toast.error('Failed to end hackathon'); }
   };
 
-  // ── Event CRUD ──
   const openCreateEvent = () => {
     setEditingEventId(null);
     setEventForm(emptyHackathon());
@@ -405,7 +405,7 @@ const JudgeDashboard = () => {
                 const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' };
                 const isScored = submittedScores.has(project.id);
                 return (
-                  <motion.div key={project.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  <div key={project.id}
                     className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-2">
@@ -463,7 +463,7 @@ const JudgeDashboard = () => {
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

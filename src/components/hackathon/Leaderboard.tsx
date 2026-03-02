@@ -1,35 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Medal, Star, Users, Zap, Crown, Award, TrendingUp, Flame, Target, CheckCircle2, Circle, ShieldCheck, Rocket, Bug } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 
-// ── Scoring Tiers ──────────────────────────────────────────────
-// Tier 1 — Foundation (20 pts)
-//   team_formed        10 pts   (all members joined)
-//   project_setup      10 pts   (wizard completed / first template load)
-// Tier 2 — Execution (30 pts)
-//   first_run_success  10 pts   (code executes cleanly)
-//   project_deployed   20 pts   (Go Live confirmed)
-// Tier 3 — Quality (25 pts)
-//   submitted_on_time   5 pts   (submitted before deadline)
-//   app_runs_live      20 pts   (live URL tested OK)
-// ────────────────────────────────────────────────────────────────
-
 const SCORING_CONFIG = {
-  // Tier 1 – Foundation
   team_formed:       { points: 10, tier: 1, label: 'Team Formed',        icon: '👥', desc: 'All members joined' },
   project_setup:     { points: 10, tier: 1, label: 'Project Setup',      icon: '⚙️', desc: 'Template loaded & configured' },
-  // Tier 2 – Execution
   first_run_success: { points: 10, tier: 2, label: 'First Successful Run', icon: '▶️', desc: 'Code executed cleanly' },
   project_deployed:  { points: 20, tier: 2, label: 'Project Deployed',   icon: '🚀', desc: 'Live URL confirmed' },
-  // Tier 3 – Quality
   submitted_on_time: { points: 5,  tier: 3, label: 'Submitted On Time',  icon: '⏰', desc: 'Before deadline' },
   app_runs_live:     { points: 20, tier: 3, label: 'App Runs Live',      icon: '✅', desc: 'Tested without crashing' },
-  // Judge Score (up to 25 pts)
   judge_score:       { points: 25, tier: 4, label: 'Judge Score',        icon: '⭐', desc: 'Scored by judges' },
 } as const;
 
@@ -60,21 +43,9 @@ export const Leaderboard = () => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    fetchLeaderboardData();
-
-    const channel = supabase
-      .channel('leaderboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => fetchLeaderboardData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => fetchLeaderboardData())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const fetchLeaderboardData = async () => {
-    setIsLoading(true);
+  const fetchLeaderboardData = useCallback(async () => {
     try {
       const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
         supabase.from('point_events').select('participant_email, points, event_type, metadata'),
@@ -82,14 +53,8 @@ export const Leaderboard = () => {
         supabase.from('hackathon_registrations').select('participant_email, participant_name'),
       ]);
 
-      if (pointEventsRes.error) { console.warn('point_events fetch error:', pointEventsRes.error); }
-      if (projectsRes.error) { console.warn('ai_projects fetch error:', projectsRes.error); }
-      if (registrationsRes.error) { console.warn('registrations fetch error:', registrationsRes.error); }
-
       const nameMap = new Map<string, string>();
-      // Names from registrations (lower priority)
       (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
-      // Names from projects (higher priority — overwrite registration names)
       (projectsRes.data || []).forEach((p: any) => { if (p.author_name && !p.author_name.startsWith('Student-')) nameMap.set(p.author_email, p.author_name); });
 
       const participantMap = new Map<string, ParticipantScore>();
@@ -110,6 +75,7 @@ export const Leaderboard = () => {
           participantMap.set(evt.participant_email, p);
         }
 
+        // Judge scores: take highest only
         if (evt.event_type === 'judge_score') {
           const pts = Math.min(evt.points, 25);
           if (pts > p.tier4) {
@@ -118,6 +84,7 @@ export const Leaderboard = () => {
           }
           p.events.add(evt.event_type);
         } else if (!p.events.has(evt.event_type)) {
+          // Deduplicate: only count each milestone once
           p.events.add(evt.event_type);
           const pts = config.points;
           p.points += pts;
@@ -127,6 +94,7 @@ export const Leaderboard = () => {
         }
       });
 
+      // Apply resolved names
       participantMap.forEach((p) => {
         if (nameMap.has(p.email)) p.name = nameMap.get(p.email)!;
       });
@@ -141,7 +109,28 @@ export const Leaderboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Debounced refetch for realtime updates
+  const debouncedFetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchLeaderboardData(), 500);
+  }, [fetchLeaderboardData]);
+
+  useEffect(() => {
+    fetchLeaderboardData();
+
+    const channel = supabase
+      .channel('leaderboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => debouncedFetch())
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [fetchLeaderboardData, debouncedFetch]);
 
   const getRankIcon = (index: number) => {
     switch (index) {
@@ -199,7 +188,6 @@ export const Leaderboard = () => {
 
   return (
     <div className="h-full">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
@@ -214,7 +202,6 @@ export const Leaderboard = () => {
         </div>
       </div>
 
-      {/* Scoring Tiers Legend */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
         {TIER_META.map(tier => (
           <div key={tier.tier} className={`rounded-lg p-2.5 border ${tier.bgColor} ${tier.borderColor}`}>
@@ -225,25 +212,21 @@ export const Leaderboard = () => {
         ))}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)]">
+        <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)]">
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] mb-1">
             <Users className="w-4 h-4" /><span className="text-xs">Participants</span>
           </div>
           <p className="text-xl font-bold text-white">{participants.length}</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)]">
+        </div>
+        <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)]">
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] mb-1">
             <ShieldCheck className="w-4 h-4" /><span className="text-xs">Perfect Scores</span>
           </div>
           <p className="text-xl font-bold text-white">{participants.filter(p => p.points >= MAX_SCORE).length}</p>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Rankings */}
       <ScrollArea className="h-[420px] pr-2">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -258,63 +241,52 @@ export const Leaderboard = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            <AnimatePresence>
-              {participants.map((p, index) => (
-                <motion.div
-                  key={p.email}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ delay: index * 0.04 }}
-                  className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedParticipant?.email === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
-                  onClick={() => setSelectedParticipant(selectedParticipant?.email === p.email ? null : p)}
-                >
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="flex-shrink-0">{getRankIcon(index)}</div>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{
-                      background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#4752C4'} 0%, ${index === 0 ? '#F7941D' : index === 1 ? '#A9A9A9' : index === 2 ? '#8B4513' : '#5865F2'} 100%)`
-                    }}>
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {/* Tier dots */}
-                        {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
-                        {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
-                        {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
-                        {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
-                        {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-[hsl(var(--discord-yellow))]">
-                        <Flame className="w-4 h-4" />
-                        <span className="font-bold">{p.points}</span>
-                        <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">/{MAX_SCORE}</span>
-                      </div>
-                      <Progress value={(p.points / MAX_SCORE) * 100} className="h-1 w-16 mt-1" />
+            {participants.map((p, index) => (
+              <motion.div
+                key={p.email}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(index * 0.03, 0.5) }}
+                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedParticipant?.email === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
+                onClick={() => setSelectedParticipant(selectedParticipant?.email === p.email ? null : p)}
+              >
+                <div className="flex items-center gap-3 p-3">
+                  <div className="flex-shrink-0">{getRankIcon(index)}</div>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{
+                    background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#4752C4'} 0%, ${index === 0 ? '#F7941D' : index === 1 ? '#A9A9A9' : index === 2 ? '#8B4513' : '#5865F2'} 100%)`
+                  }}>
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
+                      {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
+                      {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
+                      {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
+                      {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                     </div>
                   </div>
-                  {/* Expanded tier breakdown */}
-                  {selectedParticipant?.email === p.email && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="px-3 pb-3"
-                    >
-                      <TierBreakdown participant={p} />
-                    </motion.div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-[hsl(var(--discord-yellow))]">
+                      <Flame className="w-4 h-4" />
+                      <span className="font-bold">{p.points}</span>
+                      <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">/{MAX_SCORE}</span>
+                    </div>
+                    <Progress value={(p.points / MAX_SCORE) * 100} className="h-1 w-16 mt-1" />
+                  </div>
+                </div>
+                {selectedParticipant?.email === p.email && (
+                  <div className="px-3 pb-3">
+                    <TierBreakdown participant={p} />
+                  </div>
+                )}
+              </motion.div>
+            ))}
           </div>
         )}
       </ScrollArea>
 
-      {/* Scoring Reference */}
       <div className="mt-4 p-4 bg-[hsl(var(--discord-darker))] rounded-lg border border-[hsl(var(--discord-light)/0.2)]">
         <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
           <Award className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
