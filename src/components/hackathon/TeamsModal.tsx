@@ -45,7 +45,6 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
   const [formData, setFormData] = useState({
     team_name: '',
     description: '',
-    created_by_email: '',
   });
 
   useEffect(() => {
@@ -78,7 +77,8 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
     if (!hackathonId) return;
 
     try {
-      const validated = teamSchema.parse(formData);
+      const studentEmail = localStorage.getItem('forge-student-email') || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+      const validated = teamSchema.parse({ ...formData, created_by_email: studentEmail });
       setIsSubmitting(true);
 
       const { error } = await supabase
@@ -108,7 +108,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
         description: 'Your team has been created successfully.',
       });
 
-      setFormData({ team_name: '', description: '', created_by_email: '' });
+      setFormData({ team_name: '', description: '' });
       setActiveTab('browse');
       fetchTeams();
     } catch (error) {
@@ -253,19 +253,6 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
                   value={formData.team_name}
                   onChange={(e) => setFormData({ ...formData, team_name: e.target.value })}
                   placeholder="Enter a unique team name"
-                  required
-                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="team_email" className="text-[hsl(var(--discord-text))]">Your Email *</Label>
-                <Input
-                  id="team_email"
-                  type="email"
-                  value={formData.created_by_email}
-                  onChange={(e) => setFormData({ ...formData, created_by_email: e.target.value })}
-                  placeholder="Enter your email"
                   required
                   className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))]"
                 />

@@ -41,8 +41,8 @@ interface Hackathon {
   prizes: string | null;
 }
 
-type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'gallery' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
+type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq';
 
 const Hackathons = () => {
   const navigate = useNavigate();
@@ -156,7 +156,6 @@ const Hackathons = () => {
     { id: 'templates' as MainTab, name: 'Templates', icon: Rocket, color: '#F7941D', desc: '1-Click Starters' },
     { id: 'hackathons' as MainTab, name: 'Hackathons', icon: Trophy, color: '#C70110', desc: 'Events & Leaderboard' },
     { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
-    { id: 'gallery' as MainTab, name: 'Showcase', icon: Image, color: '#3498DB', desc: 'Submitted Projects' },
     { id: 'learn' as MainTab, name: 'Learn', icon: GraduationCap, color: '#006600', desc: 'Tutorials & Guides' },
   ];
 
@@ -319,7 +318,8 @@ const Hackathons = () => {
                 { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap, count: liveHackathons.length, live: true },
                 { id: 'upcoming' as HackathonSubView, name: 'Upcoming', icon: Calendar, count: upcomingHackathons.length },
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
-                { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
               ].map(ch => (
                 <motion.button
                   key={ch.id}
@@ -422,12 +422,7 @@ const Hackathons = () => {
               </motion.div>
             )}
 
-            {/* GALLERY TAB */}
-            {activeTab === 'gallery' && (
-              <motion.div key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto p-6">
-                <ProjectGallery onViewCode={handleViewCode} />
-              </motion.div>
-            )}
+            {/* GALLERY TAB removed — Showcase is now under Hackathons sub-view */}
 
             {/* LEARN TAB */}
             {activeTab === 'learn' && (
@@ -453,7 +448,11 @@ const Hackathons = () => {
 
                 <ScrollArea className="flex-1 p-6">
                   <AnimatePresence mode="wait">
-                    {hackathonSubView === 'leaderboard' ? (
+                    {hackathonSubView === 'showcase' ? (
+                      <motion.div key="showcase" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-0">
+                        <ProjectGallery onViewCode={handleViewCode} />
+                      </motion.div>
+                    ) : hackathonSubView === 'leaderboard' ? (
                       <motion.div key="lb" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <Leaderboard />
                       </motion.div>
