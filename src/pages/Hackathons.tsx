@@ -323,7 +323,7 @@ const Hackathons = () => {
               ].map(ch => (
                 <motion.button
                   key={ch.id}
-                  onClick={() => { setHackathonSubView(ch.id); setSelectedEndedHackathon(null); }}
+                  onClick={() => { setHackathonSubView(ch.id); }}
                   whileHover={{ scale: 1.02 }}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
                     hackathonSubView === ch.id 
