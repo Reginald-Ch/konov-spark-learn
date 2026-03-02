@@ -76,6 +76,8 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
       toast.success('Project deleted');
       setDeleteTarget(null);
+      // Refresh to ensure consistency
+      fetchProjects();
     } catch (e) {
       toast.error('Failed to delete. You can only delete your own projects.');
     } finally {

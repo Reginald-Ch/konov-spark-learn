@@ -1341,6 +1341,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <Terminal className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Terminal</span>
           </Button>
+          <Button size="sm" onClick={() => { setTerminalOutput([]); toast.success('Terminal cleared'); }}
+            variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50"
+            title="Clear terminal">
+            <Trash2 className="w-3 h-3" />
+          </Button>
           <Button size="sm" onClick={() => { setShowMobilePreview(true); setShowPreview(true); }}
             variant="ghost" className="h-6 text-[10px] lg:hidden text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
             <Eye className="w-3 h-3 mr-1" />
