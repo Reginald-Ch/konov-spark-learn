@@ -41,8 +41,8 @@ interface Hackathon {
   prizes: string | null;
 }
 
-type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'gallery' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'getting-started' | 'faq';
+type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq';
 
 const Hackathons = () => {
   const navigate = useNavigate();
