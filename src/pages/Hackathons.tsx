@@ -468,7 +468,7 @@ const Hackathons = () => {
 
             {/* HACKATHONS TAB */}
             {activeTab === 'hackathons' && (
-              <motion.div key="hackathons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+              <div key="hackathons" className="flex-1 flex flex-col overflow-hidden">
                 {/* Header Bar */}
                 <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm flex-shrink-0">
                   {hackathonSubView === 'leaderboard' ? (
