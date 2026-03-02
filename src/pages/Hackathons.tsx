@@ -403,10 +403,10 @@ const Hackathons = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))] overflow-hidden">
-          <AnimatePresence mode="wait">
+        <>
             {/* BUILD TAB */}
             {activeTab === 'build' && (
-              <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+              <div key="build" className="flex-1 flex flex-col overflow-hidden">
                 {hasLiveEvent ? (
                   <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
                 ) : (

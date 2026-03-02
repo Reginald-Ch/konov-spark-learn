@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -63,6 +62,79 @@ const emptyHackathon = (): Partial<Hackathon> => ({
   rules: '',
 });
 
+// Memoized project card to prevent unnecessary re-renders
+const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
+  project: Project;
+  meta: { icon: string; label: string };
+  isScored: boolean;
+  score: number | undefined;
+  feedbackText: string;
+  onScoreChange: (id: string, val: number) => void;
+  onFeedbackChange: (id: string, val: string) => void;
+  onSubmitScore: (project: Project) => void;
+  onTogglePublish: (project: Project) => void;
+}) => (
+  <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
+    <div className="p-4">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-white text-sm truncate">{project.project_name}</h3>
+          <p className="text-xs text-[hsl(var(--discord-text-muted))]">by {project.author_name}</p>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <Badge className="text-[10px]" style={{ backgroundColor: '#5865F220', color: '#5865F2' }}>
+            {meta.icon} {meta.label}
+          </Badge>
+          <Badge className={`text-[10px] ${project.is_published ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+            {project.is_published ? '🟢 Live' : '🔴 Offline'}
+          </Badge>
+        </div>
+      </div>
+      {project.description && (
+        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
+      )}
+      
+      <div className="flex gap-1.5 mb-3">
+        <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
+          <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+            <ExternalLink className="w-3 h-3 mr-1" /> Try Live
+          </Button>
+        </a>
+        <Button size="sm" variant="outline" onClick={() => onTogglePublish(project)}
+          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
+          {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
+        </Button>
+      </div>
+
+      <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-25)</label>
+          {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />}
+        </div>
+        <div className="flex items-center gap-2">
+          {[5, 10, 15, 20, 25].map(val => (
+            <button key={val} onClick={() => onScoreChange(project.id, val)} disabled={isScored}
+              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${score === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'} ${isScored ? 'opacity-60 cursor-not-allowed' : ''}`}>
+              {val}
+            </button>
+          ))}
+        </div>
+        <Textarea value={feedbackText} onChange={e => onFeedbackChange(project.id, e.target.value)}
+          placeholder="Optional feedback..." disabled={isScored} rows={2}
+          className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
+        {!isScored && (
+          <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined}
+            className="w-full h-8 text-xs font-bold"
+            style={{ background: score !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
+            <Send className="w-3 h-3 mr-1" /> Submit Score
+          </Button>
+        )}
+      </div>
+    </div>
+  </div>
+));
+ProjectCard.displayName = 'ProjectCard';
+
 const JudgeDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
@@ -104,11 +176,10 @@ const JudgeDashboard = () => {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Parallel fetch with minimal select fields for speed
       const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
         supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('is_published', true).order('created_at', { ascending: false }).limit(100),
-        supabase.from('hackathons').select('*').order('start_date', { ascending: false }),
-        supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score'),
+        supabase.from('hackathons').select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules').order('start_date', { ascending: false }).limit(50),
+        supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score').limit(500),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (hackathonsRes.data) setHackathons(hackathonsRes.data as Hackathon[]);
@@ -132,7 +203,7 @@ const JudgeDashboard = () => {
     }
   }, []);
 
-  const handleSubmitScore = async (project: Project) => {
+  const handleSubmitScore = useCallback(async (project: Project) => {
     const score = scores[project.id];
     if (score === undefined || score < 0 || score > 25) {
       toast.error('Score must be between 0 and 25');
@@ -157,25 +228,25 @@ const JudgeDashboard = () => {
       console.error(e);
       toast.error('Failed to submit score');
     }
-  };
+  }, [scores, feedback, judgeName]);
 
-  const handleGoLive = async (hackathonId: string) => {
+  const handleGoLive = useCallback(async (hackathonId: string) => {
     try {
       const { error } = await supabase.from('hackathons').update({ status: 'live' } as any).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon is now LIVE!');
       fetchData();
     } catch (e) { toast.error('Failed to update hackathon status'); }
-  };
+  }, [fetchData]);
 
-  const handleEndHackathon = async (hackathonId: string) => {
+  const handleEndHackathon = useCallback(async (hackathonId: string) => {
     try {
       const { error } = await supabase.from('hackathons').update({ status: 'ended' } as any).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon ended');
       fetchData();
     } catch (e) { toast.error('Failed to end hackathon'); }
-  };
+  }, [fetchData]);
 
   const openCreateEvent = () => {
     setEditingEventId(null);
@@ -247,7 +318,7 @@ const JudgeDashboard = () => {
     }
   };
 
-  const handleTogglePublish = async (project: Project) => {
+  const handleTogglePublish = useCallback(async (project: Project) => {
     try {
       const newStatus = !project.is_published;
       const { error } = await supabase.from('ai_projects').update({ is_published: newStatus } as any).eq('id', project.id);
@@ -255,14 +326,21 @@ const JudgeDashboard = () => {
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
     } catch (e) { toast.error('Failed to update project status'); }
-  };
+  }, []);
+
+  const handleScoreChange = useCallback((id: string, val: number) => {
+    setScores(prev => ({ ...prev, [id]: val }));
+  }, []);
+
+  const handleFeedbackChange = useCallback((id: string, val: string) => {
+    setFeedback(prev => ({ ...prev, [id]: val }));
+  }, []);
 
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex items-center justify-center p-4">
         <SEO title="Judge Dashboard - FORGE" description="Judge dashboard for hackathon scoring" />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="bg-[hsl(var(--discord-dark))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-sm w-full p-6">
+        <div className="bg-[hsl(var(--discord-dark))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-sm w-full p-6">
           <div className="text-center mb-6">
             <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
               <Shield className="w-8 h-8 text-white" />
@@ -282,7 +360,7 @@ const JudgeDashboard = () => {
           <Link to="/hackathons" className="block text-center mt-4 text-xs text-[hsl(var(--discord-text-muted))] hover:text-white">
             <ArrowLeft className="w-3 h-3 inline mr-1" /> Back to FORGE
           </Link>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -401,71 +479,20 @@ const JudgeDashboard = () => {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {projects.map(project => {
-                const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' };
-                const isScored = submittedScores.has(project.id);
-                return (
-                  <div key={project.id}
-                    className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-white text-sm truncate">{project.project_name}</h3>
-                          <p className="text-xs text-[hsl(var(--discord-text-muted))]">by {project.author_name}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <Badge className="text-[10px]" style={{ backgroundColor: '#5865F220', color: '#5865F2' }}>
-                            {meta.icon} {meta.label}
-                          </Badge>
-                          <Badge className={`text-[10px] ${project.is_published ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
-                            {project.is_published ? '🟢 Live' : '🔴 Offline'}
-                          </Badge>
-                        </div>
-                      </div>
-                      {project.description && (
-                        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
-                      )}
-                      
-                      <div className="flex gap-1.5 mb-3">
-                        <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
-                            <ExternalLink className="w-3 h-3 mr-1" /> Try Live
-                          </Button>
-                        </a>
-                        <Button size="sm" variant="outline" onClick={() => handleTogglePublish(project)}
-                          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
-                          {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
-                        <div className="flex items-center gap-2">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-25)</label>
-                          {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {[5, 10, 15, 20, 25].map(val => (
-                            <button key={val} onClick={() => setScores(prev => ({ ...prev, [project.id]: val }))} disabled={isScored}
-                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${scores[project.id] === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'} ${isScored ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                              {val}
-                            </button>
-                          ))}
-                        </div>
-                        <Textarea value={feedback[project.id] || ''} onChange={e => setFeedback(prev => ({ ...prev, [project.id]: e.target.value }))}
-                          placeholder="Optional feedback..." disabled={isScored} rows={2}
-                          className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
-                        {!isScored && (
-                          <Button size="sm" onClick={() => handleSubmitScore(project)} disabled={scores[project.id] === undefined}
-                            className="w-full h-8 text-xs font-bold"
-                            style={{ background: scores[project.id] !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
-                            <Send className="w-3 h-3 mr-1" /> Submit Score
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {projects.map(project => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
+                  isScored={submittedScores.has(project.id)}
+                  score={scores[project.id]}
+                  feedbackText={feedback[project.id] || ''}
+                  onScoreChange={handleScoreChange}
+                  onFeedbackChange={handleFeedbackChange}
+                  onSubmitScore={handleSubmitScore}
+                  onTogglePublish={handleTogglePublish}
+                />
+              ))}
             </div>
           )}
         </div>
