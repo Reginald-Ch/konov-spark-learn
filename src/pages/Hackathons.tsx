@@ -461,7 +461,7 @@ const Hackathons = () => {
 
             {/* LEARN TAB */}
             {activeTab === 'learn' && (
-              <motion.div key="learn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="learn" className="flex-1 overflow-auto">
                 <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
               </motion.div>
             )}
