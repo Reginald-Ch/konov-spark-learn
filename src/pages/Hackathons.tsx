@@ -424,7 +424,7 @@ const Hackathons = () => {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* TEMPLATES TAB */}
