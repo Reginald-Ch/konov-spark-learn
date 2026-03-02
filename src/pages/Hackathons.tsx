@@ -429,7 +429,7 @@ const Hackathons = () => {
 
             {/* TEMPLATES TAB */}
             {activeTab === 'templates' && (
-              <motion.div key="templates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="templates" className="flex-1 overflow-auto">
                 {hasLiveEvent ? (
                   <TemplatesTab onStartBuilding={handleStartBuilding} />
                 ) : (
