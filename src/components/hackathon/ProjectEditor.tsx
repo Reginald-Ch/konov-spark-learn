@@ -1081,23 +1081,20 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
           {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
-            <div className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
-              <div ref={lineNumberRef}>
-                {lines.map((_, i) => (
-                  <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
-                ))}
-              </div>
-            </div>
-
             <div
-              className="flex-1 min-w-0 overflow-auto"
+              className="flex-1 min-w-0 overflow-auto flex"
               onScroll={(e) => {
                 const scrollTop = (e.target as HTMLElement).scrollTop;
                 if (lineNumberRef.current) {
-                  lineNumberRef.current.style.transform = `translateY(-${scrollTop}px)`;
+                  lineNumberRef.current.scrollTop = scrollTop;
                 }
               }}
             >
+            <div ref={lineNumberRef} className="w-12 flex-shrink-0 overflow-hidden select-none bg-ide-gutter border-r border-ide-border pt-4 sticky left-0 z-10">
+                {lines.map((_, i) => (
+                  <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
+                ))}
+            </div>
               <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content' }}>
                 {activeFile === 'main.py' && highlightedContent && (
                   <div
