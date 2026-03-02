@@ -1121,6 +1121,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 />
               </div>
             </div>
+            </div>
           </div>
 
           {/* ── Combined Bottom Panel (Terminal + AI Mentor) ── */}
