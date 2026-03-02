@@ -66,16 +66,13 @@ const JudgeDashboard = () => {
   }, []);
 
   const handleLogin = () => {
-    if (accessCode.trim() === JUDGE_ACCESS_CODE) {
-      if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
-      setAuthenticated(true);
-      sessionStorage.setItem('judge-authenticated', 'true');
-      sessionStorage.setItem('judge-name', judgeName);
-      fetchData();
-      toast.success('Welcome, Judge!');
-    } else {
-      toast.error('Invalid access code');
-    }
+    if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
+    if (accessCode.trim() !== JUDGE_ACCESS_CODE) { toast.error('Invalid access code'); return; }
+    setAuthenticated(true);
+    sessionStorage.setItem('judge-authenticated', 'true');
+    sessionStorage.setItem('judge-name', judgeName);
+    fetchData();
+    toast.success('Welcome, Judge!');
   };
 
   const fetchData = async () => {
