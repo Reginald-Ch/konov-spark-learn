@@ -403,10 +403,10 @@ const Hackathons = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col bg-[hsl(var(--discord-dark))] overflow-hidden">
-          <AnimatePresence mode="wait">
+        <>
             {/* BUILD TAB */}
             {activeTab === 'build' && (
-              <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+              <div key="build" className="flex-1 flex flex-col overflow-hidden">
                 {hasLiveEvent ? (
                   <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
                 ) : (
@@ -424,12 +424,12 @@ const Hackathons = () => {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* TEMPLATES TAB */}
             {activeTab === 'templates' && (
-              <motion.div key="templates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="templates" className="flex-1 overflow-auto">
                 {hasLiveEvent ? (
                   <TemplatesTab onStartBuilding={handleStartBuilding} />
                 ) : (
@@ -447,28 +447,28 @@ const Hackathons = () => {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* AI MODELS TAB */}
             {activeTab === 'ai-models' && (
-              <motion.div key="ai-models" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="ai-models" className="flex-1 overflow-auto">
                 <AIModelsTab onViewCode={handleViewCode} />
-              </motion.div>
+              </div>
             )}
 
             {/* GALLERY TAB removed — Showcase is now under Hackathons sub-view */}
 
             {/* LEARN TAB */}
             {activeTab === 'learn' && (
-              <motion.div key="learn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-auto">
+              <div key="learn" className="flex-1 overflow-auto">
                 <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
-              </motion.div>
+              </div>
             )}
 
             {/* HACKATHONS TAB */}
             {activeTab === 'hackathons' && (
-              <motion.div key="hackathons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
+              <div key="hackathons" className="flex-1 flex flex-col overflow-hidden">
                 {/* Header Bar */}
                 <div className="h-12 px-4 flex items-center gap-4 border-b border-[hsl(var(--discord-darker))] shadow-sm flex-shrink-0">
                   {hackathonSubView === 'leaderboard' ? (
@@ -571,9 +571,9 @@ const Hackathons = () => {
                     )}
                   </AnimatePresence>
                 </ScrollArea>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
         </div>
 
         {/* Modals */}

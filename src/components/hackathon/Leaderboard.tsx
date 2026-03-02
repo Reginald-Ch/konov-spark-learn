@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, Star, Users, Zap, Crown, Award, TrendingUp, Flame, Target, CheckCircle2, Circle, ShieldCheck, Rocket, Bug } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
@@ -43,15 +42,26 @@ export const Leaderboard = () => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchLeaderboardData = useCallback(async () => {
     try {
+      setError(null);
       const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
-        supabase.from('point_events').select('participant_email, points, event_type, metadata'),
-        supabase.from('ai_projects').select('author_email, author_name'),
-        supabase.from('hackathon_registrations').select('participant_email, participant_name'),
+        supabase.from('point_events').select('participant_email, points, event_type, metadata').limit(1000),
+        supabase.from('ai_projects').select('author_email, author_name').limit(500),
+        supabase.from('hackathon_registrations').select('participant_email, participant_name').limit(500),
       ]);
+
+      if (!isMountedRef.current) return;
+
+      if (pointEventsRes.error) {
+        console.error('point_events fetch error:', pointEventsRes.error);
+        setError('Failed to load leaderboard data');
+        return;
+      }
 
       const nameMap = new Map<string, string>();
       (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
@@ -75,7 +85,6 @@ export const Leaderboard = () => {
           participantMap.set(evt.participant_email, p);
         }
 
-        // Judge scores: take highest only
         if (evt.event_type === 'judge_score') {
           const pts = Math.min(evt.points, 25);
           if (pts > p.tier4) {
@@ -84,7 +93,6 @@ export const Leaderboard = () => {
           }
           p.events.add(evt.event_type);
         } else if (!p.events.has(evt.event_type)) {
-          // Deduplicate: only count each milestone once
           p.events.add(evt.event_type);
           const pts = config.points;
           p.points += pts;
@@ -100,33 +108,36 @@ export const Leaderboard = () => {
       });
 
       const sorted = Array.from(participantMap.values())
-        .sort((a, b) => b.points - a.points)
+        .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
         .map((p, i) => ({ ...p, rank: i + 1 }));
 
-      setParticipants(sorted);
+      if (isMountedRef.current) {
+        setParticipants(sorted);
+      }
     } catch (err) {
       console.error('Leaderboard fetch error:', err);
+      if (isMountedRef.current) setError('Failed to load leaderboard');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
-  // Debounced refetch for realtime updates
   const debouncedFetch = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchLeaderboardData(), 500);
+    debounceRef.current = setTimeout(() => fetchLeaderboardData(), 800);
   }, [fetchLeaderboardData]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchLeaderboardData();
 
     const channel = supabase
       .channel('leaderboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => debouncedFetch())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'point_events' }, () => debouncedFetch())
       .subscribe();
 
     return () => { 
+      isMountedRef.current = false;
       supabase.removeChannel(channel);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -186,6 +197,11 @@ export const Leaderboard = () => {
     </div>
   );
 
+  const stats = useMemo(() => ({
+    total: participants.length,
+    perfect: participants.filter(p => p.points >= MAX_SCORE).length,
+  }), [participants]);
+
   return (
     <div className="h-full">
       <div className="mb-6">
@@ -217,13 +233,13 @@ export const Leaderboard = () => {
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] mb-1">
             <Users className="w-4 h-4" /><span className="text-xs">Participants</span>
           </div>
-          <p className="text-xl font-bold text-white">{participants.length}</p>
+          <p className="text-xl font-bold text-white">{stats.total}</p>
         </div>
         <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)]">
           <div className="flex items-center gap-2 text-[hsl(var(--discord-text-muted))] mb-1">
             <ShieldCheck className="w-4 h-4" /><span className="text-xs">Perfect Scores</span>
           </div>
-          <p className="text-xl font-bold text-white">{participants.filter(p => p.points >= MAX_SCORE).length}</p>
+          <p className="text-xl font-bold text-white">{stats.perfect}</p>
         </div>
       </div>
 
@@ -231,6 +247,13 @@ export const Leaderboard = () => {
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-400 mb-2">{error}</p>
+            <button onClick={() => { setIsLoading(true); fetchLeaderboardData(); }} className="text-sm text-[hsl(var(--discord-blurple))] hover:underline">
+              Retry
+            </button>
           </div>
         ) : participants.length === 0 ? (
           <div className="text-center py-12">
@@ -242,11 +265,8 @@ export const Leaderboard = () => {
         ) : (
           <div className="space-y-2">
             {participants.map((p, index) => (
-              <motion.div
+              <div
                 key={p.email}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: Math.min(index * 0.03, 0.5) }}
                 className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedParticipant?.email === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
                 onClick={() => setSelectedParticipant(selectedParticipant?.email === p.email ? null : p)}
               >
@@ -281,7 +301,7 @@ export const Leaderboard = () => {
                     <TierBreakdown participant={p} />
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
