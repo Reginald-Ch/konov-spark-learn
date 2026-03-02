@@ -45,7 +45,6 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
   const [formData, setFormData] = useState({
     team_name: '',
     description: '',
-    created_by_email: '',
   });
 
   useEffect(() => {
