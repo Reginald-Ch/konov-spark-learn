@@ -75,67 +75,72 @@ export const Leaderboard = () => {
 
   const fetchLeaderboardData = async () => {
     setIsLoading(true);
+    try {
+      const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
+        supabase.from('point_events').select('participant_email, points, event_type, metadata'),
+        supabase.from('ai_projects').select('author_email, author_name'),
+        supabase.from('hackathon_registrations').select('participant_email, participant_name'),
+      ]);
 
-    const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
-      supabase.from('point_events').select('participant_email, points, event_type, metadata') as any,
-      supabase.from('ai_projects').select('author_email, author_name'),
-      supabase.from('hackathon_registrations').select('participant_email, participant_name') as any,
-    ]);
+      if (pointEventsRes.error) { console.warn('point_events fetch error:', pointEventsRes.error); }
+      if (projectsRes.error) { console.warn('ai_projects fetch error:', projectsRes.error); }
+      if (registrationsRes.error) { console.warn('registrations fetch error:', registrationsRes.error); }
 
-    const nameMap = new Map<string, string>();
-    // Names from registrations (lower priority)
-    (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
-    // Names from projects (higher priority — overwrite registration names)
-    (projectsRes.data || []).forEach((p: any) => { if (p.author_name && !p.author_name.startsWith('Student-')) nameMap.set(p.author_email, p.author_name); });
+      const nameMap = new Map<string, string>();
+      // Names from registrations (lower priority)
+      (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
+      // Names from projects (higher priority — overwrite registration names)
+      (projectsRes.data || []).forEach((p: any) => { if (p.author_name && !p.author_name.startsWith('Student-')) nameMap.set(p.author_email, p.author_name); });
 
-    const participantMap = new Map<string, ParticipantScore>();
+      const participantMap = new Map<string, ParticipantScore>();
 
-    (pointEventsRes.data || []).forEach((evt: any) => {
-      const config = SCORING_CONFIG[evt.event_type as ScoringEvent];
-      if (!config) return; // skip legacy events
+      (pointEventsRes.data || []).forEach((evt: any) => {
+        const config = SCORING_CONFIG[evt.event_type as ScoringEvent];
+        if (!config) return;
 
-      let p = participantMap.get(evt.participant_email);
-      if (!p) {
-        p = {
-          email: evt.participant_email,
-          name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0].replace(/^student-/, ''),
-          points: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0,
-          events: new Set<string>(),
-          rank: 0,
-        };
-        participantMap.set(evt.participant_email, p);
-      }
-
-      // For judge_score, allow accumulation (multiple judges), for others deduplicate
-      if (evt.event_type === 'judge_score') {
-        const pts = Math.min(evt.points, 25);
-        // Take the max judge score, not accumulate
-        if (pts > p.tier4) {
-          p.points = p.points - p.tier4 + pts;
-          p.tier4 = pts;
+        let p = participantMap.get(evt.participant_email);
+        if (!p) {
+          p = {
+            email: evt.participant_email,
+            name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0].replace(/^student-/, ''),
+            points: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0,
+            events: new Set<string>(),
+            rank: 0,
+          };
+          participantMap.set(evt.participant_email, p);
         }
-        p.events.add(evt.event_type);
-      } else if (!p.events.has(evt.event_type)) {
-        p.events.add(evt.event_type);
-        const pts = config.points;
-        p.points += pts;
-        if (config.tier === 1) p.tier1 += pts;
-        else if (config.tier === 2) p.tier2 += pts;
-        else if (config.tier === 3) p.tier3 += pts;
-      }
-    });
 
-    // Also give names from nameMap
-    participantMap.forEach((p) => {
-      if (nameMap.has(p.email)) p.name = nameMap.get(p.email)!;
-    });
+        if (evt.event_type === 'judge_score') {
+          const pts = Math.min(evt.points, 25);
+          if (pts > p.tier4) {
+            p.points = p.points - p.tier4 + pts;
+            p.tier4 = pts;
+          }
+          p.events.add(evt.event_type);
+        } else if (!p.events.has(evt.event_type)) {
+          p.events.add(evt.event_type);
+          const pts = config.points;
+          p.points += pts;
+          if (config.tier === 1) p.tier1 += pts;
+          else if (config.tier === 2) p.tier2 += pts;
+          else if (config.tier === 3) p.tier3 += pts;
+        }
+      });
 
-    const sorted = Array.from(participantMap.values())
-      .sort((a, b) => b.points - a.points)
-      .map((p, i) => ({ ...p, rank: i + 1 }));
+      participantMap.forEach((p) => {
+        if (nameMap.has(p.email)) p.name = nameMap.get(p.email)!;
+      });
 
-    setParticipants(sorted);
-    setIsLoading(false);
+      const sorted = Array.from(participantMap.values())
+        .sort((a, b) => b.points - a.points)
+        .map((p, i) => ({ ...p, rank: i + 1 }));
+
+      setParticipants(sorted);
+    } catch (err) {
+      console.error('Leaderboard fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getRankIcon = (index: number) => {
