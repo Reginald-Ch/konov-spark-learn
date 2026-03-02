@@ -143,10 +143,12 @@ openai>=1.0.0`,
     main: `# 🧠 AI Agent
 # An autonomous AI agent with tool-use capabilities
 
-from langchain.agents import initialize_agent, AgentType
-from langchain.llms import OpenAI
-from langchain.tools import DuckDuckGoSearchResults, PythonREPLTool
-from langchain.utilities import WikipediaAPIWrapper
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain.agents import initialize_agent, AgentType, Tool
+from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_experimental.tools import PythonREPLTool
+from langchain_community.utilities import WikipediaAPIWrapper
 import streamlit as st
 
 # --- Configuration ---
@@ -154,13 +156,19 @@ MODEL_NAME = "gpt-3.5-turbo"
 SYSTEM_PROMPT = "You are a helpful AI agent with access to tools."
 
 # --- Define Tools ---
-tools_list = [
-    DuckDuckGoSearchResults(name="Web Search"),
-    PythonREPLTool(name="Python Calculator"),
-]
+search = DuckDuckGoSearchResults(name="Web Search")
+python_repl = PythonREPLTool(name="Python Calculator")
+wiki = WikipediaAPIWrapper()
+wiki_tool = Tool(
+    name="Wikipedia",
+    func=wiki.run,
+    description="Search Wikipedia for factual information",
+)
+
+tools_list = [search, python_repl, wiki_tool]
 
 # --- Initialize Agent ---
-llm = OpenAI(model_name=MODEL_NAME, temperature=0)
+llm = ChatOpenAI(model_name=MODEL_NAME, temperature=0)
 agent = initialize_agent(
     tools=tools_list,
     llm=llm,
@@ -170,24 +178,38 @@ agent = initialize_agent(
 )
 
 # --- Streamlit UI ---
+st.set_page_config(page_title="AI Agent", page_icon="🧠")
 st.title("🧠 AI Agent")
 st.caption("I can search the web, calculate, and more!")
+
+# Sidebar
+with st.sidebar:
+    st.header("🛠️ Available Tools")
+    st.write("- 🔍 Web Search")
+    st.write("- 🐍 Python Calculator")
+    st.write("- 📚 Wikipedia")
+    if st.button("🗑️ Clear History"):
+        st.session_state.history = []
+        st.rerun()
 
 if "history" not in st.session_state:
     st.session_state.history = []
 
 for item in st.session_state.history:
-    st.chat_message(item["role"]).write(item["content"])
+    with st.chat_message(item["role"]):
+        st.write(item["content"])
 
 if task := st.chat_input("Give me a task..."):
     st.session_state.history.append({"role": "user", "content": task})
-    st.chat_message("user").write(task)
-    
-    with st.spinner("Thinking..."):
-        result = agent.run(task)
-    
-    st.session_state.history.append({"role": "assistant", "content": result})
-    st.chat_message("assistant").write(result)`,
+    with st.chat_message("user"):
+        st.write(task)
+
+    with st.chat_message("assistant"):
+        with st.spinner("🤔 Thinking & using tools..."):
+            result = agent.run(task)
+            st.write(result)
+
+    st.session_state.history.append({"role": "assistant", "content": result})`,
     config: `{
   "model": "gpt-3.5-turbo",
   "temperature": 0,
@@ -195,7 +217,11 @@ if task := st.chat_input("Give me a task..."):
   "capabilities": ["web_search", "calculator", "code_execution"]
 }`,
     requirements: `streamlit>=1.28.0
-langchain>=0.1.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-experimental>=0.3.0
 openai>=1.0.0
 duckduckgo-search>=3.9.0
 wikipedia>=1.4.0`,
