@@ -156,7 +156,6 @@ const Hackathons = () => {
     { id: 'templates' as MainTab, name: 'Templates', icon: Rocket, color: '#F7941D', desc: '1-Click Starters' },
     { id: 'hackathons' as MainTab, name: 'Hackathons', icon: Trophy, color: '#C70110', desc: 'Events & Leaderboard' },
     { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
-    { id: 'gallery' as MainTab, name: 'Showcase', icon: Image, color: '#3498DB', desc: 'Submitted Projects' },
     { id: 'learn' as MainTab, name: 'Learn', icon: GraduationCap, color: '#006600', desc: 'Tutorials & Guides' },
   ];
 
