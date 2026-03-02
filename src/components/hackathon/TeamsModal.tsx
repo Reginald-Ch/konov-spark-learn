@@ -108,7 +108,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
         description: 'Your team has been created successfully.',
       });
 
-      setFormData({ team_name: '', description: '', created_by_email: '' });
+      setFormData({ team_name: '', description: '' });
       setActiveTab('browse');
       fetchTeams();
     } catch (error) {
