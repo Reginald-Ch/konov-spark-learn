@@ -138,12 +138,13 @@ ${code}
 \`\`\``;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-        extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
+        // Include all messages EXCEPT the last one (which becomes userPrompt)
+        extraMessages = conversationHistory.slice(0, -1).map((m: { role: string; content: string }) => ({
           role: m.role === 'assistant' ? 'assistant' : 'user',
           content: m.content,
         }));
       }
-      // The actual user question comes as the last message
+      // The actual user question is the last message in conversation history, or falls back to code
       userPrompt = conversationHistory && conversationHistory.length > 0 
         ? conversationHistory[conversationHistory.length - 1].content 
         : code;

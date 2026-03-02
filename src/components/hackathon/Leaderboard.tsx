@@ -98,7 +98,7 @@ export const Leaderboard = () => {
       if (!p) {
         p = {
           email: evt.participant_email,
-          name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0],
+          name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0].replace(/^student-/, ''),
           points: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0,
           events: new Set<string>(),
           rank: 0,

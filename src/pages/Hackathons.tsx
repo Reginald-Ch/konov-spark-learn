@@ -129,7 +129,11 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
+    // Open code in read-only view — don't destroy current build session
+    const confirmed = !buildCode || confirm('This will load new code into the editor. Any unsaved changes will be lost. Continue?');
+    if (!confirmed) return;
     setBuildCode(code);
+    setBuildTemplate(undefined);
     setActiveTab('build');
   };
 
