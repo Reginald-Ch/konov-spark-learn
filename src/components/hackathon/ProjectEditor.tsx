@@ -201,7 +201,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
   });
 
-  const [savedFiles, setSavedFiles] = useState<Record<string, string>>({});
+  const [savedFiles, setSavedFiles] = useState<Record<string, string>>(() => ({
+    'main.py': initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main,
+    'config.json': PROJECT_SCAFFOLDS[initialType || 'chatbot'].config,
+    'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
+  }));
   const isDirty = useMemo(() => {
     return Object.keys(files).some(key => files[key as FileTab] !== savedFiles[key]);
   }, [files, savedFiles]);
