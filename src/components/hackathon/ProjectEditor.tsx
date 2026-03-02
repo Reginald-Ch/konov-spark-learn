@@ -183,14 +183,24 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [configTab, setConfigTab] = useState<ConfigTab>('settings');
 
   // Knowledge base state
-  const [knowledgeBase, setKnowledgeBase] = useState('');
-  const [qaData, setQaData] = useState<QAPair[]>([]);
+  const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
+  const [qaData, setQaData] = useState<QAPair[]>(() => {
+    try { const stored = localStorage.getItem('forge-qa-data'); return stored ? JSON.parse(stored) : []; }
+    catch { return []; }
+  });
 
   // Theme state
-  const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
-  const [welcomeMessage, setWelcomeMessage] = useState('Hi! Ask me anything.');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [quickReplies, setQuickReplies] = useState<string[]>(['Hello!', 'What can you do?', 'Help me with something']);
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    const stored = localStorage.getItem('forge-theme');
+    if (stored) { try { return JSON.parse(stored); } catch {} }
+    return THEMES[0];
+  });
+  const [welcomeMessage, setWelcomeMessage] = useState(() => localStorage.getItem('forge-welcome-msg') || 'Hi! Ask me anything.');
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('forge-logo-url') || '');
+  const [quickReplies, setQuickReplies] = useState<string[]>(() => {
+    try { const stored = localStorage.getItem('forge-quick-replies'); return stored ? JSON.parse(stored) : ['Hello!', 'What can you do?', 'Help me with something']; }
+    catch { return ['Hello!', 'What can you do?', 'Help me with something']; }
+  });
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>(['welcome', 'branding', 'codeview']);
 
   // File state
