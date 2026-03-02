@@ -401,7 +401,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) { fullText += content; onChunk(fullText); }
-          } catch { buffer = line + '\n' + buffer; break; }
+          } catch { /* skip malformed JSON chunk */ }
         }
       }
       setAiCallCount(prev => prev + 1);
