@@ -122,7 +122,12 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setSubmissionModalOpen(true); }
   };
 
+  const hasLiveEvent = liveHackathons.length > 0;
+
   const handleStartBuilding = (code: string, templateId: string) => {
+    if (!hasLiveEvent) {
+      return; // blocked by gate screen
+    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setActiveTab('build');
