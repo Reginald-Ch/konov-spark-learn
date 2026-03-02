@@ -386,6 +386,4 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       </DialogContent>
     </Dialog>
   );
-});
-
-PublishModal.displayName = 'PublishModal';
+};
