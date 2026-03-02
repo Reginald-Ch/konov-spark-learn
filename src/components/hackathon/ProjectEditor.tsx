@@ -40,41 +40,89 @@ const PROJECT_SCAFFOLDS: Record<ProjectType, { main: string; config: string; req
     systemPrompt: 'You are a helpful AI assistant that answers questions clearly and concisely.',
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `# 🤖 AI Chatbot
-# A conversational AI that answers questions on any topic
+# A conversational AI with memory, system prompt, and chat history
 
-from langchain.llms import OpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import ConversationChain
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationChain
 import streamlit as st
 
 # --- Configuration ---
 MODEL_NAME = "gpt-3.5-turbo"
 TEMPERATURE = 0.7
+MAX_TOKENS = 500
 SYSTEM_PROMPT = "You are a helpful AI assistant."
 
 # --- Initialize AI ---
-llm = OpenAI(model_name=MODEL_NAME, temperature=TEMPERATURE)
-memory = ConversationBufferMemory()
-chain = ConversationChain(llm=llm, memory=memory)
+llm = ChatOpenAI(
+    model_name=MODEL_NAME,
+    temperature=TEMPERATURE,
+    max_tokens=MAX_TOKENS,
+)
+
+# Set up memory to track conversation history
+memory = ConversationBufferMemory(
+    memory_key="history",
+    return_messages=True,
+)
+
+# Build a prompt template with system message + chat history
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=SYSTEM_PROMPT),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{input}"),
+])
+
+# Create the conversation chain
+chain = ConversationChain(
+    llm=llm,
+    memory=memory,
+    prompt=prompt,
+    verbose=False,
+)
 
 # --- Streamlit UI ---
+st.set_page_config(page_title="My AI Chatbot", page_icon="🤖")
 st.title("🤖 My AI Chatbot")
-st.caption("Ask me anything!")
+st.caption("Ask me anything! I remember our conversation.")
 
+# Sidebar for settings
+with st.sidebar:
+    st.header("⚙️ Settings")
+    st.write(f"**Model:** {MODEL_NAME}")
+    st.write(f"**Temperature:** {TEMPERATURE}")
+    st.write(f"**System Prompt:** {SYSTEM_PROMPT}")
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.messages = []
+        memory.clear()
+        st.rerun()
+
+# Initialize chat history in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Display previous messages
 for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
-if prompt := st.chat_input("Type your message..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    
-    response = chain.run(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.chat_message("assistant").write(response)`,
+# Handle new user input
+if user_input := st.chat_input("Type your message..."):
+    # Show user message
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.write(user_input)
+
+    # Get AI response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response = chain.predict(input=user_input)
+            st.write(response)
+
+    # Save assistant response
+    st.session_state.messages.append({"role": "assistant", "content": response})`,
     config: `{
   "model": "gpt-3.5-turbo",
   "temperature": 0.7,
@@ -82,7 +130,9 @@ if prompt := st.chat_input("Type your message..."):
   "capabilities": ["web_search", "citations", "memory"]
 }`,
     requirements: `streamlit>=1.28.0
-langchain>=0.1.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-core>=0.3.0
 openai>=1.0.0`,
   },
   agent: {
@@ -93,10 +143,12 @@ openai>=1.0.0`,
     main: `# 🧠 AI Agent
 # An autonomous AI agent with tool-use capabilities
 
-from langchain.agents import initialize_agent, AgentType
-from langchain.llms import OpenAI
-from langchain.tools import DuckDuckGoSearchResults, PythonREPLTool
-from langchain.utilities import WikipediaAPIWrapper
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain.agents import initialize_agent, AgentType, Tool
+from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_experimental.tools import PythonREPLTool
+from langchain_community.utilities import WikipediaAPIWrapper
 import streamlit as st
 
 # --- Configuration ---
@@ -104,13 +156,19 @@ MODEL_NAME = "gpt-3.5-turbo"
 SYSTEM_PROMPT = "You are a helpful AI agent with access to tools."
 
 # --- Define Tools ---
-tools_list = [
-    DuckDuckGoSearchResults(name="Web Search"),
-    PythonREPLTool(name="Python Calculator"),
-]
+search = DuckDuckGoSearchResults(name="Web Search")
+python_repl = PythonREPLTool(name="Python Calculator")
+wiki = WikipediaAPIWrapper()
+wiki_tool = Tool(
+    name="Wikipedia",
+    func=wiki.run,
+    description="Search Wikipedia for factual information",
+)
+
+tools_list = [search, python_repl, wiki_tool]
 
 # --- Initialize Agent ---
-llm = OpenAI(model_name=MODEL_NAME, temperature=0)
+llm = ChatOpenAI(model_name=MODEL_NAME, temperature=0)
 agent = initialize_agent(
     tools=tools_list,
     llm=llm,
@@ -120,24 +178,38 @@ agent = initialize_agent(
 )
 
 # --- Streamlit UI ---
+st.set_page_config(page_title="AI Agent", page_icon="🧠")
 st.title("🧠 AI Agent")
 st.caption("I can search the web, calculate, and more!")
+
+# Sidebar
+with st.sidebar:
+    st.header("🛠️ Available Tools")
+    st.write("- 🔍 Web Search")
+    st.write("- 🐍 Python Calculator")
+    st.write("- 📚 Wikipedia")
+    if st.button("🗑️ Clear History"):
+        st.session_state.history = []
+        st.rerun()
 
 if "history" not in st.session_state:
     st.session_state.history = []
 
 for item in st.session_state.history:
-    st.chat_message(item["role"]).write(item["content"])
+    with st.chat_message(item["role"]):
+        st.write(item["content"])
 
 if task := st.chat_input("Give me a task..."):
     st.session_state.history.append({"role": "user", "content": task})
-    st.chat_message("user").write(task)
-    
-    with st.spinner("Thinking..."):
-        result = agent.run(task)
-    
-    st.session_state.history.append({"role": "assistant", "content": result})
-    st.chat_message("assistant").write(result)`,
+    with st.chat_message("user"):
+        st.write(task)
+
+    with st.chat_message("assistant"):
+        with st.spinner("🤔 Thinking & using tools..."):
+            result = agent.run(task)
+            st.write(result)
+
+    st.session_state.history.append({"role": "assistant", "content": result})`,
     config: `{
   "model": "gpt-3.5-turbo",
   "temperature": 0,
@@ -145,7 +217,11 @@ if task := st.chat_input("Give me a task..."):
   "capabilities": ["web_search", "calculator", "code_execution"]
 }`,
     requirements: `streamlit>=1.28.0
-langchain>=0.1.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-experimental>=0.3.0
 openai>=1.0.0
 duckduckgo-search>=3.9.0
 wikipedia>=1.4.0`,
