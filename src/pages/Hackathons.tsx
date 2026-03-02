@@ -463,7 +463,7 @@ const Hackathons = () => {
             {activeTab === 'learn' && (
               <div key="learn" className="flex-1 overflow-auto">
                 <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
-              </motion.div>
+              </div>
             )}
 
             {/* HACKATHONS TAB */}
