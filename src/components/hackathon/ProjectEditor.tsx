@@ -40,41 +40,89 @@ const PROJECT_SCAFFOLDS: Record<ProjectType, { main: string; config: string; req
     systemPrompt: 'You are a helpful AI assistant that answers questions clearly and concisely.',
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `# 🤖 AI Chatbot
-# A conversational AI that answers questions on any topic
+# A conversational AI with memory, system prompt, and chat history
 
-from langchain.llms import OpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import ConversationChain
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationChain
 import streamlit as st
 
 # --- Configuration ---
 MODEL_NAME = "gpt-3.5-turbo"
 TEMPERATURE = 0.7
+MAX_TOKENS = 500
 SYSTEM_PROMPT = "You are a helpful AI assistant."
 
 # --- Initialize AI ---
-llm = OpenAI(model_name=MODEL_NAME, temperature=TEMPERATURE)
-memory = ConversationBufferMemory()
-chain = ConversationChain(llm=llm, memory=memory)
+llm = ChatOpenAI(
+    model_name=MODEL_NAME,
+    temperature=TEMPERATURE,
+    max_tokens=MAX_TOKENS,
+)
+
+# Set up memory to track conversation history
+memory = ConversationBufferMemory(
+    memory_key="history",
+    return_messages=True,
+)
+
+# Build a prompt template with system message + chat history
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=SYSTEM_PROMPT),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{input}"),
+])
+
+# Create the conversation chain
+chain = ConversationChain(
+    llm=llm,
+    memory=memory,
+    prompt=prompt,
+    verbose=False,
+)
 
 # --- Streamlit UI ---
+st.set_page_config(page_title="My AI Chatbot", page_icon="🤖")
 st.title("🤖 My AI Chatbot")
-st.caption("Ask me anything!")
+st.caption("Ask me anything! I remember our conversation.")
 
+# Sidebar for settings
+with st.sidebar:
+    st.header("⚙️ Settings")
+    st.write(f"**Model:** {MODEL_NAME}")
+    st.write(f"**Temperature:** {TEMPERATURE}")
+    st.write(f"**System Prompt:** {SYSTEM_PROMPT}")
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.messages = []
+        memory.clear()
+        st.rerun()
+
+# Initialize chat history in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Display previous messages
 for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
-if prompt := st.chat_input("Type your message..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    
-    response = chain.run(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.chat_message("assistant").write(response)`,
+# Handle new user input
+if user_input := st.chat_input("Type your message..."):
+    # Show user message
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.write(user_input)
+
+    # Get AI response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response = chain.predict(input=user_input)
+            st.write(response)
+
+    # Save assistant response
+    st.session_state.messages.append({"role": "assistant", "content": response})`,
     config: `{
   "model": "gpt-3.5-turbo",
   "temperature": 0.7,
@@ -82,7 +130,9 @@ if prompt := st.chat_input("Type your message..."):
   "capabilities": ["web_search", "citations", "memory"]
 }`,
     requirements: `streamlit>=1.28.0
-langchain>=0.1.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-core>=0.3.0
 openai>=1.0.0`,
   },
   agent: {
