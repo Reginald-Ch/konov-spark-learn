@@ -1,5 +1,3 @@
-import { forwardRef } from 'react';
-import { motion } from 'framer-motion';
 import { HelpCircle, MessageSquare, Mail, ExternalLink } from 'lucide-react';
 import {
   Accordion,
@@ -10,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-export const HackathonFAQ = forwardRef<HTMLDivElement>((_, ref) => {
+export const HackathonFAQ = () => {
   const faqs = [
     {
       question: 'What is FORGE?',
@@ -65,19 +63,19 @@ export const HackathonFAQ = forwardRef<HTMLDivElement>((_, ref) => {
       answer: 'Your project stays live at its URL! Judges score projects from the Judge Dashboard, and final leaderboard rankings are published. You can continue to view your project and share it. Past events and their leaderboards are always accessible under "Past Events" in the sidebar.'
     },
     {
+      question: 'Where is the Judge Dashboard?',
+      answer: 'The Judge Dashboard is now integrated right into the platform! Go to the Hackathons tab and click "Judge Dashboard" in the sidebar. Enter the access code provided by the event organizer to unlock scoring, event management, and project controls — all without leaving the page.'
+    },
+    {
       question: 'I\'m stuck — who can help?',
       answer: 'Use the AI Mentor in the IDE for coding help. Join the Community Chat (click the chat icon in the sidebar) to ask other participants. You can also contact our team via the Contact page or check the "Getting Started" guide under the Hackathons tab.'
     },
   ];
 
   return (
-    <div ref={ref} className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div 
             className="w-14 h-14 rounded-xl flex items-center justify-center"
@@ -90,39 +88,28 @@ export const HackathonFAQ = forwardRef<HTMLDivElement>((_, ref) => {
             <p className="text-[hsl(var(--discord-text-muted))]">Everything you need to know about building AI on FORGE</p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* FAQ Accordion */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Accordion type="single" collapsible className="space-y-2">
-          {faqs.map((faq, index) => (
-            <AccordionItem 
-              key={index} 
-              value={`item-${index}`}
-              className="bg-[hsl(var(--discord-darker))] rounded-lg border border-[hsl(var(--discord-light)/0.2)] px-4 data-[state=open]:border-[hsl(var(--discord-blurple)/0.5)]"
-            >
-              <AccordionTrigger className="hover:no-underline py-4 text-left">
-                <span className="text-white font-medium">{faq.question}</span>
-              </AccordionTrigger>
-              <AccordionContent className="text-[hsl(var(--discord-text-muted))] pb-4 whitespace-pre-line">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </motion.div>
+      <Accordion type="single" collapsible className="space-y-2">
+        {faqs.map((faq, index) => (
+          <AccordionItem 
+            key={index} 
+            value={`item-${index}`}
+            className="bg-[hsl(var(--discord-darker))] rounded-lg border border-[hsl(var(--discord-light)/0.2)] px-4 data-[state=open]:border-[hsl(var(--discord-blurple)/0.5)]"
+          >
+            <AccordionTrigger className="hover:no-underline py-4 text-left">
+              <span className="text-white font-medium">{faq.question}</span>
+            </AccordionTrigger>
+            <AccordionContent className="text-[hsl(var(--discord-text-muted))] pb-4 whitespace-pre-line">
+              {faq.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
 
       {/* Still Need Help */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mt-10 p-6 rounded-lg bg-gradient-to-br from-[hsl(var(--discord-blurple)/0.2)] to-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-blurple)/0.3)]"
-      >
+      <div className="mt-10 p-6 rounded-lg bg-gradient-to-br from-[hsl(var(--discord-blurple)/0.2)] to-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-blurple)/0.3)]">
         <div className="text-center">
           <MessageSquare className="w-10 h-10 mx-auto mb-4 text-[hsl(var(--discord-blurple))]" />
           <h3 className="text-xl font-semibold text-white mb-2">Still Have Questions?</h3>
@@ -131,9 +118,7 @@ export const HackathonFAQ = forwardRef<HTMLDivElement>((_, ref) => {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link to="/contact">
-              <Button 
-                className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]"
-              >
+              <Button className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]">
                 <Mail className="w-4 h-4 mr-2" />
                 Contact Us
               </Button>
@@ -149,9 +134,7 @@ export const HackathonFAQ = forwardRef<HTMLDivElement>((_, ref) => {
             </Link>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
-});
-
-HackathonFAQ.displayName = 'HackathonFAQ';
+};
