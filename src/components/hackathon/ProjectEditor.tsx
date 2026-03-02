@@ -1084,7 +1084,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
           {/* Editor Area */}
           <div className="flex-1 flex min-h-0 bg-ide-editor">
-            <div ref={lineNumberRef} className="w-12 flex-shrink-0 overflow-y-hidden select-none bg-ide-gutter border-r border-ide-border pt-4">
+            <div ref={lineNumberRef} className="w-12 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
               {lines.map((_, i) => (
                 <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
               ))}
