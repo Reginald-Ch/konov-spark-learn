@@ -77,7 +77,8 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
     if (!hackathonId) return;
 
     try {
-      const validated = teamSchema.parse(formData);
+      const studentEmail = localStorage.getItem('forge-student-email') || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+      const validated = teamSchema.parse({ ...formData, created_by_email: studentEmail });
       setIsSubmitting(true);
 
       const { error } = await supabase
