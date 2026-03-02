@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ const DEPLOY_MESSAGES = [
   '✅ Running final checks...',
 ];
 
-export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }, ref) => {
+export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }: PublishModalProps) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -162,7 +162,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && deployStep !== 'deploying' && handleClose()}>
-      <DialogContent ref={ref} className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-lg overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
+      <DialogContent className="bg-[hsl(var(--ide-bg))] border-[hsl(var(--ide-border))] text-[hsl(var(--ide-text))] sm:max-w-lg overflow-hidden p-0" hideCloseButton={deployStep === 'deploying'}>
         <AnimatePresence mode="wait">
           {/* ── DEPLOYING ANIMATION ── */}
           {deployStep === 'deploying' && (
@@ -386,6 +386,4 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       </DialogContent>
     </Dialog>
   );
-});
-
-PublishModal.displayName = 'PublishModal';
+};

@@ -183,14 +183,24 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [configTab, setConfigTab] = useState<ConfigTab>('settings');
 
   // Knowledge base state
-  const [knowledgeBase, setKnowledgeBase] = useState('');
-  const [qaData, setQaData] = useState<QAPair[]>([]);
+  const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
+  const [qaData, setQaData] = useState<QAPair[]>(() => {
+    try { const stored = localStorage.getItem('forge-qa-data'); return stored ? JSON.parse(stored) : []; }
+    catch { return []; }
+  });
 
   // Theme state
-  const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
-  const [welcomeMessage, setWelcomeMessage] = useState('Hi! Ask me anything.');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [quickReplies, setQuickReplies] = useState<string[]>(['Hello!', 'What can you do?', 'Help me with something']);
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    const stored = localStorage.getItem('forge-theme');
+    if (stored) { try { return JSON.parse(stored); } catch {} }
+    return THEMES[0];
+  });
+  const [welcomeMessage, setWelcomeMessage] = useState(() => localStorage.getItem('forge-welcome-msg') || 'Hi! Ask me anything.');
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('forge-logo-url') || '');
+  const [quickReplies, setQuickReplies] = useState<string[]>(() => {
+    try { const stored = localStorage.getItem('forge-quick-replies'); return stored ? JSON.parse(stored) : ['Hello!', 'What can you do?', 'Help me with something']; }
+    catch { return ['Hello!', 'What can you do?', 'Help me with something']; }
+  });
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>(['welcome', 'branding', 'codeview']);
 
   // File state
@@ -253,9 +263,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
+
+  // Persist knowledge/QA/theme to localStorage
+  useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
+  useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
+  useEffect(() => { localStorage.setItem('forge-theme', JSON.stringify(selectedTheme)); }, [selectedTheme]);
+  useEffect(() => { localStorage.setItem('forge-welcome-msg', welcomeMessage); }, [welcomeMessage]);
+  useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
+  useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -494,23 +513,18 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
     try {
-      // Save all files as a JSON bundle so config.json and requirements.txt aren't lost
-      const allCode = JSON.stringify({
-        'main.py': files['main.py'],
-        'config.json': files['config.json'],
-        'requirements.txt': files['requirements.txt'],
-      });
+      const codePayload = files['main.py'];
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType })
+          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: files['main.py'], template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
@@ -957,19 +971,50 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🔗 Logo URL (optional)</label>
-                      <Input 
-                        value={logoUrl} 
-                        onChange={e => setLogoUrl(e.target.value)}
-                        placeholder="https://example.com/logo.png"
-                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
-                      />
-                      {logoUrl && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                          <span className="text-[10px] text-ide-green">Logo loaded</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🖼️ Logo</label>
+                      <div className="space-y-2">
+                        <div className="flex gap-1.5">
+                          <Input 
+                            value={logoUrl} 
+                            onChange={e => setLogoUrl(e.target.value)}
+                            placeholder="Paste URL or upload below"
+                            className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1" 
+                          />
+                          <input
+                            ref={logoInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 500 * 1024) { toast.error('Logo must be under 500KB'); return; }
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const dataUrl = ev.target?.result as string;
+                                setLogoUrl(dataUrl);
+                                toast.success('Logo uploaded!');
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => logoInputRef.current?.click()}
+                            className="h-7 px-2 text-[10px] text-ide-accent hover:bg-ide-border/50"
+                          >
+                            Upload
+                          </Button>
                         </div>
-                      )}
+                        {logoUrl && (
+                          <div className="flex items-center gap-2">
+                            <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            <span className="text-[10px] text-ide-green">Logo loaded</span>
+                            <button onClick={() => setLogoUrl('')} className="text-[10px] text-ide-text-muted hover:text-red-400 ml-auto">Remove</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
