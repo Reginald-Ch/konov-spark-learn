@@ -122,11 +122,15 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setSubmissionModalOpen(true); }
   };
 
+  const liveHackathons = hackathons.filter(h => h.status === 'live');
+  const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
+  const endedHackathons = hackathons.filter(h => h.status === 'ended');
+  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
     if (!hasLiveEvent) {
-      return; // blocked by gate screen
+      return;
     }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
@@ -134,18 +138,12 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
-    // Open code in read-only view — don't destroy current build session
     const confirmed = !buildCode || confirm('This will load new code into the editor. Any unsaved changes will be lost. Continue?');
     if (!confirmed) return;
     setBuildCode(code);
     setBuildTemplate(undefined);
     setActiveTab('build');
   };
-
-  const liveHackathons = hackathons.filter(h => h.status === 'live');
-  const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
-  const endedHackathons = hackathons.filter(h => h.status === 'ended');
-  const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
 
   const getFilteredHackathons = () => {
     switch (hackathonSubView) {
