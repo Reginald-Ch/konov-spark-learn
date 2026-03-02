@@ -5,7 +5,7 @@ import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 import { TeamsModal } from '@/components/hackathon/TeamsModal';
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
-import { SubmissionsGallery } from '@/components/hackathon/SubmissionsGallery';
+// SubmissionsGallery removed - Showcase tab uses ProjectGallery instead
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
