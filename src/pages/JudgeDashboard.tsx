@@ -65,7 +65,7 @@ const JudgeDashboard = () => {
   }, []);
 
   const handleLogin = () => {
-    if (accessCode.trim().toUpperCase() === JUDGE_ACCESS_CODE) {
+    if (accessCode.trim() === JUDGE_ACCESS_CODE) {
       if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
       setAuthenticated(true);
       sessionStorage.setItem('judge-authenticated', 'true');
