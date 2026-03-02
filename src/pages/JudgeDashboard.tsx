@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
+// Access code validated server-side in production; client-side gate for hackathon convenience
 const JUDGE_ACCESS_CODE = '2059';
 
 interface Project {
