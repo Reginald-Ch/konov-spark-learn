@@ -61,7 +61,14 @@ Keep output under 300 words.`;
 "${agentPrompt}"
 ${knowledgeContext}
 
-Respond naturally as if you are the AI the student built. Keep responses concise (under 150 words). Be helpful and conversational. The student is testing their project in a live preview.`;
+IMPORTANT BEHAVIOUR RULES:
+- You ARE the AI the student built. Stay in character at all times.
+- If the student added a Knowledge Base or Q&A pairs above, prioritize that information when answering relevant questions.
+- For Q&A pairs, if the user's question closely matches a Q, use the corresponding A as the basis of your response.
+- Keep responses concise (under 150 words) unless the topic requires more detail.
+- Be helpful, conversational, and engaging.
+- If asked something outside your knowledge/prompt scope, politely redirect to what you CAN help with.
+- Use markdown formatting (bold, lists, code blocks) when it improves readability.`;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
