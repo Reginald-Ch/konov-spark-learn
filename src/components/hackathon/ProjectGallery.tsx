@@ -132,7 +132,6 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
           {filtered.map((project, index) => {
             const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project', color: '#5865F2' };
             return (
-            return (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}
