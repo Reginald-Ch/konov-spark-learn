@@ -159,22 +159,20 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                   {project.description && (
                     <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-4">{project.description}</p>
                   )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[hsl(var(--discord-text-muted))]">
-                      ⭐ {project.points_earned} pts
-                    </span>
-                    <div className="flex gap-2">
-                      {isOwner && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(project); }}
-                          className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Delete
-                        </Button>
-                      )}
+                    <div className="flex items-center justify-between">
+                     <span className="text-xs text-[hsl(var(--discord-text-muted))]">
+                       ⭐ {project.points_earned} pts
+                     </span>
+                     <div className="flex gap-2">
+                       <Button 
+                         size="sm" 
+                         variant="outline"
+                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(project); }}
+                         className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                       >
+                         <Trash2 className="w-3 h-3 mr-1" />
+                         Delete
+                       </Button>
                       <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
                           💬 Try It
