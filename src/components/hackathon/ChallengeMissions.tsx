@@ -12,18 +12,38 @@ interface ChallengeMissionsProps {
 function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const completed: boolean[] = [];
 
+  // For agent template (5 stages), use different detection
+  if (stageCount === 5) {
+    const promptDefaults = [
+      'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
+    ];
+    const promptMatch = code.match(/SYSTEM_PROMPT\s*=\s*(?:"""([\s\S]*?)"""|"([^"]*?)"|'([^']*?)')/);
+    const promptValue = (promptMatch?.[1] || promptMatch?.[2] || promptMatch?.[3] || '').trim();
+    const promptChanged = promptValue.length > 0 && !promptDefaults.includes(promptValue);
+    
+    completed.push(
+      /from\s+langchain_openai\s+import\s+ChatOpenAI/.test(code) ||
+      /from\s+langchain\.agents\s+import/.test(code)
+    );
+    completed.push(promptChanged);
+    completed.push(/def\s+create_tools/.test(code));
+    completed.push(/def\s+create_agent/.test(code));
+    completed.push(/st\.sidebar/.test(code));
+    return completed.slice(0, stageCount);
+  }
+
+  // Chatbot template (7 stages)
   // Challenge 1: Personality — SYSTEM_PROMPT has been customized
   const promptDefaults = [
     'You are a helpful assistant. Answer any question the user asks.',
     'You are a helpful AI assistant.',
-    'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
   ];
   const promptMatch = code.match(/SYSTEM_PROMPT\s*=\s*(?:"""([\s\S]*?)"""|"([^"]*?)"|'([^']*?)')/);
   const promptValue = (promptMatch?.[1] || promptMatch?.[2] || promptMatch?.[3] || '').trim();
   const promptChanged = promptValue.length > 0 && !promptDefaults.includes(promptValue);
   completed.push(promptChanged);
 
-  // Challenge 2: Knowledge — KNOWLEDGE_BASE entries have been filled (no "TODO" remaining)
+  // Challenge 2: Knowledge — KNOWLEDGE_BASE entries filled (no "TODO", no example_topic_)
   const kbHasTodo = /KNOWLEDGE_BASE\s*=\s*\{[\s\S]*?TODO[\s\S]*?\}/.test(code);
   const kbHasContent = /KNOWLEDGE_BASE\s*=\s*\{/.test(code);
   const kbExampleRemoved = kbHasContent && !/"example_topic_/.test(code);
@@ -35,7 +55,7 @@ function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const tkHasKeywords = /TOPIC_KEYWORDS\s*=\s*\{/.test(code) && !/"example_topic_a"/.test(code);
   completed.push(fqExampleRemoved && tkHasKeywords);
 
-  // Challenge 4: Polish — BOT_NAME changed + WELCOME_MESSAGE customized
+  // Challenge 4: Personalise — BOT_NAME changed + WELCOME_MESSAGE customized
   const nameMatch = code.match(/BOT_NAME\s*=\s*["'](.+?)["']/);
   const nameChanged = nameMatch && nameMatch[1] !== 'My AI Chatbot';
   const welcomeDefault = '👋 Hello! I am your AI assistant. How can I help you today?';
@@ -43,23 +63,22 @@ function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const welcomeChanged = welcomeMatch && welcomeMatch[1].trim() !== welcomeDefault;
   completed.push(!!(nameChanged && welcomeChanged));
 
-  // For agent template (5 stages), add extra detection
-  if (stageCount > 4) {
-    // Stage 1: Foundation — imports present
-    completed.length = 0;
-    completed.push(
-      /from\s+langchain_openai\s+import\s+ChatOpenAI/.test(code) ||
-      /from\s+langchain\.agents\s+import/.test(code)
-    );
-    // Stage 2: Mission brief
-    completed.push(promptChanged);
-    // Stage 3: Tools
-    completed.push(/def\s+create_tools/.test(code));
-    // Stage 4: Agent brain
-    completed.push(/def\s+create_agent/.test(code));
-    // Stage 5: Polish
-    completed.push(/st\.sidebar/.test(code));
-  }
+  // Challenge 5: Response Styles — st.sidebar.selectbox for response style
+  completed.push(
+    /st\.sidebar\.selectbox/.test(code) ||
+    /response_style/i.test(code) && /selectbox/.test(code)
+  );
+
+  // Challenge 6: Chat Export — st.download_button present
+  completed.push(
+    /st\.download_button/.test(code) ||
+    /export.*chat/i.test(code) && /button/.test(code)
+  );
+
+  // Challenge 7: Submit — BOT_NAME changed + chain working (already validated by other checks)
+  const pageIconMatch = code.match(/PAGE_ICON\s*=\s*["'](.+?)["']/);
+  const iconChanged = pageIconMatch && pageIconMatch[1] !== '🤖';
+  completed.push(!!(nameChanged && iconChanged && promptChanged));
 
   return completed.slice(0, stageCount);
 }
