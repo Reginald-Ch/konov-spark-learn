@@ -8,9 +8,40 @@ interface ChallengeMissionsProps {
   compact?: boolean;
 }
 
+// Strip Python comments from code to avoid matching TODO/example lines
+function stripComments(code: string): string {
+  return code.split('\n').map(line => {
+    // Remove inline comments but preserve strings
+    let inStr: string | null = null;
+    let result = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (!inStr && ch === '#') break; // rest is comment
+      if (!inStr && (ch === '"' || ch === "'")) {
+        // Check for triple quotes
+        if (line.slice(i, i + 3) === ch.repeat(3)) {
+          const end = line.indexOf(ch.repeat(3), i + 3);
+          if (end !== -1) {
+            result += line.slice(i, end + 3);
+            i = end + 2;
+            continue;
+          }
+        }
+        inStr = ch;
+      } else if (inStr === ch) {
+        inStr = null;
+      }
+      result += ch;
+    }
+    return result;
+  }).join('\n');
+}
+
 // Detect which challenges are completed based on code patterns
 function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const completed: boolean[] = [];
+  // Use comment-stripped code for detection to avoid matching TODO examples
+  const cleanCode = stripComments(code);
 
   // For agent template (5 stages), use different detection
   if (stageCount === 5) {
@@ -64,22 +95,25 @@ function detectCompletedStages(code: string, stageCount: number): boolean[] {
   completed.push(!!(nameChanged && welcomeChanged));
 
   // Challenge 5: Response Styles — student must ADD a new style option beyond the defaults
-  // The scaffold already has ["Balanced", "Concise", "Detailed", "Friendly"]
-  // Detect if student added a 5th style or customized the style_modifiers dict
-  const hasCustomStyle = /style_modifiers\s*=\s*\{[\s\S]*?"ELI5"/i.test(code) ||
-    /style_modifiers\s*=\s*\{[\s\S]*?"Creative"/i.test(code) ||
-    // Or if they added more selectbox options beyond the 4 defaults
-    (code.match(/selectbox[\s\S]*?\[.*?\]/)?.[0]?.split(',').length ?? 0) > 4;
-  completed.push(hasCustomStyle);
+  // Use cleanCode (comments stripped) to avoid matching TODO example comments
+  const defaultStyles = ['Concise', 'Detailed', 'Friendly', 'Balanced'];
+  // Count keys in style_modifiers dict from uncommented code
+  const styleModifiersMatch = cleanCode.match(/style_modifiers\s*=\s*\{([\s\S]*?)\}/);
+  const styleKeys = styleModifiersMatch?.[1]?.match(/"([^"]+)"(?=\s*:)/g) || [];
+  const hasExtraStyle = styleKeys.length > defaultStyles.length;
+  // Also check if selectbox has more than 4 entries in uncommented code
+  const selectboxMatch = cleanCode.match(/selectbox[\s\S]*?\[(.*?)\]/);
+  const selectboxItems = selectboxMatch?.[1]?.split(',').filter(s => s.trim().length > 0) || [];
+  const hasExtraSelectbox = selectboxItems.length > 4;
+  completed.push(hasExtraStyle || hasExtraSelectbox);
 
-  // Challenge 6: Chat Export — student must add a custom export format or message stats
-  // The scaffold already has basic export. Check if student added extra stats or features
-  const hasCustomExport = /st\.metric/.test(code) ||
-    /word.?count/i.test(code) ||
-    /average.?length/i.test(code) ||
-    /st\.bar_chart/.test(code) ||
-    /csv/.test(code);
-  completed.push(hasCustomExport);
+  // Challenge 6: Chat Analytics — student must add analytics using st.metric/st.bar_chart
+  // Use cleanCode to ignore commented-out example code
+  const hasCustomAnalytics = /st\.metric/.test(cleanCode) ||
+    /st\.bar_chart/.test(cleanCode) ||
+    /word_count\s*=/.test(cleanCode) ||
+    /avg.*length\s*=/.test(cleanCode);
+  completed.push(hasCustomAnalytics);
 
   // Challenge 7: Submit — BOT_NAME + PAGE_ICON changed + prompt changed (all personalized)
   const pageIconMatch = code.match(/PAGE_ICON\s*=\s*["'](.+?)["']/);
