@@ -132,7 +132,10 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
 ║  🎯 CHALLENGE 1 — Give Your Bot a Personality     (~10 mins)    ║
 ║  💬 CHALLENGE 2 — Teach Your Bot What It Knows    (~15 mins)    ║
 ║  🧠 CHALLENGE 3 — Add Smart Follow-Up Questions   (~15 mins)    ║
-║  ⭐ CHALLENGE 4 — Personalise & Polish (Bonus)    (~10 mins)    ║
+║  ⭐ CHALLENGE 4 — Personalise & Polish            (~10 mins)    ║
+║  🎨 CHALLENGE 5 — Add a Custom Response Style     (~8 mins)     ║
+║  📊 CHALLENGE 6 — Add Chat Analytics              (~8 mins)     ║
+║  🚀 CHALLENGE 7 — Submit & Present                (~5 mins)     ║
 ║                                                                  ║
 ║  💡 TIPS FOR SUCCESS:                                            ║
 ║     → Read each challenge fully before writing any code          ║
@@ -431,18 +434,36 @@ def detect_topic(user_message):
 
 
 # ══════════════════════════════════════════════════════════════════
-# 🔧 PROMPT BUILDER — DO NOT CHANGE THIS
+# 🔧 PROMPT BUILDER
 # ══════════════════════════════════════════════════════════════════
 
 def build_enhanced_prompt():
     """Builds the full system prompt, injecting the knowledge base."""
     base = SYSTEM_PROMPT
 
+    # ══════════════════════════════════════════════════════════════
+    # 🎨 CHALLENGE 5 — ADD A CUSTOM RESPONSE STYLE
+    # ══════════════════════════════════════════════════════════════
+    #
+    # Your bot already has 4 response styles below.
+    # YOUR TASK: Add a 5th custom style!
+    #
+    # STEP 1: Add a new key to the style_modifiers dictionary below
+    #         e.g. "ELI5": " Explain everything as if talking to a 5-year-old."
+    #         or   "Creative": " Be wildly creative, use metaphors and stories."
+    #
+    # STEP 2: Update the selectbox options in the SIDEBAR section below
+    #         to include your new style name in the list
+    #
+    # ──────────────────────────────────────────────────────────────
+
     style_modifiers = {
         "Concise":  " Keep your answers short (2-3 sentences max). Be direct.",
         "Detailed": " Provide thorough, well-structured answers with examples.",
         "Friendly": " Use a warm, encouraging tone with emojis. Be supportive!",
         "Balanced": "",
+        # TODO: Add your 5th style here! e.g.:
+        # "ELI5": " Explain everything as if talking to a 5-year-old. Use simple words and fun examples.",
     }
 
     kb_text = "\\n\\n".join([
@@ -479,7 +500,7 @@ if "welcomed"        not in st.session_state: st.session_state.welcomed = False
 
 
 # ══════════════════════════════════════════════════════════════════
-# 🔧 SIDEBAR — DO NOT CHANGE THIS
+# 🔧 SIDEBAR
 # ══════════════════════════════════════════════════════════════════
 
 with st.sidebar:
@@ -491,6 +512,8 @@ with st.sidebar:
     )
     response_style = st.selectbox(
         "Response Style", ["Balanced", "Concise", "Detailed", "Friendly"],
+        # TODO (Challenge 5): Add your new style name to this list!
+        # e.g. ["Balanced", "Concise", "Detailed", "Friendly", "ELI5"],
         help="Changes how verbose the AI responds",
     )
     st.text_area(
@@ -525,6 +548,35 @@ with st.sidebar:
 
     if st.session_state.get("messages"):
         st.caption(f"📊 {len(st.session_state.messages)} messages")
+
+    # ══════════════════════════════════════════════════════════════
+    # 📊 CHALLENGE 6 — ADD CHAT ANALYTICS
+    # ══════════════════════════════════════════════════════════════
+    #
+    # Go beyond basic message count! Add real analytics to the sidebar.
+    #
+    # YOUR TASK: Add at least 2 of the following:
+    #   ✅ Total word count across all messages
+    #   ✅ Average message length (words per message)
+    #   ✅ A bar chart showing user vs bot message counts
+    #   ✅ Most common words used
+    #
+    # STEP 1: Calculate stats from st.session_state.messages
+    # STEP 2: Display them using st.metric() or st.bar_chart()
+    #
+    # ──────────────────────────────────────────────────────────────
+    # 💡 EXAMPLE CODE (uncomment and modify):
+    #
+    # if st.session_state.get("messages"):
+    #     st.divider()
+    #     st.subheader("📊 Chat Analytics")
+    #     all_words = " ".join([m["content"] for m in st.session_state.messages]).split()
+    #     word_count = len(all_words)
+    #     avg_length = word_count // max(len(st.session_state.messages), 1)
+    #     st.metric("Total Words", word_count)
+    #     st.metric("Avg Words/Message", avg_length)
+    #
+    # ──────────────────────────────────────────────────────────────
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -646,8 +698,8 @@ if user_input := st.chat_input("Type your message here..."):
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "follow_ups", "export_history"],
   "forge_version": "2.0",
   "challenge_mode": true,
-  "total_stages": 4,
-  "notes": "Build-Up Challenge: Complete all 4 challenges!"
+  "total_stages": 7,
+  "notes": "Build-Up Challenge: Complete all 7 challenges!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0

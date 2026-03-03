@@ -24,7 +24,7 @@ const PROJECT_TYPES: {
     title: 'AI Chatbot',
     emoji: '🤖',
     tagline: 'Build a conversational AI — stage by stage',
-    description: 'A complete chatbot template with 7 challenges: personality, knowledge, follow-ups, polish, response styles, chat export, and final submission. Everything works — you fill in YOUR content!',
+    description: 'A complete chatbot template with 7 challenges: personality, knowledge, follow-ups, polish, response styles, chat analytics, and final submission. Everything works — you fill in YOUR content!',
     stages: [
       { emoji: '🎯', title: 'Give Your Bot a Personality', time: '10 min' },
       { emoji: '💬', title: 'Teach Your Bot What It Knows', time: '15 min' },
@@ -68,7 +68,7 @@ export const TemplatesTab = ({ onStartBuilding }: TemplatesTabProps) => {
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[hsl(var(--discord-blurple)/0.15)] text-[hsl(var(--discord-blurple))] text-sm font-medium mb-4">
           <Trophy className="w-4 h-4" />
-          Build-Up Challenge — 5 Stages, 45 Minutes
+          Build-Up Challenge — 7 Stages, ~70 Minutes
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">What will you FORGE?</h1>
         <p className="text-[hsl(var(--discord-text-muted))] text-lg max-w-xl mx-auto">
@@ -111,7 +111,7 @@ export const TemplatesTab = ({ onStartBuilding }: TemplatesTabProps) => {
               {/* 5 Stages */}
               <div className="mb-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] block mb-2">
-                  5-Stage Challenge
+                  {type.stages.length}-Stage Challenge
                 </span>
                 <div className="space-y-1">
                   {type.stages.map((stage, i) => (
