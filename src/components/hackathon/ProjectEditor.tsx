@@ -121,7 +121,7 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
-type ConfigTab = 'settings' | 'knowledge' | 'theme';
+type ConfigTab = 'settings' | 'knowledge' | 'theme' | 'missions';
 
 const ONBOARDING_STEPS = [
   { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
