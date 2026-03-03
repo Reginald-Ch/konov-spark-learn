@@ -132,7 +132,10 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
 ║  🎯 CHALLENGE 1 — Give Your Bot a Personality     (~10 mins)    ║
 ║  💬 CHALLENGE 2 — Teach Your Bot What It Knows    (~15 mins)    ║
 ║  🧠 CHALLENGE 3 — Add Smart Follow-Up Questions   (~15 mins)    ║
-║  ⭐ CHALLENGE 4 — Personalise & Polish (Bonus)    (~10 mins)    ║
+║  ⭐ CHALLENGE 4 — Personalise & Polish            (~10 mins)    ║
+║  🎨 CHALLENGE 5 — Add a Custom Response Style     (~8 mins)     ║
+║  📊 CHALLENGE 6 — Add Chat Analytics              (~8 mins)     ║
+║  🚀 CHALLENGE 7 — Submit & Present                (~5 mins)     ║
 ║                                                                  ║
 ║  💡 TIPS FOR SUCCESS:                                            ║
 ║     → Read each challenge fully before writing any code          ║
