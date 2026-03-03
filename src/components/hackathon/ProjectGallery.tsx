@@ -131,7 +131,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((project, index) => {
             const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project', color: '#5865F2' };
-            const isOwner = project.author_email === currentEmail;
+            return (
             return (
               <motion.div
                 key={project.id}
