@@ -410,7 +410,7 @@ if user_input := st.chat_input("Type your message..."):
 #   ✅ Test at least 5 different conversations
 #   ✅ Click "Submit Project" when ready!
 `,
-    config: \`{
+    config: `{
   "project_type": "chatbot",
   "model": "gpt-4o-mini",
   "temperature": 0.7,
@@ -421,9 +421,6 @@ if user_input := st.chat_input("Type your message..."):
   "challenge_mode": true,
   "total_stages": 7,
   "notes": "Build-Up Challenge: Complete all 7 stages!"
-}\`,
-  "challenge_mode": true,
-  "notes": "Build-Up Challenge: Complete all 5 stages!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0
