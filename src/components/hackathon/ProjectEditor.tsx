@@ -11,13 +11,12 @@ import {
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus, Trophy
+  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
-import { ChallengeMissions } from './ChallengeMissions';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -108,7 +107,7 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   keyword: 'text-ide-purple',
   builtin: 'text-ide-yellow',
   string: 'text-ide-green',
-  comment: 'text-white italic',
+  comment: 'text-ide-text-muted italic',
   decorator: 'text-ide-red',
   number: 'text-ide-orange',
   operator: 'text-ide-cyan',
@@ -132,71 +131,21 @@ const ONBOARDING_STEPS = [
 ];
 
 const CountdownWidget = () => {
-  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
-  const [isRunning, setIsRunning] = useState(false);
-  const startTimeRef = useRef<number | null>(null);
-
+  const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
+  
   useEffect(() => {
-    const fetchAndStart = async () => {
-      try {
-        const { data } = await supabase
-          .from('hackathons')
-          .select('start_date, status')
-          .eq('status', 'live')
-          .limit(1)
-          .single();
-        if (data?.start_date && data.status === 'live') {
-          const dbStart = new Date(data.start_date).getTime();
-          // Sanity check: if start_date is more than 24h ago, use stored or now
-          const maxAge = 24 * 60 * 60 * 1000;
-          if (Date.now() - dbStart > maxAge) {
-            const stored = localStorage.getItem('forge-session-start');
-            startTimeRef.current = stored ? parseInt(stored) : Date.now();
-          } else {
-            startTimeRef.current = dbStart;
-          }
-          localStorage.setItem('forge-session-start', startTimeRef.current!.toString());
-          setIsRunning(true);
-        } else {
-          // No live hackathon — reset timer
-          setIsRunning(false);
-          setElapsed({ h: 0, m: 0, s: 0 });
-          localStorage.removeItem('forge-session-start');
-        }
-      } catch {
-        // DB query failed (no live hackathon found) — show 00:00:00
-        setIsRunning(false);
-        setElapsed({ h: 0, m: 0, s: 0 });
-      }
-    };
-    fetchAndStart();
-
-    const channel = supabase
-      .channel('countdown-hackathon-live')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hackathons' }, (payload) => {
-        const row = payload.new as any;
-        if (row.status === 'live' && row.start_date) {
-          startTimeRef.current = new Date(row.start_date).getTime();
-          localStorage.setItem('forge-session-start', startTimeRef.current.toString());
-          setIsRunning(true);
-        } else if (row.status === 'ended') {
-          setIsRunning(false);
-          startTimeRef.current = null;
-          setElapsed({ h: 0, m: 0, s: 0 });
-          localStorage.removeItem('forge-session-start');
-        }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  useEffect(() => {
-    if (!isRunning) return;
+    const stored = localStorage.getItem('forge-session-end');
+    let endTime: number;
+    if (stored) {
+      endTime = parseInt(stored);
+    } else {
+      endTime = Date.now() + 90 * 60 * 1000;
+      localStorage.setItem('forge-session-end', endTime.toString());
+    }
+    
     const tick = () => {
-      if (!startTimeRef.current) return;
-      const diff = Math.max(0, Date.now() - startTimeRef.current);
-      setElapsed({
+      const diff = Math.max(0, endTime - Date.now());
+      setTimeLeft({
         h: Math.floor(diff / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
         s: Math.floor((diff % 60000) / 1000),
@@ -205,15 +154,20 @@ const CountdownWidget = () => {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [isRunning]);
+  }, []);
+
+  const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
+  const isUrgent = totalSec < 600;
+  const isWarning = totalSec < 1800 && !isUrgent;
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-      !isRunning ? 'bg-gray-500/20 border-gray-400/40 text-gray-400'
+      isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
+      : isWarning ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
       : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
       <Clock className="w-3 h-3" />
-      <span>{String(elapsed.h).padStart(2,'0')}:{String(elapsed.m).padStart(2,'0')}:{String(elapsed.s).padStart(2,'0')}</span>
+      <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
     </div>
   );
 };
@@ -298,7 +252,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [publishOpen, setPublishOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
-  const [showMissionsModal, setShowMissionsModal] = useState(false);
 
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
     const seen = localStorage.getItem('buildstudio-onboarded');
@@ -791,7 +744,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
-                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
+                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Knowledge' },
                   { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
                 ].map(tab => (
                   <button
@@ -807,11 +760,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto">
-
+              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
-                  <div className="p-3 space-y-4">
+                  <>
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
                       <Input value={projectName} onChange={e => setProjectName(e.target.value)}
@@ -901,7 +853,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* ── Knowledge Base Tab ── */}
@@ -1325,12 +1277,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </div>
 
         {/* RIGHT: Live Preview / Chat */}
-        <div 
-          className={`w-72 flex-col flex-shrink-0 border-l border-ide-border ${
-            showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
-          }`}
-          style={{ backgroundColor: selectedTheme.bg }}
-        >
+        <div className={`w-72 flex-col flex-shrink-0 bg-ide-sidebar border-l border-ide-border ${
+          showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
+        }`}>
           <div className="px-3 py-2 flex items-center gap-2 border-b border-ide-border h-9 flex-shrink-0">
             <Circle className="w-2 h-2 fill-ide-green text-ide-green" />
             <span className="text-xs font-bold uppercase tracking-wider text-ide-text-muted">Live Preview</span>
@@ -1363,7 +1312,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ backgroundColor: selectedTheme.chat }}>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
@@ -1388,22 +1337,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             )}
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div 
-                  className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
-                    msg.role === 'system'
+                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-ide-accent text-ide-bg-deep'
+                    : msg.role === 'system'
                     ? 'bg-ide-border text-ide-text-muted italic'
-                    : msg.role === 'assistant'
-                    ? 'text-white'
-                    : 'text-white'
-                  }`}
-                  style={
-                    msg.role === 'user' 
-                      ? { backgroundColor: selectedTheme.accent }
-                      : msg.role === 'assistant'
-                      ? { backgroundColor: `${selectedTheme.accent}20` }
-                      : undefined
-                  }
-                >
+                    : 'bg-ide-editor text-ide-text'
+                }`}>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -1426,8 +1366,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-2 border-t border-ide-border">
-            <div className="flex gap-2 mb-2">
+          <div className="p-3 border-t border-ide-border space-y-2">
+            <div className="flex gap-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder="Type a message..."
@@ -1438,55 +1378,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
+            <div className="pt-1 border-t border-ide-border">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
+              <div className="flex gap-1.5 mt-1.5">
+                <Button size="sm" variant="ghost"
+                  onClick={handleGoLive}
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                  <Send className="w-3 h-3 mr-1" /> Submit Project
+                </Button>
+              </div>
+            </div>
           </div>
-
-          {/* Missions Button — below preview */}
-          <div className="p-2 border-t border-ide-border">
-            <Button size="sm" variant="ghost"
-              onClick={() => setShowMissionsModal(true)}
-              className="w-full h-8 text-[11px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 border border-amber-400/30">
-              <Trophy className="w-3.5 h-3.5 mr-1.5" /> Missions
-            </Button>
-          </div>
-
-          {/* Missions Modal */}
-          <AnimatePresence>
-            {showMissionsModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-                onClick={() => setShowMissionsModal(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  onClick={e => e.stopPropagation()}
-                  className="w-[90vw] max-w-md max-h-[80vh] overflow-y-auto rounded-xl border border-ide-border bg-ide-sidebar shadow-2xl"
-                >
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-ide-border">
-                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-amber-400" />
-                      Challenge Missions
-                    </h2>
-                    <button onClick={() => setShowMissionsModal(false)} className="text-white/50 hover:text-white p-1">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
-                  <div className="px-3 pb-3">
-                    <Button size="sm"
-                      onClick={() => { setShowMissionsModal(false); handleGoLive(); }}
-                      className="w-full h-8 text-[11px] font-bold uppercase bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
-                      <Send className="w-3.5 h-3.5 mr-1.5" /> Submit Project
-                    </Button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
 
