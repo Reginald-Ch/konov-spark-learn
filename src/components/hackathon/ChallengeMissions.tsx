@@ -63,19 +63,25 @@ function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const welcomeChanged = welcomeMatch && welcomeMatch[1].trim() !== welcomeDefault;
   completed.push(!!(nameChanged && welcomeChanged));
 
-  // Challenge 5: Response Styles — st.sidebar.selectbox for response style
-  completed.push(
-    /st\.sidebar\.selectbox/.test(code) ||
-    /response_style/i.test(code) && /selectbox/.test(code)
-  );
+  // Challenge 5: Response Styles — student must ADD a new style option beyond the defaults
+  // The scaffold already has ["Balanced", "Concise", "Detailed", "Friendly"]
+  // Detect if student added a 5th style or customized the style_modifiers dict
+  const hasCustomStyle = /style_modifiers\s*=\s*\{[\s\S]*?"ELI5"/i.test(code) ||
+    /style_modifiers\s*=\s*\{[\s\S]*?"Creative"/i.test(code) ||
+    // Or if they added more selectbox options beyond the 4 defaults
+    (code.match(/selectbox[\s\S]*?\[.*?\]/)?.[0]?.split(',').length ?? 0) > 4;
+  completed.push(hasCustomStyle);
 
-  // Challenge 6: Chat Export — st.download_button present
-  completed.push(
-    /st\.download_button/.test(code) ||
-    /export.*chat/i.test(code) && /button/.test(code)
-  );
+  // Challenge 6: Chat Export — student must add a custom export format or message stats
+  // The scaffold already has basic export. Check if student added extra stats or features
+  const hasCustomExport = /st\.metric/.test(code) ||
+    /word.?count/i.test(code) ||
+    /average.?length/i.test(code) ||
+    /st\.bar_chart/.test(code) ||
+    /csv/.test(code);
+  completed.push(hasCustomExport);
 
-  // Challenge 7: Submit — BOT_NAME changed + chain working (already validated by other checks)
+  // Challenge 7: Submit — BOT_NAME + PAGE_ICON changed + prompt changed (all personalized)
   const pageIconMatch = code.match(/PAGE_ICON\s*=\s*["'](.+?)["']/);
   const iconChanged = pageIconMatch && pageIconMatch[1] !== '🤖';
   completed.push(!!(nameChanged && iconChanged && promptChanged));
