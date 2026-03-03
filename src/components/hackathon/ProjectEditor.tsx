@@ -860,7 +860,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* ── Knowledge Base Tab ── */}
