@@ -204,17 +204,43 @@ st.title(f"🤖 {BOT_NAME}")
 st.caption("Built with FORGE • Powered by LangChain")
 
 # ══════════════════════════════════════════════
-# 🧠 STAGE 3: MEMORY
+# 📚 STAGE 3: TEACH YOUR BOT WHAT TO KNOW
+# ══════════════════════════════════════════════
+# Goal: Give your bot specialized knowledge!
+# You can hardcode facts here OR use the Data tab.
+#
+# TODO 3.1: Add a KNOWLEDGE section to your system prompt
+#   Example: Add facts, rules, or instructions directly:
+#
+#   KNOWLEDGE = """
+#   - Ghana's capital is Accra
+#   - The Volta River is the longest river in Ghana
+#   - SHS stands for Senior High School
+#   - WASSCE is the West African exam
+#   """
+#
+# TODO 3.2: Combine knowledge with your system prompt
+#   Hint: full_prompt = SYSTEM_PROMPT + "\\n\\nHere is your knowledge:\\n" + KNOWLEDGE
+#
+# TODO 3.3: Or use the Data tab (left sidebar) to add
+#   knowledge without changing your code!
+#
+# YOUR KNOWLEDGE CODE HERE ↓↓↓
+
+
+
+# ══════════════════════════════════════════════
+# 🧠 STAGE 4: MEMORY
 # ══════════════════════════════════════════════
 # Goal: Make your bot remember the conversation!
 # Without memory, every message is like talking
 # to a stranger.
 #
-# TODO 3.1: Import memory tools
+# TODO 4.1: Import memory tools
 #   Hint: from langchain.memory import ConversationBufferWindowMemory
 #   Hint: from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 #
-# TODO 3.2: Create conversation memory in session state
+# TODO 4.2: Create conversation memory in session state
 #   Hint: Use st.session_state to persist between messages
 #   Example:
 #     if "memory" not in st.session_state:
@@ -236,27 +262,58 @@ if "msg_count" not in st.session_state:
     st.session_state.msg_count = 0
 
 # ══════════════════════════════════════════════
-# ⚡ STAGE 4: SPECIAL POWERS
+# 💬 STAGE 5: SMART FOLLOW-UP QUESTIONS
+# ══════════════════════════════════════════════
+# Goal: Make your bot ask follow-up questions
+# to keep conversations going naturally!
+#
+# TODO 5.1: Update your SYSTEM_PROMPT to include
+#   a follow-up instruction:
+#   "After every answer, ask one relevant follow-up
+#    question to help the user explore deeper."
+#
+# TODO 5.2: Add quick-reply suggestion buttons
+#   Hint: You can create clickable buttons below chat:
+#
+#   suggested = ["Tell me more", "Give an example", "What else?"]
+#   cols = st.columns(len(suggested))
+#   for i, text in enumerate(suggested):
+#       if cols[i].button(text, key=f"quick_{i}"):
+#           # Process this as user input
+#           pass
+#
+# YOUR FOLLOW-UP CODE HERE ↓↓↓
+
+
+
+# ══════════════════════════════════════════════
+# ⚡ STAGE 6: PERSONALISE & SPECIAL POWERS
 # ══════════════════════════════════════════════
 # Goal: Make your bot UNIQUE! Add at least ONE
 # of these features:
 #
-# TODO 4.1 (Pick at least ONE):
+# TODO 6.1 (Pick at least ONE):
 #
 #   OPTION A — Response Styles:
 #     Add a st.sidebar selectbox with styles like
-#     "Concise", "Detailed", "Friendly", "Creative"
+#     "Concise", "Detailed", "Explain Like I'm 5"
 #     Then modify the system prompt based on selection
 #
 #   OPTION B — Settings Panel:
 #     Add sidebar controls for temperature, clear chat
-#     button, message counter, etc.
+#     button, message counter, export button
 #
 #   OPTION C — Chat Export:
-#     Add a button to download chat history as JSON
+#     Add a button to download chat history as JSON:
+#     st.download_button("💾 Export Chat",
+#         json.dumps(st.session_state.messages, indent=2),
+#         "chat_history.json")
 #
-#   OPTION D — Your Own Idea!
-#     What would make YOUR bot special?
+#   OPTION D — Emoji Reactions:
+#     Add thumbs up/down buttons after each AI response
+#
+#   OPTION E — Your Own Idea!
+#     What would make YOUR bot different from everyone else's?
 #
 # YOUR SPECIAL FEATURES HERE ↓↓↓
 
@@ -341,23 +398,30 @@ if user_input := st.chat_input("Type your message..."):
             st.info("💡 Tip: Check your code and try again!")
 
 # ══════════════════════════════════════════════
-# 🚀 STAGE 5: POLISH & DEPLOY
+# 🚀 STAGE 7: POLISH & DEPLOY
 # ══════════════════════════════════════════════
 # Before you submit:
 #   ✅ Change BOT_NAME to something creative
 #   ✅ Write a detailed SYSTEM_PROMPT (Stage 2)
+#   ✅ Add knowledge so your bot is smart (Stage 3)
+#   ✅ Make sure memory works — ask "what did I say?" (Stage 4)
+#   ✅ Test that follow-up questions flow naturally (Stage 5)
+#   ✅ Add at least ONE special feature (Stage 6)
 #   ✅ Test at least 5 different conversations
-#   ✅ Make sure memory works (ask "what did I say?")
 #   ✅ Click "Submit Project" when ready!
 `,
-    config: `{
+    config: \`{
   "project_type": "chatbot",
   "model": "gpt-4o-mini",
   "temperature": 0.7,
   "max_tokens": 1024,
   "memory_window": 20,
-  "capabilities": ["conversation_memory", "streaming", "export_history"],
+  "capabilities": ["conversation_memory", "streaming", "knowledge_base", "follow_ups", "export_history"],
   "forge_version": "2.0",
+  "challenge_mode": true,
+  "total_stages": 7,
+  "notes": "Build-Up Challenge: Complete all 7 stages!"
+}\`,
   "challenge_mode": true,
   "notes": "Build-Up Challenge: Complete all 5 stages!"
 }`,
