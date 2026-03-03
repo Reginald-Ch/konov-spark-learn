@@ -8,58 +8,58 @@ interface ChallengeMissionsProps {
   compact?: boolean;
 }
 
-// Detect which stages have been started based on code patterns
+// Detect which challenges are completed based on code patterns
 function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const completed: boolean[] = [];
 
-  // Stage 1: Foundation — imports present
-  completed.push(
-    /from\s+langchain_openai\s+import\s+ChatOpenAI/.test(code) ||
-    /from\s+langchain\.agents\s+import/.test(code)
-  );
+  // Challenge 1: Personality — SYSTEM_PROMPT has been customized
+  const promptDefaults = [
+    'You are a helpful assistant. Answer any question the user asks.',
+    'You are a helpful AI assistant.',
+    'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
+  ];
+  const promptMatch = code.match(/SYSTEM_PROMPT\s*=\s*(?:"""([\s\S]*?)"""|"([^"]*?)"|'([^']*?)')/);
+  const promptValue = (promptMatch?.[1] || promptMatch?.[2] || promptMatch?.[3] || '').trim();
+  const promptChanged = promptValue.length > 0 && !promptDefaults.includes(promptValue);
+  completed.push(promptChanged);
 
-  // Stage 2: Personality — SYSTEM_PROMPT has been customized
-  const promptMatch = code.match(/SYSTEM_PROMPT\s*=\s*["'](.+?)["']/);
-  const isDefault = !promptMatch || 
-    promptMatch[1] === 'You are a helpful AI assistant.' ||
-    promptMatch[1] === 'You are an AI agent that can use tools to search the web, run calculations, and generate content.';
-  completed.push(!isDefault);
+  // Challenge 2: Knowledge — KNOWLEDGE_BASE entries have been filled (no "TODO" remaining)
+  const kbHasTodo = /KNOWLEDGE_BASE\s*=\s*\{[\s\S]*?TODO[\s\S]*?\}/.test(code);
+  const kbHasContent = /KNOWLEDGE_BASE\s*=\s*\{/.test(code);
+  const kbExampleRemoved = kbHasContent && !/"example_topic_/.test(code);
+  completed.push(kbExampleRemoved && !kbHasTodo);
 
-  // Stage 3: Knowledge — KNOWLEDGE variable or Data tab content
-  completed.push(
-    /KNOWLEDGE\s*=\s*"""/.test(code) ||
-    /full_prompt\s*=/.test(code) ||
-    /knowledge_base/.test(code) ||
-    /KNOWLEDGE\s*=\s*["']/.test(code)
-  );
+  // Challenge 3: Follow-ups — FOLLOW_UP_QUESTIONS has real content
+  const fqHasContent = /FOLLOW_UP_QUESTIONS\s*=\s*\{/.test(code);
+  const fqExampleRemoved = fqHasContent && !/"example_topic_a"/.test(code);
+  const tkHasKeywords = /TOPIC_KEYWORDS\s*=\s*\{/.test(code) && !/"example_topic_a"/.test(code);
+  completed.push(fqExampleRemoved && tkHasKeywords);
 
-  // Stage 4: Memory — memory imports or creation
-  completed.push(
-    /ConversationBufferWindowMemory/.test(code) ||
-    /def\s+create_tools/.test(code)
-  );
-
-  // Stage 5: Follow-up questions — instruction in prompt or quick-reply buttons
-  completed.push(
-    /follow.?up/i.test(code) ||
-    /suggested\s*=\s*\[/.test(code) ||
-    /quick_reply/i.test(code) ||
-    /st\.columns/.test(code)
-  );
-
-  // Stage 6: Special Powers — sidebar or chain or agent creation
-  completed.push(
-    /def\s+build_chain/.test(code) ||
-    /def\s+create_agent/.test(code) ||
-    /st\.sidebar/.test(code) ||
-    /st\.download_button/.test(code)
-  );
-
-  // Stage 7: Polish — bot name changed + chain called
+  // Challenge 4: Polish — BOT_NAME changed + WELCOME_MESSAGE customized
   const nameMatch = code.match(/BOT_NAME\s*=\s*["'](.+?)["']/);
   const nameChanged = nameMatch && nameMatch[1] !== 'My AI Chatbot';
-  const chainCalled = /chain\.predict/.test(code) || /agent\.run/.test(code);
-  completed.push(!!(nameChanged && chainCalled));
+  const welcomeDefault = '👋 Hello! I am your AI assistant. How can I help you today?';
+  const welcomeMatch = code.match(/WELCOME_MESSAGE\s*=\s*"""([\s\S]*?)"""/);
+  const welcomeChanged = welcomeMatch && welcomeMatch[1].trim() !== welcomeDefault;
+  completed.push(!!(nameChanged && welcomeChanged));
+
+  // For agent template (5 stages), add extra detection
+  if (stageCount > 4) {
+    // Stage 1: Foundation — imports present
+    completed.length = 0;
+    completed.push(
+      /from\s+langchain_openai\s+import\s+ChatOpenAI/.test(code) ||
+      /from\s+langchain\.agents\s+import/.test(code)
+    );
+    // Stage 2: Mission brief
+    completed.push(promptChanged);
+    // Stage 3: Tools
+    completed.push(/def\s+create_tools/.test(code));
+    // Stage 4: Agent brain
+    completed.push(/def\s+create_agent/.test(code));
+    // Stage 5: Polish
+    completed.push(/st\.sidebar/.test(code));
+  }
 
   return completed.slice(0, stageCount);
 }
@@ -74,16 +74,16 @@ export const ChallengeMissions = ({ stages, code, compact = false }: ChallengeMi
   return (
     <div className="flex flex-col gap-0.5 py-1.5">
       {/* Progress header */}
-      <div className="px-3 pb-2 border-b border-[hsl(var(--discord-light)/0.1)]">
+      <div className="px-3 pb-2 border-b border-[hsl(var(--ide-border)/0.3)]">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">
-            {allComplete ? '🎉 Challenge Complete!' : 'Challenge Progress'}
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--ide-text-muted))]">
+            {allComplete ? '🎉 All Challenges Complete!' : 'Challenge Progress'}
           </span>
           <span className={`text-[11px] font-bold ${allComplete ? 'text-amber-400' : 'text-emerald-400'}`}>
             {completedCount}/{stages.length}
           </span>
         </div>
-        <div className="w-full h-1.5 rounded-full bg-[hsl(var(--discord-light)/0.15)]">
+        <div className="w-full h-1.5 rounded-full bg-[hsl(var(--ide-border))]">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               allComplete 
@@ -105,41 +105,41 @@ export const ChallengeMissions = ({ stages, code, compact = false }: ChallengeMi
           <div key={stage.id} className="px-1.5">
             <button
               onClick={() => setExpandedStage(isExpanded ? null : idx)}
-              className={`w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-left transition-colors text-[11px] ${
+              className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-left transition-colors text-[11px] ${
                 isCurrent
-                  ? 'bg-[hsl(var(--discord-blurple)/0.15)] text-white'
+                  ? 'bg-[hsl(var(--ide-accent)/0.12)] text-white'
                   : isCompleted
-                  ? 'text-emerald-400/80 hover:bg-[hsl(var(--discord-light)/0.05)]'
-                  : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.05)]'
+                  ? 'text-emerald-400/80 hover:bg-[hsl(var(--ide-border)/0.2)]'
+                  : 'text-white/60 hover:bg-[hsl(var(--ide-border)/0.2)]'
               }`}
             >
               {isCompleted ? (
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               ) : isCurrent ? (
-                <Circle className="w-3.5 h-3.5 text-[hsl(var(--discord-blurple))] flex-shrink-0 animate-pulse" />
+                <Circle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 animate-pulse" />
               ) : (
-                <Circle className="w-3.5 h-3.5 flex-shrink-0 opacity-40" />
+                <Circle className="w-3.5 h-3.5 flex-shrink-0 opacity-40 text-white" />
               )}
-              <span className="flex-1 font-medium truncate">
+              <span className="flex-1 font-medium truncate text-white">
                 {stage.emoji} {stage.title}
               </span>
               {!compact && (
-                <span className="text-[9px] opacity-50 flex items-center gap-0.5">
+                <span className="text-[9px] opacity-50 flex items-center gap-0.5 text-white">
                   <Clock className="w-2.5 h-2.5" />
                   {stage.timeEstimate}
                 </span>
               )}
-              {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              {isExpanded ? <ChevronDown className="w-3 h-3 text-white" /> : <ChevronRight className="w-3 h-3 text-white" />}
             </button>
 
             {isExpanded && (
-              <div className="ml-5 mt-1 mb-1.5 p-2 rounded-md bg-[hsl(var(--discord-light)/0.05)] border border-[hsl(var(--discord-light)/0.1)]">
-                <p className="text-[10px] text-[hsl(var(--discord-text))] mb-1.5 leading-relaxed">
+              <div className="ml-5 mt-1 mb-1.5 p-2.5 rounded-md bg-[hsl(var(--ide-border)/0.15)] border border-[hsl(var(--ide-border)/0.3)]">
+                <p className="text-[10px] text-white/90 mb-2 leading-relaxed">
                   {stage.objective}
                 </p>
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-1">
                   {stage.hints.map((hint, i) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[9px] text-[hsl(var(--discord-text-muted))]">
+                    <div key={i} className="flex items-start gap-1.5 text-[9px] text-white/60">
                       <Lightbulb className="w-2.5 h-2.5 text-amber-400 flex-shrink-0 mt-0.5" />
                       <span>{hint}</span>
                     </div>
@@ -155,8 +155,8 @@ export const ChallengeMissions = ({ stages, code, compact = false }: ChallengeMi
       {allComplete && (
         <div className="mx-2 mt-1 p-2 rounded-lg bg-amber-500/10 border border-amber-400/20 text-center">
           <Trophy className="w-5 h-5 text-amber-400 mx-auto mb-1" />
-          <p className="text-[10px] text-amber-300 font-bold">All stages complete!</p>
-          <p className="text-[9px] text-[hsl(var(--discord-text-muted))]">Submit your project to go live 🚀</p>
+          <p className="text-[10px] text-amber-300 font-bold">All challenges complete!</p>
+          <p className="text-[9px] text-white/50">Submit your project to go live 🚀</p>
         </div>
       )}
     </div>

@@ -29,119 +29,87 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     stages: [
       {
         id: 1,
-        title: 'Foundation',
-        emoji: '🏗️',
-        objective: 'Get the basic chat loop working — import LangChain, create the LLM, and handle user input so your bot can receive and display messages.',
-        hints: [
-          'Import ChatOpenAI from langchain_openai',
-          'Import HumanMessage, AIMessage, SystemMessage from langchain_core.messages',
-          'Use st.chat_input() to capture what the user types',
-          'Use st.chat_message() to display messages in the UI',
-        ],
-        timeEstimate: '~8 min',
-      },
-      {
-        id: 2,
         title: 'Give Your Bot a Personality',
-        emoji: '🎭',
-        objective: 'Write a detailed SYSTEM_PROMPT that defines WHO your bot is, HOW it speaks, and WHAT rules it follows. A great prompt is at least 3-5 sentences.',
+        emoji: '🎯',
+        objective: 'The SYSTEM_PROMPT is the soul of your chatbot. Rewrite it to define WHO your bot is, WHAT it does, HOW it talks, and any rules it follows. A great prompt is at least 3–5 sentences.',
         hints: [
-          'Bad: "You are helpful" — Good: "You are a friendly SHS maths tutor in Ghana who explains with real-world analogies"',
-          'Add rules: "Always respond in 2-3 sentences max" or "Never give direct answers, ask guiding questions instead"',
-          'Give it a name, a tone (formal/casual/funny), and a specialty',
+          'Answer: Who is the bot? What does it do? How does it talk? What should it avoid?',
+          'Bad: "You are helpful" — Good: "You are Kofi, a friendly travel guide for Ghana who suggests hidden gems..."',
+          'Add special rules like "Always end with a fun fact" or "Never give medical advice"',
           'Test by asking "Who are you?" — does the answer match your prompt?',
         ],
         timeEstimate: '~10 min',
       },
       {
-        id: 3,
-        title: 'Teach Your Bot What to Know',
-        emoji: '📚',
-        objective: 'Add a knowledge base so your bot can answer questions about specific topics. Use the Data tab to add facts, or hardcode knowledge directly in your system prompt.',
+        id: 2,
+        title: 'Teach Your Bot What It Knows',
+        emoji: '💬',
+        objective: 'Fill in the KNOWLEDGE_BASE dictionary with at least 4 real topics relevant to your bot. Delete ALL example entries and replace with your own content — the more specific, the smarter your bot appears.',
         hints: [
-          'Add facts to the Knowledge Base in the Data tab (left sidebar)',
-          'Or add them directly in SYSTEM_PROMPT: "You know these facts: ..."',
-          'Add Q&A pairs for precise question→answer matching',
-          'Test: ask your bot a specific fact — does it know the answer?',
+          'Each entry needs a key (topic name) and a value (the actual information)',
+          'Travel bot: "top_attractions", "local_food", "transport_tips"',
+          'Study buddy: "algebra_basics", "quadratic_formula", "exam_tips"',
+          'Test: ask your bot something from your knowledge base — does it use the info?',
         ],
-        timeEstimate: '~10 min',
+        timeEstimate: '~15 min',
+      },
+      {
+        id: 3,
+        title: 'Add Smart Follow-Up Questions',
+        emoji: '🧠',
+        objective: 'Fill in FOLLOW_UP_QUESTIONS and TOPIC_KEYWORDS so your bot asks clarifying questions before answering. Write 2–3 follow-up questions per topic and matching keyword triggers.',
+        hints: [
+          'Replace example topics with ones matching YOUR bot (e.g. "accommodation", "workout_plan")',
+          'Write 2–3 questions per topic that help the bot give a BETTER answer',
+          'Add keywords in TOPIC_KEYWORDS that users might type to trigger each topic',
+          'Test: type a message with your keyword — does the bot ask your follow-up question?',
+        ],
+        timeEstimate: '~15 min',
       },
       {
         id: 4,
-        title: 'Memory — Remember Conversations',
-        emoji: '🧠',
-        objective: 'Add ConversationBufferWindowMemory so your bot remembers what was said earlier. Without this, every message is like talking to a stranger!',
+        title: 'Personalise & Polish',
+        emoji: '⭐',
+        objective: 'Make your bot truly yours! Change BOT_NAME and PAGE_ICON, write a custom WELCOME_MESSAGE, tweak TEMPERATURE, and add extra knowledge or follow-up topics.',
         hints: [
-          'Import ConversationBufferWindowMemory from langchain.memory',
-          'Use MessagesPlaceholder(variable_name="history") in your prompt template',
-          'Store memory in st.session_state so it persists between messages',
-          'Test: tell the bot your name, then ask "what is my name?" 3 messages later',
+          'Change BOT_NAME to something memorable and PAGE_ICON to a fitting emoji',
+          'Write a WELCOME_MESSAGE that tells users exactly what your bot can help with',
+          'Try changing TEMPERATURE: 0.2 for factual bots, 1.2 for creative bots',
+          'Add a 5th knowledge entry or 3rd follow-up topic for bonus points!',
         ],
         timeEstimate: '~10 min',
-      },
-      {
-        id: 5,
-        title: 'Add Smart Follow-Up Questions',
-        emoji: '💬',
-        objective: 'Make your bot proactive! After answering, it should ask a relevant follow-up question to keep the conversation going and guide the user deeper.',
-        hints: [
-          'Add to your SYSTEM_PROMPT: "After every answer, ask one follow-up question related to what the user asked"',
-          'Example: User asks about gravity → Bot explains → Bot asks "Want to know how gravity works on the Moon?"',
-          'You can also add st.button() quick-reply suggestions below the chat',
-          'Test: have a 5-message conversation — does the bot keep it flowing naturally?',
-        ],
-        timeEstimate: '~8 min',
-      },
-      {
-        id: 6,
-        title: 'Personalise & Special Powers',
-        emoji: '⚡',
-        objective: 'Make your bot UNIQUE! Add at least ONE special feature: response styles, sidebar settings, chat export, emoji reactions, or your own creative idea.',
-        hints: [
-          'st.sidebar.selectbox() for response style: "Concise", "Detailed", "Explain Like I\'m 5"',
-          'st.sidebar.slider() for creativity (temperature) control',
-          'Add a "Download Chat" button using st.download_button() with JSON export',
-          'Try st.sidebar.radio() for language selection or topic filters',
-        ],
-        timeEstimate: '~10 min',
-      },
-      {
-        id: 7,
-        title: 'Polish & Deploy',
-        emoji: '🚀',
-        objective: 'Final touches! Give your bot a creative name, test 5+ conversations, handle edge cases (empty input, very long messages), and submit your project.',
-        hints: [
-          'Change BOT_NAME to something memorable and creative',
-          'Test edge cases: empty messages, very long input, nonsense text',
-          'Write a compelling 2-sentence project description for the gallery',
-          'Click "Submit Project" when you\'re proud of it!',
-        ],
-        timeEstimate: '~5 min',
       },
     ],
     main: `#!/usr/bin/env python3
 """
-🤖 AI Chatbot — Build-Up Challenge
-====================================
-Welcome to FORGE! You'll build this chatbot in 5 stages.
-Each stage has a TODO section you need to complete.
-
-The platform handles API keys — just write the code!
-
-STAGES:
-  Stage 1: 🏗️ Foundation — Get basic chat working
-  Stage 2: 🎭 Personality — Give your bot a unique character
-  Stage 3: 📚 Knowledge — Teach your bot what to know
-  Stage 4: 🧠 Memory — Make your bot remember conversations
-  Stage 5: 💬 Follow-Ups — Add smart follow-up questions
-  Stage 6: ⚡ Special Powers — Add unique features
-  Stage 7: 🚀 Polish & Deploy — Name, test, and ship it!
-
-TIPS:
-  - Read the TODO comments carefully
-  - Use the AI Mentor (bottom panel) if you're stuck
-  - Test in Live Preview (right panel) after each stage
-  - Don't skip stages — each one builds on the last!
+╔══════════════════════════════════════════════════════════════════╗
+║          🤖 BUILD YOUR OWN AI CHATBOT — HACKATHON 2025          ║
+║                     Built on FORGE Platform                      ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  Welcome! Today you will build your very own AI chatbot.         ║
+║  You do not need to be an expert — just follow the challenges!   ║
+║                                                                  ║
+║  🎯 CHALLENGE 1 — Give Your Bot a Personality     (~10 mins)    ║
+║  💬 CHALLENGE 2 — Teach Your Bot What It Knows    (~15 mins)    ║
+║  🧠 CHALLENGE 3 — Add Smart Follow-Up Questions   (~15 mins)    ║
+║  ⭐ CHALLENGE 4 — Personalise & Polish (Bonus)    (~10 mins)    ║
+║                                                                  ║
+║  💡 TIPS FOR SUCCESS:                                            ║
+║     → Read each challenge fully before writing any code          ║
+║     → Test in Live Preview after EVERY change you make           ║
+║     → There is no single right answer — be creative!             ║
+║     → Ask your facilitator if stuck for more than 5 minutes      ║
+║                                                                  ║
+║  🚀 CHATBOT IDEAS TO GET YOU STARTED:                            ║
+║     → A study buddy for a subject you love                       ║
+║     → A travel guide for your favourite city                     ║
+║     → A recipe assistant for a cuisine you enjoy                 ║
+║     → A fitness coach or mental wellness bot                     ║
+║     → A customer service bot for an imaginary business           ║
+║     → A fun quiz master or trivia host                           ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
 """
 
 import os
@@ -149,243 +117,476 @@ import json
 from datetime import datetime
 
 import streamlit as st
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains import LLMChain
 
-# ══════════════════════════════════════════════
-# 🏗️ STAGE 1: FOUNDATION
-# ══════════════════════════════════════════════
-# Goal: Import LangChain and create a basic chat
+
+# ══════════════════════════════════════════════════════════════════
+# 🎯 CHALLENGE 1 — GIVE YOUR BOT A PERSONALITY
+# ══════════════════════════════════════════════════════════════════
 #
-# TODO 1.1: Import ChatOpenAI from langchain_openai
-#   Hint: from langchain_openai import ChatOpenAI
+# The SYSTEM_PROMPT is the soul of your chatbot.
+# It tells the AI who it is, how to talk, and what to do.
+# This is the single most important thing you will write today.
 #
-# TODO 1.2: Import message types from langchain_core
-#   Hint: from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+# STEP 1: Decide what your chatbot does.
+#         Pick ONE clear purpose from the ideas above — or invent
+#         your own! Write it down on paper before coding.
 #
-# YOUR IMPORTS HERE ↓↓↓
-
-
-
-# ══════════════════════════════════════════════
-# 🎭 STAGE 2: PERSONALITY
-# ══════════════════════════════════════════════
-# Goal: Define WHO your bot is. This is the most
-# important part — it controls everything!
+# STEP 2: Rewrite the SYSTEM_PROMPT below.
+#         A great system prompt answers these questions:
 #
-# TODO 2.1: Write a detailed SYSTEM_PROMPT (at least 2 sentences)
-#   Bad:  "You are helpful"
-#   Good: "You are a friendly maths tutor for SHS students
-#          in Ghana. You explain concepts using real-world
-#          analogies and always encourage the student."
+#   ✅ WHO is the bot?       "You are a friendly travel guide for Accra..."
+#   ✅ WHAT does it do?      "Your job is to help tourists discover..."
+#   ✅ HOW does it talk?     "Always be warm, enthusiastic, and use simple English..."
+#   ✅ WHAT should it avoid? "Never give medical or legal advice..."
+#   ✅ Any special rules?    "Always end each response with a fun local tip..."
 #
-# TODO 2.2: Give your bot a creative name
+# ──────────────────────────────────────────────────────────────────
+# 💡 EXAMPLE — A travel guide bot's system prompt:
 #
-SYSTEM_PROMPT = "You are a helpful AI assistant."
+#   "You are Kofi, a friendly and knowledgeable travel guide for Ghana.
+#    Your job is to help tourists discover the best places to eat,
+#    visit, and experience in Ghana.
+#    Always be warm, enthusiastic, and use simple English.
+#    Always suggest at least one hidden gem that tourists usually miss.
+#    Never make up prices — say 'prices vary, please check locally.'
+#    End every response with one fun fact about Ghana."
+#
+# ──────────────────────────────────────────────────────────────────
+# ❌ TOO VAGUE — Rewrite everything between the triple quotes:
 
-BOT_NAME = "My AI Chatbot"
+SYSTEM_PROMPT = """
+You are a helpful assistant. Answer any question the user asks.
+"""
 
-# ══════════════════════════════════════════════
-# ⚙️ SETTINGS — You can tweak these later
-# ══════════════════════════════════════════════
-MODEL = "gpt-4o-mini"           # AI model (FORGE provides the key)
-TEMPERATURE = 0.7               # 0.0 = precise, 1.0 = creative
-MAX_TOKENS = 1024               # Max response length
-MEMORY_WINDOW = 20              # Remember last N messages
+# ✅ DONE? Test it: type a question your bot should know about.
+#    Does it respond the way you imagined? Adjust until it does!
+# ══════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════
-# 🎨 APP SETUP
-# ══════════════════════════════════════════════
-st.set_page_config(
-    page_title=BOT_NAME,
-    page_icon="🤖",
-    layout="wide",
-)
 
-st.title(f"🤖 {BOT_NAME}")
+# ══════════════════════════════════════════════════════════════════
+# ⚙️ SETTINGS — Tweak these to change your bot's behaviour
+# ══════════════════════════════════════════════════════════════════
+
+MODEL         = "gpt-4o-mini"   # The AI brain powering your bot
+TEMPERATURE   = 0.7             # 0.0 = very precise | 1.5 = very creative
+                                # 💡 TRY: set to 0.2 for a factual bot,
+                                #         set to 1.2 for a creative/story bot
+MAX_TOKENS    = 1024            # Max length of each response
+MEMORY_WINDOW = 20              # How many past messages the bot remembers
+
+# ── CHALLENGE 4 — Change these to personalise your bot ───────────
+BOT_NAME  = "My AI Chatbot"     # TODO: Give your bot a real name!
+PAGE_ICON = "🤖"                # TODO: Pick an emoji that fits your bot
+                                # e.g. "🍕" for food, "✈️" for travel,
+                                #      "📚" for study, "💪" for fitness
+# ──────────────────────────────────────────────────────────────────
+
+
+# ══════════════════════════════════════════════════════════════════
+# 💬 CHALLENGE 2 — TEACH YOUR BOT WHAT IT KNOWS
+# ══════════════════════════════════════════════════════════════════
+#
+# Even the best AI can give wrong or generic answers without
+# specific knowledge. This is your bot's personal knowledge base —
+# think of it as its textbook or reference guide.
+#
+# Each entry has:
+#   - A KEY   → the topic name (e.g. "menu", "opening_hours")
+#   - A VALUE → the actual information as a string
+#
+# YOUR TASK:
+#   ✅ Delete ALL the example entries below
+#   ✅ Add at least 4 entries that are relevant to YOUR bot
+#   ✅ Each entry should give the bot useful, specific information
+#   ✅ Keep the format: "topic_name": \\"\\"\\" your content here \\"\\"\\"
+#
+# ──────────────────────────────────────────────────────────────────
+# 💡 EXAMPLES by bot type:
+#
+#   TRAVEL BOT:
+#     "top_attractions": "1. Kakum National Park... 2. Cape Coast Castle..."
+#     "local_food":      "Must-try dishes: Jollof rice, Kelewele, Waakye..."
+#     "transport_tips":  "Use Uber or trotros to get around Accra cheaply..."
+#
+#   STUDY BUDDY (Maths):
+#     "algebra_basics":  "An equation has two sides separated by = ..."
+#     "quadratic":       "Use the formula x = (-b ± √(b²-4ac)) / 2a ..."
+#
+#   RECIPE BOT:
+#     "jollof_rice":     "Ingredients: 2 cups rice, 1 tin tomatoes..."
+#     "cooking_tips":    "Always wash rice 3 times before cooking..."
+#
+# ──────────────────────────────────────────────────────────────────
+
+KNOWLEDGE_BASE = {
+
+    # ── DELETE these examples and replace with YOUR content ──────
+
+    "example_topic_1": """
+        TODO — Replace this with something your bot actually needs to know.
+        Think: What information would make your bot more useful and accurate?
+        Write it out clearly, as if explaining to a friend.
+    """,
+
+    "example_topic_2": """
+        TODO — Add a second topic here.
+        The more specific your knowledge base, the smarter your bot appears!
+        You can use bullet points, numbered lists, or plain sentences.
+    """,
+
+    "example_topic_3": """
+        TODO — Add a third topic here.
+        💡 Research tip: Look up real facts online and paste them in.
+        Your bot will be much more impressive with accurate information!
+    """,
+
+    "example_topic_4": """
+        TODO — Add a fourth topic here.
+        Bonus: Can you think of a topic that would SURPRISE or DELIGHT users?
+        E.g. a fun fact section, a FAQ, or a list of common mistakes to avoid.
+    """,
+
+}
+
+# ✅ DONE? Test it: ask your bot something that needs this knowledge.
+#    Does it use your information in the answer?
+# ══════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🧠 CHALLENGE 3 — ADD SMART FOLLOW-UP QUESTIONS
+# ══════════════════════════════════════════════════════════════════
+#
+# A smart chatbot does not just answer immediately.
+# Sometimes it needs more information first — just like a person!
+#
+# This dictionary maps topics to follow-up questions your bot
+# will ask before giving a full response.
+#
+# YOUR TASK:
+#   ✅ Replace the example topic keys with topics that match YOUR bot
+#   ✅ Write 2–3 follow-up questions for each topic
+#   ✅ Questions should help your bot give a BETTER, more personal answer
+#
+# ──────────────────────────────────────────────────────────────────
+# 💡 EXAMPLES by bot type:
+#
+#   TRAVEL BOT topics:  "accommodation", "things_to_do", "food"
+#     Questions for "accommodation":
+#       "What is your budget per night — budget, mid-range, or luxury?"
+#       "Do you prefer a hotel, guesthouse, or Airbnb?"
+#       "Which city or region are you visiting?"
+#
+#   FITNESS BOT topics: "workout_plan", "diet_advice", "motivation"
+#     Questions for "workout_plan":
+#       "What is your current fitness level — beginner, intermediate, advanced?"
+#       "How many days per week can you exercise?"
+#       "Do you have access to a gym or are you working out at home?"
+#
+#   RECIPE BOT topics:  "suggest_recipe", "cooking_help"
+#     Questions for "suggest_recipe":
+#       "What ingredients do you currently have available?"
+#       "How much time do you have to cook?"
+#       "Any dietary restrictions I should know about?"
+#
+# ──────────────────────────────────────────────────────────────────
+# 💡 FORMAT REMINDER — each topic must be a list of strings:
+#    "your_topic": [
+#        "Your first question here?",
+#        "Your second question here?",
+#    ],
+# ──────────────────────────────────────────────────────────────────
+
+FOLLOW_UP_QUESTIONS = {
+
+    # ── REPLACE these with topics that match YOUR bot ─────────────
+
+    "example_topic_a": [
+        # TODO: Write 2-3 follow-up questions for this topic
+        # "Your question 1?",
+        # "Your question 2?",
+    ],
+
+    "example_topic_b": [
+        # TODO: Write 2-3 follow-up questions for this topic
+        # "Your question 1?",
+        # "Your question 2?",
+    ],
+
+}
+
+# ──────────────────────────────────────────────────────────────────
+# KEYWORD TRIGGERS — tell the bot WHEN to ask follow-up questions
+#
+# YOUR TASK:
+#   ✅ For each topic in FOLLOW_UP_QUESTIONS, add keywords that
+#      a user might type to trigger that topic
+#   ✅ Match the keys exactly to the ones in FOLLOW_UP_QUESTIONS
+#
+# 💡 EXAMPLE:
+#   If your bot is a travel guide and topic is "accommodation":
+#   "accommodation": ["hotel", "stay", "sleep", "where to stay", "guesthouse"]
+# ──────────────────────────────────────────────────────────────────
+
+TOPIC_KEYWORDS = {
+
+    # ── REPLACE these with your own keywords ─────────────────────
+    "example_topic_a": [
+        # TODO: "keyword1", "keyword2", "keyword3",
+    ],
+    "example_topic_b": [
+        # TODO: "keyword1", "keyword2", "keyword3",
+    ],
+
+}
+
+# ✅ DONE? Test it: type a message containing one of your keywords.
+#    Does the bot ask your follow-up question before answering?
+# ══════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════
+# ⭐ CHALLENGE 4 — PERSONALISE & POLISH (BONUS)
+# ══════════════════════════════════════════════════════════════════
+#
+# You have a working bot! Now make it truly yours.
+#
+# IDEAS:
+#   ✅ Change BOT_NAME and PAGE_ICON at the top of this file
+#   ✅ Add a WELCOME_MESSAGE that greets users when they open the bot
+#   ✅ Add a 5th entry to your KNOWLEDGE_BASE on a topic you love
+#   ✅ Change TEMPERATURE — make your bot more creative or more precise
+#   ✅ Add a 3rd topic to FOLLOW_UP_QUESTIONS
+#   ✅ Change the chat input placeholder text (find it near the bottom)
+#
+# ──────────────────────────────────────────────────────────────────
+# TODO: Write a welcome message for your bot!
+#       This appears at the top of the chat when someone opens it.
+#       Make it friendly and tell users what the bot can help with.
+
+WELCOME_MESSAGE = """
+👋 Hello! I am your AI assistant. How can I help you today?
+"""
+# Replace the text above with something specific to YOUR bot!
+# e.g. "🌍 Hi! I'm Kofi, your Ghana travel guide! Ask me about
+#       the best places to visit, eat, and explore in Ghana!"
+# ══════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🔍 TOPIC DETECTION — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
+
+def detect_topic(user_message):
+    """Detects which topic the user is asking about based on keywords."""
+    msg_lower = user_message.lower()
+    for topic, keywords in TOPIC_KEYWORDS.items():
+        if any(kw.lower() in msg_lower for kw in keywords):
+            return topic
+    return None
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🔧 PROMPT BUILDER — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
+
+def build_enhanced_prompt():
+    """Builds the full system prompt, injecting the knowledge base."""
+    base = SYSTEM_PROMPT
+
+    style_modifiers = {
+        "Concise":  " Keep your answers short (2-3 sentences max). Be direct.",
+        "Detailed": " Provide thorough, well-structured answers with examples.",
+        "Friendly": " Use a warm, encouraging tone with emojis. Be supportive!",
+        "Balanced": "",
+    }
+
+    kb_text = "\\n\\n".join([
+        f"### {key.upper().replace('_', ' ')}:\\n{info.strip()}"
+        for key, info in KNOWLEDGE_BASE.items()
+    ])
+
+    return (
+        base
+        + style_modifiers.get(response_style, "")
+        + "\\n\\n## YOUR KNOWLEDGE BASE — use this information when relevant:\\n\\n"
+        + kb_text
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🎨 APP SETUP — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
+
+st.set_page_config(page_title=BOT_NAME, page_icon=PAGE_ICON, layout="wide")
+st.title(f"{PAGE_ICON} {BOT_NAME}")
 st.caption("Built with FORGE • Powered by LangChain")
 
-# ══════════════════════════════════════════════
-# 📚 STAGE 3: TEACH YOUR BOT WHAT TO KNOW
-# ══════════════════════════════════════════════
-# Goal: Give your bot specialized knowledge!
-# You can hardcode facts here OR use the Data tab.
-#
-# TODO 3.1: Add a KNOWLEDGE section to your system prompt
-#   Example: Add facts, rules, or instructions directly:
-#
-#   KNOWLEDGE = """
-#   - Ghana's capital is Accra
-#   - The Volta River is the longest river in Ghana
-#   - SHS stands for Senior High School
-#   - WASSCE is the West African exam
-#   """
-#
-# TODO 3.2: Combine knowledge with your system prompt
-#   Hint: full_prompt = SYSTEM_PROMPT + "\\n\\nHere is your knowledge:\\n" + KNOWLEDGE
-#
-# TODO 3.3: Or use the Data tab (left sidebar) to add
-#   knowledge without changing your code!
-#
-# YOUR KNOWLEDGE CODE HERE ↓↓↓
+# Session state
+if "memory" not in st.session_state:
+    st.session_state.memory = ConversationBufferWindowMemory(
+        memory_key="history", return_messages=True, k=MEMORY_WINDOW,
+    )
+if "messages"        not in st.session_state: st.session_state.messages = []
+if "msg_count"       not in st.session_state: st.session_state.msg_count = 0
+if "pending_topic"   not in st.session_state: st.session_state.pending_topic = None
+if "questions_asked" not in st.session_state: st.session_state.questions_asked = 0
+if "welcomed"        not in st.session_state: st.session_state.welcomed = False
 
 
+# ══════════════════════════════════════════════════════════════════
+# 🔧 SIDEBAR — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════
-# 🧠 STAGE 4: MEMORY
-# ══════════════════════════════════════════════
-# Goal: Make your bot remember the conversation!
-# Without memory, every message is like talking
-# to a stranger.
-#
-# TODO 4.1: Import memory tools
-#   Hint: from langchain.memory import ConversationBufferWindowMemory
-#   Hint: from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-#
-# TODO 4.2: Create conversation memory in session state
-#   Hint: Use st.session_state to persist between messages
-#   Example:
-#     if "memory" not in st.session_state:
-#         st.session_state.memory = ConversationBufferWindowMemory(
-#             memory_key="history",
-#             return_messages=True,
-#             k=MEMORY_WINDOW,
-#         )
-#
-# YOUR MEMORY CODE HERE ↓↓↓
+with st.sidebar:
+    st.header("⚙️ Settings")
 
+    temperature = st.slider(
+        "Creativity Level", 0.0, 1.5, TEMPERATURE, 0.1,
+        help="Higher = more creative, Lower = more focused",
+    )
+    response_style = st.selectbox(
+        "Response Style", ["Balanced", "Concise", "Detailed", "Friendly"],
+        help="Changes how verbose the AI responds",
+    )
+    st.text_area(
+        "System Prompt (edit in code)", value=SYSTEM_PROMPT,
+        height=120, disabled=True,
+        help="Edit SYSTEM_PROMPT in the code editor",
+    )
 
+    st.divider()
 
-# Message history (this part is done for you)
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🗑️ Clear Chat", use_container_width=True):
+            st.session_state.messages        = []
+            st.session_state.msg_count       = 0
+            st.session_state.pending_topic   = None
+            st.session_state.questions_asked = 0
+            st.session_state.welcomed        = False
+            st.session_state.memory = ConversationBufferWindowMemory(
+                memory_key="history", return_messages=True, k=MEMORY_WINDOW,
+            )
+            st.rerun()
+    with col2:
+        if st.button("💾 Export Chat", use_container_width=True):
+            if st.session_state.get("messages"):
+                export = json.dumps(st.session_state.messages, indent=2)
+                st.download_button(
+                    "Download JSON", data=export,
+                    file_name=f"chat_{datetime.now():%Y%m%d_%H%M}.json",
+                    mime="application/json",
+                )
 
-if "msg_count" not in st.session_state:
-    st.session_state.msg_count = 0
-
-# ══════════════════════════════════════════════
-# 💬 STAGE 5: SMART FOLLOW-UP QUESTIONS
-# ══════════════════════════════════════════════
-# Goal: Make your bot ask follow-up questions
-# to keep conversations going naturally!
-#
-# TODO 5.1: Update your SYSTEM_PROMPT to include
-#   a follow-up instruction:
-#   "After every answer, ask one relevant follow-up
-#    question to help the user explore deeper."
-#
-# TODO 5.2: Add quick-reply suggestion buttons
-#   Hint: You can create clickable buttons below chat:
-#
-#   suggested = ["Tell me more", "Give an example", "What else?"]
-#   cols = st.columns(len(suggested))
-#   for i, text in enumerate(suggested):
-#       if cols[i].button(text, key=f"quick_{i}"):
-#           # Process this as user input
-#           pass
-#
-# YOUR FOLLOW-UP CODE HERE ↓↓↓
+    if st.session_state.get("messages"):
+        st.caption(f"📊 {len(st.session_state.messages)} messages")
 
 
+# ══════════════════════════════════════════════════════════════════
+# 🤖 AI CHAIN BUILDER — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════
-# ⚡ STAGE 6: PERSONALISE & SPECIAL POWERS
-# ══════════════════════════════════════════════
-# Goal: Make your bot UNIQUE! Add at least ONE
-# of these features:
-#
-# TODO 6.1 (Pick at least ONE):
-#
-#   OPTION A — Response Styles:
-#     Add a st.sidebar selectbox with styles like
-#     "Concise", "Detailed", "Explain Like I'm 5"
-#     Then modify the system prompt based on selection
-#
-#   OPTION B — Settings Panel:
-#     Add sidebar controls for temperature, clear chat
-#     button, message counter, export button
-#
-#   OPTION C — Chat Export:
-#     Add a button to download chat history as JSON:
-#     st.download_button("💾 Export Chat",
-#         json.dumps(st.session_state.messages, indent=2),
-#         "chat_history.json")
-#
-#   OPTION D — Emoji Reactions:
-#     Add thumbs up/down buttons after each AI response
-#
-#   OPTION E — Your Own Idea!
-#     What would make YOUR bot different from everyone else's?
-#
-# YOUR SPECIAL FEATURES HERE ↓↓↓
+def build_chain():
+    llm = ChatOpenAI(
+        model_name=MODEL,
+        temperature=temperature,
+        max_tokens=MAX_TOKENS,
+        streaming=True,
+    )
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=build_enhanced_prompt()),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ])
+    return LLMChain(
+        llm=llm, prompt=prompt,
+        memory=st.session_state.memory, verbose=False,
+    )
 
 
+# ══════════════════════════════════════════════════════════════════
+# 💬 CHAT INTERFACE — DO NOT CHANGE THIS
+# ══════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════
-# 🤖 BUILD THE AI CHAIN
-# ══════════════════════════════════════════════
-# This connects everything together.
-#
-# TODO: Create a function that builds your AI chain
-#   Step 1: Create a ChatOpenAI instance with your settings
-#   Step 2: Create a ChatPromptTemplate with:
-#           - SystemMessage (your SYSTEM_PROMPT)
-#           - MessagesPlaceholder (for memory/history)
-#           - HumanMessage placeholder (for new input)
-#   Step 3: Connect them into an LLMChain
-#
-# Hint — here's the structure:
-#
-#   from langchain.chains import LLMChain
-#
-#   def build_chain():
-#       llm = ChatOpenAI(
-#           model_name=MODEL,
-#           temperature=TEMPERATURE,
-#           max_tokens=MAX_TOKENS,
-#           streaming=True,
-#       )
-#       prompt = ChatPromptTemplate.from_messages([
-#           SystemMessage(content=SYSTEM_PROMPT),
-#           MessagesPlaceholder(variable_name="history"),
-#           ("human", "{input}"),
-#       ])
-#       return LLMChain(llm=llm, prompt=prompt, memory=st.session_state.memory)
-#
-# YOUR CHAIN CODE HERE ↓↓↓
+# Show welcome message on first load
+if not st.session_state.welcomed and WELCOME_MESSAGE.strip():
+    with st.chat_message("assistant"):
+        st.markdown(WELCOME_MESSAGE.strip())
+    st.session_state.messages.append({
+        "role": "assistant", "content": WELCOME_MESSAGE.strip()
+    })
+    st.session_state.welcomed = True
 
-
-
-# ══════════════════════════════════════════════
-# 💬 CHAT INTERFACE
-# ══════════════════════════════════════════════
-# This handles the chat UI. Some is done for you,
-# but you need to connect YOUR chain.
-
-# Show previous messages
+# Render previous messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 # Handle new input
-if user_input := st.chat_input("Type your message..."):
+if user_input := st.chat_input("Type your message here..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
     st.session_state.msg_count += 1
+
     with st.chat_message("user"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
         try:
-            # TODO: Call your chain here!
-            # Hint:
-            #   chain = build_chain()
-            #   with st.spinner("Thinking..."):
-            #       response = chain.predict(input=user_input)
-            #   st.markdown(response)
-            #   st.session_state.messages.append(
-            #       {"role": "assistant", "content": response}
-            #   )
-            
-            # DELETE THIS LINE once you've built your chain:
-            st.warning("⚠️ Chain not built yet! Complete the TODOs above to make me work.")
+            chain    = build_chain()
+            detected = detect_topic(user_input)
+
+            # Follow-up question logic: start
+            if detected and st.session_state.pending_topic is None:
+                questions = FOLLOW_UP_QUESTIONS.get(detected, [])
+
+                if questions:
+                    st.session_state.pending_topic   = detected
+                    st.session_state.questions_asked = 0
+                    response = (
+                        f"Great question! Before I answer, I just need "
+                        f"a little more information:\\n\\n**{questions[0]}**"
+                    )
+                    st.session_state.questions_asked += 1
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+
+                else:
+                    with st.spinner("Thinking..."):
+                        response = chain.predict(input=user_input)
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+
+            # Follow-up question logic: continue
+            elif st.session_state.pending_topic is not None:
+                topic     = st.session_state.pending_topic
+                questions = FOLLOW_UP_QUESTIONS.get(topic, [])
+                q_index   = st.session_state.questions_asked
+
+                if q_index < len(questions):
+                    response = f"Thanks! One more thing:\\n\\n**{questions[q_index]}**"
+                    st.session_state.questions_asked += 1
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                else:
+                    st.session_state.pending_topic   = None
+                    st.session_state.questions_asked = 0
+                    with st.spinner("Thinking..."):
+                        response = chain.predict(input=user_input)
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+
+            # Regular message
+            else:
+                with st.spinner("Thinking..."):
+                    response = chain.predict(input=user_input)
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
         except Exception as e:
             error_msg = str(e)
@@ -395,20 +596,7 @@ if user_input := st.chat_input("Type your message..."):
                 st.warning("📏 Message too long. Try a shorter question!")
             else:
                 st.error(f"❌ Error: {error_msg}")
-            st.info("💡 Tip: Check your code and try again!")
-
-# ══════════════════════════════════════════════
-# 🚀 STAGE 7: POLISH & DEPLOY
-# ══════════════════════════════════════════════
-# Before you submit:
-#   ✅ Change BOT_NAME to something creative
-#   ✅ Write a detailed SYSTEM_PROMPT (Stage 2)
-#   ✅ Add knowledge so your bot is smart (Stage 3)
-#   ✅ Make sure memory works — ask "what did I say?" (Stage 4)
-#   ✅ Test that follow-up questions flow naturally (Stage 5)
-#   ✅ Add at least ONE special feature (Stage 6)
-#   ✅ Test at least 5 different conversations
-#   ✅ Click "Submit Project" when ready!
+            st.info("💡 Tip: Check your system prompt and try again!")
 `,
     config: `{
   "project_type": "chatbot",
@@ -419,8 +607,8 @@ if user_input := st.chat_input("Type your message..."):
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "follow_ups", "export_history"],
   "forge_version": "2.0",
   "challenge_mode": true,
-  "total_stages": 7,
-  "notes": "Build-Up Challenge: Complete all 7 stages!"
+  "total_stages": 4,
+  "notes": "Build-Up Challenge: Complete all 4 challenges!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0
