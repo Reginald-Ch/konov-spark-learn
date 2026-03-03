@@ -31,59 +31,90 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
         id: 1,
         title: 'Foundation',
         emoji: '🏗️',
-        objective: 'Get the basic chat loop working — import LangChain, create the LLM, and handle user input.',
+        objective: 'Get the basic chat loop working — import LangChain, create the LLM, and handle user input so your bot can receive and display messages.',
         hints: [
-          'Look at the TODO comments in the code',
-          'You need ChatOpenAI from langchain_openai',
-          'Use st.chat_input() to get user messages',
+          'Import ChatOpenAI from langchain_openai',
+          'Import HumanMessage, AIMessage, SystemMessage from langchain_core.messages',
+          'Use st.chat_input() to capture what the user types',
+          'Use st.chat_message() to display messages in the UI',
         ],
-        timeEstimate: '~10 min',
+        timeEstimate: '~8 min',
       },
       {
         id: 2,
-        title: 'Personality',
+        title: 'Give Your Bot a Personality',
         emoji: '🎭',
-        objective: 'Give your bot a unique personality by writing a detailed SYSTEM_PROMPT and adding HumanMessage/AIMessage types.',
+        objective: 'Write a detailed SYSTEM_PROMPT that defines WHO your bot is, HOW it speaks, and WHAT rules it follows. A great prompt is at least 3-5 sentences.',
         hints: [
-          'SystemMessage sets the AI\'s role',
-          'Be specific: "You are a maths tutor who uses analogies"',
-          'Import HumanMessage, AIMessage from langchain_core.messages',
+          'Bad: "You are helpful" — Good: "You are a friendly SHS maths tutor in Ghana who explains with real-world analogies"',
+          'Add rules: "Always respond in 2-3 sentences max" or "Never give direct answers, ask guiding questions instead"',
+          'Give it a name, a tone (formal/casual/funny), and a specialty',
+          'Test by asking "Who are you?" — does the answer match your prompt?',
         ],
         timeEstimate: '~10 min',
       },
       {
         id: 3,
-        title: 'Memory',
-        emoji: '🧠',
-        objective: 'Add conversation memory so your bot remembers what was said earlier using ConversationBufferWindowMemory.',
+        title: 'Teach Your Bot What to Know',
+        emoji: '📚',
+        objective: 'Add a knowledge base so your bot can answer questions about specific topics. Use the Data tab to add facts, or hardcode knowledge directly in your system prompt.',
         hints: [
-          'Import ConversationBufferWindowMemory from langchain.memory',
-          'Use MessagesPlaceholder for chat history',
-          'Store memory in st.session_state',
+          'Add facts to the Knowledge Base in the Data tab (left sidebar)',
+          'Or add them directly in SYSTEM_PROMPT: "You know these facts: ..."',
+          'Add Q&A pairs for precise question→answer matching',
+          'Test: ask your bot a specific fact — does it know the answer?',
         ],
         timeEstimate: '~10 min',
       },
       {
         id: 4,
-        title: 'Special Powers',
-        emoji: '⚡',
-        objective: 'Add a unique feature: response styles, error handling, a sidebar settings panel, or export functionality.',
+        title: 'Memory — Remember Conversations',
+        emoji: '🧠',
+        objective: 'Add ConversationBufferWindowMemory so your bot remembers what was said earlier. Without this, every message is like talking to a stranger!',
         hints: [
-          'st.sidebar lets you add controls',
-          'st.selectbox for response style options',
-          'try/except for graceful error handling',
+          'Import ConversationBufferWindowMemory from langchain.memory',
+          'Use MessagesPlaceholder(variable_name="history") in your prompt template',
+          'Store memory in st.session_state so it persists between messages',
+          'Test: tell the bot your name, then ask "what is my name?" 3 messages later',
         ],
         timeEstimate: '~10 min',
       },
       {
         id: 5,
+        title: 'Add Smart Follow-Up Questions',
+        emoji: '💬',
+        objective: 'Make your bot proactive! After answering, it should ask a relevant follow-up question to keep the conversation going and guide the user deeper.',
+        hints: [
+          'Add to your SYSTEM_PROMPT: "After every answer, ask one follow-up question related to what the user asked"',
+          'Example: User asks about gravity → Bot explains → Bot asks "Want to know how gravity works on the Moon?"',
+          'You can also add st.button() quick-reply suggestions below the chat',
+          'Test: have a 5-message conversation — does the bot keep it flowing naturally?',
+        ],
+        timeEstimate: '~8 min',
+      },
+      {
+        id: 6,
+        title: 'Personalise & Special Powers',
+        emoji: '⚡',
+        objective: 'Make your bot UNIQUE! Add at least ONE special feature: response styles, sidebar settings, chat export, emoji reactions, or your own creative idea.',
+        hints: [
+          'st.sidebar.selectbox() for response style: "Concise", "Detailed", "Explain Like I\'m 5"',
+          'st.sidebar.slider() for creativity (temperature) control',
+          'Add a "Download Chat" button using st.download_button() with JSON export',
+          'Try st.sidebar.radio() for language selection or topic filters',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 7,
         title: 'Polish & Deploy',
         emoji: '🚀',
-        objective: 'Name your bot, write a project description, test edge cases, and click "Submit Project" to go live!',
+        objective: 'Final touches! Give your bot a creative name, test 5+ conversations, handle edge cases (empty input, very long messages), and submit your project.',
         hints: [
-          'Change BOT_NAME to something creative',
-          'Test: what happens with empty input?',
-          'Write a compelling project description',
+          'Change BOT_NAME to something memorable and creative',
+          'Test edge cases: empty messages, very long input, nonsense text',
+          'Write a compelling 2-sentence project description for the gallery',
+          'Click "Submit Project" when you\'re proud of it!',
         ],
         timeEstimate: '~5 min',
       },
@@ -99,10 +130,12 @@ The platform handles API keys — just write the code!
 
 STAGES:
   Stage 1: 🏗️ Foundation — Get basic chat working
-  Stage 2: 🎭 Personality — Add system prompt & message types
-  Stage 3: 🧠 Memory — Make your bot remember conversations
-  Stage 4: ⚡ Special Powers — Add unique features
-  Stage 5: 🚀 Polish & Deploy — Name, test, and ship it!
+  Stage 2: 🎭 Personality — Give your bot a unique character
+  Stage 3: 📚 Knowledge — Teach your bot what to know
+  Stage 4: 🧠 Memory — Make your bot remember conversations
+  Stage 5: 💬 Follow-Ups — Add smart follow-up questions
+  Stage 6: ⚡ Special Powers — Add unique features
+  Stage 7: 🚀 Polish & Deploy — Name, test, and ship it!
 
 TIPS:
   - Read the TODO comments carefully
@@ -171,17 +204,43 @@ st.title(f"🤖 {BOT_NAME}")
 st.caption("Built with FORGE • Powered by LangChain")
 
 # ══════════════════════════════════════════════
-# 🧠 STAGE 3: MEMORY
+# 📚 STAGE 3: TEACH YOUR BOT WHAT TO KNOW
+# ══════════════════════════════════════════════
+# Goal: Give your bot specialized knowledge!
+# You can hardcode facts here OR use the Data tab.
+#
+# TODO 3.1: Add a KNOWLEDGE section to your system prompt
+#   Example: Add facts, rules, or instructions directly:
+#
+#   KNOWLEDGE = """
+#   - Ghana's capital is Accra
+#   - The Volta River is the longest river in Ghana
+#   - SHS stands for Senior High School
+#   - WASSCE is the West African exam
+#   """
+#
+# TODO 3.2: Combine knowledge with your system prompt
+#   Hint: full_prompt = SYSTEM_PROMPT + "\\n\\nHere is your knowledge:\\n" + KNOWLEDGE
+#
+# TODO 3.3: Or use the Data tab (left sidebar) to add
+#   knowledge without changing your code!
+#
+# YOUR KNOWLEDGE CODE HERE ↓↓↓
+
+
+
+# ══════════════════════════════════════════════
+# 🧠 STAGE 4: MEMORY
 # ══════════════════════════════════════════════
 # Goal: Make your bot remember the conversation!
 # Without memory, every message is like talking
 # to a stranger.
 #
-# TODO 3.1: Import memory tools
+# TODO 4.1: Import memory tools
 #   Hint: from langchain.memory import ConversationBufferWindowMemory
 #   Hint: from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 #
-# TODO 3.2: Create conversation memory in session state
+# TODO 4.2: Create conversation memory in session state
 #   Hint: Use st.session_state to persist between messages
 #   Example:
 #     if "memory" not in st.session_state:
@@ -203,27 +262,58 @@ if "msg_count" not in st.session_state:
     st.session_state.msg_count = 0
 
 # ══════════════════════════════════════════════
-# ⚡ STAGE 4: SPECIAL POWERS
+# 💬 STAGE 5: SMART FOLLOW-UP QUESTIONS
+# ══════════════════════════════════════════════
+# Goal: Make your bot ask follow-up questions
+# to keep conversations going naturally!
+#
+# TODO 5.1: Update your SYSTEM_PROMPT to include
+#   a follow-up instruction:
+#   "After every answer, ask one relevant follow-up
+#    question to help the user explore deeper."
+#
+# TODO 5.2: Add quick-reply suggestion buttons
+#   Hint: You can create clickable buttons below chat:
+#
+#   suggested = ["Tell me more", "Give an example", "What else?"]
+#   cols = st.columns(len(suggested))
+#   for i, text in enumerate(suggested):
+#       if cols[i].button(text, key=f"quick_{i}"):
+#           # Process this as user input
+#           pass
+#
+# YOUR FOLLOW-UP CODE HERE ↓↓↓
+
+
+
+# ══════════════════════════════════════════════
+# ⚡ STAGE 6: PERSONALISE & SPECIAL POWERS
 # ══════════════════════════════════════════════
 # Goal: Make your bot UNIQUE! Add at least ONE
 # of these features:
 #
-# TODO 4.1 (Pick at least ONE):
+# TODO 6.1 (Pick at least ONE):
 #
 #   OPTION A — Response Styles:
 #     Add a st.sidebar selectbox with styles like
-#     "Concise", "Detailed", "Friendly", "Creative"
+#     "Concise", "Detailed", "Explain Like I'm 5"
 #     Then modify the system prompt based on selection
 #
 #   OPTION B — Settings Panel:
 #     Add sidebar controls for temperature, clear chat
-#     button, message counter, etc.
+#     button, message counter, export button
 #
 #   OPTION C — Chat Export:
-#     Add a button to download chat history as JSON
+#     Add a button to download chat history as JSON:
+#     st.download_button("💾 Export Chat",
+#         json.dumps(st.session_state.messages, indent=2),
+#         "chat_history.json")
 #
-#   OPTION D — Your Own Idea!
-#     What would make YOUR bot special?
+#   OPTION D — Emoji Reactions:
+#     Add thumbs up/down buttons after each AI response
+#
+#   OPTION E — Your Own Idea!
+#     What would make YOUR bot different from everyone else's?
 #
 # YOUR SPECIAL FEATURES HERE ↓↓↓
 
@@ -308,13 +398,16 @@ if user_input := st.chat_input("Type your message..."):
             st.info("💡 Tip: Check your code and try again!")
 
 # ══════════════════════════════════════════════
-# 🚀 STAGE 5: POLISH & DEPLOY
+# 🚀 STAGE 7: POLISH & DEPLOY
 # ══════════════════════════════════════════════
 # Before you submit:
 #   ✅ Change BOT_NAME to something creative
 #   ✅ Write a detailed SYSTEM_PROMPT (Stage 2)
+#   ✅ Add knowledge so your bot is smart (Stage 3)
+#   ✅ Make sure memory works — ask "what did I say?" (Stage 4)
+#   ✅ Test that follow-up questions flow naturally (Stage 5)
+#   ✅ Add at least ONE special feature (Stage 6)
 #   ✅ Test at least 5 different conversations
-#   ✅ Make sure memory works (ask "what did I say?")
 #   ✅ Click "Submit Project" when ready!
 `,
     config: `{
@@ -323,10 +416,11 @@ if user_input := st.chat_input("Type your message..."):
   "temperature": 0.7,
   "max_tokens": 1024,
   "memory_window": 20,
-  "capabilities": ["conversation_memory", "streaming", "export_history"],
+  "capabilities": ["conversation_memory", "streaming", "knowledge_base", "follow_ups", "export_history"],
   "forge_version": "2.0",
   "challenge_mode": true,
-  "notes": "Build-Up Challenge: Complete all 5 stages!"
+  "total_stages": 7,
+  "notes": "Build-Up Challenge: Complete all 7 stages!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0

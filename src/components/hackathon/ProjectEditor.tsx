@@ -121,7 +121,7 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
-type ConfigTab = 'settings' | 'knowledge' | 'theme' | 'missions';
+type ConfigTab = 'settings' | 'knowledge' | 'theme';
 
 const ONBOARDING_STEPS = [
   { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
@@ -181,7 +181,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
   const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
-  const [configTab, setConfigTab] = useState<ConfigTab>('missions');
+  const [configTab, setConfigTab] = useState<ConfigTab>('settings');
 
   // Knowledge base state
   const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
@@ -744,7 +744,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               {/* Config Tab Switcher */}
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
-                  { id: 'missions' as ConfigTab, icon: Trophy, label: 'Missions' },
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
                   { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
                   { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
@@ -763,10 +762,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {/* ── Missions Tab ── */}
-                {configTab === 'missions' && (
-                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
-                )}
 
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
@@ -1373,8 +1368,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-3 border-t border-ide-border space-y-2">
-            <div className="flex gap-2">
+          <div className="p-2 border-t border-ide-border">
+            <div className="flex gap-2 mb-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder="Type a message..."
@@ -1385,15 +1380,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
-              <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
-                  <Send className="w-3 h-3 mr-1" /> Submit Project
-                </Button>
-              </div>
+          </div>
+
+          {/* Missions Panel — below preview */}
+          <div className="border-t border-ide-border overflow-y-auto" style={{ maxHeight: '45%' }}>
+            <ChallengeMissions stages={scaffold.stages} code={files['main.py']} compact />
+            <div className="px-2 pb-2">
+              <Button size="sm" variant="ghost"
+                onClick={handleGoLive}
+                className="w-full h-7 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                <Send className="w-3 h-3 mr-1" /> Submit Project
+              </Button>
             </div>
           </div>
         </div>
