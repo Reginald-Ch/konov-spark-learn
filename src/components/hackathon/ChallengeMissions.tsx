@@ -8,9 +8,40 @@ interface ChallengeMissionsProps {
   compact?: boolean;
 }
 
+// Strip Python comments from code to avoid matching TODO/example lines
+function stripComments(code: string): string {
+  return code.split('\n').map(line => {
+    // Remove inline comments but preserve strings
+    let inStr: string | null = null;
+    let result = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (!inStr && ch === '#') break; // rest is comment
+      if (!inStr && (ch === '"' || ch === "'")) {
+        // Check for triple quotes
+        if (line.slice(i, i + 3) === ch.repeat(3)) {
+          const end = line.indexOf(ch.repeat(3), i + 3);
+          if (end !== -1) {
+            result += line.slice(i, end + 3);
+            i = end + 2;
+            continue;
+          }
+        }
+        inStr = ch;
+      } else if (inStr === ch) {
+        inStr = null;
+      }
+      result += ch;
+    }
+    return result;
+  }).join('\n');
+}
+
 // Detect which challenges are completed based on code patterns
 function detectCompletedStages(code: string, stageCount: number): boolean[] {
   const completed: boolean[] = [];
+  // Use comment-stripped code for detection to avoid matching TODO examples
+  const cleanCode = stripComments(code);
 
   // For agent template (5 stages), use different detection
   if (stageCount === 5) {
