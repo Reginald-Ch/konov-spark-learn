@@ -146,15 +146,27 @@ const CountdownWidget = () => {
           .limit(1)
           .single();
         if (data?.start_date && data.status === 'live') {
-          startTimeRef.current = new Date(data.start_date).getTime();
+          const dbStart = new Date(data.start_date).getTime();
+          // Sanity check: if start_date is more than 24h ago, use stored or now
+          const maxAge = 24 * 60 * 60 * 1000;
+          if (Date.now() - dbStart > maxAge) {
+            const stored = localStorage.getItem('forge-session-start');
+            startTimeRef.current = stored ? parseInt(stored) : Date.now();
+          } else {
+            startTimeRef.current = dbStart;
+          }
+          localStorage.setItem('forge-session-start', startTimeRef.current!.toString());
           setIsRunning(true);
+        } else {
+          // No live hackathon — reset timer
+          setIsRunning(false);
+          setElapsed({ h: 0, m: 0, s: 0 });
+          localStorage.removeItem('forge-session-start');
         }
       } catch {
-        const stored = localStorage.getItem('forge-session-start');
-        if (stored) {
-          startTimeRef.current = parseInt(stored);
-          setIsRunning(true);
-        }
+        // DB query failed (no live hackathon found) — show 00:00:00
+        setIsRunning(false);
+        setElapsed({ h: 0, m: 0, s: 0 });
       }
     };
     fetchAndStart();
@@ -170,6 +182,7 @@ const CountdownWidget = () => {
         } else if (row.status === 'ended') {
           setIsRunning(false);
           startTimeRef.current = null;
+          setElapsed({ h: 0, m: 0, s: 0 });
           localStorage.removeItem('forge-session-start');
         }
       })
