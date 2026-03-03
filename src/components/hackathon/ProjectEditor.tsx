@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+import { ChallengeMissions } from './ChallengeMissions';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
