@@ -130,10 +130,12 @@ The platform handles API keys — just write the code!
 
 STAGES:
   Stage 1: 🏗️ Foundation — Get basic chat working
-  Stage 2: 🎭 Personality — Add system prompt & message types
-  Stage 3: 🧠 Memory — Make your bot remember conversations
-  Stage 4: ⚡ Special Powers — Add unique features
-  Stage 5: 🚀 Polish & Deploy — Name, test, and ship it!
+  Stage 2: 🎭 Personality — Give your bot a unique character
+  Stage 3: 📚 Knowledge — Teach your bot what to know
+  Stage 4: 🧠 Memory — Make your bot remember conversations
+  Stage 5: 💬 Follow-Ups — Add smart follow-up questions
+  Stage 6: ⚡ Special Powers — Add unique features
+  Stage 7: 🚀 Polish & Deploy — Name, test, and ship it!
 
 TIPS:
   - Read the TODO comments carefully
