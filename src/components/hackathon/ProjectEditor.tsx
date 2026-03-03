@@ -1321,9 +1321,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </div>
 
         {/* RIGHT: Live Preview / Chat */}
-        <div className={`w-72 flex-col flex-shrink-0 bg-ide-sidebar border-l border-ide-border ${
-          showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
-        }`}>
+        <div 
+          className={`w-72 flex-col flex-shrink-0 border-l border-ide-border ${
+            showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
+          }`}
+          style={{ backgroundColor: selectedTheme.bg }}
+        >
           <div className="px-3 py-2 flex items-center gap-2 border-b border-ide-border h-9 flex-shrink-0">
             <Circle className="w-2 h-2 fill-ide-green text-ide-green" />
             <span className="text-xs font-bold uppercase tracking-wider text-ide-text-muted">Live Preview</span>
