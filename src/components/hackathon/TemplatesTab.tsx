@@ -24,7 +24,7 @@ const PROJECT_TYPES: {
     title: 'AI Chatbot',
     emoji: '🤖',
     tagline: 'Build a conversational AI — stage by stage',
-    description: 'A complete chatbot template with 7 challenges: personality, knowledge, follow-ups, polish, response styles, chat export, and final submission. Everything works — you fill in YOUR content!',
+    description: 'A complete chatbot template with 7 challenges: personality, knowledge, follow-ups, polish, response styles, chat analytics, and final submission. Everything works — you fill in YOUR content!',
     stages: [
       { emoji: '🎯', title: 'Give Your Bot a Personality', time: '10 min' },
       { emoji: '💬', title: 'Teach Your Bot What It Knows', time: '15 min' },
