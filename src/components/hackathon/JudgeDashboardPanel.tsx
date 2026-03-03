@@ -231,13 +231,27 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
 
   const handleGoLive = useCallback(async (hackathonId: string) => {
     try {
-      const { error } = await supabase.from('hackathons').update({ status: 'live' } as any).eq('id', hackathonId);
+      // Find the hackathon to calculate original duration
+      const hackathon = hackathons.find(h => h.id === hackathonId);
+      const now = new Date();
+      let updatePayload: any = { status: 'live' };
+      
+      if (hackathon) {
+        const originalStart = new Date(hackathon.start_date);
+        const originalEnd = new Date(hackathon.end_date);
+        const durationMs = originalEnd.getTime() - originalStart.getTime();
+        // Set start to now, end to now + original duration so timer counts down properly
+        updatePayload.start_date = now.toISOString();
+        updatePayload.end_date = new Date(now.getTime() + durationMs).toISOString();
+      }
+      
+      const { error } = await supabase.from('hackathons').update(updatePayload).eq('id', hackathonId);
       if (error) throw error;
-      toast.success('Hackathon is now LIVE!');
+      toast.success('Hackathon is now LIVE! Timer started.');
       fetchData();
       onRefreshHackathons?.();
     } catch (e) { toast.error('Failed to update hackathon status'); }
-  }, [fetchData, onRefreshHackathons]);
+  }, [fetchData, onRefreshHackathons, hackathons]);
 
   const handleEndHackathon = useCallback(async (hackathonId: string) => {
     try {
