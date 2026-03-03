@@ -135,26 +135,67 @@ const CountdownWidget = () => {
   const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
   
   useEffect(() => {
-    const stored = localStorage.getItem('forge-session-end');
     let endTime: number;
-    if (stored) {
-      endTime = parseInt(stored);
-    } else {
-      endTime = Date.now() + 90 * 60 * 1000;
-      localStorage.setItem('forge-session-end', endTime.toString());
-    }
     
-    const tick = () => {
-      const diff = Math.max(0, endTime - Date.now());
-      setTimeLeft({
-        h: Math.floor(diff / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
-      });
+    // Try to get end time from a live hackathon
+    const fetchLiveEnd = async () => {
+      try {
+        const { data } = await supabase
+          .from('hackathons')
+          .select('end_date')
+          .eq('status', 'live')
+          .limit(1)
+          .single();
+        if (data?.end_date) {
+          endTime = new Date(data.end_date).getTime();
+          localStorage.setItem('forge-session-end', endTime.toString());
+        }
+      } catch {
+        // fallback to localStorage or default
+      }
+      
+      if (!endTime) {
+        const stored = localStorage.getItem('forge-session-end');
+        if (stored) {
+          endTime = parseInt(stored);
+        } else {
+          endTime = Date.now() + 90 * 60 * 1000;
+          localStorage.setItem('forge-session-end', endTime.toString());
+        }
+      }
+      
+      const tick = () => {
+        const diff = Math.max(0, endTime - Date.now());
+        setTimeLeft({
+          h: Math.floor(diff / 3600000),
+          m: Math.floor((diff % 3600000) / 60000),
+          s: Math.floor((diff % 60000) / 1000),
+        });
+      };
+      tick();
+      const id = setInterval(tick, 1000);
+      return id;
     };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    fetchLiveEnd().then(id => { intervalId = id; });
+    
+    // Also listen for hackathon status changes (e.g. judge clicks Go Live)
+    const channel = supabase
+      .channel('countdown-hackathon-live')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hackathons' }, (payload) => {
+        const row = payload.new as any;
+        if (row.status === 'live' && row.end_date) {
+          endTime = new Date(row.end_date).getTime();
+          localStorage.setItem('forge-session-end', endTime.toString());
+        }
+      })
+      .subscribe();
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
