@@ -1359,7 +1359,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ backgroundColor: selectedTheme.chat }}>
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
