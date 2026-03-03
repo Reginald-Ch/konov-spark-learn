@@ -111,7 +111,7 @@ export const TemplatesTab = ({ onStartBuilding }: TemplatesTabProps) => {
               {/* 5 Stages */}
               <div className="mb-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] block mb-2">
-                  5-Stage Challenge
+                  {type.stages.length}-Stage Challenge
                 </span>
                 <div className="space-y-1">
                   {type.stages.map((stage, i) => (
