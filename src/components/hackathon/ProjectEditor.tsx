@@ -1368,8 +1368,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-3 border-t border-ide-border space-y-2">
-            <div className="flex gap-2">
+          <div className="p-2 border-t border-ide-border">
+            <div className="flex gap-2 mb-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder="Type a message..."
@@ -1380,15 +1380,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
-              <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
-                  <Send className="w-3 h-3 mr-1" /> Submit Project
-                </Button>
-              </div>
+          </div>
+
+          {/* Missions Panel — below preview */}
+          <div className="border-t border-ide-border overflow-y-auto" style={{ maxHeight: '45%' }}>
+            <ChallengeMissions stages={scaffold.stages} code={files['main.py']} compact />
+            <div className="px-2 pb-2">
+              <Button size="sm" variant="ghost"
+                onClick={handleGoLive}
+                className="w-full h-7 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                <Send className="w-3 h-3 mr-1" /> Submit Project
+              </Button>
             </div>
           </div>
         </div>
