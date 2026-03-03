@@ -698,8 +698,8 @@ if user_input := st.chat_input("Type your message here..."):
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "follow_ups", "export_history"],
   "forge_version": "2.0",
   "challenge_mode": true,
-  "total_stages": 4,
-  "notes": "Build-Up Challenge: Complete all 4 challenges!"
+  "total_stages": 7,
+  "notes": "Build-Up Challenge: Complete all 7 challenges!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0
