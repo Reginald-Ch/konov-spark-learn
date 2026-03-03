@@ -132,51 +132,45 @@ const ONBOARDING_STEPS = [
 ];
 
 const CountdownWidget = () => {
-  const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
+  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
   const [isRunning, setIsRunning] = useState(false);
-  const endTimeRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Fetch live hackathon end time
     const fetchAndStart = async () => {
       try {
         const { data } = await supabase
           .from('hackathons')
-          .select('end_date, status')
+          .select('start_date, status')
           .eq('status', 'live')
           .limit(1)
           .single();
-        if (data?.end_date && data.status === 'live') {
-          endTimeRef.current = new Date(data.end_date).getTime();
+        if (data?.start_date && data.status === 'live') {
+          startTimeRef.current = new Date(data.start_date).getTime();
           setIsRunning(true);
         }
       } catch {
-        // No live hackathon — check localStorage fallback
-        const stored = localStorage.getItem('forge-session-end');
+        const stored = localStorage.getItem('forge-session-start');
         if (stored) {
-          const storedEnd = parseInt(stored);
-          if (storedEnd > Date.now()) {
-            endTimeRef.current = storedEnd;
-            setIsRunning(true);
-          }
+          startTimeRef.current = parseInt(stored);
+          setIsRunning(true);
         }
       }
     };
     fetchAndStart();
 
-    // Listen for hackathon status changes
     const channel = supabase
       .channel('countdown-hackathon-live')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hackathons' }, (payload) => {
         const row = payload.new as any;
-        if (row.status === 'live' && row.end_date) {
-          endTimeRef.current = new Date(row.end_date).getTime();
-          localStorage.setItem('forge-session-end', endTimeRef.current.toString());
+        if (row.status === 'live' && row.start_date) {
+          startTimeRef.current = new Date(row.start_date).getTime();
+          localStorage.setItem('forge-session-start', startTimeRef.current.toString());
           setIsRunning(true);
         } else if (row.status === 'ended') {
           setIsRunning(false);
-          endTimeRef.current = null;
-          localStorage.removeItem('forge-session-end');
+          startTimeRef.current = null;
+          localStorage.removeItem('forge-session-start');
         }
       })
       .subscribe();
@@ -184,14 +178,12 @@ const CountdownWidget = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Tick every second when running
   useEffect(() => {
     if (!isRunning) return;
     const tick = () => {
-      if (!endTimeRef.current) return;
-      const diff = Math.max(0, endTimeRef.current - Date.now());
-      if (diff === 0) { setIsRunning(false); }
-      setTimeLeft({
+      if (!startTimeRef.current) return;
+      const diff = Math.max(0, Date.now() - startTimeRef.current);
+      setElapsed({
         h: Math.floor(diff / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
         s: Math.floor((diff % 60000) / 1000),
@@ -202,19 +194,13 @@ const CountdownWidget = () => {
     return () => clearInterval(id);
   }, [isRunning]);
 
-  const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
-  const isUrgent = isRunning && totalSec < 600;
-  const isWarning = isRunning && totalSec < 1800 && !isUrgent;
-
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
       !isRunning ? 'bg-gray-500/20 border-gray-400/40 text-gray-400'
-      : isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
-      : isWarning ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
       : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
       <Clock className="w-3 h-3" />
-      <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
+      <span>{String(elapsed.h).padStart(2,'0')}:{String(elapsed.m).padStart(2,'0')}:{String(elapsed.s).padStart(2,'0')}</span>
     </div>
   );
 };
@@ -1532,11 +1518,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
             <span className="hidden sm:inline">Save Checkpoint</span>
-          </Button>
-          <Button size="sm" onClick={() => setShowMissionsModal(true)}
-            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/30">
-            <Trophy className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Missions</span>
           </Button>
           <Button size="sm" onClick={handleGoLive}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
