@@ -434,18 +434,36 @@ def detect_topic(user_message):
 
 
 # ══════════════════════════════════════════════════════════════════
-# 🔧 PROMPT BUILDER — DO NOT CHANGE THIS
+# 🔧 PROMPT BUILDER
 # ══════════════════════════════════════════════════════════════════
 
 def build_enhanced_prompt():
     """Builds the full system prompt, injecting the knowledge base."""
     base = SYSTEM_PROMPT
 
+    # ══════════════════════════════════════════════════════════════
+    # 🎨 CHALLENGE 5 — ADD A CUSTOM RESPONSE STYLE
+    # ══════════════════════════════════════════════════════════════
+    #
+    # Your bot already has 4 response styles below.
+    # YOUR TASK: Add a 5th custom style!
+    #
+    # STEP 1: Add a new key to the style_modifiers dictionary below
+    #         e.g. "ELI5": " Explain everything as if talking to a 5-year-old."
+    #         or   "Creative": " Be wildly creative, use metaphors and stories."
+    #
+    # STEP 2: Update the selectbox options in the SIDEBAR section below
+    #         to include your new style name in the list
+    #
+    # ──────────────────────────────────────────────────────────────
+
     style_modifiers = {
         "Concise":  " Keep your answers short (2-3 sentences max). Be direct.",
         "Detailed": " Provide thorough, well-structured answers with examples.",
         "Friendly": " Use a warm, encouraging tone with emojis. Be supportive!",
         "Balanced": "",
+        # TODO: Add your 5th style here! e.g.:
+        # "ELI5": " Explain everything as if talking to a 5-year-old. Use simple words and fun examples.",
     }
 
     kb_text = "\\n\\n".join([
