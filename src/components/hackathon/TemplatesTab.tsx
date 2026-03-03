@@ -26,9 +26,11 @@ const PROJECT_TYPES: {
     tagline: 'Build a conversational AI — stage by stage',
     description: 'Start from a skeleton and build up: imports → personality → memory → special features → deploy. Each stage has TODO blocks you must complete.',
     stages: [
-      { emoji: '🏗️', title: 'Foundation', time: '10 min' },
+      { emoji: '🏗️', title: 'Foundation', time: '8 min' },
       { emoji: '🎭', title: 'Personality', time: '10 min' },
+      { emoji: '📚', title: 'Knowledge', time: '10 min' },
       { emoji: '🧠', title: 'Memory', time: '10 min' },
+      { emoji: '💬', title: 'Follow-Ups', time: '8 min' },
       { emoji: '⚡', title: 'Special Powers', time: '10 min' },
       { emoji: '🚀', title: 'Polish & Deploy', time: '5 min' },
     ],
