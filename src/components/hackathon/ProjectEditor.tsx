@@ -133,78 +133,83 @@ const ONBOARDING_STEPS = [
 
 const CountdownWidget = () => {
   const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
-  
+  const [isRunning, setIsRunning] = useState(false);
+  const endTimeRef = useRef<number | null>(null);
+
   useEffect(() => {
-    let endTime: number;
-    
-    // Try to get end time from a live hackathon
-    const fetchLiveEnd = async () => {
+    // Fetch live hackathon end time
+    const fetchAndStart = async () => {
       try {
         const { data } = await supabase
           .from('hackathons')
-          .select('end_date')
+          .select('end_date, status')
           .eq('status', 'live')
           .limit(1)
           .single();
-        if (data?.end_date) {
-          endTime = new Date(data.end_date).getTime();
-          localStorage.setItem('forge-session-end', endTime.toString());
+        if (data?.end_date && data.status === 'live') {
+          endTimeRef.current = new Date(data.end_date).getTime();
+          setIsRunning(true);
         }
       } catch {
-        // fallback to localStorage or default
-      }
-      
-      if (!endTime) {
+        // No live hackathon — check localStorage fallback
         const stored = localStorage.getItem('forge-session-end');
         if (stored) {
-          endTime = parseInt(stored);
-        } else {
-          endTime = Date.now() + 90 * 60 * 1000;
-          localStorage.setItem('forge-session-end', endTime.toString());
+          const storedEnd = parseInt(stored);
+          if (storedEnd > Date.now()) {
+            endTimeRef.current = storedEnd;
+            setIsRunning(true);
+          }
         }
       }
-      
-      const tick = () => {
-        const diff = Math.max(0, endTime - Date.now());
-        setTimeLeft({
-          h: Math.floor(diff / 3600000),
-          m: Math.floor((diff % 3600000) / 60000),
-          s: Math.floor((diff % 60000) / 1000),
-        });
-      };
-      tick();
-      const id = setInterval(tick, 1000);
-      return id;
     };
-    
-    let intervalId: ReturnType<typeof setInterval> | undefined;
-    fetchLiveEnd().then(id => { intervalId = id; });
-    
-    // Also listen for hackathon status changes (e.g. judge clicks Go Live)
+    fetchAndStart();
+
+    // Listen for hackathon status changes
     const channel = supabase
       .channel('countdown-hackathon-live')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hackathons' }, (payload) => {
         const row = payload.new as any;
         if (row.status === 'live' && row.end_date) {
-          endTime = new Date(row.end_date).getTime();
-          localStorage.setItem('forge-session-end', endTime.toString());
+          endTimeRef.current = new Date(row.end_date).getTime();
+          localStorage.setItem('forge-session-end', endTimeRef.current.toString());
+          setIsRunning(true);
+        } else if (row.status === 'ended') {
+          setIsRunning(false);
+          endTimeRef.current = null;
+          localStorage.removeItem('forge-session-end');
         }
       })
       .subscribe();
-    
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      supabase.removeChannel(channel);
-    };
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Tick every second when running
+  useEffect(() => {
+    if (!isRunning) return;
+    const tick = () => {
+      if (!endTimeRef.current) return;
+      const diff = Math.max(0, endTimeRef.current - Date.now());
+      if (diff === 0) { setIsRunning(false); }
+      setTimeLeft({
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isRunning]);
+
   const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
-  const isUrgent = totalSec < 600;
-  const isWarning = totalSec < 1800 && !isUrgent;
+  const isUrgent = isRunning && totalSec < 600;
+  const isWarning = isRunning && totalSec < 1800 && !isUrgent;
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-      isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
+      !isRunning ? 'bg-gray-500/20 border-gray-400/40 text-gray-400'
+      : isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
       : isWarning ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
       : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
