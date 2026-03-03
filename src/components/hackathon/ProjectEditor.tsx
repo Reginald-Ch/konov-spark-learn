@@ -11,12 +11,13 @@ import {
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus
+  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus, Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+import { ChallengeMissions } from './ChallengeMissions';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -120,7 +121,7 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
-type ConfigTab = 'settings' | 'knowledge' | 'theme';
+type ConfigTab = 'settings' | 'knowledge' | 'theme' | 'missions';
 
 const ONBOARDING_STEPS = [
   { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
@@ -180,7 +181,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
   const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
-  const [configTab, setConfigTab] = useState<ConfigTab>('settings');
+  const [configTab, setConfigTab] = useState<ConfigTab>('missions');
 
   // Knowledge base state
   const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
@@ -743,8 +744,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               {/* Config Tab Switcher */}
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
+                  { id: 'missions' as ConfigTab, icon: Trophy, label: 'Missions' },
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
-                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Knowledge' },
+                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
                   { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
                 ].map(tab => (
                   <button
@@ -760,10 +762,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 ))}
               </div>
 
-              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
+                {/* ── Missions Tab ── */}
+                {configTab === 'missions' && (
+                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
+                )}
+
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
-                  <>
+                  <div className="p-3 space-y-4">
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
                       <Input value={projectName} onChange={e => setProjectName(e.target.value)}
@@ -853,7 +860,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* ── Knowledge Base Tab ── */}

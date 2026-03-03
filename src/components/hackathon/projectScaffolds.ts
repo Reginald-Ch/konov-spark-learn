@@ -1,5 +1,14 @@
 export type ProjectType = 'chatbot' | 'agent';
 
+export interface ChallengeStage {
+  id: number;
+  title: string;
+  emoji: string;
+  objective: string;
+  hints: string[];
+  timeEstimate: string;
+}
+
 export interface ProjectScaffold {
   main: string;
   config: string;
@@ -8,33 +17,98 @@ export interface ProjectScaffold {
   icon: string;
   systemPrompt: string;
   capabilities: string[];
+  stages: ChallengeStage[];
 }
 
 export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
   chatbot: {
     name: 'AI Chatbot',
     icon: '🤖',
-    systemPrompt: 'You are a helpful AI assistant that answers questions clearly and concisely.',
+    systemPrompt: 'You are a helpful AI assistant.',
     capabilities: ['Web Search', 'Citations', 'Memory'],
+    stages: [
+      {
+        id: 1,
+        title: 'Foundation',
+        emoji: '🏗️',
+        objective: 'Get the basic chat loop working — import LangChain, create the LLM, and handle user input.',
+        hints: [
+          'Look at the TODO comments in the code',
+          'You need ChatOpenAI from langchain_openai',
+          'Use st.chat_input() to get user messages',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 2,
+        title: 'Personality',
+        emoji: '🎭',
+        objective: 'Give your bot a unique personality by writing a detailed SYSTEM_PROMPT and adding HumanMessage/AIMessage types.',
+        hints: [
+          'SystemMessage sets the AI\'s role',
+          'Be specific: "You are a maths tutor who uses analogies"',
+          'Import HumanMessage, AIMessage from langchain_core.messages',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 3,
+        title: 'Memory',
+        emoji: '🧠',
+        objective: 'Add conversation memory so your bot remembers what was said earlier using ConversationBufferWindowMemory.',
+        hints: [
+          'Import ConversationBufferWindowMemory from langchain.memory',
+          'Use MessagesPlaceholder for chat history',
+          'Store memory in st.session_state',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 4,
+        title: 'Special Powers',
+        emoji: '⚡',
+        objective: 'Add a unique feature: response styles, error handling, a sidebar settings panel, or export functionality.',
+        hints: [
+          'st.sidebar lets you add controls',
+          'st.selectbox for response style options',
+          'try/except for graceful error handling',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 5,
+        title: 'Polish & Deploy',
+        emoji: '🚀',
+        objective: 'Name your bot, write a project description, test edge cases, and click "Submit Project" to go live!',
+        hints: [
+          'Change BOT_NAME to something creative',
+          'Test: what happens with empty input?',
+          'Write a compelling project description',
+        ],
+        timeEstimate: '~5 min',
+      },
+    ],
     main: `#!/usr/bin/env python3
 """
-🤖 AI Chatbot — Built on FORGE Platform
-=========================================
-This is YOUR chatbot's brain. The FORGE platform handles:
-  ✅ AI API keys (no setup needed!)
-  ✅ Hosting & deployment
-  ✅ Chat interface (Live Preview panel →)
+🤖 AI Chatbot — Build-Up Challenge
+====================================
+Welcome to FORGE! You'll build this chatbot in 5 stages.
+Each stage has a TODO section you need to complete.
 
-YOU control:
-  🎯 SYSTEM_PROMPT — Your bot's personality
-  📚 Knowledge Base — What your bot knows (Config > Data tab)
-  ⚙️ Settings — Temperature, model, capabilities
+The platform handles API keys — just write the code!
 
-HOW IT WORKS:
-  1. Edit the SYSTEM_PROMPT below to change your bot's behaviour
-  2. Test instantly in the Live Preview panel (right side)
-  3. Add knowledge in Config > Data tab
-  4. Click "Submit Project" when ready!
+STAGES:
+  Stage 1: 🏗️ Foundation — Get basic chat working
+  Stage 2: 🎭 Personality — Add system prompt & message types
+  Stage 3: 🧠 Memory — Make your bot remember conversations
+  Stage 4: ⚡ Special Powers — Add unique features
+  Stage 5: 🚀 Polish & Deploy — Name, test, and ship it!
+
+TIPS:
+  - Read the TODO comments carefully
+  - Use the AI Mentor (bottom panel) if you're stuck
+  - Test in Live Preview (right panel) after each stage
+  - Don't skip stages — each one builds on the last!
 """
 
 import os
@@ -42,37 +116,51 @@ import json
 from datetime import datetime
 
 import streamlit as st
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.chains import LLMChain
 
-# ──────────────────────────────────────────────
-# 🎯 YOUR BOT'S PERSONALITY — EDIT THIS!
-# ──────────────────────────────────────────────
-# This is the most important part. It controls
-# how your AI responds to every message.
+# ══════════════════════════════════════════════
+# 🏗️ STAGE 1: FOUNDATION
+# ══════════════════════════════════════════════
+# Goal: Import LangChain and create a basic chat
 #
-# Try changing it to:
-#   "You are a maths tutor for SHS students"
-#   "You are a creative story writer"
-#   "You are a coding mentor who explains with analogies"
+# TODO 1.1: Import ChatOpenAI from langchain_openai
+#   Hint: from langchain_openai import ChatOpenAI
 #
-SYSTEM_PROMPT = "You are a helpful AI assistant that answers questions clearly and concisely."
+# TODO 1.2: Import message types from langchain_core
+#   Hint: from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+#
+# YOUR IMPORTS HERE ↓↓↓
 
-# ──────────────────────────────────────────────
-# ⚙️ SETTINGS — Tweak these to change behaviour
-# ──────────────────────────────────────────────
-MODEL = "gpt-4o-mini"           # AI model (FORGE provides the API key)
+
+
+# ══════════════════════════════════════════════
+# 🎭 STAGE 2: PERSONALITY
+# ══════════════════════════════════════════════
+# Goal: Define WHO your bot is. This is the most
+# important part — it controls everything!
+#
+# TODO 2.1: Write a detailed SYSTEM_PROMPT (at least 2 sentences)
+#   Bad:  "You are helpful"
+#   Good: "You are a friendly maths tutor for SHS students
+#          in Ghana. You explain concepts using real-world
+#          analogies and always encourage the student."
+#
+# TODO 2.2: Give your bot a creative name
+#
+SYSTEM_PROMPT = "You are a helpful AI assistant."
+
+BOT_NAME = "My AI Chatbot"
+
+# ══════════════════════════════════════════════
+# ⚙️ SETTINGS — You can tweak these later
+# ══════════════════════════════════════════════
+MODEL = "gpt-4o-mini"           # AI model (FORGE provides the key)
 TEMPERATURE = 0.7               # 0.0 = precise, 1.0 = creative
-MAX_TOKENS = 1024               # Max length of each response
+MAX_TOKENS = 1024               # Max response length
 MEMORY_WINDOW = 20              # Remember last N messages
-BOT_NAME = "My AI Chatbot"      # Name shown in the UI header
 
-# ──────────────────────────────────────────────
-# 🎨 App Setup — Customise your chat interface
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# 🎨 APP SETUP
+# ══════════════════════════════════════════════
 st.set_page_config(
     page_title=BOT_NAME,
     page_icon="🤖",
@@ -82,128 +170,112 @@ st.set_page_config(
 st.title(f"🤖 {BOT_NAME}")
 st.caption("Built with FORGE • Powered by LangChain")
 
-# ──────────────────────────────────────────────
-# 🧠 Chat Memory — Remembers the conversation
-# ──────────────────────────────────────────────
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferWindowMemory(
-        memory_key="history",
-        return_messages=True,
-        k=MEMORY_WINDOW,
-    )
+# ══════════════════════════════════════════════
+# 🧠 STAGE 3: MEMORY
+# ══════════════════════════════════════════════
+# Goal: Make your bot remember the conversation!
+# Without memory, every message is like talking
+# to a stranger.
+#
+# TODO 3.1: Import memory tools
+#   Hint: from langchain.memory import ConversationBufferWindowMemory
+#   Hint: from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+#
+# TODO 3.2: Create conversation memory in session state
+#   Hint: Use st.session_state to persist between messages
+#   Example:
+#     if "memory" not in st.session_state:
+#         st.session_state.memory = ConversationBufferWindowMemory(
+#             memory_key="history",
+#             return_messages=True,
+#             k=MEMORY_WINDOW,
+#         )
+#
+# YOUR MEMORY CODE HERE ↓↓↓
 
+
+
+# Message history (this part is done for you)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "msg_count" not in st.session_state:
     st.session_state.msg_count = 0
 
-# ──────────────────────────────────────────────
-# 🔧 Sidebar — Settings Panel
-# ──────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙️ Settings")
-
-    temperature = st.slider(
-        "Creativity Level",
-        min_value=0.0,
-        max_value=1.5,
-        value=TEMPERATURE,
-        step=0.1,
-        help="Higher = more creative, Lower = more focused",
-    )
-
-    response_style = st.selectbox(
-        "Response Style",
-        ["Balanced", "Concise", "Detailed", "Friendly"],
-        help="Changes how verbose the AI responds",
-    )
-
-    st.text_area(
-        "System Prompt (edit in code)",
-        value=SYSTEM_PROMPT,
-        height=100,
-        disabled=True,
-        help="Edit SYSTEM_PROMPT variable in the code editor",
-    )
-
-    st.divider()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🗑️ Clear Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.msg_count = 0
-            st.session_state.memory = ConversationBufferWindowMemory(
-                memory_key="history",
-                return_messages=True,
-                k=MEMORY_WINDOW,
-            )
-            st.rerun()
-    with col2:
-        if st.button("💾 Export Chat", use_container_width=True):
-            if st.session_state.get("messages"):
-                export = json.dumps(st.session_state.messages, indent=2)
-                st.download_button(
-                    "Download JSON",
-                    data=export,
-                    file_name=f"chat_{datetime.now():%Y%m%d_%H%M}.json",
-                    mime="application/json",
-                )
-
-    if st.session_state.get("messages"):
-        st.caption(f"📊 {len(st.session_state.messages)} messages")
-
-# ──────────────────────────────────────────────
-# 🤖 Build the AI Chain
-# ──────────────────────────────────────────────
-
-def build_enhanced_prompt():
-    """Build system prompt with response style modifier."""
-    base = SYSTEM_PROMPT
-
-    style_modifiers = {
-        "Concise": " Keep your answers short (2-3 sentences max). Be direct.",
-        "Detailed": " Provide thorough, well-structured answers with examples.",
-        "Friendly": " Use a warm, encouraging tone with emojis. Be supportive!",
-        "Balanced": "",
-    }
-
-    return base + style_modifiers.get(response_style, "")
+# ══════════════════════════════════════════════
+# ⚡ STAGE 4: SPECIAL POWERS
+# ══════════════════════════════════════════════
+# Goal: Make your bot UNIQUE! Add at least ONE
+# of these features:
+#
+# TODO 4.1 (Pick at least ONE):
+#
+#   OPTION A — Response Styles:
+#     Add a st.sidebar selectbox with styles like
+#     "Concise", "Detailed", "Friendly", "Creative"
+#     Then modify the system prompt based on selection
+#
+#   OPTION B — Settings Panel:
+#     Add sidebar controls for temperature, clear chat
+#     button, message counter, etc.
+#
+#   OPTION C — Chat Export:
+#     Add a button to download chat history as JSON
+#
+#   OPTION D — Your Own Idea!
+#     What would make YOUR bot special?
+#
+# YOUR SPECIAL FEATURES HERE ↓↓↓
 
 
-def build_chain():
-    """Create the conversation chain with memory."""
-    llm = ChatOpenAI(
-        model_name=MODEL,
-        temperature=temperature,
-        max_tokens=MAX_TOKENS,
-        streaming=True,
-    )
 
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=build_enhanced_prompt()),
-        MessagesPlaceholder(variable_name="history"),
-        ("human", "{input}"),
-    ])
+# ══════════════════════════════════════════════
+# 🤖 BUILD THE AI CHAIN
+# ══════════════════════════════════════════════
+# This connects everything together.
+#
+# TODO: Create a function that builds your AI chain
+#   Step 1: Create a ChatOpenAI instance with your settings
+#   Step 2: Create a ChatPromptTemplate with:
+#           - SystemMessage (your SYSTEM_PROMPT)
+#           - MessagesPlaceholder (for memory/history)
+#           - HumanMessage placeholder (for new input)
+#   Step 3: Connect them into an LLMChain
+#
+# Hint — here's the structure:
+#
+#   from langchain.chains import LLMChain
+#
+#   def build_chain():
+#       llm = ChatOpenAI(
+#           model_name=MODEL,
+#           temperature=TEMPERATURE,
+#           max_tokens=MAX_TOKENS,
+#           streaming=True,
+#       )
+#       prompt = ChatPromptTemplate.from_messages([
+#           SystemMessage(content=SYSTEM_PROMPT),
+#           MessagesPlaceholder(variable_name="history"),
+#           ("human", "{input}"),
+#       ])
+#       return LLMChain(llm=llm, prompt=prompt, memory=st.session_state.memory)
+#
+# YOUR CHAIN CODE HERE ↓↓↓
 
-    return LLMChain(
-        llm=llm,
-        prompt=prompt,
-        memory=st.session_state.memory,
-        verbose=False,
-    )
 
-# ──────────────────────────────────────────────
-# 💬 Chat Interface — Where the magic happens!
-# ──────────────────────────────────────────────
 
-# Show all previous messages
+# ══════════════════════════════════════════════
+# 💬 CHAT INTERFACE
+# ══════════════════════════════════════════════
+# This handles the chat UI. Some is done for you,
+# but you need to connect YOUR chain.
+
+# Show previous messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Handle new user input
+# Handle new input
 if user_input := st.chat_input("Type your message..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
     st.session_state.msg_count += 1
@@ -212,15 +284,18 @@ if user_input := st.chat_input("Type your message..."):
 
     with st.chat_message("assistant"):
         try:
-            chain = build_chain()
-
-            with st.spinner("Thinking..."):
-                response = chain.predict(input=user_input)
-
-            st.markdown(response)
-            st.session_state.messages.append(
-                {"role": "assistant", "content": response}
-            )
+            # TODO: Call your chain here!
+            # Hint:
+            #   chain = build_chain()
+            #   with st.spinner("Thinking..."):
+            #       response = chain.predict(input=user_input)
+            #   st.markdown(response)
+            #   st.session_state.messages.append(
+            #       {"role": "assistant", "content": response}
+            #   )
+            
+            # DELETE THIS LINE once you've built your chain:
+            st.warning("⚠️ Chain not built yet! Complete the TODOs above to make me work.")
 
         except Exception as e:
             error_msg = str(e)
@@ -230,7 +305,18 @@ if user_input := st.chat_input("Type your message..."):
                 st.warning("📏 Message too long. Try a shorter question!")
             else:
                 st.error(f"❌ Error: {error_msg}")
-            st.info("💡 Tip: Check your system prompt and try again!")`,
+            st.info("💡 Tip: Check your code and try again!")
+
+# ══════════════════════════════════════════════
+# 🚀 STAGE 5: POLISH & DEPLOY
+# ══════════════════════════════════════════════
+# Before you submit:
+#   ✅ Change BOT_NAME to something creative
+#   ✅ Write a detailed SYSTEM_PROMPT (Stage 2)
+#   ✅ Test at least 5 different conversations
+#   ✅ Make sure memory works (ask "what did I say?")
+#   ✅ Click "Submit Project" when ready!
+`,
     config: `{
   "project_type": "chatbot",
   "model": "gpt-4o-mini",
@@ -238,8 +324,9 @@ if user_input := st.chat_input("Type your message..."):
   "max_tokens": 1024,
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "export_history"],
-  "forge_version": "1.0",
-  "notes": "Edit SYSTEM_PROMPT in main.py to change your bot's personality"
+  "forge_version": "2.0",
+  "challenge_mode": true,
+  "notes": "Build-Up Challenge: Complete all 5 stages!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0
@@ -254,22 +341,92 @@ tiktoken>=0.5.0`,
     icon: '🧠',
     systemPrompt: 'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
+    stages: [
+      {
+        id: 1,
+        title: 'Foundation',
+        emoji: '🏗️',
+        objective: 'Import LangChain agent tools and set up the basic app structure.',
+        hints: [
+          'Import initialize_agent, AgentType from langchain.agents',
+          'Import Tool from langchain.agents',
+          'Set up st.set_page_config and st.title',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 2,
+        title: 'Mission Brief',
+        emoji: '🎯',
+        objective: 'Write a SYSTEM_PROMPT that defines your agent\'s mission. What is it specialized in?',
+        hints: [
+          'An agent needs a clear mission, not just "be helpful"',
+          'Example: "You are a research assistant that always cites sources"',
+          'The prompt guides WHEN the agent uses tools',
+        ],
+        timeEstimate: '~8 min',
+      },
+      {
+        id: 3,
+        title: 'Tools',
+        emoji: '🛠️',
+        objective: 'Create at least 2 tools your agent can use: web search, calculator, Wikipedia, or custom ones.',
+        hints: [
+          'DuckDuckGoSearchResults for web search',
+          'PythonREPLTool for calculations',
+          'WikipediaAPIWrapper for facts',
+        ],
+        timeEstimate: '~12 min',
+      },
+      {
+        id: 4,
+        title: 'Agent Brain',
+        emoji: '🧠',
+        objective: 'Wire up the ReAct agent with your tools and add the reasoning display (StreamlitCallbackHandler).',
+        hints: [
+          'Use AgentType.ZERO_SHOT_REACT_DESCRIPTION',
+          'StreamlitCallbackHandler shows thinking steps',
+          'Set handle_parsing_errors=True for stability',
+        ],
+        timeEstimate: '~10 min',
+      },
+      {
+        id: 5,
+        title: 'Polish & Deploy',
+        emoji: '🚀',
+        objective: 'Add a sidebar, test with complex tasks, and submit your project!',
+        hints: [
+          'Add a toggle for showing/hiding reasoning',
+          'Test: "What is 15% of Ghana\'s GDP?"',
+          'Click Submit Project when ready!',
+        ],
+        timeEstimate: '~5 min',
+      },
+    ],
     main: `#!/usr/bin/env python3
 """
-🧠 AI Agent — Autonomous Tool-Using Assistant
-Built on FORGE Platform with LangChain
+🧠 AI Agent — Build-Up Challenge
+===================================
+Welcome to FORGE! Build an autonomous AI agent in 5 stages.
 
 WHAT'S DIFFERENT FROM A CHATBOT?
-  🤖 Chatbot = Answers questions using its training data
-  🧠 Agent   = Can USE TOOLS to take actions:
+  🤖 Chatbot = Answers using its training data only
+  🧠 Agent   = Can USE TOOLS to take real actions:
      🔍 Search the web for live information
      🐍 Run Python code for calculations
      📚 Look up facts on Wikipedia
 
-YOU control:
-  🎯 SYSTEM_PROMPT — Agent's mission & personality
-  🛠️ TOOLS — Which tools the agent can use
-  ⚙️ SETTINGS — Max thinking steps, model, etc.
+STAGES:
+  Stage 1: 🏗️ Foundation — Imports & app setup
+  Stage 2: 🎯 Mission Brief — Define your agent's purpose
+  Stage 3: 🛠️ Tools — Give your agent superpowers
+  Stage 4: 🧠 Agent Brain — Wire up the ReAct agent
+  Stage 5: 🚀 Polish & Deploy — Test and ship it!
+
+TIPS:
+  - Read TODO comments carefully
+  - Use AI Mentor if stuck
+  - Test after EACH stage in Live Preview
 """
 
 import os
@@ -277,34 +434,58 @@ import json
 from datetime import datetime
 
 import streamlit as st
-from langchain_openai import ChatOpenAI
-from langchain.agents import initialize_agent, AgentType, Tool
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_experimental.tools import PythonREPLTool
-from langchain_community.utilities import WikipediaAPIWrapper
-from langchain.callbacks import StreamlitCallbackHandler
 
-# ──────────────────────────────────────────────
-# 🎯 AGENT'S MISSION — EDIT THIS!
-# ──────────────────────────────────────────────
-# Unlike a chatbot, the agent decides WHEN to
-# use its tools based on this prompt.
+# ══════════════════════════════════════════════
+# 🏗️ STAGE 1: FOUNDATION
+# ══════════════════════════════════════════════
+# Goal: Import the agent libraries from LangChain
 #
-# Try: "You are a research assistant that always
-#       cites sources and double-checks facts"
+# TODO 1.1: Import ChatOpenAI
+#   Hint: from langchain_openai import ChatOpenAI
+#
+# TODO 1.2: Import agent tools
+#   Hint: from langchain.agents import initialize_agent, AgentType, Tool
+#
+# TODO 1.3: Import the tools you want to use
+#   Hint: from langchain_community.tools import DuckDuckGoSearchResults
+#   Hint: from langchain_experimental.tools import PythonREPLTool
+#   Hint: from langchain_community.utilities import WikipediaAPIWrapper
+#
+# TODO 1.4: Import the callback handler for showing reasoning
+#   Hint: from langchain.callbacks import StreamlitCallbackHandler
+#
+# YOUR IMPORTS HERE ↓↓↓
+
+
+
+# ══════════════════════════════════════════════
+# 🎯 STAGE 2: MISSION BRIEF
+# ══════════════════════════════════════════════
+# Goal: Define WHAT your agent does and WHY
+#
+# Unlike a chatbot, an agent decides WHEN to use
+# its tools based on this prompt.
+#
+# TODO 2.1: Write a specific mission prompt
+#   Bad:  "You are an AI agent"
+#   Good: "You are a research assistant that helps
+#          students find and verify facts. Always
+#          search for the latest data and cite your
+#          sources. Compare multiple sources when
+#          answering controversial questions."
 #
 SYSTEM_PROMPT = "You are an AI agent that can use tools to search the web, run calculations, and generate content."
 
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
 # ⚙️ SETTINGS
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
 MODEL = "gpt-4o-mini"           # FORGE provides the API key
 MAX_ITERATIONS = 5              # Max thinking steps
 SHOW_REASONING = True           # Show agent's thought process
 
-# ──────────────────────────────────────────────
-# 🎨 App Setup
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# 🎨 APP SETUP
+# ══════════════════════════════════════════════
 st.set_page_config(
     page_title="AI Agent",
     page_icon="🧠",
@@ -314,107 +495,101 @@ st.set_page_config(
 st.title("🧠 AI Agent")
 st.caption("Autonomous AI with tools • Built with FORGE")
 
-# ──────────────────────────────────────────────
-# 🛠️ TOOLS — What your agent can DO
-# ──────────────────────────────────────────────
-# Each tool has a name and description.
-# The agent reads the descriptions to decide
-# which tool to use for each task.
+# ══════════════════════════════════════════════
+# 🛠️ STAGE 3: TOOLS
+# ══════════════════════════════════════════════
+# Goal: Create the tools your agent can use.
+# Each tool has a name, a function, and a description.
+# The agent reads the descriptions to decide which
+# tool to use!
+#
+# TODO 3.1: Create a create_tools() function that
+#   returns a list of Tool objects
+#
+# Hint — here's the structure:
+#
+#   def create_tools():
+#       tools = []
+#
+#       # 🔍 Tool 1: Web Search
+#       search = DuckDuckGoSearchResults(
+#           name="web_search",
+#           description="Search the web for current information.",
+#       )
+#       tools.append(search)
+#
+#       # 🐍 Tool 2: Python Calculator
+#       python_repl = PythonREPLTool(
+#           name="python_calculator",
+#           description="Run Python code for calculations.",
+#       )
+#       tools.append(python_repl)
+#
+#       # 📚 Tool 3: Wikipedia
+#       wiki = WikipediaAPIWrapper(top_k_results=2, doc_content_chars_max=2000)
+#       wiki_tool = Tool(
+#           name="wikipedia",
+#           func=wiki.run,
+#           description="Look up factual information on Wikipedia.",
+#       )
+#       tools.append(wiki_tool)
+#
+#       return tools
+#
+# YOUR TOOLS CODE HERE ↓↓↓
 
-def create_tools():
-    """Set up all the tools your agent can use."""
-    tools = []
 
-    # 🔍 Tool 1: Web Search
-    search = DuckDuckGoSearchResults(
-        name="web_search",
-        description="Search the web for current information, news, or facts.",
-    )
-    tools.append(search)
 
-    # 🐍 Tool 2: Python Calculator
-    python_repl = PythonREPLTool(
-        name="python_calculator",
-        description="Run Python code for calculations or data analysis.",
-    )
-    tools.append(python_repl)
+# ══════════════════════════════════════════════
+# 🧠 STAGE 4: AGENT BRAIN
+# ══════════════════════════════════════════════
+# Goal: Create the ReAct agent that uses your tools
+#
+# TODO 4.1: Create a create_agent() function
+#   Step 1: Create a ChatOpenAI instance
+#   Step 2: Get tools from create_tools()
+#   Step 3: Use initialize_agent with:
+#           - AgentType.ZERO_SHOT_REACT_DESCRIPTION
+#           - verbose=True
+#           - handle_parsing_errors=True
+#           - max_iterations=MAX_ITERATIONS
+#
+# Hint — here's the structure:
+#
+#   def create_agent():
+#       llm = ChatOpenAI(
+#           model_name=MODEL,
+#           temperature=0,
+#           streaming=True,
+#       )
+#       tools = create_tools()
+#       return initialize_agent(
+#           tools=tools,
+#           llm=llm,
+#           agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+#           verbose=True,
+#           handle_parsing_errors=True,
+#           max_iterations=MAX_ITERATIONS,
+#           early_stopping_method="generate",
+#       )
+#
+# YOUR AGENT CODE HERE ↓↓↓
 
-    # 📚 Tool 3: Wikipedia
-    wiki = WikipediaAPIWrapper(top_k_results=2, doc_content_chars_max=2000)
-    wiki_tool = Tool(
-        name="wikipedia",
-        func=wiki.run,
-        description="Look up factual information on Wikipedia.",
-    )
-    tools.append(wiki_tool)
 
-    return tools
 
-# ──────────────────────────────────────────────
-# 🔧 Sidebar — Agent Settings
-# ──────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙️ Agent Settings")
-
-    show_reasoning = st.toggle("Show Agent Reasoning", value=SHOW_REASONING)
-
-    max_steps = st.slider(
-        "Max Thinking Steps",
-        min_value=2,
-        max_value=10,
-        value=MAX_ITERATIONS,
-        help="How many steps the agent can take",
-    )
-
-    st.divider()
-    st.subheader("🛠️ Available Tools")
-    st.markdown("""
-    | Tool | What it does |
-    |------|-------------|
-    | 🔍 Web Search | Finds current info online |
-    | 🐍 Python | Runs calculations & code |
-    | 📚 Wikipedia | Looks up facts |
-    """)
-
-    st.divider()
-    if st.button("🗑️ Clear History", use_container_width=True):
-        st.session_state.agent_history = []
-        st.rerun()
-
-# ──────────────────────────────────────────────
-# 🧠 Create the Agent
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# 💬 CHAT INTERFACE
+# ══════════════════════════════════════════════
+# Chat history
 if "agent_history" not in st.session_state:
     st.session_state.agent_history = []
 
-def create_agent():
-    """Build the ReAct agent with all tools."""
-    # FORGE provides the API key automatically!
-    llm = ChatOpenAI(
-        model_name=MODEL,
-        temperature=0,
-        streaming=True,
-    )
-
-    tools = create_tools()
-
-    return initialize_agent(
-        tools=tools,
-        llm=llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        verbose=True,
-        handle_parsing_errors=True,
-        max_iterations=max_steps,
-        early_stopping_method="generate",
-    )
-
-# ──────────────────────────────────────────────
-# 💬 Chat Interface
-# ──────────────────────────────────────────────
+# Show previous messages
 for item in st.session_state.agent_history:
     with st.chat_message(item["role"]):
         st.markdown(item["content"])
 
+# Handle new tasks
 if task := st.chat_input("Give me a task... (e.g. 'What is the population of Ghana?')"):
     st.session_state.agent_history.append({"role": "user", "content": task})
     with st.chat_message("user"):
@@ -422,23 +597,46 @@ if task := st.chat_input("Give me a task... (e.g. 'What is the population of Gha
 
     with st.chat_message("assistant"):
         try:
-            agent = create_agent()
+            # TODO: Call your agent here!
+            # Hint:
+            #   agent = create_agent()
+            #   if SHOW_REASONING:
+            #       st_callback = StreamlitCallbackHandler(st.container())
+            #       result = agent.run(task, callbacks=[st_callback])
+            #   else:
+            #       with st.spinner("🤔 Thinking..."):
+            #           result = agent.run(task)
+            #   st.markdown(result)
+            #   st.session_state.agent_history.append(
+            #       {"role": "assistant", "content": result}
+            #   )
 
-            if show_reasoning:
-                st_callback = StreamlitCallbackHandler(st.container())
-                result = agent.run(task, callbacks=[st_callback])
-            else:
-                with st.spinner("🤔 Thinking & using tools..."):
-                    result = agent.run(task)
-
-            st.markdown(result)
-            st.session_state.agent_history.append(
-                {"role": "assistant", "content": result}
-            )
+            # DELETE THIS LINE once you've built your agent:
+            st.warning("⚠️ Agent not built yet! Complete the TODOs above.")
 
         except Exception as e:
             st.error(f"❌ Agent error: {str(e)}")
-            st.info("💡 Tip: Try rephrasing your task or breaking it into smaller steps.")`,
+            st.info("💡 Tip: Try rephrasing your task or check your code.")
+
+# ══════════════════════════════════════════════
+# ⚡ STAGE 5: POLISH & DEPLOY
+# ══════════════════════════════════════════════
+# TODO 5.1: Add a sidebar with:
+#   - Toggle for show/hide reasoning
+#   - Slider for max thinking steps
+#   - Clear history button
+#   - Tools reference table
+#
+# TODO 5.2: Before submitting, test these:
+#   ✅ "What is the population of Ghana?"
+#   ✅ "Calculate 15% of 2847"
+#   ✅ "Compare Python and JavaScript for AI"
+#   ✅ "Search for the latest AI news"
+#
+# YOUR SIDEBAR CODE HERE ↓↓↓
+
+
+`,
     config: `{
   "project_type": "agent",
   "model": "gpt-4o-mini",
@@ -446,8 +644,9 @@ if task := st.chat_input("Give me a task... (e.g. 'What is the population of Gha
   "max_iterations": 5,
   "tools": ["web_search", "python_calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],
-  "forge_version": "1.0",
-  "notes": "Edit SYSTEM_PROMPT and add/remove tools in main.py"
+  "forge_version": "2.0",
+  "challenge_mode": true,
+  "notes": "Build-Up Challenge: Complete all 5 stages!"
 }`,
     requirements: `# FORGE handles API keys automatically — no setup needed!
 streamlit>=1.28.0
@@ -465,5 +664,5 @@ wikipedia>=1.4.0`,
 
 export const CAPABILITY_OPTIONS: Record<ProjectType, string[]> = {
   chatbot: ['Web Search', 'Citations', 'Memory', 'Summarization'],
-  agent: ['Web Search', 'Calculator', 'Code Execution', 'File Reading'],
+  agent: ['Web Search', 'Calculator', 'Code Execution', 'Wikipedia', 'File Processing'],
 };
