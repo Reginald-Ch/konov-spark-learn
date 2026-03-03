@@ -744,7 +744,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               {/* Config Tab Switcher */}
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
-                  { id: 'missions' as ConfigTab, icon: Trophy, label: 'Missions' },
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
                   { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
                   { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
@@ -763,10 +762,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {/* ── Missions Tab ── */}
-                {configTab === 'missions' && (
-                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
-                )}
 
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
