@@ -744,8 +744,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
               {/* Config Tab Switcher */}
               <div className="flex border-b border-ide-border flex-shrink-0">
                 {[
+                  { id: 'missions' as ConfigTab, icon: Trophy, label: 'Missions' },
                   { id: 'settings' as ConfigTab, icon: Settings, label: 'Config' },
-                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Knowledge' },
+                  { id: 'knowledge' as ConfigTab, icon: Database, label: 'Data' },
                   { id: 'theme' as ConfigTab, icon: Palette, label: 'Design' },
                 ].map(tab => (
                   <button
