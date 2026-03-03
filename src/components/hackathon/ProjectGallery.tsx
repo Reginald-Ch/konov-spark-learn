@@ -70,16 +70,14 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       const { error } = await supabase
         .from('ai_projects')
         .delete()
-        .eq('id', deleteTarget.id)
-        .eq('author_email', currentEmail);
+        .eq('id', deleteTarget.id);
       if (error) throw error;
       setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
       toast.success('Project deleted');
       setDeleteTarget(null);
-      // Refresh to ensure consistency
       fetchProjects();
     } catch (e) {
-      toast.error('Failed to delete. You can only delete your own projects.');
+      toast.error('Failed to delete project.');
     } finally {
       setIsDeleting(false);
     }
