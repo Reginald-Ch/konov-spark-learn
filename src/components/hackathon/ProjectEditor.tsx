@@ -11,7 +11,7 @@ import {
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus
+  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus, Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
