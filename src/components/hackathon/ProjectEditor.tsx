@@ -108,7 +108,7 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   keyword: 'text-ide-purple',
   builtin: 'text-ide-yellow',
   string: 'text-ide-green',
-  comment: 'text-ide-text-muted italic',
+  comment: 'text-white italic',
   decorator: 'text-ide-red',
   number: 'text-ide-orange',
   operator: 'text-ide-cyan',
