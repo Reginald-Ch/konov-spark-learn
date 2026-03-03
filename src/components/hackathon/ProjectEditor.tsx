@@ -1382,17 +1382,58 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </div>
           </div>
 
-          {/* Missions Panel — below preview */}
-          <div className="border-t border-ide-border overflow-y-auto" style={{ maxHeight: '45%' }}>
-            <ChallengeMissions stages={scaffold.stages} code={files['main.py']} compact />
-            <div className="px-2 pb-2">
-              <Button size="sm" variant="ghost"
-                onClick={handleGoLive}
-                className="w-full h-7 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
-                <Send className="w-3 h-3 mr-1" /> Submit Project
-              </Button>
-            </div>
+          {/* Missions Button — below preview */}
+          <div className="p-2 border-t border-ide-border flex gap-1.5">
+            <Button size="sm" variant="ghost"
+              onClick={() => setShowMissionsModal(true)}
+              className="flex-1 h-8 text-[11px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 border border-amber-400/30">
+              <Trophy className="w-3.5 h-3.5 mr-1.5" /> Missions
+            </Button>
+            <Button size="sm" variant="ghost"
+              onClick={handleGoLive}
+              className="flex-1 h-8 text-[11px] font-bold uppercase tracking-wide bg-ide-green/15 text-ide-green hover:bg-ide-green/25 hover:text-white border border-ide-green/30">
+              <Send className="w-3.5 h-3.5 mr-1.5" /> Submit
+            </Button>
           </div>
+
+          {/* Missions Modal */}
+          <AnimatePresence>
+            {showMissionsModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowMissionsModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={e => e.stopPropagation()}
+                  className="w-[90vw] max-w-md max-h-[80vh] overflow-y-auto rounded-xl border border-ide-border bg-ide-sidebar shadow-2xl"
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-ide-border">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-amber-400" />
+                      Challenge Missions
+                    </h2>
+                    <button onClick={() => setShowMissionsModal(false)} className="text-white/50 hover:text-white p-1">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
+                  <div className="px-3 pb-3">
+                    <Button size="sm"
+                      onClick={() => { setShowMissionsModal(false); handleGoLive(); }}
+                      className="w-full h-8 text-[11px] font-bold uppercase bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
+                      <Send className="w-3.5 h-3.5 mr-1.5" /> Submit Project
+                    </Button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
