@@ -500,7 +500,7 @@ if "welcomed"        not in st.session_state: st.session_state.welcomed = False
 
 
 # ══════════════════════════════════════════════════════════════════
-# 🔧 SIDEBAR — DO NOT CHANGE THIS
+# 🔧 SIDEBAR
 # ══════════════════════════════════════════════════════════════════
 
 with st.sidebar:
@@ -512,6 +512,8 @@ with st.sidebar:
     )
     response_style = st.selectbox(
         "Response Style", ["Balanced", "Concise", "Detailed", "Friendly"],
+        # TODO (Challenge 5): Add your new style name to this list!
+        # e.g. ["Balanced", "Concise", "Detailed", "Friendly", "ELI5"],
         help="Changes how verbose the AI responds",
     )
     st.text_area(
@@ -546,6 +548,35 @@ with st.sidebar:
 
     if st.session_state.get("messages"):
         st.caption(f"📊 {len(st.session_state.messages)} messages")
+
+    # ══════════════════════════════════════════════════════════════
+    # 📊 CHALLENGE 6 — ADD CHAT ANALYTICS
+    # ══════════════════════════════════════════════════════════════
+    #
+    # Go beyond basic message count! Add real analytics to the sidebar.
+    #
+    # YOUR TASK: Add at least 2 of the following:
+    #   ✅ Total word count across all messages
+    #   ✅ Average message length (words per message)
+    #   ✅ A bar chart showing user vs bot message counts
+    #   ✅ Most common words used
+    #
+    # STEP 1: Calculate stats from st.session_state.messages
+    # STEP 2: Display them using st.metric() or st.bar_chart()
+    #
+    # ──────────────────────────────────────────────────────────────
+    # 💡 EXAMPLE CODE (uncomment and modify):
+    #
+    # if st.session_state.get("messages"):
+    #     st.divider()
+    #     st.subheader("📊 Chat Analytics")
+    #     all_words = " ".join([m["content"] for m in st.session_state.messages]).split()
+    #     word_count = len(all_words)
+    #     avg_length = word_count // max(len(st.session_state.messages), 1)
+    #     st.metric("Total Words", word_count)
+    #     st.metric("Avg Words/Message", avg_length)
+    #
+    # ──────────────────────────────────────────────────────────────
 
 
 # ══════════════════════════════════════════════════════════════════
