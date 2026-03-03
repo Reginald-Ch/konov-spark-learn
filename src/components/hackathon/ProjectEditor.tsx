@@ -771,7 +771,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
                   <div className="p-3 space-y-4">
-                  <>
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
                       <Input value={projectName} onChange={e => setProjectName(e.target.value)}
