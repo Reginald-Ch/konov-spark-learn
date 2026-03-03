@@ -181,7 +181,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
   const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
-  const [configTab, setConfigTab] = useState<ConfigTab>('missions');
+  const [configTab, setConfigTab] = useState<ConfigTab>('settings');
 
   // Knowledge base state
   const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
