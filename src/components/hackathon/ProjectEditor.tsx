@@ -253,6 +253,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   const [publishOpen, setPublishOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [showMissionsModal, setShowMissionsModal] = useState(false);
 
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
     const seen = localStorage.getItem('buildstudio-onboarded');
