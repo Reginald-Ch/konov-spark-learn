@@ -1384,16 +1384,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {/* Missions Button — below preview */}
-          <div className="p-2 border-t border-ide-border flex gap-1.5">
+          <div className="p-2 border-t border-ide-border">
             <Button size="sm" variant="ghost"
               onClick={() => setShowMissionsModal(true)}
-              className="flex-1 h-8 text-[11px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 border border-amber-400/30">
+              className="w-full h-8 text-[11px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 border border-amber-400/30">
               <Trophy className="w-3.5 h-3.5 mr-1.5" /> Missions
-            </Button>
-            <Button size="sm" variant="ghost"
-              onClick={handleGoLive}
-              className="flex-1 h-8 text-[11px] font-bold uppercase tracking-wide bg-ide-green/15 text-ide-green hover:bg-ide-green/25 hover:text-white border border-ide-green/30">
-              <Send className="w-3.5 h-3.5 mr-1.5" /> Submit
             </Button>
           </div>
 

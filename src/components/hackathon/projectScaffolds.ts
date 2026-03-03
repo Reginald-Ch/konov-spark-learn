@@ -79,6 +79,45 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
         ],
         timeEstimate: '~10 min',
       },
+      {
+        id: 5,
+        title: 'Add Response Styles',
+        emoji: '🎨',
+        objective: 'Give users control over HOW the bot responds. Add a response style selector (Concise, Detailed, Friendly, ELI5) that dynamically modifies the system prompt based on user preference.',
+        hints: [
+          'Use st.sidebar.selectbox() to let users pick a response style',
+          'Modify your system prompt dynamically: if style == "Concise": add "Keep answers under 3 sentences"',
+          'Store the style in st.session_state so it persists across messages',
+          'Test: switch between styles and ask the same question — do the answers change?',
+        ],
+        timeEstimate: '~8 min',
+      },
+      {
+        id: 6,
+        title: 'Add Chat Export & History',
+        emoji: '💾',
+        objective: 'Let users download their chat history as a JSON file and add a message counter + clear chat button in the sidebar. This shows judges your bot has real utility features.',
+        hints: [
+          'Use st.download_button("💾 Export Chat", json.dumps(messages), "chat.json") for export',
+          'Add st.sidebar.button("🗑️ Clear Chat") that resets session_state.messages',
+          'Show a message counter: st.sidebar.caption(f"📊 {len(messages)} messages")',
+          'Test: have a conversation, export it, clear chat — does everything work?',
+        ],
+        timeEstimate: '~8 min',
+      },
+      {
+        id: 7,
+        title: 'Submit & Present',
+        emoji: '🚀',
+        objective: 'Final checks! Test 5+ different conversations, handle edge cases, write a compelling 2-sentence project description, and click Submit to go live in the showcase.',
+        hints: [
+          'Test edge cases: empty messages, very long input, off-topic questions',
+          'Try breaking your bot — what happens if someone asks something inappropriate?',
+          'Write a 2-sentence pitch: "My bot is X that helps Y by doing Z. It\'s unique because..."',
+          'Click the Missions button → Submit Project when you\'re proud of it!',
+        ],
+        timeEstimate: '~5 min',
+      },
     ],
     main: `#!/usr/bin/env python3
 """
