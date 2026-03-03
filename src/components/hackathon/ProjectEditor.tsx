@@ -762,9 +762,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                 ))}
               </div>
 
-              <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
+                {/* ── Missions Tab ── */}
+                {configTab === 'missions' && (
+                  <ChallengeMissions stages={scaffold.stages} code={files['main.py']} />
+                )}
+
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
+                  <div className="p-3 space-y-4">
                   <>
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
