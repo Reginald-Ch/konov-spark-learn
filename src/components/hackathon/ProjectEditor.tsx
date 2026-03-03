@@ -1519,11 +1519,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
             <span className="hidden sm:inline">Save Checkpoint</span>
           </Button>
-          <Button size="sm" onClick={() => setShowMissionsModal(true)}
-            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/30">
-            <Trophy className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Missions</span>
-          </Button>
           <Button size="sm" onClick={handleGoLive}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
