@@ -474,27 +474,153 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } finally { setIsRunning(false); }
   };
 
+  // Extract all config variables from the student's Python code
+  const extractConfigFromCode = (code: string) => {
+    const extract = (varName: string, fallback: string = '') => {
+      // Match single-quoted, double-quoted, or triple-quoted strings
+      const tripleMatch = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`));
+      if (tripleMatch) return tripleMatch[1].trim();
+      const tripleMatch2 = code.match(new RegExp(`${varName}\\s*=\\s*'''([\\s\\S]*?)'''`));
+      if (tripleMatch2) return tripleMatch2[1].trim();
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*["'](.*)["']`));
+      return match ? match[1] : fallback;
+    };
+    const extractNumber = (varName: string, fallback: number) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*([\\d.]+)`));
+      return match ? parseFloat(match[1]) : fallback;
+    };
+    const extractBool = (varName: string, fallback: boolean) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*(True|False)`));
+      return match ? match[1] === 'True' : fallback;
+    };
+    const extractList = (varName: string): string[] => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+      if (!match) return [];
+      const items: string[] = [];
+      const content = match[1];
+      // Match quoted strings, skip comments
+      const regex = /["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(content)) !== null) {
+        items.push(m[1]);
+      }
+      return items;
+    };
+    const extractDict = (varName: string): Record<string, string> => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+      if (!match) return {};
+      const result: Record<string, string> = {};
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) {
+        result[m[1]] = m[2];
+      }
+      return result;
+    };
+    const extractQAPairs = (): Array<{q: string; a: string}> => {
+      const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
+      if (!match) return [];
+      const pairs: Array<{q: string; a: string}> = [];
+      const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) {
+        pairs.push({ q: m[1], a: m[2] });
+      }
+      return pairs;
+    };
+
+    return {
+      botName: extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot')),
+      botEmoji: extract('BOT_EMOJI', extract('AGENT_EMOJI', '🤖')),
+      greeting: extract('GREETING_MESSAGE', ''),
+      creatorName: extract('CREATOR_NAME', ''),
+      temperature: extractNumber('TEMPERATURE', 0.7),
+      responseStyle: extract('RESPONSE_STYLE', 'Balanced'),
+      maxResponseLength: extract('MAX_RESPONSE_LENGTH', 'medium'),
+      responseFormat: extract('RESPONSE_FORMAT', ''),
+      conversationRules: extractList('CONVERSATION_RULES'),
+      conversationStarters: extractList('CONVERSATION_STARTERS'),
+      easterEggs: extractDict('EASTER_EGGS'),
+      catchphrases: extractList('CATCHPHRASES'),
+      blockedTopics: extractList('BLOCKED_TOPICS'),
+      followUpQuestions: extractBool('FOLLOW_UP_QUESTIONS', true),
+      rememberName: extractBool('REMEMBER_NAME', true),
+      errorMessage: extract('ERROR_MESSAGE', ''),
+      knowledgeBaseFromCode: extract('KNOWLEDGE_BASE', ''),
+      qaPairsFromCode: extractQAPairs(),
+      showReasoning: extractBool('SHOW_REASONING', true),
+      maxThinkingSteps: extractNumber('MAX_THINKING_STEPS', 5),
+      tools: extractDict('TOOLS'),
+      toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+    };
+  };
+
   const handleChatSend = async () => {
     if (!chatInput.trim() || isStreaming) return;
     const userMsg = chatInput.trim();
     setChatInput('');
-    // Build history from current messages BEFORE adding new ones (to avoid stale closure)
+
+    // Extract config from current code
+    const config = extractConfigFromCode(files['main.py']);
+
+    // Check for easter eggs first
+    const lowerMsg = userMsg.toLowerCase();
+    for (const [trigger, response] of Object.entries(config.easterEggs)) {
+      if (lowerMsg.includes(trigger.toLowerCase())) {
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: response },
+        ]);
+        return;
+      }
+    }
+
+    // Build history from current messages BEFORE adding new ones
     const history = chatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .filter(m => m.content !== '...')
       .map(m => ({ role: m.role, content: m.content }));
-    // Add the new user message to history
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
     try {
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+
+      // Merge knowledge: sidebar + code-defined
+      const mergedKnowledge = [knowledgeBase, config.knowledgeBaseFromCode].filter(Boolean).join('\n\n');
+      const mergedQA = [
+        ...qaData.filter(p => p.q.trim() && p.a.trim()),
+        ...config.qaPairsFromCode,
+      ];
+
       await streamFromEdgeFunction(
         { 
-          code: userMsg, model: projectType, action: 'test-agent', systemPrompt, messages: history.slice(0, -1),
-          knowledgeBase: knowledgeBase || undefined,
-          qaData: qaData.filter(p => p.q.trim() && p.a.trim()).length > 0 ? qaData.filter(p => p.q.trim() && p.a.trim()) : undefined,
+          code: userMsg, 
+          model: projectType, 
+          action: 'test-agent', 
+          systemPrompt, 
+          messages: history.slice(0, -1),
+          knowledgeBase: mergedKnowledge || undefined,
+          qaData: mergedQA.length > 0 ? mergedQA : undefined,
+          // New config fields
+          botConfig: {
+            botName: config.botName,
+            botEmoji: config.botEmoji,
+            creatorName: config.creatorName,
+            temperature: config.temperature,
+            responseStyle: config.responseStyle,
+            maxResponseLength: config.maxResponseLength,
+            responseFormat: config.responseFormat,
+            conversationRules: config.conversationRules,
+            catchphrases: config.catchphrases,
+            blockedTopics: config.blockedTopics,
+            followUpQuestions: config.followUpQuestions,
+            rememberName: config.rememberName,
+            showReasoning: config.showReasoning,
+            toolInstructions: config.toolInstructions,
+          },
         },
         (text) => {
           assistantReply = text;
@@ -1299,7 +1425,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div className="flex items-center gap-1.5">
               <Bot className="w-3 h-3 text-ide-accent flex-shrink-0" />
               <span className="text-[10px] text-ide-text-muted truncate">
-                Prompt: <span className="text-ide-text italic">"{systemPrompt.slice(0, 50)}{systemPrompt.length > 50 ? '...' : ''}"</span>
+                {(() => {
+                  const cfg = extractConfigFromCode(files['main.py']);
+                  return <><span className="text-ide-text font-medium">{cfg.botEmoji} {cfg.botName}</span> — <span className="text-ide-text italic">"{systemPrompt.slice(0, 40)}{systemPrompt.length > 40 ? '...' : ''}"</span></>;
+                })()}
               </span>
             </div>
             {(knowledgeBase || qaData.some(p => p.q.trim())) && (
@@ -1316,14 +1445,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
-                  <Bot className="w-8 h-8 text-ide-accent" />
+                  <span className="text-2xl">{extractConfigFromCode(files['main.py']).botEmoji}</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-ide-text mb-1">Test your AI here</p>
-                  <p className="text-[10px] text-ide-text-muted">Your system prompt controls how the AI responds. Change it in Config and see the difference!</p>
+                  <p className="text-xs font-medium text-ide-text mb-1">{extractConfigFromCode(files['main.py']).botName}</p>
+                  <p className="text-[10px] text-ide-text-muted">{extractConfigFromCode(files['main.py']).greeting || 'Edit your code to configure this chatbot!'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  {['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact'].map(example => (
+                  {(extractConfigFromCode(files['main.py']).conversationStarters.length > 0
+                    ? extractConfigFromCode(files['main.py']).conversationStarters.slice(0, 4)
+                    : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
+                  ).map(example => (
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
