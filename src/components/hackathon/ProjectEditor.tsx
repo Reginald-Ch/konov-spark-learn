@@ -1425,7 +1425,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             <div className="flex items-center gap-1.5">
               <Bot className="w-3 h-3 text-ide-accent flex-shrink-0" />
               <span className="text-[10px] text-ide-text-muted truncate">
-                Prompt: <span className="text-ide-text italic">"{systemPrompt.slice(0, 50)}{systemPrompt.length > 50 ? '...' : ''}"</span>
+                {(() => {
+                  const cfg = extractConfigFromCode(files['main.py']);
+                  return <><span className="text-ide-text font-medium">{cfg.botEmoji} {cfg.botName}</span> — <span className="text-ide-text italic">"{systemPrompt.slice(0, 40)}{systemPrompt.length > 40 ? '...' : ''}"</span></>;
+                })()}
               </span>
             </div>
             {(knowledgeBase || qaData.some(p => p.q.trim())) && (
@@ -1442,14 +1445,17 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
-                  <Bot className="w-8 h-8 text-ide-accent" />
+                  <span className="text-2xl">{extractConfigFromCode(files['main.py']).botEmoji}</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-ide-text mb-1">Test your AI here</p>
-                  <p className="text-[10px] text-ide-text-muted">Your system prompt controls how the AI responds. Change it in Config and see the difference!</p>
+                  <p className="text-xs font-medium text-ide-text mb-1">{extractConfigFromCode(files['main.py']).botName}</p>
+                  <p className="text-[10px] text-ide-text-muted">{extractConfigFromCode(files['main.py']).greeting || 'Edit your code to configure this chatbot!'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  {['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact'].map(example => (
+                  {(extractConfigFromCode(files['main.py']).conversationStarters.length > 0
+                    ? extractConfigFromCode(files['main.py']).conversationStarters.slice(0, 4)
+                    : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
+                  ).map(example => (
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
