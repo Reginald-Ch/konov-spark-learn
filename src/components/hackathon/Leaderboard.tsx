@@ -327,4 +327,6 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
       </div>
     </div>
   );
-};
+});
+
+Leaderboard.displayName = 'Leaderboard';
