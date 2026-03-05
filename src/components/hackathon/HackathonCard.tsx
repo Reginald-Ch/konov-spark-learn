@@ -78,6 +78,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
 
   return (
     <div
+      ref={ref}
       className={`relative rounded-lg overflow-hidden bg-[hsl(var(--discord-dark))] border ${styles.border} ${styles.glow} transition-all duration-300 group hover:scale-[1.02] hover:-translate-y-1`}
     >
       {/* Live indicator pulse */}
