@@ -1,102 +1,67 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
 
-## Current State Assessment
 
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+# Plan: Enhanced IDE Features & New Syntax Color
 
-## Critical Fixes
+## Summary
 
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+Upgrade the code editor to feel like a professional IDE with current-line highlighting, auto-indentation, bracket matching, improved multi-line string highlighting, and a new `class_name` token color (teal/pink for class names and `self` references).
 
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+## Changes
 
-**File:** `supabase/config.toml`
-Add:
-
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-
-### 2. Fix Save Flow — Update Requires `author_email` Match
-
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
-
+### 1. Add new token type: `class_name` (New Color)
 **File:** `src/components/hackathon/ProjectEditor.tsx`
+- Add `'class_name'` to the `Token['type']` union
+- In `tokenizeLine`, detect class names (word after `class` keyword) and `self` as `class_name` type
+- Add `class_name` to `TOKEN_COLORS` mapped to a new `text-ide-pink` color
 
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+**File:** `src/index.css`
+- Add `--ide-pink: 330 80% 70%;` to the IDE theme variables
 
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+**File:** `tailwind.config.ts`
+- Add `pink: "hsl(var(--ide-pink))"` to the `ide` color group
 
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
+### 2. Multi-line string state tracking in syntax highlighter
 **File:** `src/components/hackathon/ProjectEditor.tsx`
+- The current `highlightedContent` useMemo tokenizes each line independently, so triple-quoted strings (`"""..."""`) spanning multiple lines break highlighting — middle lines render as plain text/keywords instead of green strings
+- Track `inMultiLineString` state across lines: if a line opens `"""` without closing it, all subsequent lines are strings until the closing `"""`
 
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
-**File:** `src/pages/Hackathons.tsx`
-
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
-
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
+### 3. Current line highlight
 **File:** `src/components/hackathon/ProjectEditor.tsx`
+- Add `cursorLine` state tracking via `onSelect` / `onClick` on the textarea (compute line from `selectionStart`)
+- In the highlight overlay, add a subtle `bg-ide-line-highlight` background on the current line div
+- Highlight the current line number in the gutter with `text-ide-text` instead of `text-ide-text-muted`
 
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+### 4. Auto-indentation on Enter
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+- In the `onKeyDown` handler, handle `Enter` key:
+  - Get the current line's leading whitespace
+  - If the line ends with `:` (def, if, for, class, etc.), add 4 extra spaces
+  - Insert `\n` + computed indent and set cursor position
 
-**File:** `supabase/functions/python-ai-assist/index.ts`
+### 5. Bracket matching highlight
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+- On cursor position change, check if character at cursor or before cursor is a bracket `()[]{}` 
+- Find the matching bracket by scanning forward/backward with nesting count
+- In the highlight overlay, wrap matched bracket characters with a `bg-ide-selection rounded` span
 
-- Add support for `messages` array in `test-agent` action to maintain conversation context
+### 6. Gutter active line styling
+Already have `--ide-line-highlight` defined. The gutter line numbers currently all use `text-ide-text-muted`. The active line number should be brighter (`text-ide-text`) and have the line-highlight background.
 
+---
 
+## Implementation Plan
 
-### 8. Polish ProjectView Page — Add Live Demo Chat
+| # | Task | File(s) |
+|---|------|---------|
+| 1 | Add `--ide-pink` CSS variable and tailwind color | `src/index.css`, `tailwind.config.ts` |
+| 2 | Add `class_name` token type + detection + color | `ProjectEditor.tsx` |
+| 3 | Multi-line string state tracking in highlighter | `ProjectEditor.tsx` |
+| 4 | Current line tracking + gutter/editor highlight | `ProjectEditor.tsx` |
+| 5 | Auto-indent on Enter key | `ProjectEditor.tsx` |
+| 6 | Bracket matching highlight | `ProjectEditor.tsx` |
 
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+### Files Modified
+- `src/index.css` — add `--ide-pink`
+- `tailwind.config.ts` — add `pink` to IDE colors
+- `src/components/hackathon/ProjectEditor.tsx` — all editor enhancements
 
-**File:** `src/pages/ProjectView.tsx`
-
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
-
-## Implementation Order
-
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
-
-## Files Modified
-
-- `supabase/config.toml`
-- `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
-- `src/pages/ProjectView.tsx`
