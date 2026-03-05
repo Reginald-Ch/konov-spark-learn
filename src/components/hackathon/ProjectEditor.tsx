@@ -1443,30 +1443,46 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             const totalCatchphrases = cfg.catchphrases.length;
             const totalBlocked = cfg.blockedTopics.length;
             const mergedQACount = qaData.filter(p => p.q.trim()).length + codeQA.length;
+            
+            // Type-aware defaults
+            const isAgent = projectType === 'agent';
+            const defaultName = isAgent ? 'Research Agent' : 'Spark';
+            const defaultTemp = isAgent ? 0.3 : 0.7;
+            const defaultStyle = isAgent ? 'Professional' : 'Friendly';
+            const defaultPrompt = isAgent 
+              ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
+              : 'You are a helpful AI assistant that answers questions clearly and concisely.';
+            
+            const totalChallenges = 20;
             const activeCount = [
-              cfg.botName !== 'My AI Bot' && cfg.botName !== 'Spark',
-              cfg.botEmoji !== '🤖',
-              cfg.greeting,
+              cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+              cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+              cfg.greeting && cfg.greeting !== (isAgent ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!" : "Hey there! I'm Spark, your AI buddy. Ask me anything!"),
               cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-              systemPrompt !== 'You are a helpful AI assistant that answers questions clearly and concisely.' && systemPrompt !== 'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
-              codeKB.trim(),
-              codeQA.length > 0,
-              cfg.temperature !== 0.7,
-              cfg.responseStyle !== 'Balanced' && cfg.responseStyle !== 'Friendly',
+              systemPrompt !== defaultPrompt,
+              codeKB.trim() && codeKB !== (isAgent ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts." : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects."),
+              codeQA.length > 3,
+              cfg.temperature !== defaultTemp,
+              cfg.responseStyle !== defaultStyle,
               cfg.maxResponseLength !== 'medium',
-              totalRules > 0,
-              totalStarters > 2,
-              totalEggs > 0,
-              totalCatchphrases > 0,
-              totalBlocked > 0,
+              totalRules > 3,
+              totalStarters > 4,
+              totalEggs > (isAgent ? 2 : 3),
+              totalCatchphrases > 3,
+              totalBlocked > 2,
+              cfg.forbiddenWords.length > 0,
+              cfg.mood && cfg.mood !== 'neutral',
+              cfg.examples.length > 0,
+              cfg.languageStyle && cfg.languageStyle !== 'casual',
+              cfg.signOff && cfg.signOff !== '',
             ].filter(Boolean).length;
 
             return (
-              <div className="px-3 py-1.5 border-b border-ide-border/50 bg-ide-bg-deep space-y-1">
+              <div className="px-3 py-1.5 border-b border-ide-border/50 space-y-1" style={{ backgroundColor: selectedTheme.chat }}>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">{cfg.botEmoji}</span>
                   <span className="text-[11px] text-ide-text font-bold truncate">{cfg.botName}</span>
-                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-ide-accent/20 text-ide-accent font-bold">{activeCount}/15 challenges</span>
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${selectedTheme.accent}33`, color: selectedTheme.accent }}>{activeCount}/{totalChallenges} challenges</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚 Knowledge</span>}
@@ -1475,6 +1491,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚 {totalEggs} eggs</span>}
                   {totalCatchphrases > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-orange/20 text-ide-orange">💬 phrases</span>}
                   {totalBlocked > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-red/20 text-ide-red">🚫 blocked</span>}
+                  {cfg.forbiddenWords.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">🚯 words</span>}
+                  {cfg.mood && cfg.mood !== 'neutral' && <span className="text-[8px] px-1 py-0.5 rounded bg-pink-500/20 text-pink-400">🎭 {cfg.mood}</span>}
+                  {cfg.examples.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-teal-500/20 text-teal-400">📝 examples</span>}
                   <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️ {cfg.temperature}</span>
                   <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">✍️ {cfg.responseStyle}</span>
                 </div>
