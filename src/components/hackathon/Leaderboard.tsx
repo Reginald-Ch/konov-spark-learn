@@ -203,7 +203,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   }), [participants]);
 
   return (
-    <div className="h-full">
+    <div ref={ref} className="h-full">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
