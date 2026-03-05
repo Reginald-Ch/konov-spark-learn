@@ -199,15 +199,6 @@ export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: Hackat
             Registration Closed
           </Badge>
         )}
-        <Button 
-          variant="outline" 
-          onClick={() => onViewTeams(hackathon.id)}
-          className="flex-1 border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-white"
-          size="sm"
-        >
-          <Users className="w-4 h-4 mr-1" />
-          Teams
-        </Button>
         {hackathon.status === 'live' && (
           <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
             <Zap className="w-3 h-3 mr-1 animate-pulse" />

@@ -549,12 +549,6 @@ const Hackathons = () => {
           onClose={() => setRegistrationModalOpen(false)}
           onSuccess={fetchHackathons}
         />
-        <TeamsModal
-          hackathonId={selectedHackathon?.id || null}
-          hackathonTitle={selectedHackathon?.title || ''}
-          isOpen={teamsModalOpen}
-          onClose={() => setTeamsModalOpen(false)}
-        />
         <SubmissionModal
           hackathonId={selectedHackathon?.id || null}
           hackathonTitle={selectedHackathon?.title || ''}
