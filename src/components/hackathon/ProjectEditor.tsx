@@ -395,13 +395,86 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
-  // Persist knowledge/QA/theme to localStorage
+  // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
   useEffect(() => { localStorage.setItem('forge-theme', JSON.stringify(selectedTheme)); }, [selectedTheme]);
   useEffect(() => { localStorage.setItem('forge-welcome-msg', welcomeMessage); }, [welcomeMessage]);
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
+
+  // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
+  const prevKnowledgeRef = useRef(knowledgeBase);
+  useEffect(() => {
+    if (prevKnowledgeRef.current === knowledgeBase) return;
+    prevKnowledgeRef.current = knowledgeBase;
+    setFiles(prev => {
+      const code = prev['main.py'];
+      const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
+      const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
+      const varName = code.match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
+      if (tripleRegex.test(code)) {
+        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${knowledgeBase}"""`) };
+      } else if (singleRegex.test(code)) {
+        if (knowledgeBase.includes('\n')) {
+          return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = """${knowledgeBase}"""`) };
+        } else {
+          const escaped = knowledgeBase.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = "${escaped}"`) };
+        }
+      }
+      return prev;
+    });
+  }, [knowledgeBase]);
+
+  // Read knowledge base from code when code changes
+  useEffect(() => {
+    const code = files['main.py'];
+    const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
+    const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
+    const match = tripleMatch || singleMatch;
+    if (match && match[1] !== prevKnowledgeRef.current) {
+      prevKnowledgeRef.current = match[1];
+      setKnowledgeBase(match[1]);
+    }
+  }, [files['main.py']]);
+
+  // Sync sidebar Q&A pairs → code's QA_PAIRS variable
+  const prevQARef = useRef(JSON.stringify(qaData));
+  useEffect(() => {
+    const serialized = JSON.stringify(qaData);
+    if (prevQARef.current === serialized) return;
+    prevQARef.current = serialized;
+    const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
+    setFiles(prev => {
+      const code = prev['main.py'];
+      const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
+      const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
+      if (qaRegex.test(code)) {
+        const pairsStr = validPairs.length === 0 
+          ? '[]' 
+          : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
+        return { ...prev, 'main.py': code.replace(qaRegex, `${varName} = ${pairsStr}`) };
+      }
+      return prev;
+    });
+  }, [qaData]);
+
+  // Read Q&A pairs from code when code changes
+  useEffect(() => {
+    const code = files['main.py'];
+    const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
+    if (!match) return;
+    const pairs: QAPair[] = [];
+    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    let m;
+    while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+    const newSerialized = JSON.stringify(pairs);
+    if (newSerialized !== prevQARef.current) {
+      prevQARef.current = newSerialized;
+      setQaData(pairs);
+    }
+  }, [files['main.py']]);
 
   // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
