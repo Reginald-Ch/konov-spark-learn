@@ -283,7 +283,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
   // Sync theme selection to code's APP_THEME variable
+  const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
+    if (themeSyncRef.current === selectedTheme.id) return;
+    themeSyncRef.current = selectedTheme.id;
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /APP_THEME\s*=\s*["']([^"']*)["']/;
@@ -293,15 +296,16 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       }
       return prev;
     });
-  }, [selectedTheme]);
+  }, [selectedTheme.id]);
 
-  // Read theme from code when code changes
+  // Read theme from code when code changes (only if user edits APP_THEME manually)
   useEffect(() => {
     const code = files['main.py'];
     const match = code.match(/APP_THEME\s*=\s*["']([^"']*)["']/);
-    if (match && match[1]) {
+    if (match && match[1] && match[1] !== themeSyncRef.current) {
       const found = THEMES.find(t => t.id === match[1]);
-      if (found && found.id !== selectedTheme.id) {
+      if (found) {
+        themeSyncRef.current = found.id;
         setSelectedTheme(found);
       }
     }
