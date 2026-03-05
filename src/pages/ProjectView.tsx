@@ -137,43 +137,59 @@ const ProjectView = () => {
   }, [chatMessages]);
 
   // Extract all config variables from the student's Python code
+  // Supports both old SCREAMING_CASE and new snake_case LangChain-style names
   const extractConfigFromCode = (code: string) => {
-    const extract = (varName: string, fallback: string = '') => {
-      const tripleMatch = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`));
-      if (tripleMatch) return tripleMatch[1].trim();
-      const tripleMatch2 = code.match(new RegExp(`${varName}\\s*=\\s*'''([\\s\\S]*?)'''`));
-      if (tripleMatch2) return tripleMatch2[1].trim();
-      const match = code.match(new RegExp(`${varName}\\s*=\\s*["'](.*)["']`));
-      return match ? match[1] : fallback;
+    const extract = (varName: string, fallback: string = '', altName?: string) => {
+      for (const name of [varName, altName].filter(Boolean) as string[]) {
+        const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
+        if (tripleMatch) return tripleMatch[1].trim();
+        const tripleMatch2 = code.match(new RegExp(`${name}\\s*=\\s*'''([\\s\\S]*?)'''`));
+        if (tripleMatch2) return tripleMatch2[1].trim();
+        const match = code.match(new RegExp(`${name}\\s*=\\s*["'](.*)["']`));
+        if (match) return match[1];
+      }
+      return fallback;
     };
-    const extractNumber = (varName: string, fallback: number) => {
-      const match = code.match(new RegExp(`${varName}\\s*=\\s*([\\d.]+)`));
-      return match ? parseFloat(match[1]) : fallback;
+    const extractNumber = (varName: string, fallback: number, altName?: string) => {
+      for (const name of [varName, altName].filter(Boolean) as string[]) {
+        const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
+        if (match) return parseFloat(match[1]);
+      }
+      return fallback;
     };
-    const extractBool = (varName: string, fallback: boolean) => {
-      const match = code.match(new RegExp(`${varName}\\s*=\\s*(True|False)`));
-      return match ? match[1] === 'True' : fallback;
+    const extractBool = (varName: string, fallback: boolean, altName?: string) => {
+      for (const name of [varName, altName].filter(Boolean) as string[]) {
+        const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
+        if (match) return match[1] === 'True';
+      }
+      return fallback;
     };
-    const extractList = (varName: string): string[] => {
-      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
-      if (!match) return [];
-      const items: string[] = [];
-      const regex = /["']([^"']+)["']/g;
-      let m;
-      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
-      return items;
+    const extractList = (varName: string, altName?: string): string[] => {
+      for (const name of [varName, altName].filter(Boolean) as string[]) {
+        const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+        if (!match) continue;
+        const items: string[] = [];
+        const regex = /["']([^"']+)["']/g;
+        let m;
+        while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+        return items;
+      }
+      return [];
     };
-    const extractDict = (varName: string): Record<string, string> => {
-      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
-      if (!match) return {};
-      const result: Record<string, string> = {};
-      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
-      let m;
-      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
-      return result;
+    const extractDict = (varName: string, altName?: string): Record<string, string> => {
+      for (const name of [varName, altName].filter(Boolean) as string[]) {
+        const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+        if (!match) continue;
+        const result: Record<string, string> = {};
+        const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+        let m;
+        while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+        return result;
+      }
+      return {};
     };
     const extractQAPairs = (): Array<{q: string; a: string}> => {
-      const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
+      const match = code.match(/(?:qa_pairs|QA_PAIRS)\s*=\s*\[([\s\S]*?)\]/);
       if (!match) return [];
       const pairs: Array<{q: string; a: string}> = [];
       const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
@@ -183,33 +199,33 @@ const ProjectView = () => {
     };
 
     return {
-      botName: extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot')),
-      botEmoji: extract('BOT_EMOJI', extract('AGENT_EMOJI', '🤖')),
-      greeting: extract('GREETING_MESSAGE', ''),
-      creatorName: extract('CREATOR_NAME', ''),
-      systemPrompt: extract('SYSTEM_PROMPT', 'You are a helpful AI assistant.'),
-      temperature: extractNumber('TEMPERATURE', 0.7),
-      responseStyle: extract('RESPONSE_STYLE', 'Balanced'),
-      maxResponseLength: extract('MAX_RESPONSE_LENGTH', 'medium'),
-      responseFormat: extract('RESPONSE_FORMAT', ''),
-      conversationRules: extractList('CONVERSATION_RULES'),
-      conversationStarters: extractList('CONVERSATION_STARTERS'),
-      easterEggs: extractDict('EASTER_EGGS'),
-      catchphrases: extractList('CATCHPHRASES'),
-      blockedTopics: extractList('BLOCKED_TOPICS'),
-      followUpQuestions: extractBool('FOLLOW_UP_QUESTIONS', true),
-      rememberName: extractBool('REMEMBER_NAME', true),
-      errorMessage: extract('ERROR_MESSAGE', ''),
-      knowledgeBase: extract('KNOWLEDGE_BASE', ''),
+      botName: extract('bot_name', extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot'))),
+      botEmoji: extract('bot_emoji', '🤖', 'BOT_EMOJI'),
+      greeting: extract('greeting', '', 'GREETING_MESSAGE'),
+      creatorName: extract('creator', '', 'CREATOR_NAME'),
+      systemPrompt: extract('system_message', 'You are a helpful AI assistant.', 'SYSTEM_PROMPT'),
+      temperature: extractNumber('temperature', 0.7, 'TEMPERATURE'),
+      responseStyle: extract('response_style', 'Balanced', 'RESPONSE_STYLE'),
+      maxResponseLength: extract('max_response_length', 'medium', 'MAX_RESPONSE_LENGTH'),
+      responseFormat: extract('response_format', '', 'RESPONSE_FORMAT'),
+      conversationRules: extractList('rules', 'CONVERSATION_RULES'),
+      conversationStarters: extractList('conversation_starters', 'CONVERSATION_STARTERS'),
+      easterEggs: extractDict('easter_eggs', 'EASTER_EGGS'),
+      catchphrases: extractList('catchphrases', 'CATCHPHRASES'),
+      blockedTopics: extractList('blocked_topics', 'BLOCKED_TOPICS'),
+      followUpQuestions: extractBool('follow_up_questions', true, 'FOLLOW_UP_QUESTIONS'),
+      rememberName: extractBool('memory_enabled', true, 'REMEMBER_NAME'),
+      errorMessage: extract('error_message', '', 'ERROR_MESSAGE'),
+      knowledgeBase: extract('knowledge_base', '', 'KNOWLEDGE_BASE'),
       qaPairs: extractQAPairs(),
-      showReasoning: extractBool('SHOW_REASONING', true),
-      toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
-      forbiddenWords: extractList('FORBIDDEN_WORDS'),
-      mood: extract('MOOD', 'neutral'),
-      examples: extractList('EXAMPLES'),
-      languageStyle: extract('LANGUAGE_STYLE', 'casual'),
-      signOff: extract('SIGN_OFF', ''),
-      appTheme: extract('APP_THEME', 'default'),
+      showReasoning: extractBool('show_reasoning', true, 'SHOW_REASONING'),
+      toolInstructions: extractDict('tool_instructions', 'TOOL_INSTRUCTIONS'),
+      forbiddenWords: extractList('forbidden_words', 'FORBIDDEN_WORDS'),
+      mood: extract('mood', 'neutral', 'MOOD'),
+      examples: extractList('few_shot_examples', 'EXAMPLES'),
+      languageStyle: extract('language_style', 'casual', 'LANGUAGE_STYLE'),
+      signOff: extract('sign_off', '', 'SIGN_OFF'),
+      appTheme: extract('app_theme', 'default', 'APP_THEME'),
     };
   };
 
