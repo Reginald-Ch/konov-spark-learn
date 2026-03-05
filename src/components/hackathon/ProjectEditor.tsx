@@ -453,7 +453,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           setCurrentProjectId(null);
           return;
         }
-        setFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
+        setFiles(prev => {
+          const next = { ...prev, 'main.py': data.code || prev['main.py'] };
+          if (textareaRef.current && activeFile === 'main.py') {
+            textareaRef.current.value = next['main.py'];
+          }
+          return next;
+        });
         setSavedFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
         if (data.project_name) setProjectName(data.project_name);
         if (data.template_id) {
