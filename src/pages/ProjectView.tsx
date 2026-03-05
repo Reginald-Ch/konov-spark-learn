@@ -276,9 +276,10 @@ const ProjectView = () => {
     }
   };
 
-  const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming || !config) return;
-    const userMsg = chatInput.trim();
+  const handleChatSend = async (directMessage?: string) => {
+    const msg = directMessage || chatInput.trim();
+    if (!msg || isStreaming || !config) return;
+    const userMsg = msg;
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
 
