@@ -697,9 +697,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Memoized config extraction — single source of truth for the Live Preview
   const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
 
-  const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming) return;
-    const userMsg = chatInput.trim();
+  const handleChatSend = async (directMessage?: string) => {
+    const msg = directMessage || chatInput.trim();
+    if (!msg || isStreaming) return;
+    const userMsg = msg;
     setChatInput('');
 
     // Use memoized config — always reflects latest code edits
@@ -1702,7 +1703,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ).map((example, index) => (
                     <button
                       key={`${example}-${index}`}
-                      onClick={() => { setChatInput(example); }}
+                      onClick={() => { handleChatSend(example); }}
                       className="block w-full text-left text-[11px] px-3 py-1.5 rounded bg-ide-border/30 text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text transition-colors"
                     >
                       "{example}"
@@ -1753,7 +1754,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 placeholder="Type a message..."
                 disabled={isStreaming}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
-              <Button size="sm" onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+              <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
                 className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>

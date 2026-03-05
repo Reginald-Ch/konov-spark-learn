@@ -1,73 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
+
+## Current State Assessment
+
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+
+## Critical Fixes
+
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+
+**File:** `supabase/config.toml`
+Add:
+
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
+```
+
+### 2. Fix Save Flow — Update Requires `author_email` Match
+
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
+
+**File:** `src/components/hackathon/PublishModal.tsx`
+
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Pass `currentProjectId` to `PublishModal`
+
+### 4. Rename Platform to "FORGE"
+
+Update visible branding across the UI.
+
+**Files affected:**
+
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
+
+### 5. Streamline the Student Entry Flow
+
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
+
+**File:** `src/pages/Hackathons.tsx`
+
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+
+### 6. Add Live Preview Interactive Demo Chat
+
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+
+**File:** `supabase/functions/python-ai-assist/index.ts`
+
+- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
-# Bug Report: Final Issues Before Platform Launch
 
-After a thorough end-to-end audit, here are the remaining issues.
+### 8. Polish ProjectView Page — Add Live Demo Chat
 
----
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
 
-## Critical
+**File:** `src/pages/ProjectView.tsx`
 
-### 1. `supabase/config.toml` STILL Missing `verify_jwt = false`
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
 
-The file contains only `project_id = "agkhmqhgaazfhrwnyeoa"` — one line. Previous fixes claimed to add the JWT config but it was never persisted. Every AI call (Run Tests, Live Preview chat, AI Mentor, Idea-to-Code) will fail with 401 errors because the edge function defaults to requiring JWT verification.
+## Implementation Order
 
-**Fix:** Redeploy the `python-ai-assist` edge function (the deploy tool handles `verify_jwt` automatically). No manual config.toml edit needed since the deployment tool sets this.
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
 
----
+## Files Modified
 
-## Medium
-
-### 2. Conversation Starters Only Set Input — Don't Auto-Send
-
-In both `ProjectEditor.tsx` (line 1705) and `ProjectView.tsx` (line 541), clicking a conversation starter calls `setChatInput(example)` but does NOT call `handleChatSend()`. The student clicks a starter chip, the text fills the input box, then they must manually press Enter or click Send. This is unintuitive — users expect clicking a starter to immediately send.
-
-**Fix:** After setting chat input, trigger `handleChatSend` with the clicked message directly, or use a ref/effect to auto-send.
-
-### 3. ProjectView Chat Streaming Shows Bounce Dots Even After Content Arrives
-
-In `ProjectView.tsx` line 573, the streaming indicator checks `chatMessages[chatMessages.length - 1]?.content === '...'`. But once the first chunk arrives, content changes from `'...'` to actual text, and the bounce dots disappear — while `isStreaming` is still true. There's no loading indicator between the user message and first AI chunk arriving. Not a bug per se, but the `'...'` placeholder message IS visible as a literal "..." bubble before chunks arrive.
-
-**Fix:** This is minor polish. No change needed unless you want a dedicated typing indicator.
-
-### 4. `handleViewCode` Confirmation Dialog Uses `confirm()` (Browser Native)
-
-In `Hackathons.tsx` line 148, `confirm('This will load new code...')` uses the browser's native dialog which looks jarring and can't be styled. For a polished platform, this should use a proper modal or toast confirmation.
-
-**Fix:** Replace `confirm()` with a styled dialog or simply skip the confirmation (the build tab already has a dirty indicator).
-
----
-
-## Low
-
-### 5. Duplicated `extractConfigFromCode` Logic
-
-The config extraction function is duplicated across `ProjectEditor.tsx` (60+ lines) and `ProjectView.tsx` (90+ lines) with slight differences. This is a maintenance risk — if you add Challenge 21, you'd need to update both.
-
-**Fix (optional):** Extract into a shared utility. Not blocking for launch.
-
-### 6. ProjectView Does Not Show Un-published Projects Gracefully
-
-If someone navigates to `/projects/some-id` for a saved-but-not-published project, the query has `.eq('is_published', true)` (line 123). The user sees "Project not found" with no explanation that the project exists but isn't published yet.
-
-**Fix:** Show a message like "This project hasn't been published yet" instead of the generic "not found."
-
----
-
-## Implementation Plan
-
-| # | Severity | Fix |
-|---|----------|-----|
-| 1 | **Critical** | Redeploy edge function with verify_jwt=false |
-| 2 | **Medium** | Make conversation starter clicks auto-send in ProjectEditor + ProjectView |
-| 3 | **Low** | No change needed |
-| 4 | **Low** | Replace `confirm()` with toast or remove |
-| 5 | **Low** | Skip for now |
-| 6 | **Low** | Better "not published" message |
-
-### Files to Modify
-- Edge function redeployment (handles config.toml)
-- `src/components/hackathon/ProjectEditor.tsx` — conversation starter auto-send
-- `src/pages/ProjectView.tsx` — conversation starter auto-send, unpublished message
-- `src/pages/Hackathons.tsx` — remove native `confirm()`
-
+- `supabase/config.toml`
+- `src/components/hackathon/ProjectEditor.tsx`
+- `src/components/hackathon/PublishModal.tsx`
+- `src/pages/Hackathons.tsx`
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`

@@ -116,13 +116,26 @@ const ProjectView = () => {
     if (!id) return;
     const fetchProject = async () => {
       try {
+        // First try published
         const { data, error } = await supabase
           .from('ai_projects')
           .select('*')
           .eq('id', id)
           .eq('is_published', true)
           .single();
-        if (!error && data) setProject(data as Project);
+        if (!error && data) {
+          setProject(data as Project);
+        } else {
+          // Check if project exists but is unpublished
+          const { data: unpub } = await supabase
+            .from('ai_projects')
+            .select('id')
+            .eq('id', id)
+            .single();
+          if (unpub) {
+            setProject({ ...unpub, _unpublished: true } as any);
+          }
+        }
       } catch (e) {
         console.error('Failed to fetch project:', e);
       } finally {
@@ -276,9 +289,10 @@ const ProjectView = () => {
     }
   };
 
-  const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming || !config) return;
-    const userMsg = chatInput.trim();
+  const handleChatSend = async (directMessage?: string) => {
+    const msg = directMessage || chatInput.trim();
+    if (!msg || isStreaming || !config) return;
+    const userMsg = msg;
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
 
@@ -422,12 +436,19 @@ const ProjectView = () => {
     );
   }
 
-  if (!project) {
+  if (!project || (project as any)._unpublished) {
+    const isUnpublished = (project as any)?._unpublished;
     return (
       <div className="min-h-screen bg-ide-bg flex items-center justify-center text-center p-6">
         <div>
-          <h1 className="text-2xl font-bold text-ide-text mb-2">Project not found</h1>
-          <p className="text-ide-text-muted mb-4">This project may not exist or hasn't been published yet.</p>
+          <h1 className="text-2xl font-bold text-ide-text mb-2">
+            {isUnpublished ? '🔒 Project Not Published Yet' : 'Project not found'}
+          </h1>
+          <p className="text-ide-text-muted mb-4">
+            {isUnpublished
+              ? 'This project has been saved but hasn\'t been published yet. The author needs to click "Submit Project" to make it public.'
+              : 'This project may not exist or the link is incorrect.'}
+          </p>
           <Link to="/hackathons">
             <Button className="bg-ide-accent text-ide-bg-deep">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to FORGE
@@ -538,7 +559,7 @@ const ProjectView = () => {
                   ).map(example => (
                     <button
                       key={example}
-                      onClick={() => { setChatInput(example); }}
+                      onClick={() => { handleChatSend(example); }}
                       className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
                       style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
                     >
@@ -591,7 +612,7 @@ const ProjectView = () => {
               className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
               style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
             />
-            <Button onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+            <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
               className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
               style={{ backgroundColor: theme.accent }}>
               {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
