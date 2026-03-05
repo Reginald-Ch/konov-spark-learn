@@ -1497,6 +1497,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ref={textareaRef}
                   value={files[activeFile]}
                   onChange={e => updateFile(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const end = target.selectionEnd;
+                      const value = target.value;
+                      const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        target.selectionStart = target.selectionEnd = start + 4;
+                      });
+                    }
+                  }}
                   spellCheck={false}
                   className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
                     activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
