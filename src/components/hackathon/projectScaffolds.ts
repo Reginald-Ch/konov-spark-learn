@@ -35,25 +35,25 @@ Edit any value → test instantly in Live Preview →
 # 🏆 CHALLENGE 1: Name Your Bot
 # Change the name — it appears in Live Preview header
 # ═══════════════════════════════════════════════
-BOT_NAME = "Spark"
+bot_name = "Spark"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 2: Choose an Emoji Avatar
 # This emoji represents your bot in the chat
 # ═══════════════════════════════════════════════
-BOT_EMOJI = "🤖"
+bot_emoji = "🤖"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 3: Write a Greeting
 # First message users see — make it welcoming!
 # ═══════════════════════════════════════════════
-GREETING_MESSAGE = "Hey there! I'm Spark, your AI buddy. Ask me anything!"
+greeting = "Hey there! I'm Spark, your AI buddy. Ask me anything!"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 4: Claim Your Creation
 # Add your name so everyone knows who built this
 # ═══════════════════════════════════════════════
-CREATOR_NAME = "A FORGE Builder"
+creator = "A FORGE Builder"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 5: Define the Personality (MOST IMPORTANT!)
@@ -63,14 +63,14 @@ CREATOR_NAME = "A FORGE Builder"
 #   - WHAT is it an expert in?
 #   - Any special RULES?
 # ═══════════════════════════════════════════════
-SYSTEM_PROMPT = "You are a helpful AI assistant that answers questions clearly and concisely."
+system_message = "You are a helpful AI assistant that answers questions clearly and concisely."
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 6: Add Knowledge
 # Give your bot facts it should know. The more you
 # add, the smarter it gets on this topic!
 # ═══════════════════════════════════════════════
-KNOWLEDGE_BASE = """Python was created by Guido van Rossum in 1991.
+knowledge_base = """Python was created by Guido van Rossum in 1991.
 AI stands for Artificial Intelligence.
 FORGE is a platform where students build AI projects."""
 
@@ -79,7 +79,7 @@ FORGE is a platform where students build AI projects."""
 # When someone asks these questions, your bot MUST
 # give YOUR answer — not make one up!
 # ═══════════════════════════════════════════════
-QA_PAIRS = [
+qa_pairs = [
     {"q": "What is your name?", "a": "I'm Spark, built at the FORGE Hackathon!"},
     {"q": "Who created you?", "a": "I was created by a talented FORGE builder!"},
     {"q": "What can you do?", "a": "I can chat, answer questions, and share knowledge!"}
@@ -91,14 +91,14 @@ QA_PAIRS = [
 # 0.5 = balanced
 # 1.0 = very creative/random (wild answers!)
 # ═══════════════════════════════════════════════
-TEMPERATURE = 0.7
+temperature = 0.7
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 9: Choose Response Style
 # Options: "Concise", "Detailed", "Friendly",
 #          "Professional", "Balanced"
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Friendly"
+response_style = "Friendly"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 10: Set Response Length
@@ -106,14 +106,14 @@ RESPONSE_STYLE = "Friendly"
 # "medium" = 1 paragraph (balanced)
 # "long"   = detailed multi-paragraph answers
 # ═══════════════════════════════════════════════
-MAX_RESPONSE_LENGTH = "medium"
+max_response_length = "medium"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 11: Add Conversation Rules
 # These are STRICT rules your bot MUST follow.
 # Add at least 3 rules!
 # ═══════════════════════════════════════════════
-CONVERSATION_RULES = [
+rules = [
     "Always be friendly and encouraging",
     "Use at least one emoji in every response",
     "If you don't know something, say so honestly"
@@ -123,7 +123,7 @@ CONVERSATION_RULES = [
 # 🏆 CHALLENGE 12: Set Conversation Starters
 # These appear as clickable buttons in Live Preview.
 # ═══════════════════════════════════════════════
-CONVERSATION_STARTERS = [
+conversation_starters = [
     "Tell me about yourself",
     "What can you help me with?",
     "Share a fun fact",
@@ -134,7 +134,7 @@ CONVERSATION_STARTERS = [
 # 🏆 CHALLENGE 13: Add Easter Eggs!
 # Secret responses triggered by keywords.
 # ═══════════════════════════════════════════════
-EASTER_EGGS = {
+easter_eggs = {
     "secret": "🎉 You found a hidden feature! You're a true explorer!",
     "magic": "✨ Abracadabra! Here's something special just for you...",
     "hello world": "👨‍💻 A classic! Every great programmer starts here."
@@ -144,7 +144,7 @@ EASTER_EGGS = {
 # 🏆 CHALLENGE 14: Add Catchphrases
 # Your bot will naturally include these phrases
 # ═══════════════════════════════════════════════
-CATCHPHRASES = [
+catchphrases = [
     "Fun fact!",
     "Here's the thing...",
     "Between you and me..."
@@ -154,7 +154,7 @@ CATCHPHRASES = [
 # 🏆 CHALLENGE 15: Set Blocked Topics
 # Topics your bot will REFUSE to discuss.
 # ═══════════════════════════════════════════════
-BLOCKED_TOPICS = [
+blocked_topics = [
     "homework answers",
     "inappropriate content"
 ]
@@ -164,7 +164,7 @@ BLOCKED_TOPICS = [
 # Words your bot must NEVER use in any response.
 # The AI will find alternative words instead.
 # ═══════════════════════════════════════════════
-FORBIDDEN_WORDS = []
+forbidden_words = []
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 17: Set the Mood
@@ -172,14 +172,14 @@ FORBIDDEN_WORDS = []
 #          "mysterious", "energetic", "calm", "neutral"
 # This changes the overall vibe of responses!
 # ═══════════════════════════════════════════════
-MOOD = "neutral"
+mood = "neutral"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 18: Add Few-Shot Examples
 # Show your bot HOW you want it to answer.
 # Each example teaches the AI your preferred format!
 # ═══════════════════════════════════════════════
-EXAMPLES = []
+few_shot_examples = []
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 19: Set Language Style
@@ -187,52 +187,104 @@ EXAMPLES = []
 #          "slang", "poetic", "storyteller"
 # Changes HOW your bot constructs sentences!
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+language_style = "casual"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add a Sign-Off
 # A closing phrase your bot adds to every response.
 # Example: "Stay curious! 🌟" or "— Chef Kofi 👨‍🍳"
 # ═══════════════════════════════════════════════
-SIGN_OFF = ""
+sign_off = ""
 
 # ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
-APP_THEME = "default"
+app_theme = "default"
 
 # ═══════════════════════════════════════════════
 # BONUS SETTINGS (already configured!)
 # ═══════════════════════════════════════════════
-FOLLOW_UP_QUESTIONS = True
-REMEMBER_NAME = True
-ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
+follow_up_questions = True
+memory_enabled = True
+error_message = "Oops! Something went wrong. Try asking differently! 🔄"
 
 # ═══════════════════════════════════════════════
 # 🏁 CHALLENGE CHECKLIST — Test each one!
 # ═══════════════════════════════════════════════
-# ☐ 1.  BOT_NAME — Change it, see it in preview header
-# ☐ 2.  BOT_EMOJI — Change it, see the avatar update
-# ☐ 3.  GREETING_MESSAGE — See it in the welcome screen
-# ☐ 4.  CREATOR_NAME — Ask "who created you?" to test
-# ☐ 5.  SYSTEM_PROMPT — This changes EVERYTHING about your bot
-# ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
-# ☐ 7.  QA_PAIRS — Ask exact questions to test answers
-# ☐ 8.  TEMPERATURE — Set to 0.1 vs 1.0 and compare
-# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
-# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
-# ☐ 11. CONVERSATION_RULES — Ask something to test rules
-# ☐ 12. CONVERSATION_STARTERS — See buttons update
-# ☐ 13. EASTER_EGGS — Type "secret" or "magic" to test
-# ☐ 14. CATCHPHRASES — Chat and look for your phrases
-# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
-# ☐ 16. FORBIDDEN_WORDS — Add words, verify bot avoids them
-# ☐ 17. MOOD — Try "sarcastic" or "mysterious"
-# ☐ 18. EXAMPLES — Add example Q&As to teach format
-# ☐ 19. LANGUAGE_STYLE — Try "poetic" or "formal"
-# ☐ 20. SIGN_OFF — Add a closing phrase, see it appear
+# ☐ 1.  bot_name — Change it, see it in preview header
+# ☐ 2.  bot_emoji — Change it, see the avatar update
+# ☐ 3.  greeting — See it in the welcome screen
+# ☐ 4.  creator — Ask "who created you?" to test
+# ☐ 5.  system_message — This changes EVERYTHING about your bot
+# ☐ 6.  knowledge_base — Ask about facts you added
+# ☐ 7.  qa_pairs — Ask exact questions to test answers
+# ☐ 8.  temperature — Set to 0.1 vs 1.0 and compare
+# ☐ 9.  response_style — Try "Concise" vs "Detailed"
+# ☐ 10. max_response_length — "short" vs "long"
+# ☐ 11. rules — Ask something to test rules
+# ☐ 12. conversation_starters — See buttons update
+# ☐ 13. easter_eggs — Type "secret" or "magic" to test
+# ☐ 14. catchphrases — Chat and look for your phrases
+# ☐ 15. blocked_topics — Ask about a blocked topic
+# ☐ 16. forbidden_words — Add words, verify bot avoids them
+# ☐ 17. mood — Try "sarcastic" or "mysterious"
+# ☐ 18. few_shot_examples — Add example Q&As to teach format
+# ☐ 19. language_style — Try "poetic" or "formal"
+# ☐ 20. sign_off — Add a closing phrase, see it appear
 # ═══════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════
+# ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
+# This is the LangChain engine that reads your variables above
+# and runs your chatbot. FORGE handles this automatically.
+# ═══════════════════════════════════════════════════════════════
+
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.memory import ConversationBufferWindowMemory
+
+# Assemble the system prompt from all your config
+_system_parts = [system_message]
+if knowledge_base.strip():
+    _system_parts.append(f"KNOWLEDGE BASE:\\n{knowledge_base}")
+if qa_pairs:
+    _qa_text = "\\n".join([f'Q: "{p["q"]}" → A: "{p["a"]}"' for p in qa_pairs])
+    _system_parts.append(f"MANDATORY Q&A PAIRS (use these exact answers):\\n{_qa_text}")
+if rules:
+    _system_parts.append("RULES:\\n" + "\\n".join(f"- {r}" for r in rules))
+if blocked_topics:
+    _system_parts.append("BLOCKED TOPICS (refuse these):\\n" + "\\n".join(f"- {t}" for t in blocked_topics))
+if forbidden_words:
+    _system_parts.append("FORBIDDEN WORDS (never use):\\n" + "\\n".join(f"- {w}" for w in forbidden_words))
+if catchphrases:
+    _system_parts.append("CATCHPHRASES (include one per response):\\n" + "\\n".join(f"- {c}" for c in catchphrases))
+if mood != "neutral":
+    _system_parts.append(f"MOOD: {mood}")
+if language_style != "casual":
+    _system_parts.append(f"LANGUAGE STYLE: {language_style}")
+if sign_off:
+    _system_parts.append(f"SIGN-OFF: End every response with: {sign_off}")
+
+_full_system = "\\n\\n".join(_system_parts)
+
+# Build the LangChain prompt template
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=_full_system),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}"),
+])
+
+# Memory keeps the last 20 messages
+memory = ConversationBufferWindowMemory(
+    k=20,
+    memory_key="chat_history",
+    return_messages=True,
+)
+
+# FORGE connects the model, temperature, and streaming automatically.
+# Your bot is now LIVE — test it in the preview panel! →
 `,
     config: `{
   "project_type": "chatbot",
@@ -247,7 +299,9 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
-forge-sdk>=3.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
 streamlit>=1.28.0`,
   },
   agent: {
@@ -271,39 +325,39 @@ Every variable below is LIVE — edit and test instantly.
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 1: Name Your Agent
 # ═══════════════════════════════════════════════
-BOT_NAME = "Research Agent"
+bot_name = "Research Agent"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 2: Choose an Emoji
 # ═══════════════════════════════════════════════
-BOT_EMOJI = "🧠"
+bot_emoji = "🧠"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 3: Write a Greeting
 # ═══════════════════════════════════════════════
-GREETING_MESSAGE = "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+greeting = "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 4: Add Your Name
 # ═══════════════════════════════════════════════
-CREATOR_NAME = "A FORGE Builder"
+creator = "A FORGE Builder"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 5: Define the Mission (MOST IMPORTANT!)
 # ═══════════════════════════════════════════════
-SYSTEM_PROMPT = "You are an AI agent that can use tools to search the web, run calculations, and generate content."
+system_message = "You are an AI agent that can use tools to search the web, run calculations, and generate content."
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 6: Add Knowledge
 # ═══════════════════════════════════════════════
-KNOWLEDGE_BASE = """Agents use a ReAct loop: Reason, Act, Observe.
+knowledge_base = """Agents use a ReAct loop: Reason, Act, Observe.
 Tools extend what an AI can do beyond just chatting.
 FORGE agents can search the web, do math, and look up facts."""
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 7: Add Exact Q&A Pairs
 # ═══════════════════════════════════════════════
-QA_PAIRS = [
+qa_pairs = [
     {"q": "What tools do you have?", "a": "I can search the web, do calculations, and look up facts on Wikipedia!"},
     {"q": "Who created you?", "a": "I was built by a talented FORGE developer!"},
     {"q": "How do you work?", "a": "I use a Reason-Act-Observe loop to solve problems step by step!"}
@@ -312,22 +366,22 @@ QA_PAIRS = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 8: Set Creativity Level
 # ═══════════════════════════════════════════════
-TEMPERATURE = 0.3
+temperature = 0.3
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 9: Choose Response Style
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Professional"
+response_style = "Professional"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 10: Set Response Length
 # ═══════════════════════════════════════════════
-MAX_RESPONSE_LENGTH = "medium"
+max_response_length = "medium"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 11: Add Agent Rules
 # ═══════════════════════════════════════════════
-CONVERSATION_RULES = [
+rules = [
     "Always show your reasoning step by step",
     "Cite sources when sharing facts",
     "Present findings in bullet points"
@@ -336,7 +390,7 @@ CONVERSATION_RULES = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 12: Set Task Starters
 # ═══════════════════════════════════════════════
-CONVERSATION_STARTERS = [
+conversation_starters = [
     "What's the latest news about AI?",
     "Calculate the area of a circle with radius 15",
     "Who invented the internet?",
@@ -346,7 +400,7 @@ CONVERSATION_STARTERS = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 13: Add Easter Eggs
 # ═══════════════════════════════════════════════
-EASTER_EGGS = {
+easter_eggs = {
     "secret mission": "🕵️ Agent mode activated! Scanning all databases...",
     "42": "🌌 The answer to life, the universe, and everything!"
 }
@@ -354,7 +408,7 @@ EASTER_EGGS = {
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 14: Add Catchphrases
 # ═══════════════════════════════════════════════
-CATCHPHRASES = [
+catchphrases = [
     "Let me investigate that...",
     "Based on my research...",
     "The data suggests..."
@@ -363,7 +417,7 @@ CATCHPHRASES = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 15: Set Blocked Topics
 # ═══════════════════════════════════════════════
-BLOCKED_TOPICS = [
+blocked_topics = [
     "homework answers",
     "inappropriate content"
 ]
@@ -372,55 +426,55 @@ BLOCKED_TOPICS = [
 # 🏆 CHALLENGE 16: Set Forbidden Words
 # Words your agent must NEVER use in responses.
 # ═══════════════════════════════════════════════
-FORBIDDEN_WORDS = []
+forbidden_words = []
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 17: Set the Mood
 # Options: "cheerful", "serious", "sarcastic",
 #          "mysterious", "energetic", "calm", "neutral"
 # ═══════════════════════════════════════════════
-MOOD = "neutral"
+mood = "neutral"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 18: Add Few-Shot Examples
 # Show your agent HOW you want it to answer.
 # ═══════════════════════════════════════════════
-EXAMPLES = []
+few_shot_examples = []
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 19: Set Language Style
 # Options: "casual", "formal", "academic",
 #          "slang", "poetic", "storyteller"
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+language_style = "casual"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add a Sign-Off
 # A closing phrase for every response.
 # ═══════════════════════════════════════════════
-SIGN_OFF = ""
+sign_off = ""
 
 # ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
-APP_THEME = "default"
+app_theme = "default"
 
 # BONUS SETTINGS
-FOLLOW_UP_QUESTIONS = True
-REMEMBER_NAME = True
-RESPONSE_FORMAT = "structured"
-SHOW_REASONING = True
-MAX_THINKING_STEPS = 5
-ERROR_MESSAGE = "Mission failed! Let me try a different approach... 🔄"
+follow_up_questions = True
+memory_enabled = True
+response_format = "structured"
+show_reasoning = True
+max_thinking_steps = 5
+error_message = "Mission failed! Let me try a different approach... 🔄"
 
-TOOLS = {
+tools = {
     "web_search": "Use for current events and up-to-date info",
     "calculator": "Use for ANY math or numerical analysis",
     "wikipedia": "Use for historical facts and science"
 }
 
-TOOL_INSTRUCTIONS = {
+tool_instructions = {
     "web_search": "Search first, then summarise findings",
     "calculator": "Show the calculation steps clearly",
     "wikipedia": "Quote relevant sections"
@@ -429,27 +483,88 @@ TOOL_INSTRUCTIONS = {
 # ═══════════════════════════════════════════════
 # 🏁 CHALLENGE CHECKLIST
 # ═══════════════════════════════════════════════
-# ☐ 1.  BOT_NAME — Change it, see preview header update
-# ☐ 2.  BOT_EMOJI — Change avatar emoji
-# ☐ 3.  GREETING_MESSAGE — See welcome screen change
-# ☐ 4.  CREATOR_NAME — Ask "who created you?"
-# ☐ 5.  SYSTEM_PROMPT — Changes everything about your agent
-# ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
-# ☐ 7.  QA_PAIRS — Ask exact questions to test
-# ☐ 8.  TEMPERATURE — 0.1 vs 1.0 — see the difference
-# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
-# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
-# ☐ 11. CONVERSATION_RULES — Test rule enforcement
-# ☐ 12. CONVERSATION_STARTERS — See buttons update
-# ☐ 13. EASTER_EGGS — Type "secret mission" to test
-# ☐ 14. CATCHPHRASES — Chat and look for your phrases
-# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
-# ☐ 16. FORBIDDEN_WORDS — Add words, verify avoidance
-# ☐ 17. MOOD — Try "serious" or "energetic"
-# ☐ 18. EXAMPLES — Add examples to teach format
-# ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
-# ☐ 20. SIGN_OFF — Add a closing phrase
+# ☐ 1.  bot_name — Change it, see preview header update
+# ☐ 2.  bot_emoji — Change avatar emoji
+# ☐ 3.  greeting — See welcome screen change
+# ☐ 4.  creator — Ask "who created you?"
+# ☐ 5.  system_message — Changes everything about your agent
+# ☐ 6.  knowledge_base — Ask about facts you added
+# ☐ 7.  qa_pairs — Ask exact questions to test
+# ☐ 8.  temperature — 0.1 vs 1.0 — see the difference
+# ☐ 9.  response_style — Try "Concise" vs "Detailed"
+# ☐ 10. max_response_length — "short" vs "long"
+# ☐ 11. rules — Test rule enforcement
+# ☐ 12. conversation_starters — See buttons update
+# ☐ 13. easter_eggs — Type "secret mission" to test
+# ☐ 14. catchphrases — Chat and look for your phrases
+# ☐ 15. blocked_topics — Ask about a blocked topic
+# ☐ 16. forbidden_words — Add words, verify avoidance
+# ☐ 17. mood — Try "serious" or "energetic"
+# ☐ 18. few_shot_examples — Add examples to teach format
+# ☐ 19. language_style — Try "academic" or "formal"
+# ☐ 20. sign_off — Add a closing phrase
 # ═══════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════
+# ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
+# This is the LangChain ReAct agent engine that reads your
+# variables above and runs your agent. FORGE handles this.
+# ═══════════════════════════════════════════════════════════════
+
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_community.tools import DuckDuckGoSearchRun, WikipediaQueryRun
+from langchain_experimental.tools import PythonREPLTool
+
+# Assemble system prompt from config
+_system_parts = [system_message]
+if knowledge_base.strip():
+    _system_parts.append(f"KNOWLEDGE BASE:\\n{knowledge_base}")
+if qa_pairs:
+    _qa_text = "\\n".join([f'Q: "{p["q"]}" → A: "{p["a"]}"' for p in qa_pairs])
+    _system_parts.append(f"MANDATORY Q&A PAIRS:\\n{_qa_text}")
+if rules:
+    _system_parts.append("RULES:\\n" + "\\n".join(f"- {r}" for r in rules))
+if blocked_topics:
+    _system_parts.append("BLOCKED TOPICS:\\n" + "\\n".join(f"- {t}" for t in blocked_topics))
+if forbidden_words:
+    _system_parts.append("FORBIDDEN WORDS:\\n" + "\\n".join(f"- {w}" for w in forbidden_words))
+if catchphrases:
+    _system_parts.append("CATCHPHRASES:\\n" + "\\n".join(f"- {c}" for c in catchphrases))
+if mood != "neutral":
+    _system_parts.append(f"MOOD: {mood}")
+if language_style != "casual":
+    _system_parts.append(f"LANGUAGE STYLE: {language_style}")
+if sign_off:
+    _system_parts.append(f"SIGN-OFF: {sign_off}")
+
+_full_system = "\\n\\n".join(_system_parts)
+
+# Build tools from config
+_tools = []
+if "web_search" in tools:
+    _tools.append(DuckDuckGoSearchRun(description=tools["web_search"]))
+if "calculator" in tools:
+    _tools.append(PythonREPLTool(description=tools["calculator"]))
+if "wikipedia" in tools:
+    _tools.append(WikipediaQueryRun(description=tools["wikipedia"]))
+
+# Build prompt with ReAct reasoning
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=_full_system),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad"),
+])
+
+# Memory + Agent Executor
+memory = ConversationBufferWindowMemory(k=20, memory_key="chat_history", return_messages=True)
+
+# FORGE connects the LLM, temperature, and streaming automatically.
+# Your agent is now LIVE — test it in the preview panel! →
 `,
     config: `{
   "project_type": "agent",
@@ -464,7 +579,11 @@ TOOL_INSTRUCTIONS = {
 }`,
     requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
-forge-sdk>=3.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+langchain-experimental>=0.3.0
 streamlit>=1.28.0`,
   },
 };
