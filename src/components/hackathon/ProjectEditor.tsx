@@ -534,6 +534,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Read Q&A pairs from code when code changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
