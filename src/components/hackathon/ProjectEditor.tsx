@@ -1427,25 +1427,54 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             </Button>
           </div>
 
-          <div className="px-3 py-1.5 border-b border-ide-border/50 bg-ide-bg-deep">
-            <div className="flex items-center gap-1.5">
-              <Bot className="w-3 h-3 text-ide-accent flex-shrink-0" />
-              <span className="text-[10px] text-ide-text-muted truncate">
-                {(() => {
-                  const cfg = extractConfigFromCode(files['main.py']);
-                  return <><span className="text-ide-text font-medium">{cfg.botEmoji} {cfg.botName}</span> — <span className="text-ide-text italic">"{systemPrompt.slice(0, 40)}{systemPrompt.length > 40 ? '...' : ''}"</span></>;
-                })()}
-              </span>
-            </div>
-            {(knowledgeBase || qaData.some(p => p.q.trim())) && (
-              <div className="flex items-center gap-1 mt-1">
-                <Database className="w-3 h-3 text-ide-green flex-shrink-0" />
-                <span className="text-[10px] text-ide-green">
-                  {knowledgeBase ? `${knowledgeBase.split(/\s+/).length} words` : ''}{knowledgeBase && qaData.some(p => p.q.trim()) ? ' + ' : ''}{qaData.filter(p => p.q.trim()).length > 0 ? `${qaData.filter(p => p.q.trim()).length} Q&A` : ''} loaded
-                </span>
+          {(() => {
+            const cfg = extractConfigFromCode(files['main.py']);
+            const codeKB = cfg.knowledgeBaseFromCode;
+            const codeQA = cfg.qaPairsFromCode;
+            const totalRules = cfg.conversationRules.length;
+            const totalEggs = Object.keys(cfg.easterEggs).length;
+            const totalStarters = cfg.conversationStarters.length;
+            const totalCatchphrases = cfg.catchphrases.length;
+            const totalBlocked = cfg.blockedTopics.length;
+            const mergedQACount = qaData.filter(p => p.q.trim()).length + codeQA.length;
+            const activeCount = [
+              cfg.botName !== 'My AI Bot' && cfg.botName !== 'Spark',
+              cfg.botEmoji !== '🤖',
+              cfg.greeting,
+              cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+              systemPrompt !== 'You are a helpful AI assistant that answers questions clearly and concisely.' && systemPrompt !== 'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
+              codeKB.trim(),
+              codeQA.length > 0,
+              cfg.temperature !== 0.7,
+              cfg.responseStyle !== 'Balanced' && cfg.responseStyle !== 'Friendly',
+              cfg.maxResponseLength !== 'medium',
+              totalRules > 0,
+              totalStarters > 2,
+              totalEggs > 0,
+              totalCatchphrases > 0,
+              totalBlocked > 0,
+            ].filter(Boolean).length;
+
+            return (
+              <div className="px-3 py-1.5 border-b border-ide-border/50 bg-ide-bg-deep space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{cfg.botEmoji}</span>
+                  <span className="text-[11px] text-ide-text font-bold truncate">{cfg.botName}</span>
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-ide-accent/20 text-ide-accent font-bold">{activeCount}/15 challenges</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚 Knowledge</span>}
+                  {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬 {mergedQACount} Q&A</span>}
+                  {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏 {totalRules} rules</span>}
+                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚 {totalEggs} eggs</span>}
+                  {totalCatchphrases > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-orange/20 text-ide-orange">💬 phrases</span>}
+                  {totalBlocked > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-red/20 text-ide-red">🚫 blocked</span>}
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️ {cfg.temperature}</span>
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">✍️ {cfg.responseStyle}</span>
+                </div>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.length <= 1 && (
