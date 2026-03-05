@@ -19,11 +19,10 @@ interface HackathonCardProps {
     prizes: string | null;
   };
   onRegister: (hackathonId: string) => void;
-  onViewTeams: (hackathonId: string) => void;
   onSubmitProject: (hackathonId: string) => void;
 }
 
-export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProject }: HackathonCardProps) => {
+export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: HackathonCardProps) => {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
@@ -200,15 +199,6 @@ export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProj
             Registration Closed
           </Badge>
         )}
-        <Button 
-          variant="outline" 
-          onClick={() => onViewTeams(hackathon.id)}
-          className="flex-1 border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-white"
-          size="sm"
-        >
-          <Users className="w-4 h-4 mr-1" />
-          Teams
-        </Button>
         {hackathon.status === 'live' && (
           <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
             <Zap className="w-3 h-3 mr-1 animate-pulse" />

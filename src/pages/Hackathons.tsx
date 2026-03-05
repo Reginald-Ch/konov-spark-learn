@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SEO } from '@/components/SEO';
 import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
-import { TeamsModal } from '@/components/hackathon/TeamsModal';
+
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
@@ -51,7 +51,7 @@ const Hackathons = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  const [teamsModalOpen, setTeamsModalOpen] = useState(false);
+  
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
@@ -113,10 +113,6 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setRegistrationModalOpen(true); }
   };
 
-  const handleViewTeams = (hackathonId: string) => {
-    const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) { setSelectedHackathon(hackathon); setTeamsModalOpen(true); }
-  };
 
   const handleSubmitProject = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
@@ -130,10 +126,6 @@ const Hackathons = () => {
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    if (!hasLiveEvent) {
-      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
-      return;
-    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setBuildKey(prev => prev + 1);
@@ -141,10 +133,6 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
-    if (!hasLiveEvent) {
-      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
-      return;
-    }
     if (buildCode) {
       toast.info('Loading project code into the editor...');
     }
@@ -243,7 +231,6 @@ const Hackathons = () => {
                     key={hackathon.id}
                     hackathon={hackathon}
                     onRegister={handleRegister}
-                    onViewTeams={handleViewTeams}
                     onSubmitProject={handleSubmitProject}
                   />
                 ))}
@@ -505,23 +492,7 @@ const Hackathons = () => {
           {/* BUILD TAB */}
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {hasLiveEvent ? (
-                <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
-              ) : (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="text-center max-w-md">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)', opacity: 0.3 }}>
-                      <Code className="w-10 h-10 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">🔒 IDE Opens When Event Goes Live</h3>
-                    <p className="text-[hsl(var(--discord-text-muted))] mb-6">The Build Studio will unlock once a hackathon event is set to <strong className="text-[hsl(var(--discord-green))]">Live</strong> by the judges. Check back soon!</p>
-                    <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
-                      <Trophy className="w-4 h-4 mr-2" />
-                      View Events
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
             </div>
           )}
 
@@ -577,12 +548,6 @@ const Hackathons = () => {
           isOpen={registrationModalOpen}
           onClose={() => setRegistrationModalOpen(false)}
           onSuccess={fetchHackathons}
-        />
-        <TeamsModal
-          hackathonId={selectedHackathon?.id || null}
-          hackathonTitle={selectedHackathon?.title || ''}
-          isOpen={teamsModalOpen}
-          onClose={() => setTeamsModalOpen(false)}
         />
         <SubmissionModal
           hackathonId={selectedHackathon?.id || null}
