@@ -64,6 +64,7 @@ const Hackathons = () => {
   // Build tab state
   const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
   const [buildTemplate, setBuildTemplate] = useState<ProjectType | undefined>(undefined);
+  const [buildKey, setBuildKey] = useState(0);
 
   // First-time onboarding
   useEffect(() => {
