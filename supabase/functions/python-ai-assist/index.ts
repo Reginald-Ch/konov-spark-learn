@@ -117,6 +117,27 @@ serve(async (req) => {
           botConfigContext += `  - ${tool}: ${instruction}\n`;
         }
       }
+
+      // Challenges 16-20: new config fields
+      if (cfg.forbiddenWords && cfg.forbiddenWords.length > 0) {
+        botConfigContext += `\n\n🚯 FORBIDDEN WORDS — NEVER use these words in responses. Find alternatives:\n`;
+        cfg.forbiddenWords.forEach((w: string) => { botConfigContext += `  - "${w}"\n`; });
+      }
+      if (cfg.mood && cfg.mood !== 'neutral') {
+        const moodDesc: Record<string, string> = { "cheerful": "Be upbeat and positive!", "serious": "Be formal, no jokes.", "sarcastic": "Use dry wit.", "mysterious": "Be cryptic...", "energetic": "HIGH ENERGY!", "calm": "Speak softly." };
+        botConfigContext += `\n\n🎭 MOOD: ${cfg.mood.toUpperCase()} — ${moodDesc[cfg.mood] || 'Match this mood.'}`;
+      }
+      if (cfg.examples && cfg.examples.length > 0) {
+        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers like these:\n`;
+        cfg.examples.forEach((ex: string, i: number) => { botConfigContext += `  ${i + 1}. "${ex}"\n`; });
+      }
+      if (cfg.languageStyle && cfg.languageStyle !== 'casual') {
+        const langDesc: Record<string, string> = { "formal": "Proper grammar, sophisticated vocabulary.", "academic": "Write like a professor.", "slang": "Modern internet slang.", "poetic": "Metaphors and imagery.", "storyteller": "Frame as narrative." };
+        botConfigContext += `\n\nLANGUAGE STYLE: ${cfg.languageStyle.toUpperCase()} — ${langDesc[cfg.languageStyle] || cfg.languageStyle}`;
+      }
+      if (cfg.signOff && cfg.signOff.trim()) {
+        botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
+      }
     }
 
     if (action === "run") {
