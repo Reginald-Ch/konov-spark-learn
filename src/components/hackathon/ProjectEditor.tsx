@@ -22,6 +22,8 @@ export type { ProjectType } from './projectScaffolds';
 interface ProjectEditorProps {
   initialType?: ProjectType;
   initialCode?: string;
+  hackathonStartDate?: string | null;
+  hackathonStatus?: 'upcoming' | 'live' | 'ended' | null;
 }
 
 interface ChatMessage {
@@ -208,6 +210,7 @@ const extractConfigFromCode = (code: string) => {
     examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
+    systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
   };
 };
 
@@ -223,23 +226,40 @@ const ONBOARDING_STEPS = [
   { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
 ];
 
-const CountdownWidget = () => {
+const CountdownWidget = ({ hackathonStartDate, hackathonStatus }: { hackathonStartDate?: string | null; hackathonStatus?: 'upcoming' | 'live' | 'ended' | null }) => {
   const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
+  const [frozen, setFrozen] = useState(false);
   
   useEffect(() => {
-    // Count UP from when this session started
-    const stored = localStorage.getItem('forge-session-start');
+    // If event ended, freeze the timer
+    if (hackathonStatus === 'ended') {
+      setFrozen(true);
+      return;
+    }
+    setFrozen(false);
+
+    // Use hackathon start_date from DB as single source of truth
     let startTime: number;
-    if (stored) {
-      startTime = parseInt(stored);
-      // If the stored start time is older than 24 hours, reset it
-      if (Date.now() - startTime > 24 * 60 * 60 * 1000) {
+    if (hackathonStartDate) {
+      startTime = new Date(hackathonStartDate).getTime();
+      // Sanity: if start_date is in the future, show 00:00:00
+      if (startTime > Date.now()) {
+        setElapsed({ h: 0, m: 0, s: 0 });
+        return;
+      }
+    } else {
+      // Fallback to localStorage only if no hackathon data
+      const stored = localStorage.getItem('forge-session-start');
+      if (stored) {
+        startTime = parseInt(stored);
+        if (Date.now() - startTime > 24 * 60 * 60 * 1000) {
+          startTime = Date.now();
+          localStorage.setItem('forge-session-start', startTime.toString());
+        }
+      } else {
         startTime = Date.now();
         localStorage.setItem('forge-session-start', startTime.toString());
       }
-    } else {
-      startTime = Date.now();
-      localStorage.setItem('forge-session-start', startTime.toString());
     }
     
     const tick = () => {
@@ -253,7 +273,7 @@ const CountdownWidget = () => {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [hackathonStartDate, hackathonStatus]);
 
   const totalSec = elapsed.h * 3600 + elapsed.m * 60 + elapsed.s;
   const isLong = totalSec > 5400; // > 90 min
@@ -261,17 +281,19 @@ const CountdownWidget = () => {
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-      isLong ? 'bg-amber-500/25 border-amber-400/50 text-amber-300' 
+      frozen ? 'bg-red-500/25 border-red-400/50 text-red-300'
+      : isLong ? 'bg-amber-500/25 border-amber-400/50 text-amber-300' 
       : isMedium ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
       : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
       <Clock className="w-3 h-3" />
       <span>{String(elapsed.h).padStart(2,'0')}:{String(elapsed.m).padStart(2,'0')}:{String(elapsed.s).padStart(2,'0')}</span>
+      {frozen && <span className="text-[9px] opacity-70">ENDED</span>}
     </div>
   );
 };
 
-export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) => {
+export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, hackathonStatus }: ProjectEditorProps) => {
   const isMobile = useIsMobile();
   const [projectType, setProjectType] = useState<ProjectType>(initialType || 'chatbot');
   const [projectName, setProjectName] = useState('My AI Project');
@@ -749,7 +771,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           code: userMsg, 
           model: projectType, 
           action: 'test-agent', 
-          systemPrompt, 
+          systemPrompt: config.systemMessage || systemPrompt, 
           messages: history.slice(0, -1),
           knowledgeBase: mergedKnowledge || undefined,
           qaData: mergedQA.length > 0 ? mergedQA : undefined,
@@ -977,7 +999,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
-          <CountdownWidget />
+          <CountdownWidget hackathonStartDate={hackathonStartDate} hackathonStatus={hackathonStatus} />
         </div>
         <div className="flex items-center gap-1">
           {[
