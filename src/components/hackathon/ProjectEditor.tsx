@@ -771,7 +771,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           code: userMsg, 
           model: projectType, 
           action: 'test-agent', 
-          systemPrompt, 
+          systemPrompt: config.systemMessage || systemPrompt, 
           messages: history.slice(0, -1),
           knowledgeBase: mergedKnowledge || undefined,
           qaData: mergedQA.length > 0 ? mergedQA : undefined,
