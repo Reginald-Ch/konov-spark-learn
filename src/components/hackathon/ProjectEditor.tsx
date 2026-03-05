@@ -506,7 +506,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const setupKey = `forge-scored-project_setup-${authorEmail}`;
       if (!localStorage.getItem(setupKey)) {
         localStorage.setItem(setupKey, 'true');
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
     }
   };
