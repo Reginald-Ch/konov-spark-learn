@@ -237,54 +237,41 @@ error_message = "Oops! Something went wrong. Try asking differently! 🔄"
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# This is the LangChain engine that reads your variables above
-# and runs your chatbot. FORGE handles this automatically.
+# FORGE reads your variables above and builds a LangChain
+# pipeline automatically. Here's what happens behind the scenes:
 # ═══════════════════════════════════════════════════════════════
-
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
-
-# Assemble the system prompt from all your config
-_system_parts = [system_message]
-if knowledge_base.strip():
-    _system_parts.append(f"KNOWLEDGE BASE:\\n{knowledge_base}")
-if qa_pairs:
-    _qa_text = "\\n".join([f'Q: "{p["q"]}" → A: "{p["a"]}"' for p in qa_pairs])
-    _system_parts.append(f"MANDATORY Q&A PAIRS (use these exact answers):\\n{_qa_text}")
-if rules:
-    _system_parts.append("RULES:\\n" + "\\n".join(f"- {r}" for r in rules))
-if blocked_topics:
-    _system_parts.append("BLOCKED TOPICS (refuse these):\\n" + "\\n".join(f"- {t}" for t in blocked_topics))
-if forbidden_words:
-    _system_parts.append("FORBIDDEN WORDS (never use):\\n" + "\\n".join(f"- {w}" for w in forbidden_words))
-if catchphrases:
-    _system_parts.append("CATCHPHRASES (include one per response):\\n" + "\\n".join(f"- {c}" for c in catchphrases))
-if mood != "neutral":
-    _system_parts.append(f"MOOD: {mood}")
-if language_style != "casual":
-    _system_parts.append(f"LANGUAGE STYLE: {language_style}")
-if sign_off:
-    _system_parts.append(f"SIGN-OFF: End every response with: {sign_off}")
-
-_full_system = "\\n\\n".join(_system_parts)
-
-# Build the LangChain prompt template
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(content=_full_system),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}"),
-])
-
-# Memory keeps the last 20 messages
-memory = ConversationBufferWindowMemory(
-    k=20,
-    memory_key="chat_history",
-    return_messages=True,
-)
-
-# FORGE connects the model, temperature, and streaming automatically.
+#
+# Step 1: Build the SystemMessage
+#   → system_message + knowledge_base + qa_pairs + rules
+#     are merged into one SystemMessage (langchain_core.messages)
+#
+# Step 2: Build the ChatPromptTemplate
+#   → ChatPromptTemplate.from_messages([
+#         SystemMessage(content=...),
+#         MessagesPlaceholder("chat_history"),   ← conversation memory
+#         ("human", "{input}"),                  ← user's message
+#     ])
+#
+# Step 3: Attach ConversationBufferWindowMemory
+#   → Keeps the last 20 HumanMessage / AIMessage pairs
+#   → memory_enabled controls whether this is active
+#
+# Step 4: Create the chain
+#   → prompt | llm(temperature=temperature) | output_parser
+#
+# Step 5: Enforce your config at runtime
+#   → easter_eggs are checked FIRST (instant match)
+#   → qa_pairs are checked SECOND (exact match)
+#   → blocked_topics trigger a polite refusal
+#   → forbidden_words are filtered from output
+#   → catchphrases are injected into responses
+#   → sign_off is appended to every response
+#   → mood + language_style shape the tone
+#   → few_shot_examples teach the model your preferred format
+#
+# FORGE handles the LLM connection, API keys, and streaming.
 # Your bot is now LIVE — test it in the preview panel! →
+# ═══════════════════════════════════════════════════════════════
 `,
     config: `{
   "project_type": "chatbot",
@@ -508,63 +495,47 @@ tool_instructions = {
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# This is the LangChain ReAct agent engine that reads your
-# variables above and runs your agent. FORGE handles this.
+# FORGE reads your variables above and builds a LangChain
+# ReAct agent automatically. Here's what happens:
 # ═══════════════════════════════════════════════════════════════
-
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain_community.tools import DuckDuckGoSearchRun, WikipediaQueryRun
-from langchain_experimental.tools import PythonREPLTool
-
-# Assemble system prompt from config
-_system_parts = [system_message]
-if knowledge_base.strip():
-    _system_parts.append(f"KNOWLEDGE BASE:\\n{knowledge_base}")
-if qa_pairs:
-    _qa_text = "\\n".join([f'Q: "{p["q"]}" → A: "{p["a"]}"' for p in qa_pairs])
-    _system_parts.append(f"MANDATORY Q&A PAIRS:\\n{_qa_text}")
-if rules:
-    _system_parts.append("RULES:\\n" + "\\n".join(f"- {r}" for r in rules))
-if blocked_topics:
-    _system_parts.append("BLOCKED TOPICS:\\n" + "\\n".join(f"- {t}" for t in blocked_topics))
-if forbidden_words:
-    _system_parts.append("FORBIDDEN WORDS:\\n" + "\\n".join(f"- {w}" for w in forbidden_words))
-if catchphrases:
-    _system_parts.append("CATCHPHRASES:\\n" + "\\n".join(f"- {c}" for c in catchphrases))
-if mood != "neutral":
-    _system_parts.append(f"MOOD: {mood}")
-if language_style != "casual":
-    _system_parts.append(f"LANGUAGE STYLE: {language_style}")
-if sign_off:
-    _system_parts.append(f"SIGN-OFF: {sign_off}")
-
-_full_system = "\\n\\n".join(_system_parts)
-
-# Build tools from config
-_tools = []
-if "web_search" in tools:
-    _tools.append(DuckDuckGoSearchRun(description=tools["web_search"]))
-if "calculator" in tools:
-    _tools.append(PythonREPLTool(description=tools["calculator"]))
-if "wikipedia" in tools:
-    _tools.append(WikipediaQueryRun(description=tools["wikipedia"]))
-
-# Build prompt with ReAct reasoning
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(content=_full_system),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
-
-# Memory + Agent Executor
-memory = ConversationBufferWindowMemory(k=20, memory_key="chat_history", return_messages=True)
-
-# FORGE connects the LLM, temperature, and streaming automatically.
+#
+# Step 1: Build the SystemMessage
+#   → system_message + knowledge_base + qa_pairs + rules
+#     are merged into one SystemMessage (langchain_core.messages)
+#
+# Step 2: Load Tools
+#   → tools dict maps to real LangChain tool classes:
+#     "web_search"  → DuckDuckGoSearchRun
+#     "calculator"  → PythonREPLTool
+#     "wikipedia"   → WikipediaQueryRun
+#   → tool_instructions configures each tool's behavior
+#
+# Step 3: Build the ReAct Agent Prompt
+#   → ChatPromptTemplate.from_messages([
+#         SystemMessage(content=...),
+#         MessagesPlaceholder("chat_history"),
+#         ("human", "{input}"),
+#         MessagesPlaceholder("agent_scratchpad"),  ← agent's thinking
+#     ])
+#
+# Step 4: Create the AgentExecutor
+#   → create_react_agent(llm, tools, prompt)
+#   → AgentExecutor(agent, tools, memory, max_iterations=max_thinking_steps)
+#   → show_reasoning controls whether "thoughts" are visible
+#
+# Step 5: Enforce your config at runtime
+#   → easter_eggs → instant match, no tool use needed
+#   → qa_pairs → exact match, overrides everything
+#   → blocked_topics → polite refusal
+#   → forbidden_words → filtered from output
+#   → catchphrases → injected into responses
+#   → sign_off → appended to every response
+#   → mood + language_style → shape the tone
+#   → few_shot_examples → teach preferred format
+#
+# FORGE handles the LLM, API keys, and streaming.
 # Your agent is now LIVE — test it in the preview panel! →
+# ═══════════════════════════════════════════════════════════════
 `,
     config: `{
   "project_type": "agent",
