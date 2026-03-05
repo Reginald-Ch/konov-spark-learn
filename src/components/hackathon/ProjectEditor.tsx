@@ -1148,7 +1148,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     {/* ── Mission Progress Bar ── */}
                     {(() => {
-                      const config = extractConfigFromCode(code);
+                      const config = extractConfigFromCode(files['main.py']);
                       const missions = [
                         { emoji: '🏷️', name: 'Bot Name', done: config.botName !== 'AI Bot' },
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' },
