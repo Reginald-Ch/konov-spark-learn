@@ -627,14 +627,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
+    let multiLineState = { active: false, delim: '' };
     return codeLines.map((line) => {
-      if (!line) return '&nbsp;';
-      const tokens = tokenizeLine(line);
-      return tokens.map(t => {
+      if (!line && !multiLineState.active) return '&nbsp;';
+      const result = tokenizeLine(line || '', multiLineState);
+      multiLineState = result.multiLineState;
+      return result.tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
-      }).join('');
+      }).join('') || '&nbsp;';
     });
   }, [files, activeFile]);
 
