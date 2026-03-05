@@ -1225,13 +1225,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {(() => {
                       const config = extractConfigFromCode(files['main.py']);
                       const isAgent = projectType === 'agent';
+                      const scaffold = PROJECT_SCAFFOLDS[projectType];
                       const defaultName = isAgent ? 'Research Agent' : 'Spark';
                       const defaultTemp = isAgent ? 0.3 : 0.7;
                       const defaultStyle = isAgent ? 'Professional' : 'Friendly';
+                      const defaultGreeting = isAgent
+                        ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+                        : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
+                      const defaultSystemMessage = scaffold.systemPrompt;
                       const missions = [
                         { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaultName && config.botName !== 'AI Bot' },
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
-                        { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' },
+                        { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaultGreeting },
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
@@ -1248,7 +1253,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
                         { emoji: '👋', name: 'Sign-off', done: config.signOff !== '' },
-                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
