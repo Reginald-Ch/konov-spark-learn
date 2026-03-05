@@ -133,7 +133,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
 
     const channel = supabase
       .channel('leaderboard-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'point_events' }, () => debouncedFetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
       .subscribe();
 
     return () => { 
