@@ -492,23 +492,7 @@ const Hackathons = () => {
           {/* BUILD TAB */}
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {hasLiveEvent ? (
-                <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
-              ) : (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="text-center max-w-md">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)', opacity: 0.3 }}>
-                      <Code className="w-10 h-10 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">🔒 IDE Opens When Event Goes Live</h3>
-                    <p className="text-[hsl(var(--discord-text-muted))] mb-6">The Build Studio will unlock once a hackathon event is set to <strong className="text-[hsl(var(--discord-green))]">Live</strong> by the judges. Check back soon!</p>
-                    <Button onClick={() => setActiveTab('hackathons')} variant="outline" className="border-[hsl(var(--discord-light))] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.3)]">
-                      <Trophy className="w-4 h-4 mr-2" />
-                      View Events
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
             </div>
           )}
 
