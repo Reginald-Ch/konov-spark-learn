@@ -38,7 +38,7 @@ interface ParticipantScore {
   rank: number;
 }
 
-export const Leaderboard = () => {
+export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
