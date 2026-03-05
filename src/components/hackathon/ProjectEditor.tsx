@@ -57,23 +57,9 @@ interface Token {
 
 const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
 
-const tokenizeLine = (line: string, inMultiLineString: { active: boolean; delim: string }): { tokens: Token[]; multiLineState: { active: boolean; delim: string } } => {
+const tokenizeLine = (line: string): Token[] => {
   const tokens: Token[] = [];
   let i = 0;
-  // If we're inside a multi-line string from a previous line, consume until closing delimiter
-  if (inMultiLineString.active) {
-    const closeIdx = line.indexOf(inMultiLineString.delim);
-    if (closeIdx === -1) {
-      // Entire line is still inside the multi-line string
-      tokens.push({ type: 'string', value: line });
-      return { tokens, multiLineState: { active: true, delim: inMultiLineString.delim } };
-    } else {
-      const end = closeIdx + inMultiLineString.delim.length;
-      tokens.push({ type: 'string', value: line.slice(0, end) });
-      i = end;
-      // Fall through to parse the rest of the line normally
-    }
-  }
   while (i < line.length) {
     if (line[i] === '#') { tokens.push({ type: 'comment', value: line.slice(i) }); break; }
     if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
@@ -86,16 +72,10 @@ const tokenizeLine = (line: string, inMultiLineString: { active: boolean; delim:
       const triple = line.slice(i, i + 3) === quote.repeat(3);
       const delim = triple ? quote.repeat(3) : quote;
       let end = i + delim.length;
-      let foundClose = false;
       while (end < line.length) {
         if (line[end] === '\\') { end += 2; continue; }
-        if (line.slice(end, end + delim.length) === delim) { end += delim.length; foundClose = true; break; }
+        if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
         end++;
-      }
-      if (!foundClose && triple) {
-        // Multi-line string opens but doesn't close on this line
-        tokens.push({ type: 'string', value: line.slice(i) });
-        return { tokens, multiLineState: { active: true, delim } };
       }
       tokens.push({ type: 'string', value: line.slice(i, end) }); i = end; continue;
     }
@@ -122,7 +102,7 @@ const tokenizeLine = (line: string, inMultiLineString: { active: boolean; delim:
     if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
     tokens.push({ type: 'text', value: line[i] }); i++;
   }
-  return { tokens, multiLineState: { active: false, delim: '' } };
+  return tokens;
 };
 
 const TOKEN_COLORS: Record<Token['type'], string> = {
@@ -173,10 +153,9 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
       if (!match) continue;
       const items: string[] = [];
-      // Quote-aware: match "..." or '...' separately, allowing apostrophes inside double-quoted strings and vice versa
-      const regex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
+      const regex = /["']([^"']+)["']/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) items.push(m[1] ?? m[2]);
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
       return items;
     }
     return [];
@@ -186,10 +165,9 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
       if (!match) continue;
       const result: Record<string, string> = {};
-      // Quote-aware key:value extraction
-      const regex = /(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')\s*:\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')/g;
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) result[m[1] ?? m[2]] = m[3] ?? m[4];
+      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
       return result;
     }
     return {};
@@ -198,8 +176,7 @@ const extractConfigFromCode = (code: string) => {
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return [];
     const pairs: Array<{q: string; a: string}> = [];
-    // Quote-aware: handle apostrophes inside double-quoted values
-    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
+    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     return pairs;
@@ -371,7 +348,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
@@ -418,9 +395,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
-  // Ref to imperatively update textarea without React re-render
-  const skipNextSyncRef = useRef(false);
-
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
@@ -429,100 +403,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
-  // Persist currentProjectId to localStorage
-  useEffect(() => {
-    if (currentProjectId) {
-      localStorage.setItem('forge-current-project-id', currentProjectId);
-    } else {
-      localStorage.removeItem('forge-current-project-id');
-    }
-  }, [currentProjectId]);
-
-  // Load saved project on mount if currentProjectId exists and no initialCode was provided
-  useEffect(() => {
-    if (initialCode || !currentProjectId) return;
-    const loadProject = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('ai_projects')
-          .select('code, template_id, project_name, description')
-          .eq('id', currentProjectId)
-          .single();
-        if (error || !data) {
-          console.warn('Could not load saved project:', error?.message);
-          setCurrentProjectId(null);
-          return;
-        }
-        setFiles(prev => {
-          const next = { ...prev, 'main.py': data.code || prev['main.py'] };
-          if (textareaRef.current && activeFile === 'main.py') {
-            textareaRef.current.value = next['main.py'];
-          }
-          return next;
-        });
-        setSavedFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
-        if (data.project_name) setProjectName(data.project_name);
-        if (data.template_id) {
-          const validType = data.template_id as ProjectType;
-          if (PROJECT_SCAFFOLDS[validType]) setProjectType(validType);
-        }
-        toast.success('📂 Loaded your saved project');
-      } catch (e) {
-        console.warn('Failed to load project:', e);
-      }
-    };
-    loadProject();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Imperatively set textarea when activeFile changes or on mount
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.value = files[activeFile];
-    }
-  }, [activeFile]); // Only on file tab switch — NOT on files changes
-
-  // Also set textarea on initial mount / project load
-  const initialLoadDoneRef = useRef(false);
-  useEffect(() => {
-    if (!initialLoadDoneRef.current && textareaRef.current) {
-      textareaRef.current.value = files[activeFile];
-      initialLoadDoneRef.current = true;
-    }
-  });
-
-  // Helper: update files state AND imperatively sync textarea (for sidebar→code syncs)
-  const setFilesAndTextarea = useCallback((updater: (prev: typeof files) => typeof files) => {
-    setFiles(prev => {
-      const next = updater(prev);
-      // Imperatively update textarea if we're on main.py
-      if (textareaRef.current && activeFile === 'main.py' && next['main.py'] !== prev['main.py']) {
-        const ta = textareaRef.current;
-        const cursorStart = ta.selectionStart;
-        const cursorEnd = ta.selectionEnd;
-        ta.value = next['main.py'];
-        // Restore cursor as close as possible
-        ta.selectionStart = Math.min(cursorStart, next['main.py'].length);
-        ta.selectionEnd = Math.min(cursorEnd, next['main.py'].length);
-      }
-      return next;
-    });
-    skipNextSyncRef.current = true;
-  }, [activeFile]);
-
   // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
   const prevKnowledgeRef = useRef(knowledgeBase);
   useEffect(() => {
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
-    setFilesAndTextarea(prev => {
+    setFiles(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
       const varName = code.match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
       if (tripleRegex.test(code)) {
-        const sanitized = knowledgeBase.replace(/"""/g, '\\"\\"\\"');
-        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${sanitized}"""`) };
+        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${knowledgeBase}"""`) };
       } else if (singleRegex.test(code)) {
         if (knowledgeBase.includes('\n')) {
           return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = """${knowledgeBase}"""`) };
@@ -533,11 +425,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [knowledgeBase, setFilesAndTextarea]);
+  }, [knowledgeBase]);
 
-  // Read knowledge base from code when code changes (only from sidebar syncs, skip if user typed)
+  // Read knowledge base from code when code changes
   useEffect(() => {
-    if (skipNextSyncRef.current) { skipNextSyncRef.current = false; return; }
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
@@ -555,29 +446,27 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
-    setFilesAndTextarea(prev => {
+    setFiles(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
       const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
       if (qaRegex.test(code)) {
-        const escapePy = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
         const pairsStr = validPairs.length === 0 
           ? '[]' 
-          : '[\n' + validPairs.map(p => `    {"q": "${escapePy(p.q)}", "a": "${escapePy(p.a)}"}`).join(',\n') + '\n]';
+          : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
         return { ...prev, 'main.py': code.replace(qaRegex, `${varName} = ${pairsStr}`) };
       }
       return prev;
     });
-  }, [qaData, setFilesAndTextarea]);
+  }, [qaData]);
 
   // Read Q&A pairs from code when code changes
   useEffect(() => {
-    if (skipNextSyncRef.current) return; // already handled
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
     const pairs: QAPair[] = [];
-    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
+    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     const newSerialized = JSON.stringify(pairs);
@@ -592,7 +481,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
-    setFilesAndTextarea(prev => {
+    setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
       if (regex.test(code)) {
@@ -602,11 +491,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [selectedTheme.id, setFilesAndTextarea]);
+  }, [selectedTheme.id]);
 
   // Read theme from code when code changes
   useEffect(() => {
-    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
@@ -624,34 +512,34 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
-    if (prevSystemPromptRef.current === systemPrompt) return;
-    prevSystemPromptRef.current = systemPrompt;
-    setFilesAndTextarea(prev => {
-      const code = prev['main.py'];
-      const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
-      const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-      const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-      if (tripleRegex.test(code)) {
-        const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
-        return { ...prev, 'main.py': updated };
-      } else if (singleRegex.test(code)) {
-        const needsTriple = systemPrompt.includes('\n');
-        if (needsTriple) {
-          const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
+    if (prevSystemPromptRef.current !== systemPrompt) {
+      setFiles(prev => {
+        const code = prev['main.py'];
+        // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
+        const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
+        const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
+        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+        if (tripleRegex.test(code)) {
+          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
           return { ...prev, 'main.py': updated };
-        } else {
-          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
-          return { ...prev, 'main.py': updated };
+        } else if (singleRegex.test(code)) {
+          const needsTriple = systemPrompt.includes('\n');
+          if (needsTriple) {
+            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
+            return { ...prev, 'main.py': updated };
+          } else {
+            const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
+            return { ...prev, 'main.py': updated };
+          }
         }
-      }
-      return prev;
-    });
-  }, [systemPrompt, setFilesAndTextarea]);
+        return prev;
+      });
+      prevSystemPromptRef.current = systemPrompt;
+    }
+  }, [systemPrompt]);
 
-  // Read system prompt from code
   useEffect(() => {
-    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
@@ -670,16 +558,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
     setCapabilities(scaffold.capabilities);
-    const newFiles = {
+    setFiles({
       'main.py': scaffold.main,
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
-    };
-    setFiles(newFiles);
-    // Imperatively update textarea
-    if (textareaRef.current) {
-      textareaRef.current.value = newFiles[activeFile];
-    }
+    });
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
@@ -721,16 +604,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
-    let multiLineState = { active: false, delim: '' };
     return codeLines.map((line) => {
-      if (!line && !multiLineState.active) return '&nbsp;';
-      const result = tokenizeLine(line || '', multiLineState);
-      multiLineState = result.multiLineState;
-      return result.tokens.map(t => {
+      if (!line) return '&nbsp;';
+      const tokens = tokenizeLine(line);
+      return tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
-      }).join('') || '&nbsp;';
+      }).join('');
     });
   }, [files, activeFile]);
 
@@ -1764,7 +1645,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                 <textarea
                   ref={textareaRef}
-                  defaultValue={files[activeFile]}
+                  value={files[activeFile]}
                   onChange={e => updateFile(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
@@ -1774,9 +1655,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const end = target.selectionEnd;
                       const value = target.value;
                       const newValue = value.substring(0, start) + '    ' + value.substring(end);
-                      target.value = newValue;
-                      target.selectionStart = target.selectionEnd = start + 4;
                       updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        target.selectionStart = target.selectionEnd = start + 4;
+                      });
                     }
                   }}
                   spellCheck={false}
