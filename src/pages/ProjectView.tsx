@@ -127,18 +127,88 @@ const ProjectView = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const systemPrompt = useMemo(() => {
-    if (!project) return 'You are a helpful AI assistant.';
-    const match = project.code.match(/SYSTEM_PROMPT\s*=\s*["'](.*)["']/);
-    return match ? match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : 'You are a helpful AI assistant.';
+  // Extract all config variables from the student's Python code
+  const extractConfigFromCode = (code: string) => {
+    const extract = (varName: string, fallback: string = '') => {
+      const tripleMatch = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`));
+      if (tripleMatch) return tripleMatch[1].trim();
+      const tripleMatch2 = code.match(new RegExp(`${varName}\\s*=\\s*'''([\\s\\S]*?)'''`));
+      if (tripleMatch2) return tripleMatch2[1].trim();
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*["'](.*)["']`));
+      return match ? match[1] : fallback;
+    };
+    const extractNumber = (varName: string, fallback: number) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*([\\d.]+)`));
+      return match ? parseFloat(match[1]) : fallback;
+    };
+    const extractBool = (varName: string, fallback: boolean) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*(True|False)`));
+      return match ? match[1] === 'True' : fallback;
+    };
+    const extractList = (varName: string): string[] => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+      if (!match) return [];
+      const items: string[] = [];
+      const regex = /["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      return items;
+    };
+    const extractDict = (varName: string): Record<string, string> => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+      if (!match) return {};
+      const result: Record<string, string> = {};
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      return result;
+    };
+    const extractQAPairs = (): Array<{q: string; a: string}> => {
+      const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
+      if (!match) return [];
+      const pairs: Array<{q: string; a: string}> = [];
+      const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+      return pairs;
+    };
+
+    return {
+      botName: extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot')),
+      botEmoji: extract('BOT_EMOJI', extract('AGENT_EMOJI', '🤖')),
+      greeting: extract('GREETING_MESSAGE', ''),
+      creatorName: extract('CREATOR_NAME', ''),
+      systemPrompt: extract('SYSTEM_PROMPT', 'You are a helpful AI assistant.'),
+      temperature: extractNumber('TEMPERATURE', 0.7),
+      responseStyle: extract('RESPONSE_STYLE', 'Balanced'),
+      maxResponseLength: extract('MAX_RESPONSE_LENGTH', 'medium'),
+      responseFormat: extract('RESPONSE_FORMAT', ''),
+      conversationRules: extractList('CONVERSATION_RULES'),
+      conversationStarters: extractList('CONVERSATION_STARTERS'),
+      easterEggs: extractDict('EASTER_EGGS'),
+      catchphrases: extractList('CATCHPHRASES'),
+      blockedTopics: extractList('BLOCKED_TOPICS'),
+      followUpQuestions: extractBool('FOLLOW_UP_QUESTIONS', true),
+      rememberName: extractBool('REMEMBER_NAME', true),
+      errorMessage: extract('ERROR_MESSAGE', ''),
+      knowledgeBase: extract('KNOWLEDGE_BASE', ''),
+      qaPairs: extractQAPairs(),
+      showReasoning: extractBool('SHOW_REASONING', true),
+      toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+    };
+  };
+
+  const config = useMemo(() => {
+    if (!project) return null;
+    return extractConfigFromCode(project.code);
   }, [project]);
+
+  const systemPrompt = config?.systemPrompt || 'You are a helpful AI assistant.';
 
   const projectTitle = useMemo(() => {
     if (!project) return '';
-    // Try to extract st.title from code
-    const match = project.code.match(/st\.title\(["'](.+?)["']\)/);
-    return match ? match[1] : project.project_name;
-  }, [project]);
+    return config?.botName && config.botName !== 'AI Bot' ? config.botName : project.project_name;
+  }, [project, config]);
 
   const highlightedLines = useMemo(() => {
     if (!project) return [];
@@ -171,9 +241,19 @@ const ProjectView = () => {
   };
 
   const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming) return;
+    if (!chatInput.trim() || isStreaming || !config) return;
     const userMsg = chatInput.trim();
     setChatInput('');
+
+    // Check for easter eggs first
+    const lowerMsg = userMsg.toLowerCase();
+    for (const [trigger, response] of Object.entries(config.easterEggs)) {
+      if (lowerMsg.includes(trigger.toLowerCase())) {
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
+        return;
+      }
+    }
+
     const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
     setChatMessages(newMessages);
     setIsStreaming(true);
@@ -183,6 +263,10 @@ const ProjectView = () => {
         .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+
+      // Merge knowledge from code
+      const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
+      const mergedKnowledge = config.knowledgeBase || undefined;
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -197,6 +281,24 @@ const ProjectView = () => {
             action: 'test-agent',
             systemPrompt,
             messages: history.slice(0, -1),
+            knowledgeBase: mergedKnowledge,
+            qaData: mergedQA,
+            botConfig: {
+              botName: config.botName,
+              botEmoji: config.botEmoji,
+              creatorName: config.creatorName,
+              temperature: config.temperature,
+              responseStyle: config.responseStyle,
+              maxResponseLength: config.maxResponseLength,
+              responseFormat: config.responseFormat,
+              conversationRules: config.conversationRules,
+              catchphrases: config.catchphrases,
+              blockedTopics: config.blockedTopics,
+              followUpQuestions: config.followUpQuestions,
+              rememberName: config.rememberName,
+              showReasoning: config.showReasoning,
+              toolInstructions: config.toolInstructions,
+            },
           }),
         }
       );
@@ -238,7 +340,7 @@ const ProjectView = () => {
       console.error('Chat error:', e);
       setChatMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: '❌ Failed to get a response. Please try again.' };
+        updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
         return updated;
       });
     } finally {
@@ -287,7 +389,7 @@ const ProjectView = () => {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
               style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.2), rgba(0,204,102,0.2))' }}>
-              {typeEmoji}
+              {config?.botEmoji || typeEmoji}
             </div>
             <div>
               <h1 className="text-base font-bold text-white leading-tight">{projectTitle}</h1>
@@ -341,7 +443,7 @@ const ProjectView = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
-            {chatMessages.length === 0 && (
+            {chatMessages.length === 0 && config && (
               <div className="text-center py-16 space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -350,16 +452,19 @@ const ProjectView = () => {
                   className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(0,204,102,0.15))' }}
                 >
-                  <Bot className="w-10 h-10 text-ide-accent" />
+                  <span className="text-4xl">{config.botEmoji}</span>
                 </motion.div>
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">{projectTitle}</h2>
                   <p className="text-sm text-ide-text-muted max-w-sm mx-auto">
-                    {project.description || 'Send a message to start using this AI app!'}
+                    {config.greeting || project.description || 'Send a message to start using this AI app!'}
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {['Hello! What can you do?', 'Help me with something', 'Tell me about yourself'].map(example => (
+                  {(config.conversationStarters.length > 0
+                    ? config.conversationStarters.slice(0, 4)
+                    : ['Hello! What can you do?', 'Help me with something', 'Tell me about yourself']
+                  ).map(example => (
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
