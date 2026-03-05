@@ -282,14 +282,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
-  // Sync theme selection to code's app_theme variable
+  // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
     setFiles(prev => {
       const code = prev['main.py'];
-      // Support both old APP_THEME and new app_theme
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
       if (regex.test(code)) {
         const varName = code.match(/APP_THEME\s*=/) ? 'APP_THEME' : 'app_theme';
@@ -300,7 +299,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     });
   }, [selectedTheme.id]);
 
-  // Read theme from code when code changes (only if user edits app_theme manually)
+  // Read theme from code when code changes
   useEffect(() => {
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
