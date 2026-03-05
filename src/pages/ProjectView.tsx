@@ -116,13 +116,26 @@ const ProjectView = () => {
     if (!id) return;
     const fetchProject = async () => {
       try {
+        // First try published
         const { data, error } = await supabase
           .from('ai_projects')
           .select('*')
           .eq('id', id)
           .eq('is_published', true)
           .single();
-        if (!error && data) setProject(data as Project);
+        if (!error && data) {
+          setProject(data as Project);
+        } else {
+          // Check if project exists but is unpublished
+          const { data: unpub } = await supabase
+            .from('ai_projects')
+            .select('id')
+            .eq('id', id)
+            .single();
+          if (unpub) {
+            setProject({ ...unpub, _unpublished: true } as any);
+          }
+        }
       } catch (e) {
         console.error('Failed to fetch project:', e);
       } finally {

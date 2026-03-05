@@ -1703,7 +1703,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ).map((example, index) => (
                     <button
                       key={`${example}-${index}`}
-                      onClick={() => { setChatInput(example); }}
+                      onClick={() => { handleChatSend(example); }}
                       className="block w-full text-left text-[11px] px-3 py-1.5 rounded bg-ide-border/30 text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text transition-colors"
                     >
                       "{example}"
