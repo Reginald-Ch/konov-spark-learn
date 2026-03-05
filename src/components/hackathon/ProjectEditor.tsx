@@ -616,6 +616,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [systemPrompt]);
 
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
