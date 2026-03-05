@@ -415,12 +415,22 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setFiles(prev => {
         const code = prev['main.py'];
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
-        const regex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-        if (regex.test(code)) {
-          const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const updated = code.replace(regex, `${varName} = "${escaped}"`);
+        const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
+        const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
+        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+        if (tripleRegex.test(code)) {
+          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
           return { ...prev, 'main.py': updated };
+        } else if (singleRegex.test(code)) {
+          const needsTriple = systemPrompt.includes('\n');
+          if (needsTriple) {
+            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
+            return { ...prev, 'main.py': updated };
+          } else {
+            const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
+            return { ...prev, 'main.py': updated };
+          }
         }
         return prev;
       });
