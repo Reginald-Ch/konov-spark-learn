@@ -235,13 +235,13 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "max_tokens": 1024,
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base"],
-  "forge_version": "2.0",
-  "challenges": 15,
+  "forge_version": "3.0",
+  "challenges": 20,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
-forge-sdk>=2.0
+forge-sdk>=3.0
 streamlit>=1.28.0`,
   },
   agent: {
