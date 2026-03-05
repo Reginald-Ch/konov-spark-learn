@@ -546,12 +546,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevQARef = useRef(JSON.stringify(qaData));
   useEffect(() => {
     const serialized = JSON.stringify(qaData);
-    if (isUserTypingRef.current) return;
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
       const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
@@ -564,11 +562,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [qaData]);
+  }, [qaData, setFilesAndTextarea]);
 
-  // Read Q&A pairs from code when code changes (only from non-user sources)
+  // Read Q&A pairs from code when code changes
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return; // already handled
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
