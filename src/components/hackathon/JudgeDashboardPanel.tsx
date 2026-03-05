@@ -464,6 +464,24 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
         </div>
       </div>
 
+      {/* Reset Leaderboard Section */}
+      <div className="bg-red-500/5 rounded-lg border border-red-500/20 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400" /> Reset for New Event
+            </h3>
+            <p className="text-xs text-[hsl(var(--discord-text-muted))] mt-1">
+              Clear all leaderboard scores and unpublished projects to start fresh.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setResetConfirmOpen(true)} 
+            className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white">
+            <Trash2 className="w-3 h-3 mr-1" /> Reset Leaderboard
+          </Button>
+        </div>
+      </div>
+
       {/* Projects to Score */}
       <div>
         <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
