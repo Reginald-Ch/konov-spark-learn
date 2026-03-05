@@ -173,9 +173,10 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
       if (!match) continue;
       const items: string[] = [];
-      const regex = /["']([^"']+)["']/g;
+      // Quote-aware: match "..." or '...' separately, allowing apostrophes inside double-quoted strings and vice versa
+      const regex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1] ?? m[2]);
       return items;
     }
     return [];
@@ -185,9 +186,10 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
       if (!match) continue;
       const result: Record<string, string> = {};
-      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      // Quote-aware key:value extraction
+      const regex = /(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')\s*:\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      while ((m = regex.exec(match[1])) !== null) result[m[1] ?? m[2]] = m[3] ?? m[4];
       return result;
     }
     return {};
@@ -196,7 +198,8 @@ const extractConfigFromCode = (code: string) => {
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return [];
     const pairs: Array<{q: string; a: string}> = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    // Quote-aware: handle apostrophes inside double-quoted values
+    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     return pairs;
