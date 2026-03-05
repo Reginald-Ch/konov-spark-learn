@@ -1635,15 +1635,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
-                  <span className="text-2xl">{extractConfigFromCode(files['main.py']).botEmoji}</span>
+                  <span className="text-2xl">{liveConfig.botEmoji}</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-ide-text mb-1">{extractConfigFromCode(files['main.py']).botName}</p>
-                  <p className="text-[10px] text-ide-text-muted">{extractConfigFromCode(files['main.py']).greeting || 'Edit your code to configure this chatbot!'}</p>
+                  <p className="text-xs font-medium text-ide-text mb-1">{liveConfig.botName}</p>
+                  <p className="text-[10px] text-ide-text-muted">{liveConfig.greeting || 'Edit your code to configure this chatbot!'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  {(extractConfigFromCode(files['main.py']).conversationStarters.length > 0
-                    ? extractConfigFromCode(files['main.py']).conversationStarters.slice(0, 4)
+                  {(liveConfig.conversationStarters.length > 0
+                    ? liveConfig.conversationStarters.slice(0, 4)
                     : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
                   ).map(example => (
                     <button
