@@ -1,102 +1,60 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
-
-## Current State Assessment
-
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
-
-## Critical Fixes
-
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
-
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
-
-**File:** `supabase/config.toml`
-Add:
-
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-
-### 2. Fix Save Flow — Update Requires `author_email` Match
-
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
-
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
-
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
-**File:** `src/pages/Hackathons.tsx`
-
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
-
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
-
-**File:** `supabase/functions/python-ai-assist/index.ts`
-
-- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
+# Plan: Fix Timer, PublishModal Ref Warning, and IDE Reliability
 
-### 8. Polish ProjectView Page — Add Live Demo Chat
+## Issues to Fix
 
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+### 1. CountdownWidget Timer — Should Only Reset via Judge Control
+**Problem**: The `CountdownWidget` in `ProjectEditor.tsx` (line 226) counts UP from a localStorage timestamp (`forge-session-start`). It resets after 24 hours automatically, but should only reset when judges restart/end an event. Currently it has no connection to the hackathon's actual `start_date` from the database.
 
-**File:** `src/pages/ProjectView.tsx`
+**Fix in `ProjectEditor.tsx`**:
+- Accept an optional `hackathonStartDate` prop on `ProjectEditor`
+- Pass the live hackathon's `start_date` from `Hackathons.tsx` into `ProjectEditor`
+- In `CountdownWidget`, accept and use the hackathon start date as the timer origin instead of localStorage
+- Remove the localStorage-based session timer — use the database `start_date` as the single source of truth
+- Timer stops (shows final elapsed time) when the event status changes to `ended`
 
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
+**Fix in `Hackathons.tsx`**:
+- Find the first live hackathon's `start_date` and pass it to `ProjectEditor` as a prop
+- Also pass `hackathonStatus` so the timer knows when to freeze
 
-## Implementation Order
+### 2. PublishModal Ref Warning (Console Error)
+**Problem**: Console shows "Function components cannot be given refs" for `PublishModal`. The `Dialog` component from Radix tries to pass a ref.
 
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+**Fix in `PublishModal.tsx`**:
+- The issue is that `PublishModal` itself is NOT receiving a ref from `ProjectEditor` (line 1782 shows no `ref` prop). The warning comes from Radix `Dialog` internally trying to ref child components. The actual fix: wrap the export with `forwardRef` or restructure to avoid the warning. Since `ProjectEditor` doesn't pass a ref, the simplest fix is to ensure the `Dialog` root doesn't trigger the warning — wrap `PublishModal` in `React.forwardRef`.
 
-## Files Modified
+### 3. Template Key Fix — Explanation and Verification
+**What it does**: In `Hackathons.tsx` line 500, `ProjectEditor` has `key={`${buildTemplate}-${buildKey}`}`. When `buildKey` increments (line 135), React destroys the old `ProjectEditor` and creates a new one, forcing it to read the latest scaffold from `projectScaffolds.ts`. Without this, clicking "Build Chatbot" twice would reuse the stale component.
 
-- `supabase/config.toml`
-- `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
-- `src/pages/ProjectView.tsx`
+**Verify**: The `handleStartBuilding` function (line 131) already increments `buildKey`. This is working correctly. No change needed here.
+
+### 4. Live Preview Chat — Ensure `systemPrompt` State Is Synced
+**Problem**: In `handleChatSend` (line 752), the `systemPrompt` state variable is passed to the edge function. But if the user edited `SYSTEM_MESSAGE` directly in code, the state may lag behind because the code→state sync effect (line 441-453) runs asynchronously.
+
+**Fix**: Use `liveConfig.systemMessage` (extracted from code via regex) instead of the `systemPrompt` state in the edge function call. But `extractConfigFromCode` currently returns `systemMessage` only indirectly. Need to add it.
+
+**Fix in `ProjectEditor.tsx`**:
+- Add `systemMessage` to the `extractConfigFromCode` return object (extract from `SYSTEM_MESSAGE`)
+- In `handleChatSend`, pass `liveConfig.systemMessage` (or fall back to `systemPrompt` state) to the edge function instead of `systemPrompt`
+
+## Files to Change
+
+1. **`src/components/hackathon/ProjectEditor.tsx`**
+   - Add `hackathonStartDate` and `hackathonStatus` props
+   - Refactor `CountdownWidget` to use hackathon start date from props
+   - Add `systemMessage` to `extractConfigFromCode` return
+   - Use `liveConfig.systemMessage` in `handleChatSend` and `handleRun`
+
+2. **`src/pages/Hackathons.tsx`**
+   - Pass first live hackathon's `start_date` and `status` to `ProjectEditor`
+
+3. **`src/components/hackathon/PublishModal.tsx`**
+   - Wrap with `React.forwardRef` to fix the console ref warning
+
+## Result
+- Timer counts from actual event start time, freezes when judges end the event
+- No more console ref warnings
+- Live Preview chat always uses the latest system prompt from the code editor
+- Template switching works reliably via the existing buildKey mechanism
+
