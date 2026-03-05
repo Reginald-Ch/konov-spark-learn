@@ -491,7 +491,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
     const pairs: QAPair[] = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     const newSerialized = JSON.stringify(pairs);
