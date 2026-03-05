@@ -1577,7 +1577,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   msg.role === 'user' 
                     ? { backgroundColor: selectedTheme.accent, color: '#fff' }
                     : msg.role === 'assistant'
-                    ? { backgroundColor: selectedTheme.chat, color: '#e2e8f0' }
+                    ? { backgroundColor: `${selectedTheme.accent}18`, border: `1px solid ${selectedTheme.accent}30`, color: '#e2e8f0' }
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
