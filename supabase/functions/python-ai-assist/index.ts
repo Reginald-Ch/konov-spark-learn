@@ -226,7 +226,7 @@ RULES:
 - Reference THEIR actual values: "Your BOT_NAME is currently..."
 - Be encouraging. Under 150 words.
 - End with a next step for them to try.
-- Reference the 15-challenge system.
+- Reference the 20-challenge system.
 
 PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
 PROMPT: "${systemPrompt || 'not set'}"
