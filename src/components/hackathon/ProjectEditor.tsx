@@ -57,9 +57,23 @@ interface Token {
 
 const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
 
-const tokenizeLine = (line: string): Token[] => {
+const tokenizeLine = (line: string, inMultiLineString: { active: boolean; delim: string }): { tokens: Token[]; multiLineState: { active: boolean; delim: string } } => {
   const tokens: Token[] = [];
   let i = 0;
+  // If we're inside a multi-line string from a previous line, consume until closing delimiter
+  if (inMultiLineString.active) {
+    const closeIdx = line.indexOf(inMultiLineString.delim);
+    if (closeIdx === -1) {
+      // Entire line is still inside the multi-line string
+      tokens.push({ type: 'string', value: line });
+      return { tokens, multiLineState: { active: true, delim: inMultiLineString.delim } };
+    } else {
+      const end = closeIdx + inMultiLineString.delim.length;
+      tokens.push({ type: 'string', value: line.slice(0, end) });
+      i = end;
+      // Fall through to parse the rest of the line normally
+    }
+  }
   while (i < line.length) {
     if (line[i] === '#') { tokens.push({ type: 'comment', value: line.slice(i) }); break; }
     if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
@@ -72,10 +86,16 @@ const tokenizeLine = (line: string): Token[] => {
       const triple = line.slice(i, i + 3) === quote.repeat(3);
       const delim = triple ? quote.repeat(3) : quote;
       let end = i + delim.length;
+      let foundClose = false;
       while (end < line.length) {
         if (line[end] === '\\') { end += 2; continue; }
-        if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
+        if (line.slice(end, end + delim.length) === delim) { end += delim.length; foundClose = true; break; }
         end++;
+      }
+      if (!foundClose && triple) {
+        // Multi-line string opens but doesn't close on this line
+        tokens.push({ type: 'string', value: line.slice(i) });
+        return { tokens, multiLineState: { active: true, delim } };
       }
       tokens.push({ type: 'string', value: line.slice(i, end) }); i = end; continue;
     }
@@ -102,7 +122,7 @@ const tokenizeLine = (line: string): Token[] => {
     if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
     tokens.push({ type: 'text', value: line[i] }); i++;
   }
-  return tokens;
+  return { tokens, multiLineState: { active: false, delim: '' } };
 };
 
 const TOKEN_COLORS: Record<Token['type'], string> = {
