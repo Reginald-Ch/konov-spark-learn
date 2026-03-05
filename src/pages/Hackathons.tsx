@@ -129,7 +129,10 @@ const Hackathons = () => {
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    if (!hasLiveEvent) return;
+    if (!hasLiveEvent) {
+      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
+      return;
+    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setBuildKey(prev => prev + 1);
