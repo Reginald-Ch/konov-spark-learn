@@ -1753,7 +1753,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                 <textarea
                   ref={textareaRef}
-                  value={files[activeFile]}
+                  defaultValue={files[activeFile]}
                   onChange={e => updateFile(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
