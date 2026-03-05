@@ -415,12 +415,22 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       setFiles(prev => {
         const code = prev['main.py'];
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
-        const regex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-        if (regex.test(code)) {
-          const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const updated = code.replace(regex, `${varName} = "${escaped}"`);
+        const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
+        const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
+        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+        if (tripleRegex.test(code)) {
+          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
           return { ...prev, 'main.py': updated };
+        } else if (singleRegex.test(code)) {
+          const needsTriple = systemPrompt.includes('\n');
+          if (needsTriple) {
+            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
+            return { ...prev, 'main.py': updated };
+          } else {
+            const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
+            return { ...prev, 'main.py': updated };
+          }
         }
         return prev;
       });
@@ -430,9 +440,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   useEffect(() => {
     const code = files['main.py'];
-    const match = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
+    const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
+    const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
+    const match = tripleMatch || singleMatch;
     if (match && match[1] !== systemPrompt) {
-      const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
         prevSystemPromptRef.current = unescaped;
         setSystemPrompt(unescaped);
@@ -661,8 +673,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const userMsg = chatInput.trim();
     setChatInput('');
 
-    // Extract config from current code every time (ensures latest edits apply)
-    const config = extractConfigFromCode(files['main.py']);
+    // Use memoized config — always reflects latest code edits
+    const config = liveConfig;
     const lowerMsg = userMsg.toLowerCase();
 
     // 1. Check for easter eggs FIRST (client-side, instant)
@@ -1644,9 +1656,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   {(liveConfig.conversationStarters.length > 0
                     ? liveConfig.conversationStarters.slice(0, 4)
                     : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
-                  ).map(example => (
+                  ).map((example, index) => (
                     <button
-                      key={example}
+                      key={`${example}-${index}`}
                       onClick={() => { setChatInput(example); }}
                       className="block w-full text-left text-[11px] px-3 py-1.5 rounded bg-ide-border/30 text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text transition-colors"
                     >
