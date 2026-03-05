@@ -437,7 +437,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
       const varName = code.match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
       if (tripleRegex.test(code)) {
-        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${knowledgeBase}"""`) };
+        const sanitized = knowledgeBase.replace(/"""/g, '\\"\\"\\"');
+        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${sanitized}"""`) };
       } else if (singleRegex.test(code)) {
         if (knowledgeBase.includes('\n')) {
           return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = """${knowledgeBase}"""`) };
