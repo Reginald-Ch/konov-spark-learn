@@ -90,6 +90,15 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+const THEMES = [
+  { id: 'default', name: 'Default', accent: '#5865F2', bg: '#0d1117', chat: '#161b22' },
+  { id: 'ocean', name: 'Ocean', accent: '#00B4D8', bg: '#0a1628', chat: '#0f2035' },
+  { id: 'forest', name: 'Forest', accent: '#22C55E', bg: '#0a1a0f', chat: '#0f2614' },
+  { id: 'sunset', name: 'Sunset', accent: '#F97316', bg: '#1a0f0a', chat: '#26140f' },
+  { id: 'purple', name: 'Neon', accent: '#A855F7', bg: '#0f0a1a', chat: '#140f26' },
+  { id: 'rose', name: 'Rose', accent: '#F43F5E', bg: '#1a0a0f', chat: '#260f14' },
+];
+
 const ProjectView = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
@@ -195,6 +204,12 @@ const ProjectView = () => {
       qaPairs: extractQAPairs(),
       showReasoning: extractBool('SHOW_REASONING', true),
       toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+      forbiddenWords: extractList('FORBIDDEN_WORDS'),
+      mood: extract('MOOD', 'neutral'),
+      examples: extractList('EXAMPLES'),
+      languageStyle: extract('LANGUAGE_STYLE', 'casual'),
+      signOff: extract('SIGN_OFF', ''),
+      appTheme: extract('APP_THEME', 'default'),
     };
   };
 
