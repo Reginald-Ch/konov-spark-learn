@@ -168,12 +168,12 @@ const CountdownWidget = () => {
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-      isUrgent ? 'bg-red-500/25 border-red-400/60 text-red-300 animate-pulse' 
-      : isWarning ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
+      isLong ? 'bg-amber-500/25 border-amber-400/50 text-amber-300' 
+      : isMedium ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
       : 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
     }`}>
       <Clock className="w-3 h-3" />
-      <span>{String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}</span>
+      <span>{String(elapsed.h).padStart(2,'0')}:{String(elapsed.m).padStart(2,'0')}:{String(elapsed.s).padStart(2,'0')}</span>
     </div>
   );
 };
