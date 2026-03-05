@@ -112,15 +112,15 @@ const tokenizeLine = (line: string): Token[] => {
 
 const TOKEN_COLORS: Record<Token['type'], string> = {
   keyword: 'text-ide-purple',
-  builtin: 'text-ide-yellow',
+  builtin: 'text-ide-cyan',
   string: 'text-ide-green',
   comment: 'text-ide-text-muted italic',
-  decorator: 'text-ide-red',
+  decorator: 'text-ide-purple',
   number: 'text-ide-orange',
-  operator: 'text-ide-cyan',
-  module: 'text-ide-cyan',
-  function_name: 'text-ide-yellow',
-  class_name: 'text-ide-pink',
+  operator: 'text-ide-red',
+  module: 'text-ide-yellow',
+  function_name: 'text-ide-accent',
+  class_name: 'text-ide-yellow',
   text: 'text-ide-text',
 };
 

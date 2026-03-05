@@ -63,27 +63,27 @@ All colors MUST be HSL.
     --discord-text: 210 9% 87%;
     --discord-text-muted: 214 8% 61%;
 
-    /* IDE Dark Teal-Black Theme (HackForge) */
-    --ide-bg: 216 28% 7%;
-    --ide-bg-deep: 220 27% 5%;
-    --ide-sidebar: 215 25% 9%;
-    --ide-editor: 216 28% 7%;
-    --ide-gutter: 216 28% 7%;
-    --ide-border: 215 14% 17%;
-    --ide-border-subtle: 215 14% 11%;
-    --ide-text: 210 80% 72%;
-    --ide-text-muted: 215 55% 55%;
-    --ide-accent: 212 92% 67%;
-    --ide-green: 137 55% 49%;
-    --ide-yellow: 39 80% 49%;
-    --ide-red: 2 80% 64%;
-    --ide-purple: 267 80% 80%;
-    --ide-cyan: 210 80% 74%;
-    --ide-orange: 24 85% 60%;
-    --ide-pink: 330 80% 70%;
-    --ide-line-highlight: 216 28% 11%;
-    --ide-selection: 212 40% 22%;
-    --ide-cursor: 212 92% 67%;
+    /* IDE Atom One Dark Theme */
+    --ide-bg: 220 13% 18%;
+    --ide-bg-deep: 220 13% 15%;
+    --ide-sidebar: 220 13% 16%;
+    --ide-editor: 220 13% 18%;
+    --ide-gutter: 220 13% 18%;
+    --ide-border: 220 13% 23%;
+    --ide-border-subtle: 220 13% 20%;
+    --ide-text: 220 14% 71%;
+    --ide-text-muted: 220 10% 40%;
+    --ide-accent: 221 100% 66%;
+    --ide-green: 95 38% 62%;
+    --ide-yellow: 39 67% 69%;
+    --ide-red: 355 65% 65%;
+    --ide-purple: 286 60% 67%;
+    --ide-cyan: 187 47% 55%;
+    --ide-orange: 29 54% 61%;
+    --ide-pink: 355 65% 65%;
+    --ide-line-highlight: 220 13% 22%;
+    --ide-selection: 220 13% 28%;
+    --ide-cursor: 221 100% 66%;
   }
 }
 
