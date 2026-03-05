@@ -234,7 +234,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       // Find the hackathon to calculate original duration
       const hackathon = hackathons.find(h => h.id === hackathonId);
       const now = new Date();
-      let updatePayload: any = { status: 'live' };
+      let updatePayload: Record<string, string> = { status: 'live' };
       
       if (hackathon) {
         const originalStart = new Date(hackathon.start_date);
