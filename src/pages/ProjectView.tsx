@@ -539,7 +539,7 @@ const ProjectView = () => {
                   ).map(example => (
                     <button
                       key={example}
-                      onClick={() => { setChatInput(example); }}
+                      onClick={() => { handleChatSend(example); }}
                       className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
                       style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
                     >
