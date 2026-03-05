@@ -131,21 +131,27 @@ const ONBOARDING_STEPS = [
 ];
 
 const CountdownWidget = () => {
-  const [timeLeft, setTimeLeft] = useState({ h: 1, m: 30, s: 0 });
+  const [elapsed, setElapsed] = useState({ h: 0, m: 0, s: 0 });
   
   useEffect(() => {
-    const stored = localStorage.getItem('forge-session-end');
-    let endTime: number;
+    // Count UP from when this session started
+    const stored = localStorage.getItem('forge-session-start');
+    let startTime: number;
     if (stored) {
-      endTime = parseInt(stored);
+      startTime = parseInt(stored);
+      // If the stored start time is older than 24 hours, reset it
+      if (Date.now() - startTime > 24 * 60 * 60 * 1000) {
+        startTime = Date.now();
+        localStorage.setItem('forge-session-start', startTime.toString());
+      }
     } else {
-      endTime = Date.now() + 90 * 60 * 1000;
-      localStorage.setItem('forge-session-end', endTime.toString());
+      startTime = Date.now();
+      localStorage.setItem('forge-session-start', startTime.toString());
     }
     
     const tick = () => {
-      const diff = Math.max(0, endTime - Date.now());
-      setTimeLeft({
+      const diff = Math.max(0, Date.now() - startTime);
+      setElapsed({
         h: Math.floor(diff / 3600000),
         m: Math.floor((diff % 3600000) / 60000),
         s: Math.floor((diff % 60000) / 1000),
@@ -156,9 +162,9 @@ const CountdownWidget = () => {
     return () => clearInterval(id);
   }, []);
 
-  const totalSec = timeLeft.h * 3600 + timeLeft.m * 60 + timeLeft.s;
-  const isUrgent = totalSec < 600;
-  const isWarning = totalSec < 1800 && !isUrgent;
+  const totalSec = elapsed.h * 3600 + elapsed.m * 60 + elapsed.s;
+  const isLong = totalSec > 5400; // > 90 min
+  const isMedium = totalSec > 2700 && !isLong; // > 45 min
 
   return (
     <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
