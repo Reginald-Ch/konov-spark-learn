@@ -443,7 +443,7 @@ const ProjectView = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
-            {chatMessages.length === 0 && (
+            {chatMessages.length === 0 && config && (
               <div className="text-center py-16 space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -452,16 +452,19 @@ const ProjectView = () => {
                   className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(0,204,102,0.15))' }}
                 >
-                  <Bot className="w-10 h-10 text-ide-accent" />
+                  <span className="text-4xl">{config.botEmoji}</span>
                 </motion.div>
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">{projectTitle}</h2>
                   <p className="text-sm text-ide-text-muted max-w-sm mx-auto">
-                    {project.description || 'Send a message to start using this AI app!'}
+                    {config.greeting || project.description || 'Send a message to start using this AI app!'}
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {['Hello! What can you do?', 'Help me with something', 'Tell me about yourself'].map(example => (
+                  {(config.conversationStarters.length > 0
+                    ? config.conversationStarters.slice(0, 4)
+                    : ['Hello! What can you do?', 'Help me with something', 'Tell me about yourself']
+                  ).map(example => (
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
