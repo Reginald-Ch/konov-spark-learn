@@ -480,6 +480,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (isUserTypingRef.current) return;
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
+    filesChangeSourceRef.current = 'sync';
     setFiles(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
