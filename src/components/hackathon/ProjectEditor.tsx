@@ -498,6 +498,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Read knowledge base from code when code changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
@@ -533,6 +534,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Read Q&A pairs from code when code changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
@@ -567,6 +569,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Read theme from code when code changes
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
@@ -613,6 +616,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [systemPrompt]);
 
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
