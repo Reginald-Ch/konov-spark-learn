@@ -440,9 +440,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   useEffect(() => {
     const code = files['main.py'];
-    const match = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
+    const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
+    const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
+    const match = tripleMatch || singleMatch;
     if (match && match[1] !== systemPrompt) {
-      const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
         prevSystemPromptRef.current = unescaped;
         setSystemPrompt(unescaped);
