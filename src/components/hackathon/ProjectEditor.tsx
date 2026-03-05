@@ -673,8 +673,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const userMsg = chatInput.trim();
     setChatInput('');
 
-    // Extract config from current code every time (ensures latest edits apply)
-    const config = extractConfigFromCode(files['main.py']);
+    // Use memoized config — always reflects latest code edits
+    const config = liveConfig;
     const lowerMsg = userMsg.toLowerCase();
 
     // 1. Check for easter eggs FIRST (client-side, instant)
