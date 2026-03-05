@@ -475,9 +475,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
       const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
       if (qaRegex.test(code)) {
+        const escapePy = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
         const pairsStr = validPairs.length === 0 
           ? '[]' 
-          : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
+          : '[\n' + validPairs.map(p => `    {"q": "${escapePy(p.q)}", "a": "${escapePy(p.a)}"}`).join(',\n') + '\n]';
         return { ...prev, 'main.py': code.replace(qaRegex, `${varName} = ${pairsStr}`) };
       }
       return prev;
