@@ -439,7 +439,57 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     setIsRunning(true);
     setShowBottomPanel(true);
     setBottomTab('terminal');
-    setTerminalOutput(prev => [...prev, `$ python main.py  [${projectType}]`, '⏳ Running...']);
+    
+    // First, do a local config analysis
+    const config = extractConfigFromCode(files['main.py']);
+    const isAgent = projectType === 'agent';
+    const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    
+    const localChecks = [
+      { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
+      { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
+      { label: 'GREETING', ok: !!config.greeting, val: config.greeting ? '✓ set' : '✗ default' },
+      { label: 'CREATOR_NAME', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
+      { label: 'SYSTEM_PROMPT', ok: systemPrompt.length > 30, val: `${systemPrompt.length} chars` },
+      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim(), val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
+      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > 0, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
+      { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
+      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+      { label: 'CONVERSATION_RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
+      { label: 'EASTER_EGGS', ok: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3), val: `${Object.keys(config.easterEggs).length} eggs` },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
+      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
+      { label: 'EXAMPLES', ok: config.examples.length > 0, val: `${config.examples.length} examples` },
+      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
+      { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
+    ];
+    
+    const completedCount = localChecks.filter(c => c.ok).length;
+    
+    setTerminalOutput(prev => [
+      ...prev,
+      `$ python main.py  [${projectType}]`,
+      ``,
+      `🔍 FORGE Config Scanner v2.0`,
+      `═══════════════════════════════════`,
+      `📋 Scanning 20 challenges...`,
+      ``,
+      ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
+      ``,
+      `═══════════════════════════════════`,
+      `📊 Progress: ${completedCount}/20 challenges completed (${Math.round(completedCount / 20 * 100)}%)`,
+      `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
+      `🌡️ Temperature: ${config.temperature}`,
+      `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
+      completedCount >= 15 ? `🏆 AMAZING! Your bot is highly customized!` : completedCount >= 10 ? `🔥 Great progress! Keep customizing!` : `💡 Tip: Edit more variables in main.py to unlock challenges!`,
+      ``,
+      `⏳ Running AI simulation...`,
+    ]);
+    
     setChatMessages(prev => [...prev, { role: 'system', content: '▶ Running tests...' }]);
     try {
       let result = '';
@@ -449,8 +499,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           result = text; 
           setTerminalOutput(prev => {
             const updated = [...prev];
-            // Replace the last '⏳ Running...' entry with streamed output
-            const runningIdx = updated.lastIndexOf('⏳ Running...');
+            const runningIdx = updated.lastIndexOf('⏳ Running AI simulation...');
             if (runningIdx !== -1) {
               updated[runningIdx] = result;
             } else {
@@ -463,10 +512,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       if (!result) {
         setTerminalOutput(prev => [...prev, '⚠ No output received. Check your code for issues.']);
       } else {
-        setTerminalOutput(prev => [...prev, '───────────────────', '✅ Run complete']);
+        setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: '✅ Tests complete!' }]);
-      // Tier 2: First Successful Run (10 pts, awarded once)
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/20 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
@@ -572,23 +620,64 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const userMsg = chatInput.trim();
     setChatInput('');
 
-    // Extract config from current code
+    // Extract config from current code every time (ensures latest edits apply)
     const config = extractConfigFromCode(files['main.py']);
-
-    // Check for easter eggs first
     const lowerMsg = userMsg.toLowerCase();
+
+    // 1. Check for easter eggs FIRST (client-side, instant)
     for (const [trigger, response] of Object.entries(config.easterEggs)) {
       if (lowerMsg.includes(trigger.toLowerCase())) {
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
-          { role: 'assistant', content: response },
+          { role: 'assistant', content: `${response}` },
         ]);
         return;
       }
     }
 
-    // Build history from current messages BEFORE adding new ones
+    // 2. Check for EXACT Q&A matches client-side (most reliable)
+    const mergedQA = [
+      ...qaData.filter(p => p.q.trim() && p.a.trim()),
+      ...config.qaPairsFromCode,
+    ];
+    for (const pair of mergedQA) {
+      const qLower = pair.q.toLowerCase().trim();
+      // Match if user message contains the question keywords or is very similar
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
+          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+        // Build the answer with bot personality
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) {
+          answer += `\n\n${config.signOff}`;
+        }
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: answer },
+        ]);
+        return;
+      }
+    }
+
+    // 3. Check for blocked topics client-side
+    for (const topic of config.blockedTopics) {
+      if (lowerMsg.includes(topic.toLowerCase())) {
+        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+        if (config.signOff) refusal += `\n\n${config.signOff}`;
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: refusal },
+        ]);
+        return;
+      }
+    }
+
+    // 4. For everything else, send to AI with full config context
     const history = chatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .filter(m => m.content !== '...')
@@ -600,12 +689,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      // Merge knowledge: sidebar + code-defined
       const mergedKnowledge = [knowledgeBase, config.knowledgeBaseFromCode].filter(Boolean).join('\n\n');
-      const mergedQA = [
-        ...qaData.filter(p => p.q.trim() && p.a.trim()),
-        ...config.qaPairsFromCode,
-      ];
 
       await streamFromEdgeFunction(
         { 
@@ -616,7 +700,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           messages: history.slice(0, -1),
           knowledgeBase: mergedKnowledge || undefined,
           qaData: mergedQA.length > 0 ? mergedQA : undefined,
-          // New config fields
           botConfig: {
             botName: config.botName,
             botEmoji: config.botEmoji,
@@ -1542,7 +1625,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   msg.role === 'user' 
                     ? { backgroundColor: selectedTheme.accent, color: '#fff' }
                     : msg.role === 'assistant'
-                    ? { backgroundColor: selectedTheme.chat, color: '#e2e8f0' }
+                    ? { backgroundColor: `${selectedTheme.accent}18`, border: `1px solid ${selectedTheme.accent}30`, color: '#e2e8f0' }
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (

@@ -162,23 +162,31 @@ Format as plain terminal text with emojis. Under 300 words.`;
 ${botConfigContext}
 ${knowledgeContext}
 
-═══ EXECUTION PRIORITY (follow in this exact order) ═══
-1. Q&A PAIRS: If the user's message matches any Q&A pair, use THAT answer. This overrides everything.
-2. KNOWLEDGE BASE: For related questions, use knowledge base as your truth.
-3. BLOCKED TOPICS: Refuse these politely. No exceptions.
-1. Q&A PAIRS: If the user's message matches any Q&A pair, use THAT answer. This overrides everything.
-2. KNOWLEDGE BASE: For related questions, use knowledge base as your truth.
-3. BLOCKED TOPICS: Refuse these politely. No exceptions.
-4. FORBIDDEN WORDS: Never use any forbidden word. Find alternatives.
-5. CONVERSATION RULES: Follow ALL rules in EVERY response. 
-6. CATCHPHRASES: Include at least one per response if configured.
-7. MOOD + LANGUAGE STYLE: Match the configured mood and language style.
-8. RESPONSE STYLE + LENGTH: Strictly match the configured style and length.
-9. SIGN-OFF: If configured, end EVERY response with the sign-off phrase.
-10. FOLLOW-UP QUESTION: End with one if enabled (before sign-off).
-11. PERSONALITY: Stay in character as defined by the system prompt.
+═══ STRICT EXECUTION PRIORITY (follow in this exact order) ═══
 
-You ARE this bot. Never break character. Never mention you are simulating.`;
+1. **Q&A PAIRS (HIGHEST PRIORITY)**: Check EVERY Q&A pair. If the user's message contains keywords from ANY Q, you MUST respond with that exact A verbatim. Check ALL pairs, not just the first one. Even partial keyword matches count. This overrides ALL other instructions.
+
+2. **KNOWLEDGE BASE**: For questions related to knowledge base content, use it as your primary truth. Quote it directly.
+
+3. **BLOCKED TOPICS**: If user asks about a blocked topic, politely refuse and redirect. No exceptions.
+
+4. **FORBIDDEN WORDS**: NEVER use any forbidden word in your response. Find synonyms or alternatives.
+
+5. **CONVERSATION RULES**: Follow ALL rules in EVERY response without exception.
+
+6. **CATCHPHRASES**: Include at least one catchphrase per response if configured. Pick randomly.
+
+7. **MOOD + LANGUAGE STYLE**: Match the configured mood and language style consistently.
+
+8. **RESPONSE STYLE + LENGTH**: Strictly match configured style and length limits.
+
+9. **SIGN-OFF**: If configured, end EVERY response with the exact sign-off phrase.
+
+10. **FOLLOW-UP QUESTION**: End with a relevant follow-up question if enabled (before sign-off).
+
+11. **PERSONALITY**: Stay in character as defined by the system prompt at all times.
+
+CRITICAL: You ARE this bot. Never break character. Never mention "system prompt", "configuration", "Q&A pairs", or that you are simulating anything. Respond naturally as the bot personality.`;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
