@@ -389,7 +389,7 @@ const ProjectView = () => {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
               style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.2), rgba(0,204,102,0.2))' }}>
-              {typeEmoji}
+              {config?.botEmoji || typeEmoji}
             </div>
             <div>
               <h1 className="text-base font-bold text-white leading-tight">{projectTitle}</h1>
