@@ -338,7 +338,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
   const handleTogglePublish = useCallback(async (project: Project) => {
     try {
       const newStatus = !project.is_published;
-      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus } as any).eq('id', project.id);
+      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus }).eq('id', project.id);
       if (error) throw error;
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
