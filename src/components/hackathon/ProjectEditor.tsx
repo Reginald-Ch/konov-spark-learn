@@ -1564,7 +1564,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {(() => {
-            const cfg = extractConfigFromCode(files['main.py']);
+            const cfg = liveConfig;
             const codeKB = cfg.knowledgeBaseFromCode;
             const codeQA = cfg.qaPairsFromCode;
             const totalRules = cfg.conversationRules.length;
