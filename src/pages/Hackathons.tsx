@@ -51,7 +51,7 @@ const Hackathons = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  const [teamsModalOpen, setTeamsModalOpen] = useState(false);
+  
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
