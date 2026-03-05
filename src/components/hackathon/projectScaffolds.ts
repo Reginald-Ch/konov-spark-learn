@@ -197,6 +197,12 @@ LANGUAGE_STYLE = "casual"
 SIGN_OFF = ""
 
 # ═══════════════════════════════════════════════
+# 🎨 APP THEME — Choose your app's color theme
+# Options: "default", "ocean", "forest", "sunset", "purple", "rose"
+# ═══════════════════════════════════════════════
+APP_THEME = "default"
+
+# ═══════════════════════════════════════════════
 # BONUS SETTINGS (already configured!)
 # ═══════════════════════════════════════════════
 FOLLOW_UP_QUESTIONS = True
