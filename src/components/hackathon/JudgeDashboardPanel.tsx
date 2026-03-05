@@ -219,7 +219,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
           judge_name: judgeName,
           feedback: feedback[project.id] || '',
         },
-      } as any);
+      });
       if (error) throw error;
       setSubmittedScores(prev => new Set([...prev, project.id]));
       toast.success(`Score submitted for ${project.project_name}`);
