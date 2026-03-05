@@ -143,7 +143,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
         const key = `forge-scored-${m.event_type}-${finalEmail}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'true');
-          supabase.from('point_events').insert({ participant_email: finalEmail, ...m } as any).then(({ error }) => {
+          supabase.from('point_events').insert({ participant_email: finalEmail, ...m }).then(({ error }) => {
             if (error) console.warn(`point_events ${m.event_type} insert failed:`, error);
           });
         }

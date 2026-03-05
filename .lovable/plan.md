@@ -1,75 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
+
+## Current State Assessment
+
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+
+## Critical Fixes
+
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+
+**File:** `supabase/config.toml`
+Add:
+
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
+```
+
+### 2. Fix Save Flow — Update Requires `author_email` Match
+
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
+
+**File:** `src/components/hackathon/PublishModal.tsx`
+
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Pass `currentProjectId` to `PublishModal`
+
+### 4. Rename Platform to "FORGE"
+
+Update visible branding across the UI.
+
+**Files affected:**
+
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
+
+### 5. Streamline the Student Entry Flow
+
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
+
+**File:** `src/pages/Hackathons.tsx`
+
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+
+### 6. Add Live Preview Interactive Demo Chat
+
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+
+**File:** `supabase/functions/python-ai-assist/index.ts`
+
+- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
-# Bug Report: Remaining Issues Before Platform Launch
 
-## Critical
+### 8. Polish ProjectView Page — Add Live Demo Chat
 
-### 1. `supabase/config.toml` Still Missing `verify_jwt = false`
-The file only contains `project_id = "agkhmqhgaazfhrwnyeoa"`. The previous fix was supposed to add `[functions.python-ai-assist] verify_jwt = false` but it was never applied. Every AI call (Run Tests, Live Preview chat, AI Mentor, Idea-to-Code) will fail with 401 errors in production.
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
 
-**Fix:** Add the function config block to `supabase/config.toml`.
+**File:** `src/pages/ProjectView.tsx`
 
-### 2. Console Warning: `DialogHeader` Cannot Be Given Refs
-The console error `Function components cannot be given refs. Check the render method of PublishModal` fires because `AnimatePresence` in `PublishModal.tsx` (line 168) wraps `motion.div` children that contain `DialogHeader` — a plain function component (not `forwardRef`). Framer Motion's `AnimatePresence` internally clones elements with refs. When `DialogHeader` is nested inside a `motion.div` child of `AnimatePresence`, the Radix Dialog's `Presence` component (not Framer) attempts to attach a ref to `DialogHeader`.
-
-**Fix:** Convert `DialogHeader` in `src/components/ui/dialog.tsx` (line 61) to use `React.forwardRef` so it accepts refs properly. Same for `DialogFooter`.
-
-### 3. Tab Key Doesn't Indent in Code Editor
-Pressing Tab in the `<textarea>` (line 1496) moves focus away instead of inserting spaces. For a coding hackathon, this makes editing painful.
-
-**Fix:** Add an `onKeyDown` handler to the textarea that intercepts Tab, inserts 4 spaces at cursor, and calls `e.preventDefault()`.
-
-## High
-
-### 4. `as any` Casts on `point_events` Inserts
-Three locations bypass TypeScript safety:
-- `ProjectEditor.tsx` line 508, 687
-- `PublishModal.tsx` line 146
-
-If the `point_events` table schema doesn't match the generated types (likely since `metadata` is typed as `jsonb`), these silently break. The `as any` casts hide the real issue.
-
-**Fix:** Remove `as any` casts. Cast only the `metadata` field if needed, or use proper typing.
-
-## Medium
-
-### 5. Switching Project Type Doesn't Reset `currentProjectId`
-When a student switches from Chatbot to Agent via `handleTypeChange` (line 483), the `currentProjectId` is NOT reset to `null`. The next Save will try to update the old chatbot project record with the new agent code, which may succeed silently but creates confusion — the project type label won't match.
-
-**Fix:** Add `setCurrentProjectId(null)` in `handleTypeChange`.
-
-### 6. Save Doesn't Persist `author_name` on Update
-In `executeSave` (line 825), the update payload includes `project_name`, `description`, `code`, `template_id` — but NOT `author_name`. If a student changes their name (e.g., from auto-generated "Student-XXXX" to their real name) and saves, the name change is lost in the database.
-
-**Fix:** Add `author_name: name || authorName` to the update payload.
-
-### 7. `handleViewCode` from Gallery Bypasses Live Gate
-`handleViewCode` (line 143) sets `activeTab` to `'build'` directly without checking `hasLiveEvent`. A student viewing the showcase gallery can click "View Code" and land on the locked Build tab screen, which is confusing.
-
-**Fix:** Either check `hasLiveEvent` and show a toast, or allow viewing code in read-only mode.
-
-## Low
-
-### 8. Conversation Starters Not Rendered in Live Preview
-The code extracts `conversationStarters` from the Python config but they're never rendered as clickable buttons in the IDE's Live Preview chat panel. Students complete Challenge 12 but see no visual feedback.
-
-**Fix:** Render conversation starters as clickable chips above the chat input when `chatMessages` only contains system messages.
-
----
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
 
 ## Implementation Order
-1. Fix `config.toml` — prevents 401s on all AI features
-2. Fix `DialogHeader` forwardRef — eliminates console error
-3. Add Tab key support — critical for coding UX
-4. Reset `currentProjectId` on type switch
-5. Add `author_name` to save update payload
-6. Remove `as any` casts
-7. Guard `handleViewCode` with live check
-8. Render conversation starters (polish)
 
-## Files to Modify
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
+
+## Files Modified
+
 - `supabase/config.toml`
-- `src/components/ui/dialog.tsx`
 - `src/components/hackathon/ProjectEditor.tsx`
 - `src/components/hackathon/PublishModal.tsx`
 - `src/pages/Hackathons.tsx`
-
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`

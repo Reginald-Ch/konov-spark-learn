@@ -141,6 +141,10 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
+    if (!hasLiveEvent) {
+      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
+      return;
+    }
     const confirmed = !buildCode || confirm('This will load new code into the editor. Any unsaved changes will be lost. Continue?');
     if (!confirmed) return;
     setBuildCode(code);

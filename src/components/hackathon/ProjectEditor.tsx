@@ -498,6 +498,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setBottomTab('terminal');
     setAiOutput('');
     setMentorHistory([]);
+    setCurrentProjectId(null);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
     // Tier 1: Project Setup (10 pts, awarded once)
@@ -505,7 +506,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const setupKey = `forge-scored-project_setup-${authorEmail}`;
       if (!localStorage.getItem(setupKey)) {
         localStorage.setItem(setupKey, 'true');
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
       }
     }
   };
@@ -684,7 +685,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
           localStorage.setItem(runKey, 'true');
-          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 10, metadata: { project: projectName } } as any).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 10, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
         }
       }
     } catch (e: any) {
@@ -824,7 +825,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType })
+          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
@@ -1497,6 +1498,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ref={textareaRef}
                   value={files[activeFile]}
                   onChange={e => updateFile(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const end = target.selectionEnd;
+                      const value = target.value;
+                      const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        target.selectionStart = target.selectionEnd = start + 4;
+                      });
+                    }
+                  }}
                   spellCheck={false}
                   className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
                     activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
