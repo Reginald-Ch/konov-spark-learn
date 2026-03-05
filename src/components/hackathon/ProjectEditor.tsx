@@ -1754,7 +1754,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 placeholder="Type a message..."
                 disabled={isStreaming}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
-              <Button size="sm" onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+              <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
                 className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>

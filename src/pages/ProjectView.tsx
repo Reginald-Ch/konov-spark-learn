@@ -605,7 +605,7 @@ const ProjectView = () => {
               className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
               style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
             />
-            <Button onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
+            <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
               className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
               style={{ backgroundColor: theme.accent }}>
               {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
