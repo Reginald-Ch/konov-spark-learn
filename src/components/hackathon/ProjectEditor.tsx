@@ -572,23 +572,64 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const userMsg = chatInput.trim();
     setChatInput('');
 
-    // Extract config from current code
+    // Extract config from current code every time (ensures latest edits apply)
     const config = extractConfigFromCode(files['main.py']);
-
-    // Check for easter eggs first
     const lowerMsg = userMsg.toLowerCase();
+
+    // 1. Check for easter eggs FIRST (client-side, instant)
     for (const [trigger, response] of Object.entries(config.easterEggs)) {
       if (lowerMsg.includes(trigger.toLowerCase())) {
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
-          { role: 'assistant', content: response },
+          { role: 'assistant', content: `${response}` },
         ]);
         return;
       }
     }
 
-    // Build history from current messages BEFORE adding new ones
+    // 2. Check for EXACT Q&A matches client-side (most reliable)
+    const mergedQA = [
+      ...qaData.filter(p => p.q.trim() && p.a.trim()),
+      ...config.qaPairsFromCode,
+    ];
+    for (const pair of mergedQA) {
+      const qLower = pair.q.toLowerCase().trim();
+      // Match if user message contains the question keywords or is very similar
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
+          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+        // Build the answer with bot personality
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) {
+          answer += `\n\n${config.signOff}`;
+        }
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: answer },
+        ]);
+        return;
+      }
+    }
+
+    // 3. Check for blocked topics client-side
+    for (const topic of config.blockedTopics) {
+      if (lowerMsg.includes(topic.toLowerCase())) {
+        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+        if (config.signOff) refusal += `\n\n${config.signOff}`;
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: refusal },
+        ]);
+        return;
+      }
+    }
+
+    // 4. For everything else, send to AI with full config context
     const history = chatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .filter(m => m.content !== '...')
@@ -600,12 +641,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      // Merge knowledge: sidebar + code-defined
       const mergedKnowledge = [knowledgeBase, config.knowledgeBaseFromCode].filter(Boolean).join('\n\n');
-      const mergedQA = [
-        ...qaData.filter(p => p.q.trim() && p.a.trim()),
-        ...config.qaPairsFromCode,
-      ];
 
       await streamFromEdgeFunction(
         { 
@@ -616,7 +652,6 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           messages: history.slice(0, -1),
           knowledgeBase: mergedKnowledge || undefined,
           qaData: mergedQA.length > 0 ? mergedQA : undefined,
-          // New config fields
           botConfig: {
             botName: config.botName,
             botEmoji: config.botEmoji,
