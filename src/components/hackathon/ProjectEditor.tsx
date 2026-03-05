@@ -91,7 +91,12 @@ const tokenizeLine = (line: string): Token[] => {
       const prevTokens = tokens.map(t => t.value.trim()).filter(Boolean);
       const lastKeyword = prevTokens.length > 0 ? prevTokens[prevTokens.length - 1] : '';
       const isAfterImport = lastKeyword === 'from' || lastKeyword === 'import';
-      if (word.includes('.') && isAfterImport) {
+      const isAfterClass = lastKeyword === 'class';
+      if (word === 'self') {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (isAfterClass) {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (word.includes('.') && isAfterImport) {
         tokens.push({ type: 'module', value: word });
       } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
