@@ -117,16 +117,37 @@ serve(async (req) => {
           botConfigContext += `  - ${tool}: ${instruction}\n`;
         }
       }
+
+      // Challenges 16-20: new config fields
+      if (cfg.forbiddenWords && cfg.forbiddenWords.length > 0) {
+        botConfigContext += `\n\n🚯 FORBIDDEN WORDS — NEVER use these words in responses. Find alternatives:\n`;
+        cfg.forbiddenWords.forEach((w: string) => { botConfigContext += `  - "${w}"\n`; });
+      }
+      if (cfg.mood && cfg.mood !== 'neutral') {
+        const moodDesc: Record<string, string> = { "cheerful": "Be upbeat and positive!", "serious": "Be formal, no jokes.", "sarcastic": "Use dry wit.", "mysterious": "Be cryptic...", "energetic": "HIGH ENERGY!", "calm": "Speak softly." };
+        botConfigContext += `\n\n🎭 MOOD: ${cfg.mood.toUpperCase()} — ${moodDesc[cfg.mood] || 'Match this mood.'}`;
+      }
+      if (cfg.examples && cfg.examples.length > 0) {
+        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers like these:\n`;
+        cfg.examples.forEach((ex: string, i: number) => { botConfigContext += `  ${i + 1}. "${ex}"\n`; });
+      }
+      if (cfg.languageStyle && cfg.languageStyle !== 'casual') {
+        const langDesc: Record<string, string> = { "formal": "Proper grammar, sophisticated vocabulary.", "academic": "Write like a professor.", "slang": "Modern internet slang.", "poetic": "Metaphors and imagery.", "storyteller": "Frame as narrative." };
+        botConfigContext += `\n\nLANGUAGE STYLE: ${cfg.languageStyle.toUpperCase()} — ${langDesc[cfg.languageStyle] || cfg.languageStyle}`;
+      }
+      if (cfg.signOff && cfg.signOff.trim()) {
+        botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
+      }
     }
 
     if (action === "run") {
       sysPrompt = `You are a Python code execution simulator for FORGE. The student clicked "Run Tests".
 
 CRITICAL: Read their code and generate realistic terminal output showing:
-1. Loading each variable (bot name, emoji, temperature, style, rules, etc.)
-2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs)
+1. Loading each variable (bot name, emoji, temperature, style, rules, mood, language style, etc.)
+2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs, forbidden words, etc.)
 3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
-4. Challenge completion count (how many of 15 challenges are customized)
+4. Challenge completion count (how many of 20 challenges are customized)
 5. Final status: "✅ All systems ready!"
 
 NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
@@ -145,11 +166,17 @@ ${knowledgeContext}
 1. Q&A PAIRS: If the user's message matches any Q&A pair, use THAT answer. This overrides everything.
 2. KNOWLEDGE BASE: For related questions, use knowledge base as your truth.
 3. BLOCKED TOPICS: Refuse these politely. No exceptions.
-4. CONVERSATION RULES: Follow ALL rules in EVERY response. 
-5. CATCHPHRASES: Include at least one per response if configured.
-6. RESPONSE STYLE + LENGTH: Strictly match the configured style and length.
-7. FOLLOW-UP QUESTION: End with one if enabled.
-8. PERSONALITY: Stay in character as defined by the system prompt.
+1. Q&A PAIRS: If the user's message matches any Q&A pair, use THAT answer. This overrides everything.
+2. KNOWLEDGE BASE: For related questions, use knowledge base as your truth.
+3. BLOCKED TOPICS: Refuse these politely. No exceptions.
+4. FORBIDDEN WORDS: Never use any forbidden word. Find alternatives.
+5. CONVERSATION RULES: Follow ALL rules in EVERY response. 
+6. CATCHPHRASES: Include at least one per response if configured.
+7. MOOD + LANGUAGE STYLE: Match the configured mood and language style.
+8. RESPONSE STYLE + LENGTH: Strictly match the configured style and length.
+9. SIGN-OFF: If configured, end EVERY response with the sign-off phrase.
+10. FOLLOW-UP QUESTION: End with one if enabled (before sign-off).
+11. PERSONALITY: Stay in character as defined by the system prompt.
 
 You ARE this bot. Never break character. Never mention you are simulating.`;
       
@@ -166,24 +193,24 @@ You ARE this bot. Never break character. Never mention you are simulating.`;
 RULES:
 - NEVER write complete solutions. Show small snippets (2-5 lines max).
 - Explain WHY something works.
-- Check which of the 15 challenges are complete vs default.
+- Check which of the 20 challenges are complete vs default.
 - Praise what they did well, then suggest ONE next challenge.
 - Keep under 200 words. Use markdown.
 
 The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
-      userPrompt = `Review this FORGE config. Check which of the 15 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
+      userPrompt = `Review this FORGE config. Check which of the 20 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
 After explaining, say: "Try changing [specific variable] and test in Live Preview!"
-Reference the 15-challenge system. Under 200 words.
+Reference the 20-challenge system. Under 200 words.
 
 Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
       userPrompt = `Explain this config to the student:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "suggest") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
 
-- Check which of 15 challenges are still at default values
+- Check which of 20 challenges are still at default values
 - Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
 - Frame as experiments, not solutions
 - Under 200 words.
@@ -199,7 +226,7 @@ RULES:
 - Reference THEIR actual values: "Your BOT_NAME is currently..."
 - Be encouraging. Under 150 words.
 - End with a next step for them to try.
-- Reference the 15-challenge system.
+- Reference the 20-challenge system.
 
 PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
 PROMPT: "${systemPrompt || 'not set'}"
