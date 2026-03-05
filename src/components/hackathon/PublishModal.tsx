@@ -112,15 +112,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
           .single();
         
         if (error || !updateData) {
-          console.warn('Update failed, inserting new project:', error?.message);
-          const { data: insertData, error: insertError } = await supabase
-            .from('ai_projects')
-            .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 10 })
-            .select('id')
-            .single();
-          if (insertError) throw insertError;
-          resultId = insertData?.id || null;
-          if (resultId && onProjectIdUpdate) onProjectIdUpdate(resultId);
+          console.warn('Update failed for project', currentProjectId, ':', error?.message);
+          toast.error('Could not update existing project. Please try saving again.');
+          setDeployStep('form');
+          return;
         } else {
           resultId = currentProjectId;
         }

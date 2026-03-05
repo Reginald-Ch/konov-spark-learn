@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnimatePresence, motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface Hackathon {
   id: string;
@@ -129,7 +130,10 @@ const Hackathons = () => {
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    if (!hasLiveEvent) return;
+    if (!hasLiveEvent) {
+      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
+      return;
+    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setBuildKey(prev => prev + 1);

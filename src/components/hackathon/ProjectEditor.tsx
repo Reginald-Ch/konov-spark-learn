@@ -352,11 +352,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
-    return stored || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+    if (stored) return stored;
+    const generated = `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+    localStorage.setItem('forge-student-email', generated);
+    return generated;
   });
   const [authorName, setAuthorName] = useState(() => {
     const stored = localStorage.getItem('forge-student-name');
-    return stored || `Student-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    if (stored) return stored;
+    const generated = `Student-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    localStorage.setItem('forge-student-name', generated);
+    return generated;
   });
   const [aiCallCount, setAiCallCount] = useState(0);
 
