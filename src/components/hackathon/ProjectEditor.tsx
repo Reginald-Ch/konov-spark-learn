@@ -825,7 +825,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType })
+          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
