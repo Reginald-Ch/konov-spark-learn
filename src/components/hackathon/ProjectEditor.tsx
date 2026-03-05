@@ -22,6 +22,8 @@ export type { ProjectType } from './projectScaffolds';
 interface ProjectEditorProps {
   initialType?: ProjectType;
   initialCode?: string;
+  hackathonStartDate?: string | null;
+  hackathonStatus?: 'upcoming' | 'live' | 'ended' | null;
 }
 
 interface ChatMessage {
