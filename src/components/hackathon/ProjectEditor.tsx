@@ -118,6 +118,99 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// Extract all config variables from the student's Python code
+// Supports both SCREAMING_CASE and snake_case variable names — pure function at module scope
+const extractConfigFromCode = (code: string) => {
+  const extract = (fallback: string, ...varNames: string[]) => {
+    for (const name of varNames) {
+      const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
+      if (tripleMatch) return tripleMatch[1].trim();
+      const tripleMatch2 = code.match(new RegExp(`${name}\\s*=\\s*'''([\\s\\S]*?)'''`));
+      if (tripleMatch2) return tripleMatch2[1].trim();
+      const match = code.match(new RegExp(`${name}\\s*=\\s*["'](.*)["']`));
+      if (match) return match[1];
+    }
+    return fallback;
+  };
+  const extractNumber = (fallback: number, ...varNames: string[]) => {
+    for (const name of varNames) {
+      const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
+      if (match) return parseFloat(match[1]);
+    }
+    return fallback;
+  };
+  const extractBool = (fallback: boolean, ...varNames: string[]) => {
+    for (const name of varNames) {
+      const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
+      if (match) return match[1] === 'True';
+    }
+    return fallback;
+  };
+  const extractList = (...varNames: string[]): string[] => {
+    for (const name of varNames) {
+      const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+      if (!match) continue;
+      const items: string[] = [];
+      const regex = /["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      return items;
+    }
+    return [];
+  };
+  const extractDict = (...varNames: string[]): Record<string, string> => {
+    for (const name of varNames) {
+      const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+      if (!match) continue;
+      const result: Record<string, string> = {};
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      return result;
+    }
+    return {};
+  };
+  const extractQAPairs = (): Array<{q: string; a: string}> => {
+    const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
+    if (!match) return [];
+    const pairs: Array<{q: string; a: string}> = [];
+    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    let m;
+    while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+    return pairs;
+  };
+
+  return {
+    botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
+    botEmoji: extract('🤖', 'BOT_EMOJI', 'bot_emoji'),
+    greeting: extract('', 'AI_MESSAGE', 'greeting', 'GREETING_MESSAGE'),
+    creatorName: extract('', 'CREATOR_NAME', 'creator'),
+    temperature: extractNumber(0.7, 'TEMPERATURE', 'temperature'),
+    responseStyle: extract('Balanced', 'RESPONSE_STYLE', 'response_style'),
+    maxResponseLength: extract('medium', 'MAX_RESPONSE_LENGTH', 'max_response_length'),
+    responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
+    conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
+    conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
+    easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
+    catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
+    blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
+    followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
+    rememberName: extractBool(true, 'MEMORY_ENABLED', 'memory_enabled', 'REMEMBER_NAME'),
+    errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
+    knowledgeBaseFromCode: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
+    qaPairsFromCode: extractQAPairs(),
+    showReasoning: extractBool(true, 'SHOW_REASONING', 'show_reasoning'),
+    maxThinkingSteps: extractNumber(5, 'MAX_THINKING_STEPS', 'max_thinking_steps'),
+    tools: extractDict('TOOLS', 'tools'),
+    toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
+    forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
+    mood: extract('neutral', 'MOOD', 'mood'),
+    examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
+    languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
+    signOff: extract('', 'SIGN_OFF', 'sign_off'),
+  };
+};
+
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
 type ConfigTab = 'settings' | 'knowledge' | 'theme';
@@ -560,98 +653,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } finally { setIsRunning(false); }
   };
 
-  // Extract all config variables from the student's Python code
-  // Supports both SCREAMING_CASE and snake_case variable names
-  const extractConfigFromCode = (code: string) => {
-    const extract = (fallback: string, ...varNames: string[]) => {
-      for (const name of varNames) {
-        const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
-        if (tripleMatch) return tripleMatch[1].trim();
-        const tripleMatch2 = code.match(new RegExp(`${name}\\s*=\\s*'''([\\s\\S]*?)'''`));
-        if (tripleMatch2) return tripleMatch2[1].trim();
-        const match = code.match(new RegExp(`${name}\\s*=\\s*["'](.*)["']`));
-        if (match) return match[1];
-      }
-      return fallback;
-    };
-    const extractNumber = (fallback: number, ...varNames: string[]) => {
-      for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
-        if (match) return parseFloat(match[1]);
-      }
-      return fallback;
-    };
-    const extractBool = (fallback: boolean, ...varNames: string[]) => {
-      for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
-        if (match) return match[1] === 'True';
-      }
-      return fallback;
-    };
-    const extractList = (...varNames: string[]): string[] => {
-      for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
-        if (!match) continue;
-        const items: string[] = [];
-        const regex = /["']([^"']+)["']/g;
-        let m;
-        while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
-        return items;
-      }
-      return [];
-    };
-    const extractDict = (...varNames: string[]): Record<string, string> => {
-      for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
-        if (!match) continue;
-        const result: Record<string, string> = {};
-        const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
-        let m;
-        while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
-        return result;
-      }
-      return {};
-    };
-    const extractQAPairs = (): Array<{q: string; a: string}> => {
-      const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
-      if (!match) return [];
-      const pairs: Array<{q: string; a: string}> = [];
-      const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
-      let m;
-      while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
-      return pairs;
-    };
-
-    return {
-      botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
-      botEmoji: extract('🤖', 'BOT_EMOJI', 'bot_emoji'),
-      greeting: extract('', 'AI_MESSAGE', 'greeting', 'GREETING_MESSAGE'),
-      creatorName: extract('', 'CREATOR_NAME', 'creator'),
-      temperature: extractNumber(0.7, 'TEMPERATURE', 'temperature'),
-      responseStyle: extract('Balanced', 'RESPONSE_STYLE', 'response_style'),
-      maxResponseLength: extract('medium', 'MAX_RESPONSE_LENGTH', 'max_response_length'),
-      responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
-      conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
-      conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
-      easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
-      catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
-      blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
-      followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
-      rememberName: extractBool(true, 'MEMORY_ENABLED', 'memory_enabled', 'REMEMBER_NAME'),
-      errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
-      knowledgeBaseFromCode: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
-      qaPairsFromCode: extractQAPairs(),
-      showReasoning: extractBool(true, 'SHOW_REASONING', 'show_reasoning'),
-      maxThinkingSteps: extractNumber(5, 'MAX_THINKING_STEPS', 'max_thinking_steps'),
-      tools: extractDict('TOOLS', 'tools'),
-      toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
-      forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
-      mood: extract('neutral', 'MOOD', 'mood'),
-      examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
-      languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
-      signOff: extract('', 'SIGN_OFF', 'sign_off'),
-    };
-  };
+  // Memoized config extraction — single source of truth for the Live Preview
+  const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
 
   const handleChatSend = async () => {
     if (!chatInput.trim() || isStreaming) return;
@@ -1560,7 +1563,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
           </div>
 
           {(() => {
-            const cfg = extractConfigFromCode(files['main.py']);
+            const cfg = liveConfig;
             const codeKB = cfg.knowledgeBaseFromCode;
             const codeQA = cfg.qaPairsFromCode;
             const totalRules = cfg.conversationRules.length;
@@ -1631,15 +1634,15 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
-                  <span className="text-2xl">{extractConfigFromCode(files['main.py']).botEmoji}</span>
+                  <span className="text-2xl">{liveConfig.botEmoji}</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-ide-text mb-1">{extractConfigFromCode(files['main.py']).botName}</p>
-                  <p className="text-[10px] text-ide-text-muted">{extractConfigFromCode(files['main.py']).greeting || 'Edit your code to configure this chatbot!'}</p>
+                  <p className="text-xs font-medium text-ide-text mb-1">{liveConfig.botName}</p>
+                  <p className="text-[10px] text-ide-text-muted">{liveConfig.greeting || 'Edit your code to configure this chatbot!'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  {(extractConfigFromCode(files['main.py']).conversationStarters.length > 0
-                    ? extractConfigFromCode(files['main.py']).conversationStarters.slice(0, 4)
+                  {(liveConfig.conversationStarters.length > 0
+                    ? liveConfig.conversationStarters.slice(0, 4)
                     : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
                   ).map(example => (
                     <button

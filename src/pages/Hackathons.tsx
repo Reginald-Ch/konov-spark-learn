@@ -64,6 +64,7 @@ const Hackathons = () => {
   // Build tab state
   const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
   const [buildTemplate, setBuildTemplate] = useState<ProjectType | undefined>(undefined);
+  const [buildKey, setBuildKey] = useState(0);
 
   // First-time onboarding
   useEffect(() => {
@@ -131,6 +132,7 @@ const Hackathons = () => {
     if (!hasLiveEvent) return;
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
+    setBuildKey(prev => prev + 1);
     setActiveTab('build');
   };
 
@@ -495,7 +497,7 @@ const Hackathons = () => {
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
               {hasLiveEvent ? (
-                <ProjectEditor key={`${buildTemplate}-${buildCode?.slice(0, 20)}`} initialType={buildTemplate} initialCode={buildCode} />
+                <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} />
               ) : (
                 <div className="flex-1 flex items-center justify-center p-8">
                   <div className="text-center max-w-md">

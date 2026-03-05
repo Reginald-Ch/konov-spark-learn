@@ -1,36 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
+
+## Current State Assessment
+
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+
+## Critical Fixes
+
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+
+**File:** `supabase/config.toml`
+Add:
+
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
+```
+
+### 2. Fix Save Flow — Update Requires `author_email` Match
+
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
+
+**File:** `src/components/hackathon/PublishModal.tsx`
+
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Pass `currentProjectId` to `PublishModal`
+
+### 4. Rename Platform to "FORGE"
+
+Update visible branding across the UI.
+
+**Files affected:**
+
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
+
+### 5. Streamline the Student Entry Flow
+
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
+
+**File:** `src/pages/Hackathons.tsx`
+
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+
+### 6. Add Live Preview Interactive Demo Chat
+
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+
+**File:** `supabase/functions/python-ai-assist/index.ts`
+
+- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
-## Plan: Fix IDE Bugs — Template Loading, Live Preview Sync, and Stability
 
-### Problems Identified
+### 8. Polish ProjectView Page — Add Live Demo Chat
 
-1. **Template not refreshing with latest code**: When clicking "Build Chatbot" on the Templates tab, the `ProjectEditor` component key (`chatbot-undefined`) is identical to the previous session, so React reuses the old component instance and never loads the updated scaffold from `projectScaffolds.ts`. The user keeps seeing stale code.
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
 
-2. **`extractConfigFromCode` called 6+ times per render**: Lines 1563, 1634, 1637, 1638, 1641, 1642 each independently call `extractConfigFromCode(files['main.py'])` inline in JSX. This is wasteful and can cause subtle inconsistencies if state changes mid-render.
+**File:** `src/pages/ProjectView.tsx`
 
-3. **PublishModal ref warning**: Console error "Function components cannot be given refs" — the `PublishModal` component needs `React.forwardRef` or the parent needs to stop passing a ref.
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
 
-4. **Live Preview not reflecting code edits immediately**: The challenge tracker and bot info panel (lines 1562-1628) recalculate on render but conversation starters (lines 1641-1642) call `extractConfigFromCode` separately — these should all use a single memoized config.
+## Implementation Order
 
-### Changes
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
 
-**File: `src/components/hackathon/ProjectEditor.tsx`**
+## Files Modified
 
-1. **Add a `useMemo` for config extraction** — Create a single `const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);` and replace all 6+ inline calls with `liveConfig`. This ensures the Live Preview always reflects the latest code edits consistently.
-
-2. **Move `extractConfigFromCode` outside the component** — It's a pure function that doesn't depend on component state, so it should be declared at module scope (before the component) to avoid recreation on every render.
-
-**File: `src/pages/Hackathons.tsx`**
-
-3. **Fix stale template key** — Change the `ProjectEditor` key from `${buildTemplate}-${buildCode?.slice(0, 20)}` to include a timestamp or counter: `${buildTemplate}-${buildCode?.slice(0, 20)}-${buildKey}` where `buildKey` increments each time `handleStartBuilding` is called. This forces React to remount the editor with the latest scaffold code every time the user selects a template.
-
-**File: `src/components/hackathon/PublishModal.tsx`**
-
-4. **Fix ref warning** — Wrap `PublishModal` with `React.forwardRef` or ensure the parent doesn't pass a ref to it (the Dialog component likely expects a ref).
-
-### Result
-- Clicking "Build Chatbot" always loads the latest template from `projectScaffolds.ts`
-- Editing any variable in `main.py` immediately reflects in the Live Preview panel (bot name, emoji, Q&A, theme, etc.)
-- No console warnings about refs
-- Better performance from memoized config extraction
-
+- `supabase/config.toml`
+- `src/components/hackathon/ProjectEditor.tsx`
+- `src/components/hackathon/PublishModal.tsx`
+- `src/pages/Hackathons.tsx`
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`
