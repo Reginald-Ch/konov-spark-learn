@@ -557,7 +557,7 @@ const ProjectView = () => {
             {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
               <div className="flex gap-1 pl-2">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="w-2 h-2 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  <div key={i} className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: theme.accent, animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             )}
@@ -565,17 +565,19 @@ const ProjectView = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t border-ide-border p-3 flex gap-2 bg-ide-bg-deep">
+          <div className="border-t p-3 flex gap-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
             <Input
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleChatSend()}
               placeholder="Type a message..."
               disabled={isStreaming}
-              className="h-10 text-sm border-0 bg-ide-sidebar text-white rounded-full px-4 focus-visible:ring-1 focus-visible:ring-ide-accent"
+              className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
+              style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
             />
             <Button onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
-              className="h-10 w-10 rounded-full flex-shrink-0 bg-ide-accent text-white hover:bg-ide-accent/90 p-0">
+              className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
+              style={{ backgroundColor: theme.accent }}>
               {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </div>
