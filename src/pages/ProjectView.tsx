@@ -241,9 +241,19 @@ const ProjectView = () => {
   };
 
   const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming) return;
+    if (!chatInput.trim() || isStreaming || !config) return;
     const userMsg = chatInput.trim();
     setChatInput('');
+
+    // Check for easter eggs first
+    const lowerMsg = userMsg.toLowerCase();
+    for (const [trigger, response] of Object.entries(config.easterEggs)) {
+      if (lowerMsg.includes(trigger.toLowerCase())) {
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
+        return;
+      }
+    }
+
     const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
     setChatMessages(newMessages);
     setIsStreaming(true);
@@ -253,6 +263,10 @@ const ProjectView = () => {
         .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+
+      // Merge knowledge from code
+      const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
+      const mergedKnowledge = config.knowledgeBase || undefined;
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -267,6 +281,24 @@ const ProjectView = () => {
             action: 'test-agent',
             systemPrompt,
             messages: history.slice(0, -1),
+            knowledgeBase: mergedKnowledge,
+            qaData: mergedQA,
+            botConfig: {
+              botName: config.botName,
+              botEmoji: config.botEmoji,
+              creatorName: config.creatorName,
+              temperature: config.temperature,
+              responseStyle: config.responseStyle,
+              maxResponseLength: config.maxResponseLength,
+              responseFormat: config.responseFormat,
+              conversationRules: config.conversationRules,
+              catchphrases: config.catchphrases,
+              blockedTopics: config.blockedTopics,
+              followUpQuestions: config.followUpQuestions,
+              rememberName: config.rememberName,
+              showReasoning: config.showReasoning,
+              toolInstructions: config.toolInstructions,
+            },
           }),
         }
       );
@@ -308,7 +340,7 @@ const ProjectView = () => {
       console.error('Chat error:', e);
       setChatMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: '❌ Failed to get a response. Please try again.' };
+        updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
         return updated;
       });
     } finally {
