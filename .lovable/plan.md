@@ -1,102 +1,58 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
-
-## Current State Assessment
-
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
-
-## Critical Fixes
-
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
-
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
-
-**File:** `supabase/config.toml`
-Add:
-
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-
-### 2. Fix Save Flow — Update Requires `author_email` Match
-
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
-
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
-
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
-**File:** `src/pages/Hackathons.tsx`
-
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
-
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
-
-**File:** `supabase/functions/python-ai-assist/index.ts`
-
-- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
+# Plan: Build Studio Bug Fixes & Enhancements
 
-### 8. Polish ProjectView Page — Add Live Demo Chat
+## Findings
 
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+### Bug 1: Console Warning — `CountdownTimer` needs `forwardRef` (Critical)
+Console shows: `Function components cannot be given refs. Check the render method of HackathonCard.`
+`CountdownTimer` is a plain function component. When used inside `motion.div` in `HackathonCard`, Radix/Framer attempts ref attachment.
 
-**File:** `src/pages/ProjectView.tsx`
+**Fix:** Convert `CountdownTimer` in `src/components/hackathon/CountdownTimer.tsx` to `React.forwardRef`.
 
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
+### Bug 2: Console Warning — `Leaderboard` needs `forwardRef` (Critical)
+Console shows: `Function components cannot be given refs. Check the render method of Hackathons.`
 
-## Implementation Order
+**Fix:** Convert `Leaderboard` in `src/components/hackathon/Leaderboard.tsx` to `React.forwardRef`.
 
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+### Bug 3: Knowledge Base sidebar data not synced to code (Medium)
+The Knowledge tab lets students add knowledge text and Q&A pairs via the UI sidebar. These are stored in React state (`knowledgeBase`, `qaData`) and passed to the edge function at chat time. However, they are NOT written back into the `main.py` code variables (`KNOWLEDGE_BASE`, `QA_PAIRS`). This means:
+- When a student saves/publishes, only the code is persisted — sidebar knowledge is lost
+- The `ProjectView.tsx` deployed page extracts config from code only — so deployed apps won't have sidebar-added knowledge
+- The Mission Progress bar checks `config.knowledgeBaseFromCode` and `config.qaPairsFromCode` which only read from code, not sidebar state
 
-## Files Modified
+**Fix:** When `knowledgeBase` or `qaData` changes in the sidebar, sync them back into the `main.py` code by updating the `KNOWLEDGE_BASE` and `QA_PAIRS` variables via regex replacement (same pattern as `systemPrompt` sync). This ensures:
+1. Save/Publish persists all knowledge
+2. Deployed `ProjectView` reads it from code
+3. Mission Progress accurately reflects sidebar additions
 
-- `supabase/config.toml`
+### Bug 4: Streaming bounce dots show DURING content streaming (Low)
+Line 1802: `isStreaming` shows bounce dots even while content is already streaming into the last message. The dots appear below the actively-updating assistant message, creating a double indicator.
+
+**Fix:** Only show bounce dots when `isStreaming && chatMessages[chatMessages.length - 1]?.content === '...'` (i.e., before first chunk arrives).
+
+### Bug 5: `Leaderboard` doesn't subscribe to DELETE events (Medium)
+The realtime subscription on line 136 only listens for `INSERT` events. After the Judge uses "Reset Leaderboard" (which deletes all rows), the leaderboard doesn't refresh until manual page reload.
+
+**Fix:** Change `event: 'INSERT'` to `event: '*'` to catch INSERT, UPDATE, and DELETE.
+
+### Bug 6: Mission Progress defaults don't account for Agent template (Low)
+The Mission Progress bar (line 1150) uses chatbot defaults for all checks (e.g., `botName !== 'AI Bot'`, `temperature !== 0.7`). But the Agent template has different defaults (`'Research Agent'`, `0.3`). A student who just loaded the Agent template would see some missions incorrectly marked as complete because the agent defaults differ from the chatbot defaults being checked.
+
+**Fix:** Use type-aware defaults in the mission progress calculation, same as the Live Preview challenge tracker already does (lines 1697-1700).
+
+---
+
+## Implementation Plan
+
+| # | File | Fix |
+|---|------|-----|
+| 1 | `CountdownTimer.tsx` | Convert to `forwardRef` |
+| 2 | `Leaderboard.tsx` | Convert to `forwardRef` + subscribe to `*` events |
+| 3 | `ProjectEditor.tsx` | Sync sidebar knowledge/QA to code, fix streaming dots, fix mission defaults |
+
+## Files to Modify
+- `src/components/hackathon/CountdownTimer.tsx`
+- `src/components/hackathon/Leaderboard.tsx`
 - `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
-- `src/pages/ProjectView.tsx`
+
