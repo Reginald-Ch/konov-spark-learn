@@ -151,6 +151,8 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [deleteEventTarget, setDeleteEventTarget] = useState<Hackathon | null>(null);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('judge-authenticated');
