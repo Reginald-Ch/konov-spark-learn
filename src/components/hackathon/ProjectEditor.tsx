@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -418,13 +418,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
-  // Typing guard: prevents sidebar→code sync effects from fighting the textarea
-  const isUserTypingRef = useRef(false);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Cursor position preservation
-  const cursorPosRef = useRef({ start: 0, end: 0 });
-  // Source tracking: 'user' when typed in textarea, 'sync' when set by sync effects
-  const filesChangeSourceRef = useRef<'user' | 'sync' | 'init'>('init');
+  // Ref to imperatively update textarea without React re-render
+  const skipNextSyncRef = useRef(false);
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
@@ -458,7 +453,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           setCurrentProjectId(null);
           return;
         }
-        setFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
+        setFiles(prev => {
+          const next = { ...prev, 'main.py': data.code || prev['main.py'] };
+          if (textareaRef.current && activeFile === 'main.py') {
+            textareaRef.current.value = next['main.py'];
+          }
+          return next;
+        });
         setSavedFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
         if (data.project_name) setProjectName(data.project_name);
         if (data.template_id) {
@@ -474,14 +475,47 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Imperatively set textarea when activeFile changes or on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+    }
+  }, [activeFile]); // Only on file tab switch — NOT on files changes
+
+  // Also set textarea on initial mount / project load
+  const initialLoadDoneRef = useRef(false);
+  useEffect(() => {
+    if (!initialLoadDoneRef.current && textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+      initialLoadDoneRef.current = true;
+    }
+  });
+
+  // Helper: update files state AND imperatively sync textarea (for sidebar→code syncs)
+  const setFilesAndTextarea = useCallback((updater: (prev: typeof files) => typeof files) => {
+    setFiles(prev => {
+      const next = updater(prev);
+      // Imperatively update textarea if we're on main.py
+      if (textareaRef.current && activeFile === 'main.py' && next['main.py'] !== prev['main.py']) {
+        const ta = textareaRef.current;
+        const cursorStart = ta.selectionStart;
+        const cursorEnd = ta.selectionEnd;
+        ta.value = next['main.py'];
+        // Restore cursor as close as possible
+        ta.selectionStart = Math.min(cursorStart, next['main.py'].length);
+        ta.selectionEnd = Math.min(cursorEnd, next['main.py'].length);
+      }
+      return next;
+    });
+    skipNextSyncRef.current = true;
+  }, [activeFile]);
+
   // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
   const prevKnowledgeRef = useRef(knowledgeBase);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
@@ -499,11 +533,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [knowledgeBase]);
+  }, [knowledgeBase, setFilesAndTextarea]);
 
-  // Read knowledge base from code when code changes (only from non-user sources)
+  // Read knowledge base from code when code changes (only from sidebar syncs, skip if user typed)
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) { skipNextSyncRef.current = false; return; }
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
@@ -518,12 +552,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevQARef = useRef(JSON.stringify(qaData));
   useEffect(() => {
     const serialized = JSON.stringify(qaData);
-    if (isUserTypingRef.current) return;
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
       const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
@@ -536,11 +568,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [qaData]);
+  }, [qaData, setFilesAndTextarea]);
 
-  // Read Q&A pairs from code when code changes (only from non-user sources)
+  // Read Q&A pairs from code when code changes
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return; // already handled
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
@@ -558,11 +590,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
       if (regex.test(code)) {
@@ -572,11 +602,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [selectedTheme.id]);
+  }, [selectedTheme.id, setFilesAndTextarea]);
 
-  // Read theme from code when code changes (only from non-user sources)
+  // Read theme from code when code changes
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
@@ -594,37 +624,34 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
-    if (prevSystemPromptRef.current !== systemPrompt) {
-      filesChangeSourceRef.current = 'sync';
-      setFiles(prev => {
-        const code = prev['main.py'];
-        const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
-        const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-        if (tripleRegex.test(code)) {
-          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
+    if (prevSystemPromptRef.current === systemPrompt) return;
+    prevSystemPromptRef.current = systemPrompt;
+    setFilesAndTextarea(prev => {
+      const code = prev['main.py'];
+      const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
+      const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
+      const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+      if (tripleRegex.test(code)) {
+        const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
+        return { ...prev, 'main.py': updated };
+      } else if (singleRegex.test(code)) {
+        const needsTriple = systemPrompt.includes('\n');
+        if (needsTriple) {
+          const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
           return { ...prev, 'main.py': updated };
-        } else if (singleRegex.test(code)) {
-          const needsTriple = systemPrompt.includes('\n');
-          if (needsTriple) {
-            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
-            return { ...prev, 'main.py': updated };
-          } else {
-            const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
-            return { ...prev, 'main.py': updated };
-          }
+        } else {
+          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
+          return { ...prev, 'main.py': updated };
         }
-        return prev;
-      });
-      prevSystemPromptRef.current = systemPrompt;
-    }
-  }, [systemPrompt]);
+      }
+      return prev;
+    });
+  }, [systemPrompt, setFilesAndTextarea]);
 
-  // Read system prompt from code (only from non-user sources)
+  // Read system prompt from code
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
@@ -643,11 +670,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
     setCapabilities(scaffold.capabilities);
-    setFiles({
+    const newFiles = {
       'main.py': scaffold.main,
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
-    });
+    };
+    setFiles(newFiles);
+    // Imperatively update textarea
+    if (textareaRef.current) {
+      textareaRef.current.value = newFiles[activeFile];
+    }
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
@@ -676,25 +708,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
-    // Save cursor position before state update
-    const textarea = textareaRef.current;
-    if (textarea) {
-      cursorPosRef.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
-    }
-    isUserTypingRef.current = true;
-    filesChangeSourceRef.current = 'user';
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => { isUserTypingRef.current = false; }, 800);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
   };
-
-  // Restore cursor position after every render when user is actively typing
-  useLayoutEffect(() => {
-    if (isUserTypingRef.current && textareaRef.current && activeFile === 'main.py') {
-      textareaRef.current.selectionStart = cursorPosRef.current.start;
-      textareaRef.current.selectionEnd = cursorPosRef.current.end;
-    }
-  });
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
@@ -1749,7 +1764,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                 <textarea
                   ref={textareaRef}
-                  value={files[activeFile]}
+                  defaultValue={files[activeFile]}
                   onChange={e => updateFile(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
@@ -1759,10 +1774,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const end = target.selectionEnd;
                       const value = target.value;
                       const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                      target.value = newValue;
+                      target.selectionStart = target.selectionEnd = start + 4;
                       updateFile(newValue);
-                      requestAnimationFrame(() => {
-                        target.selectionStart = target.selectionEnd = start + 4;
-                      });
                     }
                   }}
                   spellCheck={false}
