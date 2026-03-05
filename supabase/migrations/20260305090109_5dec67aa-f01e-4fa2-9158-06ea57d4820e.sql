@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can delete point events" ON public.point_events FOR DELETE USING (true);

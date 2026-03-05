@@ -151,6 +151,8 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [deleteEventTarget, setDeleteEventTarget] = useState<Hackathon | null>(null);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('judge-authenticated');
@@ -219,7 +221,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
           judge_name: judgeName,
           feedback: feedback[project.id] || '',
         },
-      } as any);
+      });
       if (error) throw error;
       setSubmittedScores(prev => new Set([...prev, project.id]));
       toast.success(`Score submitted for ${project.project_name}`);
@@ -234,7 +236,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       // Find the hackathon to calculate original duration
       const hackathon = hackathons.find(h => h.id === hackathonId);
       const now = new Date();
-      let updatePayload: any = { status: 'live' };
+      let updatePayload: Record<string, string> = { status: 'live' };
       
       if (hackathon) {
         const originalStart = new Date(hackathon.start_date);
@@ -255,7 +257,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
 
   const handleEndHackathon = useCallback(async (hackathonId: string) => {
     try {
-      const { error } = await supabase.from('hackathons').update({ status: 'ended' } as any).eq('id', hackathonId);
+      const { error } = await supabase.from('hackathons').update({ status: 'ended' }).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon ended');
       fetchData();
@@ -302,11 +304,11 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       };
 
       if (editingEventId) {
-        const { error } = await supabase.from('hackathons').update(payload as any).eq('id', editingEventId);
+        const { error } = await supabase.from('hackathons').update(payload).eq('id', editingEventId);
         if (error) throw error;
         toast.success('Event updated');
       } else {
-        const { error } = await supabase.from('hackathons').insert(payload as any);
+        const { error } = await supabase.from('hackathons').insert(payload);
         if (error) throw error;
         toast.success('Event created');
       }
@@ -338,12 +340,37 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
   const handleTogglePublish = useCallback(async (project: Project) => {
     try {
       const newStatus = !project.is_published;
-      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus } as any).eq('id', project.id);
+      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus }).eq('id', project.id);
       if (error) throw error;
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
     } catch (e) { toast.error('Failed to update project status'); }
   }, []);
+
+  const handleResetLeaderboard = useCallback(async () => {
+    setIsResetting(true);
+    try {
+      const { error } = await supabase.from('point_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('forge-scored-')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      setSubmittedScores(new Set());
+      setScores({});
+      setFeedback({});
+      setResetConfirmOpen(false);
+      toast.success('Leaderboard reset! All scores cleared.');
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to reset leaderboard');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [fetchData]);
 
   const handleScoreChange = useCallback((id: string, val: number) => {
     setScores(prev => ({ ...prev, [id]: val }));
@@ -459,6 +486,24 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
               </Button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Reset Leaderboard Section */}
+      <div className="bg-red-500/5 rounded-lg border border-red-500/20 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400" /> Reset for New Event
+            </h3>
+            <p className="text-xs text-[hsl(var(--discord-text-muted))] mt-1">
+              Clear all leaderboard scores and unpublished projects to start fresh.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setResetConfirmOpen(true)} 
+            className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white">
+            <Trash2 className="w-3 h-3 mr-1" /> Reset Leaderboard
+          </Button>
         </div>
       </div>
 
@@ -589,6 +634,27 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
           <div className="flex gap-2 mt-2">
             <Button variant="ghost" onClick={() => setDeleteEventTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
             <Button onClick={handleDeleteEvent} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Leaderboard Confirmation */}
+      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-red-400" /> Reset Leaderboard
+            </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              This will permanently delete ALL scores and point events. Students will need to re-earn points. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setResetConfirmOpen(false)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+            <Button onClick={handleResetLeaderboard} disabled={isResetting} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+              {isResetting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Reset All Scores
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
