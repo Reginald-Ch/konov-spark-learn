@@ -90,6 +90,15 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+const THEMES = [
+  { id: 'default', name: 'Default', accent: '#5865F2', bg: '#0d1117', chat: '#161b22' },
+  { id: 'ocean', name: 'Ocean', accent: '#00B4D8', bg: '#0a1628', chat: '#0f2035' },
+  { id: 'forest', name: 'Forest', accent: '#22C55E', bg: '#0a1a0f', chat: '#0f2614' },
+  { id: 'sunset', name: 'Sunset', accent: '#F97316', bg: '#1a0f0a', chat: '#26140f' },
+  { id: 'purple', name: 'Neon', accent: '#A855F7', bg: '#0f0a1a', chat: '#140f26' },
+  { id: 'rose', name: 'Rose', accent: '#F43F5E', bg: '#1a0a0f', chat: '#260f14' },
+];
+
 const ProjectView = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
@@ -195,6 +204,12 @@ const ProjectView = () => {
       qaPairs: extractQAPairs(),
       showReasoning: extractBool('SHOW_REASONING', true),
       toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+      forbiddenWords: extractList('FORBIDDEN_WORDS'),
+      mood: extract('MOOD', 'neutral'),
+      examples: extractList('EXAMPLES'),
+      languageStyle: extract('LANGUAGE_STYLE', 'casual'),
+      signOff: extract('SIGN_OFF', ''),
+      appTheme: extract('APP_THEME', 'default'),
     };
   };
 
@@ -202,6 +217,11 @@ const ProjectView = () => {
     if (!project) return null;
     return extractConfigFromCode(project.code);
   }, [project]);
+
+  const theme = useMemo(() => {
+    if (!config) return THEMES[0];
+    return THEMES.find(t => t.id === config.appTheme) || THEMES[0];
+  }, [config]);
 
   const systemPrompt = config?.systemPrompt || 'You are a helpful AI assistant.';
 
@@ -244,9 +264,9 @@ const ProjectView = () => {
     if (!chatInput.trim() || isStreaming || !config) return;
     const userMsg = chatInput.trim();
     setChatInput('');
-
-    // Check for easter eggs first
     const lowerMsg = userMsg.toLowerCase();
+
+    // 1. Check for easter eggs (client-side, instant)
     for (const [trigger, response] of Object.entries(config.easterEggs)) {
       if (lowerMsg.includes(trigger.toLowerCase())) {
         setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
@@ -254,6 +274,32 @@ const ProjectView = () => {
       }
     }
 
+    // 2. Client-side Q&A matching (reliable, no AI needed)
+    for (const pair of config.qaPairs) {
+      const qLower = pair.q.toLowerCase().trim();
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
+          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) answer += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
+        return;
+      }
+    }
+
+    // 3. Blocked topics (client-side)
+    for (const topic of config.blockedTopics) {
+      if (lowerMsg.includes(topic.toLowerCase())) {
+        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+        if (config.signOff) refusal += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: refusal }]);
+        return;
+      }
+    }
+
+    // 4. AI-powered response for everything else
     const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
     setChatMessages(newMessages);
     setIsStreaming(true);
@@ -264,7 +310,6 @@ const ProjectView = () => {
         .map(m => ({ role: m.role, content: m.content }));
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      // Merge knowledge from code
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
 
@@ -298,6 +343,11 @@ const ProjectView = () => {
               rememberName: config.rememberName,
               showReasoning: config.showReasoning,
               toolInstructions: config.toolInstructions,
+              forbiddenWords: config.forbiddenWords,
+              mood: config.mood,
+              examples: config.examples,
+              languageStyle: config.languageStyle,
+              signOff: config.signOff,
             },
           }),
         }
@@ -376,19 +426,20 @@ const ProjectView = () => {
   const codeLines = project.code.split('\n');
 
   return (
-    <div className="min-h-screen bg-ide-bg flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.bg }}>
       <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} />
 
       {/* ── App-like Header ── */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex-shrink-0 border-b border-ide-border bg-ide-bg-deep"
+        className="flex-shrink-0 border-b"
+        style={{ backgroundColor: theme.chat, borderColor: `${theme.accent}20` }}
       >
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
-              style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.2), rgba(0,204,102,0.2))' }}>
+              style={{ background: `${theme.accent}20` }}>
               {config?.botEmoji || typeEmoji}
             </div>
             <div>
@@ -421,7 +472,8 @@ const ProjectView = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="px-4 py-3 border-b border-ide-border/50"
+            className="px-4 py-3 border-b"
+            style={{ borderColor: `${theme.accent}15` }}
           >
             <p className="text-sm text-ide-text-muted">{project.description}</p>
           </motion.div>
@@ -435,10 +487,13 @@ const ProjectView = () => {
           className="flex-1 flex flex-col min-h-0"
         >
           {/* Chat Header */}
-          <div className="px-4 py-2.5 border-b border-ide-border/50 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#00CC66] animate-pulse" />
+          <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ borderColor: `${theme.accent}15` }}>
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
             <span className="text-xs font-bold text-white uppercase tracking-wider">Live AI Demo</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00CC66]/15 text-[#00CC66] border border-[#00CC66]/30 ml-auto">Online</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto"
+              style={{ backgroundColor: `${theme.accent}15`, color: theme.accent, border: `1px solid ${theme.accent}30` }}>
+              Online
+            </span>
           </div>
 
           {/* Messages */}
@@ -450,7 +505,7 @@ const ProjectView = () => {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.3 }}
                   className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(0,204,102,0.15))' }}
+                  style={{ background: `${theme.accent}15` }}
                 >
                   <span className="text-4xl">{config.botEmoji}</span>
                 </motion.div>
@@ -468,7 +523,8 @@ const ProjectView = () => {
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
-                      className="text-xs px-3 py-2 rounded-full bg-ide-sidebar border border-ide-border text-ide-text-muted hover:text-white hover:border-ide-accent transition-all"
+                      className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
+                      style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
                     >
                       {example}
                     </button>
@@ -483,11 +539,13 @@ const ProjectView = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-ide-accent text-white rounded-br-md'
-                    : 'bg-ide-sidebar text-ide-text rounded-bl-md'
-                }`}>
+                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+                  style={
+                    msg.role === 'user'
+                      ? { backgroundColor: theme.accent, color: '#fff', borderBottomRightRadius: '4px' }
+                      : { backgroundColor: `${theme.accent}18`, border: `1px solid ${theme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
+                  }
+                >
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -499,7 +557,7 @@ const ProjectView = () => {
             {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
               <div className="flex gap-1 pl-2">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="w-2 h-2 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  <div key={i} className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: theme.accent, animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             )}
@@ -507,17 +565,19 @@ const ProjectView = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t border-ide-border p-3 flex gap-2 bg-ide-bg-deep">
+          <div className="border-t p-3 flex gap-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
             <Input
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleChatSend()}
               placeholder="Type a message..."
               disabled={isStreaming}
-              className="h-10 text-sm border-0 bg-ide-sidebar text-white rounded-full px-4 focus-visible:ring-1 focus-visible:ring-ide-accent"
+              className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
+              style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
             />
             <Button onClick={handleChatSend} disabled={isStreaming || !chatInput.trim()}
-              className="h-10 w-10 rounded-full flex-shrink-0 bg-ide-accent text-white hover:bg-ide-accent/90 p-0">
+              className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
+              style={{ backgroundColor: theme.accent }}>
               {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </div>
