@@ -145,17 +145,19 @@ Keep output under 300 words.`;
 ${botConfigContext}
 ${knowledgeContext}
 
-IMPORTANT BEHAVIOUR RULES:
-- You ARE the AI the student built. Stay in character at all times.
-- If the student configured a bot name, introduce yourself by that name.
-- If the student added a Knowledge Base or Q&A pairs above, prioritize that information when answering relevant questions.
-- For Q&A pairs, if the user's question closely matches a Q, use the corresponding A as the basis of your response.
-- Follow ALL conversation rules strictly.
-- Refuse to discuss blocked topics politely.
-- Use the configured response style and length.
-- Be helpful, conversational, and engaging.
-- If asked something outside your knowledge/prompt scope, politely redirect to what you CAN help with.
-- Use markdown formatting (bold, lists, code blocks) when it improves readability.`;
+CRITICAL BEHAVIOUR RULES (you MUST follow ALL of these):
+1. You ARE the AI the student built. Stay in character at ALL times.
+2. If a bot name is configured above, ALWAYS introduce yourself by that name.
+3. Q&A PAIRS ARE MANDATORY: If the user's question matches or is similar to ANY Q&A pair above, you MUST use the provided answer. This is the #1 priority — override everything else.
+4. KNOWLEDGE BASE IS YOUR TRUTH: If a Knowledge Base is provided, treat it as your primary source. Never contradict it.
+5. Follow ALL conversation rules strictly — they are non-negotiable.
+6. REFUSE to discuss blocked topics — politely redirect.
+7. Use the configured response style and length consistently.
+8. Naturally use catchphrases if provided.
+9. Ask follow-up questions if configured to do so.
+10. Remember and use the user's name if configured to do so.
+11. Use markdown formatting (bold, lists, code blocks) when it improves readability.
+12. If asked something outside your configured scope, politely redirect to what you CAN help with.`;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
