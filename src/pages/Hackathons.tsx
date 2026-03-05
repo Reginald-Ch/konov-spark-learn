@@ -231,7 +231,6 @@ const Hackathons = () => {
                     key={hackathon.id}
                     hackathon={hackathon}
                     onRegister={handleRegister}
-                    onViewTeams={handleViewTeams}
                     onSubmitProject={handleSubmitProject}
                   />
                 ))}
