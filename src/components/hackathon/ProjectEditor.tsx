@@ -672,11 +672,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    // Save cursor position before state update
+    const textarea = textareaRef.current;
+    if (textarea) {
+      cursorPosRef.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
+    }
     isUserTypingRef.current = true;
+    filesChangeSourceRef.current = 'user';
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => { isUserTypingRef.current = false; }, 300);
+    typingTimeoutRef.current = setTimeout(() => { isUserTypingRef.current = false; }, 800);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
   };
+
+  // Restore cursor position after every render when user is actively typing
+  useLayoutEffect(() => {
+    if (isUserTypingRef.current && textareaRef.current && activeFile === 'main.py') {
+      textareaRef.current.selectionStart = cursorPosRef.current.start;
+      textareaRef.current.selectionEnd = cursorPosRef.current.end;
+    }
+  });
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
