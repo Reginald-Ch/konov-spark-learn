@@ -347,6 +347,31 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
     } catch (e) { toast.error('Failed to update project status'); }
   }, []);
 
+  const handleResetLeaderboard = useCallback(async () => {
+    setIsResetting(true);
+    try {
+      const { error } = await supabase.from('point_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('forge-scored-')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      setSubmittedScores(new Set());
+      setScores({});
+      setFeedback({});
+      setResetConfirmOpen(false);
+      toast.success('Leaderboard reset! All scores cleared.');
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to reset leaderboard');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [fetchData]);
+
   const handleScoreChange = useCallback((id: string, val: number) => {
     setScores(prev => ({ ...prev, [id]: val }));
   }, []);
