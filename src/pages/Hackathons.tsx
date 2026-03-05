@@ -113,10 +113,6 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setRegistrationModalOpen(true); }
   };
 
-  const handleViewTeams = (hackathonId: string) => {
-    const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) { setSelectedHackathon(hackathon); setTeamsModalOpen(true); }
-  };
 
   const handleSubmitProject = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
