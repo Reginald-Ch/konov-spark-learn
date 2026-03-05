@@ -210,6 +210,7 @@ const extractConfigFromCode = (code: string) => {
     examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
+    systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
   };
 };
 
