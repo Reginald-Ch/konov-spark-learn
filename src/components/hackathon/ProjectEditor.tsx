@@ -120,6 +120,7 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   operator: 'text-ide-cyan',
   module: 'text-ide-cyan',
   function_name: 'text-ide-yellow',
+  class_name: 'text-ide-pink',
   text: 'text-ide-text',
 };
 
