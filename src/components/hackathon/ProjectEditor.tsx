@@ -618,37 +618,34 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
-    if (prevSystemPromptRef.current !== systemPrompt) {
-      filesChangeSourceRef.current = 'sync';
-      setFiles(prev => {
-        const code = prev['main.py'];
-        const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
-        const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-        if (tripleRegex.test(code)) {
-          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
+    if (prevSystemPromptRef.current === systemPrompt) return;
+    prevSystemPromptRef.current = systemPrompt;
+    setFilesAndTextarea(prev => {
+      const code = prev['main.py'];
+      const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
+      const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
+      const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+      if (tripleRegex.test(code)) {
+        const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
+        return { ...prev, 'main.py': updated };
+      } else if (singleRegex.test(code)) {
+        const needsTriple = systemPrompt.includes('\n');
+        if (needsTriple) {
+          const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
           return { ...prev, 'main.py': updated };
-        } else if (singleRegex.test(code)) {
-          const needsTriple = systemPrompt.includes('\n');
-          if (needsTriple) {
-            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
-            return { ...prev, 'main.py': updated };
-          } else {
-            const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
-            return { ...prev, 'main.py': updated };
-          }
+        } else {
+          const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
+          return { ...prev, 'main.py': updated };
         }
-        return prev;
-      });
-      prevSystemPromptRef.current = systemPrompt;
-    }
-  }, [systemPrompt]);
+      }
+      return prev;
+    });
+  }, [systemPrompt, setFilesAndTextarea]);
 
-  // Read system prompt from code (only from non-user sources)
+  // Read system prompt from code
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
