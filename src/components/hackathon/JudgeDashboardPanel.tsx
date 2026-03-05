@@ -302,11 +302,11 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       };
 
       if (editingEventId) {
-        const { error } = await supabase.from('hackathons').update(payload as any).eq('id', editingEventId);
+        const { error } = await supabase.from('hackathons').update(payload).eq('id', editingEventId);
         if (error) throw error;
         toast.success('Event updated');
       } else {
-        const { error } = await supabase.from('hackathons').insert(payload as any);
+        const { error } = await supabase.from('hackathons').insert(payload);
         if (error) throw error;
         toast.success('Event created');
       }
