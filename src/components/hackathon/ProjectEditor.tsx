@@ -1749,7 +1749,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     aria-hidden="true"
                   >
                     {highlightedContent.map((line, i) => (
-                      <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
+                      <div key={i} className={i === cursorLine ? 'bg-ide-line-highlight' : ''} dangerouslySetInnerHTML={{ __html: line }} />
                     ))}
                   </div>
                 )}
