@@ -1757,7 +1757,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <textarea
                   ref={textareaRef}
                   value={files[activeFile]}
-                  onChange={e => updateFile(e.target.value)}
+                  onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
                       e.preventDefault();
@@ -1769,9 +1769,31 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       updateFile(newValue);
                       requestAnimationFrame(() => {
                         target.selectionStart = target.selectionEnd = start + 4;
+                        updateCursorInfo(target);
+                      });
+                    }
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const pos = target.selectionStart;
+                      const value = target.value;
+                      const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
+                      const currentLine = value.slice(lineStart, pos);
+                      const indent = currentLine.match(/^(\s*)/)?.[1] || '';
+                      const trimmedLine = currentLine.trimEnd();
+                      const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
+                      const insertion = '\n' + indent + extraIndent;
+                      const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        const newPos = pos + insertion.length;
+                        target.selectionStart = target.selectionEnd = newPos;
+                        updateCursorInfo(target);
                       });
                     }
                   }}
+                  onClick={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
+                  onSelect={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
                   spellCheck={false}
                   className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
                     activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
