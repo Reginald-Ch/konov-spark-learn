@@ -607,19 +607,122 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     toast.success('Copied!');
   }, [files, activeFile]);
 
+  const [cursorLine, setCursorLine] = useState(0);
+  const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
+
+  const updateCursorInfo = useCallback((target: HTMLTextAreaElement) => {
+    const pos = target.selectionStart;
+    const textBefore = target.value.substring(0, pos);
+    const line = textBefore.split('\n').length - 1;
+    setCursorLine(line);
+
+    // Bracket matching
+    const code = target.value;
+    const OPEN = '([{';
+    const CLOSE = ')]}';
+    const ch = code[pos] || '';
+    const chBefore = pos > 0 ? code[pos - 1] : '';
+    let bracketPos = -1;
+    let isOpen = false;
+    if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
+    else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
+    else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
+    else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
+
+    if (bracketPos >= 0) {
+      const bracket = code[bracketPos];
+      const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
+      const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
+      let depth = 0;
+      if (isOpen) {
+        for (let j = bracketPos; j < code.length; j++) {
+          if (code[j] === bracket) depth++;
+          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
+        }
+      } else {
+        for (let j = bracketPos; j >= 0; j--) {
+          if (code[j] === bracket) depth++;
+          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+        }
+      }
+    }
+    setMatchedBrackets(null);
+  }, []);
+
+  // Convert matched bracket positions to line/col
+  const bracketHighlights = useMemo(() => {
+    if (!matchedBrackets) return null;
+    const code = files[activeFile];
+    const lines = code.split('\n');
+    const posToLineCol = (pos: number) => {
+      let remaining = pos;
+      for (let l = 0; l < lines.length; l++) {
+        if (remaining <= lines[l].length) return { line: l, col: remaining };
+        remaining -= lines[l].length + 1;
+      }
+      return { line: 0, col: 0 };
+    };
+    return [posToLineCol(matchedBrackets[0]), posToLineCol(matchedBrackets[1])];
+  }, [matchedBrackets, files, activeFile]);
+
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
-    return codeLines.map((line) => {
-      if (!line) return '&nbsp;';
+    let inMultiLineString = false;
+    let multiLineDelim = '"""';
+    return codeLines.map((line, lineIdx) => {
+      if (!line && !inMultiLineString) return '&nbsp;';
+      
+      // If we're inside a multi-line string, check for closing delimiter
+      if (inMultiLineString) {
+        const closeIdx = line.indexOf(multiLineDelim);
+        if (closeIdx !== -1) {
+          inMultiLineString = false;
+          const stringPart = escapeHtml(line.slice(0, closeIdx + multiLineDelim.length));
+          const rest = line.slice(closeIdx + multiLineDelim.length);
+          const restTokens = rest ? tokenizeLine(rest).map(t => {
+            const escaped = escapeHtml(t.value);
+            if (t.type === 'text') return escaped;
+            return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
+          }).join('') : '';
+          return `<span class="${TOKEN_COLORS.string}">${stringPart}</span>${restTokens}`;
+        }
+        return `<span class="${TOKEN_COLORS.string}">${escapeHtml(line)}</span>`;
+      }
+      
+      // Check if this line opens a multi-line string
+      const tripleDoubleCount = (line.match(/"""/g) || []).length;
+      const tripleSingleCount = (line.match(/'''/g) || []).length;
+      
       const tokens = tokenizeLine(line);
-      return tokens.map(t => {
+      let result = tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
+      
+      // If odd number of triple quotes, we're entering a multi-line string
+      if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+      else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+
+      // Bracket highlighting
+      if (bracketHighlights) {
+        for (const bh of bracketHighlights) {
+          if (bh.line === lineIdx) {
+            // We need to highlight the bracket at column bh.col
+            // This is a simplified approach - wrap the character
+            const chars = [...line];
+            if (bh.col < chars.length) {
+              // Re-render with bracket highlight (simplified: add a marker class via data attribute)
+              // For now, we rely on the visual overlay approach
+            }
+          }
+        }
+      }
+
+      return result;
     });
-  }, [files, activeFile]);
+  }, [files, activeFile, bracketHighlights]);
 
   // Q&A helpers
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
