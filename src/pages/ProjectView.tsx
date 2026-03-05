@@ -436,12 +436,19 @@ const ProjectView = () => {
     );
   }
 
-  if (!project) {
+  if (!project || (project as any)._unpublished) {
+    const isUnpublished = (project as any)?._unpublished;
     return (
       <div className="min-h-screen bg-ide-bg flex items-center justify-center text-center p-6">
         <div>
-          <h1 className="text-2xl font-bold text-ide-text mb-2">Project not found</h1>
-          <p className="text-ide-text-muted mb-4">This project may not exist or hasn't been published yet.</p>
+          <h1 className="text-2xl font-bold text-ide-text mb-2">
+            {isUnpublished ? '🔒 Project Not Published Yet' : 'Project not found'}
+          </h1>
+          <p className="text-ide-text-muted mb-4">
+            {isUnpublished
+              ? 'This project has been saved but hasn\'t been published yet. The author needs to click "Submit Project" to make it public.'
+              : 'This project may not exist or the link is incorrect.'}
+          </p>
           <Link to="/hackathons">
             <Button className="bg-ide-accent text-ide-bg-deep">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to FORGE
