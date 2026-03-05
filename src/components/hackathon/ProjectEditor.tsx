@@ -664,11 +664,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
     setCapabilities(scaffold.capabilities);
-    setFiles({
+    const newFiles = {
       'main.py': scaffold.main,
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
-    });
+    };
+    setFiles(newFiles);
+    // Imperatively update textarea
+    if (textareaRef.current) {
+      textareaRef.current.value = newFiles[activeFile];
+    }
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
