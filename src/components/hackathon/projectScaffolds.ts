@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 15 Build-Up Challenges
+🤖 FORGE AI Chatbot — 20 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,9 +26,9 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-  - Complete all 15 challenges to build a unique AI!
+  - Complete all 20 challenges to build a unique AI!
 
-⏱️ Time: 45-60 minutes
+⏱️ Time: 50-70 minutes
 """
 
 # ═══════════════════════════════════════════════
@@ -62,10 +62,6 @@ CREATOR_NAME = "A FORGE Builder"
 #   - HOW does it talk? (formal? funny? casual?)
 #   - WHAT is it an expert in?
 #   - Any special RULES?
-#
-# Example: "You are Chef Kofi, a Ghanaian cooking expert
-# who explains recipes using fun stories. You always
-# suggest local ingredients and end with a cooking tip."
 # ═══════════════════════════════════════════════
 SYSTEM_PROMPT = "You are a helpful AI assistant that answers questions clearly and concisely."
 
@@ -94,7 +90,6 @@ QA_PAIRS = [
 # 0.0 = very strict/factual (robot-like)
 # 0.5 = balanced
 # 1.0 = very creative/random (wild answers!)
-# Try different values and test the difference!
 # ═══════════════════════════════════════════════
 TEMPERATURE = 0.7
 
@@ -102,7 +97,6 @@ TEMPERATURE = 0.7
 # 🏆 CHALLENGE 9: Choose Response Style
 # Options: "Concise", "Detailed", "Friendly",
 #          "Professional", "Balanced"
-# Each one changes HOW your bot writes responses
 # ═══════════════════════════════════════════════
 RESPONSE_STYLE = "Friendly"
 
@@ -128,7 +122,6 @@ CONVERSATION_RULES = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 12: Set Conversation Starters
 # These appear as clickable buttons in Live Preview.
-# Make them relevant to your bot's topic!
 # ═══════════════════════════════════════════════
 CONVERSATION_STARTERS = [
     "Tell me about yourself",
@@ -140,8 +133,6 @@ CONVERSATION_STARTERS = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 13: Add Easter Eggs!
 # Secret responses triggered by keywords.
-# When a user types the keyword, your bot gives
-# YOUR custom response instead of the AI's!
 # ═══════════════════════════════════════════════
 EASTER_EGGS = {
     "secret": "🎉 You found a hidden feature! You're a true explorer!",
@@ -152,7 +143,6 @@ EASTER_EGGS = {
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 14: Add Catchphrases
 # Your bot will naturally include these phrases
-# in its responses to give it personality!
 # ═══════════════════════════════════════════════
 CATCHPHRASES = [
     "Fun fact!",
@@ -163,12 +153,48 @@ CATCHPHRASES = [
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 15: Set Blocked Topics
 # Topics your bot will REFUSE to discuss.
-# It will politely redirect instead.
 # ═══════════════════════════════════════════════
 BLOCKED_TOPICS = [
     "homework answers",
     "inappropriate content"
 ]
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 16: Set Forbidden Words
+# Words your bot must NEVER use in any response.
+# The AI will find alternative words instead.
+# ═══════════════════════════════════════════════
+FORBIDDEN_WORDS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 17: Set the Mood
+# Options: "cheerful", "serious", "sarcastic",
+#          "mysterious", "energetic", "calm", "neutral"
+# This changes the overall vibe of responses!
+# ═══════════════════════════════════════════════
+MOOD = "neutral"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 18: Add Few-Shot Examples
+# Show your bot HOW you want it to answer.
+# Each example teaches the AI your preferred format!
+# ═══════════════════════════════════════════════
+EXAMPLES = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 19: Set Language Style
+# Options: "casual", "formal", "academic",
+#          "slang", "poetic", "storyteller"
+# Changes HOW your bot constructs sentences!
+# ═══════════════════════════════════════════════
+LANGUAGE_STYLE = "casual"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 20: Add a Sign-Off
+# A closing phrase your bot adds to every response.
+# Example: "Stay curious! 🌟" or "— Chef Kofi 👨‍🍳"
+# ═══════════════════════════════════════════════
+SIGN_OFF = ""
 
 # ═══════════════════════════════════════════════
 # BONUS SETTINGS (already configured!)
@@ -195,6 +221,11 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 13. EASTER_EGGS — Type "secret" or "magic" to test
 # ☐ 14. CATCHPHRASES — Chat and look for your phrases
 # ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
+# ☐ 16. FORBIDDEN_WORDS — Add words, verify bot avoids them
+# ☐ 17. MOOD — Try "sarcastic" or "mysterious"
+# ☐ 18. EXAMPLES — Add example Q&As to teach format
+# ☐ 19. LANGUAGE_STYLE — Try "poetic" or "formal"
+# ☐ 20. SIGN_OFF — Add a closing phrase, see it appear
 # ═══════════════════════════════════════════════
 `,
     config: `{
