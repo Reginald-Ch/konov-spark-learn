@@ -293,7 +293,7 @@ const CountdownWidget = ({ hackathonStartDate, hackathonStatus }: { hackathonSta
   );
 };
 
-export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) => {
+export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, hackathonStatus }: ProjectEditorProps) => {
   const isMobile = useIsMobile();
   const [projectType, setProjectType] = useState<ProjectType>(initialType || 'chatbot');
   const [projectName, setProjectName] = useState('My AI Project');
