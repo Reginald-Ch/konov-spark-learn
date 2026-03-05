@@ -1656,9 +1656,9 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
                   {(liveConfig.conversationStarters.length > 0
                     ? liveConfig.conversationStarters.slice(0, 4)
                     : ['Hello, who are you?', 'What can you help me with?', 'Tell me a fun fact']
-                  ).map(example => (
+                  ).map((example, index) => (
                     <button
-                      key={example}
+                      key={`${example}-${index}`}
                       onClick={() => { setChatInput(example); }}
                       className="block w-full text-left text-[11px] px-3 py-1.5 rounded bg-ide-border/30 text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text transition-colors"
                     >
