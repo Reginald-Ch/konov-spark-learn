@@ -18,173 +18,183 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — Configuration File
-==========================================
-Every variable you edit here DIRECTLY controls how your
-chatbot behaves in the Live Preview panel (right side →)
+🤖 FORGE AI Chatbot — 15 Build-Up Challenges
+==============================================
+Every variable below DIRECTLY controls your chatbot.
+Edit any value → test instantly in Live Preview →
 
-🎯 GOAL: Complete all 6 stages to build a unique, polished AI chatbot.
-Each stage unlocks new behaviour you can test immediately.
+🎯 RULES:
+  - ALL variables are LIVE — every edit changes your bot
+  - Test after EACH change in Live Preview (right panel)
+  - Complete all 15 challenges to build a unique AI!
 
-HOW IT WORKS:
-  1. Edit variables below
-  2. Test instantly in Live Preview →
-  3. Every change you make = real chatbot behaviour change
-  4. Click "Submit Project" when done!
-
-⏱️ Suggested time: 45-60 minutes
+⏱️ Time: 45-60 minutes
 """
 
 # ═══════════════════════════════════════════════
-# STAGE 1: IDENTITY (5 min)
-# Give your bot a name and first impression
+# 🏆 CHALLENGE 1: Name Your Bot
+# Change the name — it appears in Live Preview header
 # ═══════════════════════════════════════════════
+BOT_NAME = "Spark"
 
-BOT_NAME = "My AI Bot"
-
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 2: Choose an Emoji Avatar
+# This emoji represents your bot in the chat
+# ═══════════════════════════════════════════════
 BOT_EMOJI = "🤖"
 
-GREETING_MESSAGE = "Hi! I'm your AI assistant. How can I help you today?"
-
-CREATOR_NAME = ""  # TODO: Put your name here!
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 3: Write a Greeting
+# First message users see — make it welcoming!
+# ═══════════════════════════════════════════════
+GREETING_MESSAGE = "Hey there! I'm Spark, your AI buddy. Ask me anything!"
 
 # ═══════════════════════════════════════════════
-# STAGE 2: PERSONALITY (10 min)
-# Write a detailed system prompt — this is your
-# bot's "soul". The more detail, the better!
+# 🏆 CHALLENGE 4: Claim Your Creation
+# Add your name so everyone knows who built this
 # ═══════════════════════════════════════════════
+CREATOR_NAME = "A FORGE Builder"
 
-# TODO: Replace this with at least 3-4 sentences describing:
-#   - WHO your bot is (name, role, expertise)
-#   - HOW it talks (formal? casual? funny? serious?)
-#   - WHAT it's an expert in
-#   - Any RULES it should follow
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 5: Define the Personality (MOST IMPORTANT!)
+# This is your bot's "brain". Write 3+ sentences:
+#   - WHO is your bot? (name, role, expertise)
+#   - HOW does it talk? (formal? funny? casual?)
+#   - WHAT is it an expert in?
+#   - Any special RULES?
 #
-# Examples:
-#   "You are Professor Ada, a computer science tutor who explains
-#    concepts using food analogies. You are enthusiastic and always
-#    encourage students. You never give direct answers to homework
-#    but guide students to discover solutions themselves."
-#
-#   "You are DJ Beats, a music recommendation bot who speaks in
-#    hip-hop slang. You know everything about Afrobeats, Hip-Hop,
-#    and Highlife music. You always suggest 3 songs and explain
-#    why each one fits the user's mood."
-
+# Example: "You are Chef Kofi, a Ghanaian cooking expert
+# who explains recipes using fun stories. You always
+# suggest local ingredients and end with a cooking tip."
+# ═══════════════════════════════════════════════
 SYSTEM_PROMPT = "You are a helpful AI assistant that answers questions clearly and concisely."
 
 # ═══════════════════════════════════════════════
-# STAGE 3: KNOWLEDGE BASE (10 min)
-# Add facts and info your bot should know.
-# This is like giving your bot a "cheat sheet".
+# 🏆 CHALLENGE 6: Add Knowledge
+# Give your bot facts it should know. The more you
+# add, the smarter it gets on this topic!
 # ═══════════════════════════════════════════════
+KNOWLEDGE_BASE = """Python was created by Guido van Rossum in 1991.
+AI stands for Artificial Intelligence.
+FORGE is a platform where students build AI projects."""
 
-# TODO: Add domain-specific knowledge your bot should reference.
-# The more you add, the smarter your bot becomes on this topic!
-KNOWLEDGE_BASE = """
-
-"""
-
-# TODO: Add specific question-answer pairs.
-# When someone asks a matching question, your bot
-# will use YOUR answer instead of making one up.
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 7: Add Exact Q&A Pairs
+# When someone asks these questions, your bot MUST
+# give YOUR answer — not make one up!
+# ═══════════════════════════════════════════════
 QA_PAIRS = [
-    # {"q": "What is your name?", "a": "I'm BotName, created by YourName!"},
-    # {"q": "What can you do?", "a": "I can help with X, Y, and Z!"},
-    # {"q": "Who created you?", "a": "I was built by [YourName] at the FORGE Hackathon!"},
+    {"q": "What is your name?", "a": "I'm Spark, built at the FORGE Hackathon!"},
+    {"q": "Who created you?", "a": "I was created by a talented FORGE builder!"},
+    {"q": "What can you do?", "a": "I can chat, answer questions, and share knowledge!"}
 ]
 
 # ═══════════════════════════════════════════════
-# STAGE 4: BEHAVIOUR SETTINGS (10 min)
-# Fine-tune HOW your bot responds
+# 🏆 CHALLENGE 8: Set Creativity Level
+# 0.0 = very strict/factual (robot-like)
+# 0.5 = balanced
+# 1.0 = very creative/random (wild answers!)
+# Try different values and test the difference!
 # ═══════════════════════════════════════════════
-
-# Creativity level: 0.0 = very precise/factual, 1.0 = very creative/random
 TEMPERATURE = 0.7
 
-# Response style — changes how verbose/concise the bot is
-# Options: "Concise", "Detailed", "Friendly", "Professional", "Balanced"
-RESPONSE_STYLE = "Balanced"
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 9: Choose Response Style
+# Options: "Concise", "Detailed", "Friendly",
+#          "Professional", "Balanced"
+# Each one changes HOW your bot writes responses
+# ═══════════════════════════════════════════════
+RESPONSE_STYLE = "Friendly"
 
-# Maximum response length
-# Options: "short" (1-2 sentences), "medium" (1 paragraph), "long" (detailed)
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 10: Set Response Length
+# "short"  = 1-2 sentences (quick answers)
+# "medium" = 1 paragraph (balanced)
+# "long"   = detailed multi-paragraph answers
+# ═══════════════════════════════════════════════
 MAX_RESPONSE_LENGTH = "medium"
 
-# TODO: Add rules your bot MUST follow.
-# These are hard constraints on behaviour.
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 11: Add Conversation Rules
+# These are STRICT rules your bot MUST follow.
+# Add at least 3 rules!
+# ═══════════════════════════════════════════════
 CONVERSATION_RULES = [
-    # "Always greet the user warmly",
-    # "Never discuss politics or religion",
-    # "End every response with a follow-up question",
-    # "If you don't know something, say so honestly",
-    # "Always include at least one emoji in your response",
-    # "Keep responses under 100 words",
+    "Always be friendly and encouraging",
+    "Use at least one emoji in every response",
+    "If you don't know something, say so honestly"
 ]
 
 # ═══════════════════════════════════════════════
-# STAGE 5: SPECIAL FEATURES (10 min)
-# Add unique touches that make your bot memorable
+# 🏆 CHALLENGE 12: Set Conversation Starters
+# These appear as clickable buttons in Live Preview.
+# Make them relevant to your bot's topic!
 # ═══════════════════════════════════════════════
-
-# Suggested conversation starters shown to users
 CONVERSATION_STARTERS = [
     "Tell me about yourself",
     "What can you help me with?",
-    # TODO: Add 3+ more starters relevant to your bot's topic
+    "Share a fun fact",
+    "Give me a tip"
 ]
 
-# Easter eggs — secret responses for specific keywords!
-# When a user types a matching keyword, your bot responds
-# with your custom message instead of the AI's response.
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 13: Add Easter Eggs!
+# Secret responses triggered by keywords.
+# When a user types the keyword, your bot gives
+# YOUR custom response instead of the AI's!
+# ═══════════════════════════════════════════════
 EASTER_EGGS = {
-    # "secret": "🎉 You found a hidden feature! You're a true explorer!",
-    # "magic": "✨ Abracadabra! Here's something special just for you...",
-    # "hello world": "👨‍💻 A classic! Every great programmer starts here.",
+    "secret": "🎉 You found a hidden feature! You're a true explorer!",
+    "magic": "✨ Abracadabra! Here's something special just for you...",
+    "hello world": "👨‍💻 A classic! Every great programmer starts here."
 }
 
-# Catchphrases — phrases your bot randomly includes
-# to give it more personality
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 14: Add Catchphrases
+# Your bot will naturally include these phrases
+# in its responses to give it personality!
+# ═══════════════════════════════════════════════
 CATCHPHRASES = [
-    # "As I always say...",
-    # "Fun fact!",
-    # "Here's the thing...",
-    # "Between you and me...",
+    "Fun fact!",
+    "Here's the thing...",
+    "Between you and me..."
 ]
 
 # ═══════════════════════════════════════════════
-# STAGE 6: ADVANCED & POLISH (5 min)
-# Final touches before submission
+# 🏆 CHALLENGE 15: Set Blocked Topics
+# Topics your bot will REFUSE to discuss.
+# It will politely redirect instead.
 # ═══════════════════════════════════════════════
-
-# Should the bot suggest follow-up questions?
-FOLLOW_UP_QUESTIONS = True
-
-# Should the bot try to remember the user's name?
-REMEMBER_NAME = True
-
-# Topics your bot should REFUSE to discuss
 BLOCKED_TOPICS = [
-    # "homework answers",
-    # "inappropriate content",
+    "homework answers",
+    "inappropriate content"
 ]
 
-# Custom error message when something goes wrong
-ERROR_MESSAGE = "Oops! Something went wrong. Try asking me in a different way! 🔄"
+# ═══════════════════════════════════════════════
+# BONUS SETTINGS (already configured!)
+# ═══════════════════════════════════════════════
+FOLLOW_UP_QUESTIONS = True
+REMEMBER_NAME = True
+ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 
 # ═══════════════════════════════════════════════
-# 🏁 SUBMISSION CHECKLIST
+# 🏁 CHALLENGE CHECKLIST — Test each one!
 # ═══════════════════════════════════════════════
-# Before submitting, make sure you've completed:
-#
-# ☐ Stage 1: Bot has a unique name and greeting
-# ☐ Stage 2: System prompt is 3+ sentences with clear personality
-# ☐ Stage 3: Added at least 3 knowledge entries or Q&A pairs
-# ☐ Stage 4: Customised at least 2 behaviour settings
-# ☐ Stage 5: Added conversation starters + at least 1 easter egg
-# ☐ Stage 6: Tested thoroughly in Live Preview
-#
-# Total variables to customise: 15+
-# Estimated time: 45-60 minutes
+# ☐ 1.  BOT_NAME — Change it, see it in preview header
+# ☐ 2.  BOT_EMOJI — Change it, see the avatar update
+# ☐ 3.  GREETING_MESSAGE — See it in the welcome screen
+# ☐ 4.  CREATOR_NAME — Ask "who created you?" to test
+# ☐ 5.  SYSTEM_PROMPT — This changes EVERYTHING about your bot
+# ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
+# ☐ 7.  QA_PAIRS — Ask exact questions to test answers
+# ☐ 8.  TEMPERATURE — Set to 0.1 vs 1.0 and compare
+# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
+# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
+# ☐ 11. CONVERSATION_RULES — Ask something to test rules
+# ☐ 12. CONVERSATION_STARTERS — See buttons update
+# ☐ 13. EASTER_EGGS — Type "secret" or "magic" to test
+# ☐ 14. CATCHPHRASES — Chat and look for your phrases
+# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
 # ═══════════════════════════════════════════════
 `,
     config: `{
@@ -195,10 +205,10 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking me in a different way! �
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base"],
   "forge_version": "2.0",
-  "notes": "Edit variables in main.py — every change affects your chatbot in real-time!"
+  "challenges": 15,
+  "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
-    requirements: `# FORGE handles everything automatically — no installs needed!
-# Your code is a configuration file that drives the AI chatbot.
+    requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
 forge-sdk>=2.0
 streamlit>=1.28.0`,
@@ -210,128 +220,160 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — Configuration File
-========================================
-An Agent is different from a Chatbot:
-  🤖 Chatbot = Answers questions from memory
-  🧠 Agent   = USES TOOLS to take actions!
+🧠 FORGE AI Agent — 15 Build-Up Challenges
+============================================
+An Agent USES TOOLS to take actions!
+  🤖 Chatbot = answers from memory
+  🧠 Agent   = searches, calculates, researches!
 
-Every variable you edit here controls your agent's
-behaviour in the Live Preview panel →
+Every variable below is LIVE — edit and test instantly.
 
-⏱️ Suggested time: 45-60 minutes
+⏱️ Time: 45-60 minutes
 """
 
 # ═══════════════════════════════════════════════
-# STAGE 1: AGENT IDENTITY (5 min)
+# 🏆 CHALLENGE 1: Name Your Agent
 # ═══════════════════════════════════════════════
-
-AGENT_NAME = "Research Agent"
-
-AGENT_EMOJI = "🧠"
-
-GREETING_MESSAGE = "I'm your AI agent. I can search the web, do calculations, and look up facts. Give me a task!"
-
-CREATOR_NAME = ""  # TODO: Your name here!
+BOT_NAME = "Research Agent"
 
 # ═══════════════════════════════════════════════
-# STAGE 2: AGENT MISSION (10 min)
+# 🏆 CHALLENGE 2: Choose an Emoji
 # ═══════════════════════════════════════════════
+BOT_EMOJI = "🧠"
 
-# TODO: Write a detailed mission for your agent.
-# Unlike a chatbot, focus on WHAT ACTIONS it should take.
-#
-# Examples:
-#   "You are a research assistant that always verifies facts
-#    using web search before answering. You cite your sources
-#    and present information in bullet points."
-#
-#   "You are a data analyst agent. When given a question about
-#    numbers, you ALWAYS use the calculator tool first. You
-#    present results with clear explanations."
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 3: Write a Greeting
+# ═══════════════════════════════════════════════
+GREETING_MESSAGE = "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 4: Add Your Name
+# ═══════════════════════════════════════════════
+CREATOR_NAME = "A FORGE Builder"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 5: Define the Mission (MOST IMPORTANT!)
+# Write what your agent DOES and HOW it thinks.
+# Focus on ACTIONS, not just chatting.
+# ═══════════════════════════════════════════════
 SYSTEM_PROMPT = "You are an AI agent that can use tools to search the web, run calculations, and generate content."
 
 # ═══════════════════════════════════════════════
-# STAGE 3: TOOLS & CAPABILITIES (10 min)
+# 🏆 CHALLENGE 6: Add Knowledge
 # ═══════════════════════════════════════════════
-
-# Which tools should your agent have access to?
-# Set to True to enable, False to disable
-TOOLS = {
-    "web_search": True,       # 🔍 Search the internet
-    "calculator": True,       # 🧮 Do math calculations
-    "wikipedia": True,        # 📚 Look up facts
-}
-
-# TODO: Add custom tool descriptions so the agent
-# knows WHEN to use each tool
-TOOL_INSTRUCTIONS = {
-    "web_search": "Use this for current events, news, or when you need up-to-date information",
-    "calculator": "Use this for ANY math, statistics, or numerical analysis",
-    "wikipedia": "Use this for historical facts, scientific concepts, or biographical information",
-}
+KNOWLEDGE_BASE = """Agents use a ReAct loop: Reason, Act, Observe.
+Tools extend what an AI can do beyond just chatting.
+FORGE agents can search the web, do math, and look up facts."""
 
 # ═══════════════════════════════════════════════
-# STAGE 4: THINKING STYLE (10 min)
+# 🏆 CHALLENGE 7: Add Exact Q&A Pairs
 # ═══════════════════════════════════════════════
-
-TEMPERATURE = 0.3  # Agents work best with lower creativity
-
-# How many thinking steps the agent can take (2-10)
-MAX_THINKING_STEPS = 5
-
-# Should the agent show its reasoning process?
-SHOW_REASONING = True
-
-# Response format preference
-# Options: "brief", "detailed", "structured", "conversational"
-RESPONSE_FORMAT = "structured"
-
-CONVERSATION_RULES = [
-    # "Always cite your sources",
-    # "Show your reasoning step by step",
-    # "If a calculation is involved, always use the calculator tool",
-    # "Present findings in bullet points",
+QA_PAIRS = [
+    {"q": "What tools do you have?", "a": "I can search the web, do calculations, and look up facts on Wikipedia!"},
+    {"q": "Who created you?", "a": "I was built by a talented FORGE developer!"},
+    {"q": "How do you work?", "a": "I use a Reason-Act-Observe loop to solve problems step by step!"}
 ]
 
 # ═══════════════════════════════════════════════
-# STAGE 5: SPECIAL FEATURES (10 min)
+# 🏆 CHALLENGE 8: Set Creativity Level
+# Agents usually work best with lower values (0.2-0.5)
 # ═══════════════════════════════════════════════
+TEMPERATURE = 0.3
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 9: Choose Response Style
+# Options: "Concise", "Detailed", "Friendly",
+#          "Professional", "Balanced"
+# ═══════════════════════════════════════════════
+RESPONSE_STYLE = "Professional"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 10: Set Response Length
+# ═══════════════════════════════════════════════
+MAX_RESPONSE_LENGTH = "medium"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 11: Add Agent Rules
+# ═══════════════════════════════════════════════
+CONVERSATION_RULES = [
+    "Always show your reasoning step by step",
+    "Cite sources when sharing facts",
+    "Present findings in bullet points"
+]
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 12: Set Task Starters
+# ═══════════════════════════════════════════════
 CONVERSATION_STARTERS = [
     "What's the latest news about AI?",
     "Calculate the area of a circle with radius 15",
     "Who invented the internet?",
-    # TODO: Add starters relevant to your agent's mission
+    "Compare Python and JavaScript"
 ]
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 13: Add Easter Eggs
+# ═══════════════════════════════════════════════
 EASTER_EGGS = {
-    # "secret mission": "🕵️ Agent mode activated! Scanning all databases...",
+    "secret mission": "🕵️ Agent mode activated! Scanning all databases...",
+    "42": "🌌 The answer to life, the universe, and everything!"
 }
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 14: Add Catchphrases
+# ═══════════════════════════════════════════════
 CATCHPHRASES = [
-    # "Let me investigate that...",
-    # "Based on my research...",
-    # "The data suggests...",
+    "Let me investigate that...",
+    "Based on my research...",
+    "The data suggests..."
 ]
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 15: Set Blocked Topics
+# ═══════════════════════════════════════════════
+BLOCKED_TOPICS = [
+    "homework answers",
+    "inappropriate content"
+]
+
+# BONUS SETTINGS
 FOLLOW_UP_QUESTIONS = True
 REMEMBER_NAME = True
-
-BLOCKED_TOPICS = []
-
+RESPONSE_FORMAT = "structured"
+SHOW_REASONING = True
+MAX_THINKING_STEPS = 5
 ERROR_MESSAGE = "Mission failed! Let me try a different approach... 🔄"
 
+TOOLS = {
+    "web_search": "Use for current events and up-to-date info",
+    "calculator": "Use for ANY math or numerical analysis",
+    "wikipedia": "Use for historical facts and science"
+}
+
+TOOL_INSTRUCTIONS = {
+    "web_search": "Search first, then summarise findings",
+    "calculator": "Show the calculation steps clearly",
+    "wikipedia": "Quote relevant sections"
+}
+
 # ═══════════════════════════════════════════════
-# 🏁 SUBMISSION CHECKLIST
+# 🏁 CHALLENGE CHECKLIST
 # ═══════════════════════════════════════════════
-# ☐ Stage 1: Agent has a unique name and greeting
-# ☐ Stage 2: Mission prompt is detailed (3+ sentences)
-# ☐ Stage 3: Configured tools and added custom instructions
-# ☐ Stage 4: Set thinking style and conversation rules
-# ☐ Stage 5: Added starters + special features
-# ☐ Stage 6: Tested with complex multi-step tasks
+# ☐ 1.  BOT_NAME — Change it, see preview header update
+# ☐ 2.  BOT_EMOJI — Change avatar emoji
+# ☐ 3.  GREETING_MESSAGE — See welcome screen change
+# ☐ 4.  CREATOR_NAME — Ask "who created you?"
+# ☐ 5.  SYSTEM_PROMPT — Changes everything about your agent
+# ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
+# ☐ 7.  QA_PAIRS — Ask exact questions to test
+# ☐ 8.  TEMPERATURE — 0.1 vs 1.0 — see the difference
+# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
+# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
+# ☐ 11. CONVERSATION_RULES — Test rule enforcement
+# ☐ 12. CONVERSATION_STARTERS — See buttons update
+# ☐ 13. EASTER_EGGS — Type "secret mission" to test
+# ☐ 14. CATCHPHRASES — Chat and look for your phrases
+# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
 # ═══════════════════════════════════════════════
 `,
     config: `{
@@ -342,10 +384,10 @@ ERROR_MESSAGE = "Mission failed! Let me try a different approach... 🔄"
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],
   "forge_version": "2.0",
-  "notes": "Edit variables in main.py — every change affects your agent in real-time!"
+  "challenges": 15,
+  "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
-    requirements: `# FORGE handles everything automatically — no installs needed!
-# Your code is a configuration file that drives the AI agent.
+    requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
 forge-sdk>=2.0
 streamlit>=1.28.0`,

@@ -20,12 +20,12 @@ serve(async (req) => {
     // Build knowledge context string if available
     let knowledgeContext = "";
     if (knowledgeBase && knowledgeBase.trim()) {
-      knowledgeContext += `\n\nKNOWLEDGE BASE (you MUST reference this information when answering related questions — treat it as your primary source of truth):\n${knowledgeBase}\n`;
+      knowledgeContext += `\n\nKNOWLEDGE BASE — This is your PRIMARY source of truth. When answering questions related to this content, ALWAYS use this information first:\n---\n${knowledgeBase}\n---\n`;
     }
     if (qaData && Array.isArray(qaData) && qaData.length > 0) {
-      knowledgeContext += `\n\nEXACT Q&A PAIRS — CRITICAL RULE: When a user asks a question that matches or closely resembles any Q below, you MUST use the corresponding A as your answer. Do NOT ignore these or make up a different answer. You may rephrase slightly but the core answer MUST match:\n`;
+      knowledgeContext += `\n\nMANDATORY Q&A PAIRS — These are EXACT answers you MUST give. When a user's question matches or is similar to any Q below, respond with the corresponding A. Do NOT deviate:\n`;
       qaData.forEach((pair: { q: string; a: string }, i: number) => {
-        knowledgeContext += `Q${i + 1}: "${pair.q}" → A${i + 1}: "${pair.a}"\n`;
+        knowledgeContext += `  Q: "${pair.q}" → A: "${pair.a}"\n`;
       });
     }
 
@@ -34,27 +34,28 @@ serve(async (req) => {
     if (botConfig) {
       const cfg = botConfig;
       
-      if (cfg.botName) botConfigContext += `\nYour name is "${cfg.botName}".`;
-      if (cfg.creatorName) botConfigContext += ` You were created by ${cfg.creatorName}.`;
-      if (cfg.botEmoji) botConfigContext += ` Your emoji/icon is ${cfg.botEmoji}.`;
+      // Identity
+      if (cfg.botName) botConfigContext += `\nYour name is "${cfg.botName}". Always introduce yourself by this name when asked.`;
+      if (cfg.creatorName) botConfigContext += ` You were created by ${cfg.creatorName}. If asked who made you, credit them.`;
+      if (cfg.botEmoji) botConfigContext += ` Your emoji is ${cfg.botEmoji}.`;
       
-      // Response style modifiers
+      // Response style — ENFORCED
       const styleMap: Record<string, string> = {
-        "Concise": "\nKeep your answers short — 2-3 sentences max. Be direct and to the point.",
-        "Detailed": "\nProvide thorough, well-structured answers with examples and explanations.",
-        "Friendly": "\nUse a warm, encouraging tone with emojis. Be supportive and conversational!",
-        "Professional": "\nMaintain a formal, professional tone. Use proper structure and terminology.",
-        "Balanced": "",
+        "Concise": "\n\nRESPONSE STYLE: CONCISE — Keep answers to 2-3 sentences MAX. Be direct. No fluff.",
+        "Detailed": "\n\nRESPONSE STYLE: DETAILED — Give thorough answers with examples, context, and explanations.",
+        "Friendly": "\n\nRESPONSE STYLE: FRIENDLY — Use a warm, encouraging tone with emojis 😊. Be supportive!",
+        "Professional": "\n\nRESPONSE STYLE: PROFESSIONAL — Formal tone. Proper structure. No slang or emojis.",
+        "Balanced": "\n\nRESPONSE STYLE: BALANCED — Natural conversational tone.",
       };
       if (cfg.responseStyle && styleMap[cfg.responseStyle]) {
         botConfigContext += styleMap[cfg.responseStyle];
       }
 
-      // Response length
+      // Response length — ENFORCED
       const lengthMap: Record<string, string> = {
-        "short": "\nLimit responses to 1-2 sentences.",
-        "medium": "\nKeep responses to about 1 paragraph (3-5 sentences).",
-        "long": "\nProvide detailed responses with multiple paragraphs when appropriate.",
+        "short": "\nRESPONSE LENGTH: SHORT — Maximum 1-2 sentences. Ultra brief.",
+        "medium": "\nRESPONSE LENGTH: MEDIUM — About 3-5 sentences (one paragraph).",
+        "long": "\nRESPONSE LENGTH: LONG — Multiple paragraphs with detail.",
       };
       if (cfg.maxResponseLength && lengthMap[cfg.maxResponseLength]) {
         botConfigContext += lengthMap[cfg.maxResponseLength];
@@ -62,102 +63,95 @@ serve(async (req) => {
 
       // Response format (for agents)
       const formatMap: Record<string, string> = {
-        "brief": "\nKeep answers brief and scannable.",
-        "detailed": "\nProvide comprehensive analysis.",
-        "structured": "\nPresent information using bullet points, headers, and clear structure.",
-        "conversational": "\nRespond in a natural, conversational way.",
+        "brief": "\nFORMAT: Keep answers brief and scannable.",
+        "detailed": "\nFORMAT: Provide comprehensive analysis.",
+        "structured": "\nFORMAT: Use bullet points, headers, and clear structure.",
+        "conversational": "\nFORMAT: Natural, conversational flow.",
       };
       if (cfg.responseFormat && formatMap[cfg.responseFormat]) {
         botConfigContext += formatMap[cfg.responseFormat];
       }
 
-      // Conversation rules
+      // Conversation rules — STRICTLY ENFORCED
       if (cfg.conversationRules && cfg.conversationRules.length > 0) {
-        botConfigContext += `\n\nSTRICT RULES YOU MUST FOLLOW:\n`;
+        botConfigContext += `\n\n⚠️ MANDATORY RULES — You MUST follow ALL of these in EVERY response:\n`;
         cfg.conversationRules.forEach((rule: string, i: number) => {
-          botConfigContext += `${i + 1}. ${rule}\n`;
+          botConfigContext += `  ${i + 1}. ${rule}\n`;
         });
+        botConfigContext += `Failure to follow any rule above is a critical error.\n`;
       }
 
-      // Blocked topics
+      // Blocked topics — ENFORCED
       if (cfg.blockedTopics && cfg.blockedTopics.length > 0) {
-        botConfigContext += `\n\nTOPICS YOU MUST REFUSE TO DISCUSS (politely decline):\n`;
+        botConfigContext += `\n\n🚫 BLOCKED TOPICS — If the user asks about any of these, politely refuse and redirect:\n`;
         cfg.blockedTopics.forEach((topic: string) => {
-          botConfigContext += `- ${topic}\n`;
+          botConfigContext += `  - "${topic}"\n`;
         });
       }
 
-      // Catchphrases
+      // Catchphrases — ACTIVELY USED
       if (cfg.catchphrases && cfg.catchphrases.length > 0) {
-        botConfigContext += `\n\nNaturally incorporate these catchphrases occasionally: ${cfg.catchphrases.map((c: string) => `"${c}"`).join(', ')}`;
+        botConfigContext += `\n\n💬 CATCHPHRASES — You MUST include at least one of these phrases in every response (pick randomly):\n`;
+        cfg.catchphrases.forEach((c: string) => {
+          botConfigContext += `  - "${c}"\n`;
+        });
       }
 
       // Follow-up questions
       if (cfg.followUpQuestions) {
-        botConfigContext += `\n\nEnd your responses with a relevant follow-up question to keep the conversation going.`;
+        botConfigContext += `\n\nALWAYS end your response with a relevant follow-up question.`;
       }
 
       // Remember name
       if (cfg.rememberName) {
-        botConfigContext += `\n\nIf the user shares their name, remember it and use it naturally in conversation.`;
+        botConfigContext += `\nIf the user shares their name, remember it and use it in future responses.`;
       }
 
-      // Agent tool instructions
+      // Agent-specific
       if (cfg.showReasoning) {
         botConfigContext += `\n\nShow your reasoning process step by step when answering complex questions.`;
       }
       if (cfg.toolInstructions && Object.keys(cfg.toolInstructions).length > 0) {
-        botConfigContext += `\n\nTOOL USAGE GUIDELINES:\n`;
+        botConfigContext += `\n\nTOOL USAGE:\n`;
         for (const [tool, instruction] of Object.entries(cfg.toolInstructions)) {
-          botConfigContext += `- ${tool}: ${instruction}\n`;
+          botConfigContext += `  - ${tool}: ${instruction}\n`;
         }
       }
     }
 
     if (action === "run") {
-      sysPrompt = `You are a Python code execution simulator for FORGE, a student AI hackathon platform. The student has written Python code and clicked "Run Tests". 
+      sysPrompt = `You are a Python code execution simulator for FORGE. The student clicked "Run Tests".
 
-CRITICAL RULES:
-1. Read their code carefully — it's a configuration file that drives an AI chatbot/agent
-2. Simulate what would happen when this configuration is loaded
-3. Return realistic terminal-style output showing:
-   - Loading each configured variable (bot name, temperature, style, etc.)
-   - A configuration summary
-   - A simulated 2-turn conversation demonstrating the bot working WITH its configured personality
-   - Show easter eggs being registered if any
-   - Show knowledge base being loaded if any
-   - A final status line: "✅ All systems ready — your AI is configured and working!"
+CRITICAL: Read their code and generate realistic terminal output showing:
+1. Loading each variable (bot name, emoji, temperature, style, rules, etc.)
+2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs)
+3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
+4. Challenge completion count (how many of 15 challenges are customized)
+5. Final status: "✅ All systems ready!"
 
-IMPORTANT:
-- NEVER show API key errors or missing key warnings. FORGE handles ALL API keys automatically.
-- Always show a SUCCESSFUL run that demonstrates the student's configuration working.
-- If the code has actual Python syntax errors, show those with a helpful hint.
-- Show which stages appear complete vs incomplete.
-
-Format as terminal output (no markdown, just plain text). Use emojis.
-Keep output under 300 words.`;
-      userPrompt = `Simulate loading this FORGE configuration file (all infrastructure is pre-configured, show SUCCESSFUL output):\n\n${code}`;
+NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
+Format as plain terminal text with emojis. Under 300 words.`;
+      userPrompt = `Simulate loading this FORGE config (show SUCCESSFUL output):\n\n${code}`;
     } else if (action === "test-agent") {
       const agentPrompt = systemPrompt || "You are a helpful AI assistant.";
-      sysPrompt = `You are simulating an AI project that a student built. Act according to this system prompt the student configured:
+      sysPrompt = `You are an AI that a student built. Your core personality is defined by this prompt:
 
 "${agentPrompt}"
+
 ${botConfigContext}
 ${knowledgeContext}
 
-CRITICAL BEHAVIOUR RULES (you MUST follow ALL of these):
-1. You ARE the AI the student built. Stay in character at ALL times.
-2. If a bot name is configured above, ALWAYS introduce yourself by that name.
-3. Q&A PAIRS ARE MANDATORY: If the user's question matches or is similar to ANY Q&A pair above, you MUST use the provided answer. This is the #1 priority — override everything else.
-4. KNOWLEDGE BASE IS YOUR TRUTH: If a Knowledge Base is provided, treat it as your primary source. Never contradict it.
-5. Follow ALL conversation rules strictly — they are non-negotiable.
-6. REFUSE to discuss blocked topics — politely redirect.
-7. Use the configured response style and length consistently.
-8. Naturally use catchphrases if provided.
-9. Ask follow-up questions if configured to do so.
-10. Remember and use the user's name if configured to do so.
-11. Use markdown formatting (bold, lists, code blocks) when it improves readability.
-12. If asked something outside your configured scope, politely redirect to what you CAN help with.`;
+═══ EXECUTION PRIORITY (follow in this exact order) ═══
+1. Q&A PAIRS: If the user's message matches any Q&A pair, use THAT answer. This overrides everything.
+2. KNOWLEDGE BASE: For related questions, use knowledge base as your truth.
+3. BLOCKED TOPICS: Refuse these politely. No exceptions.
+4. CONVERSATION RULES: Follow ALL rules in EVERY response. 
+5. CATCHPHRASES: Include at least one per response if configured.
+6. RESPONSE STYLE + LENGTH: Strictly match the configured style and length.
+7. FOLLOW-UP QUESTION: End with one if enabled.
+8. PERSONALITY: Stay in character as defined by the system prompt.
+
+You ARE this bot. Never break character. Never mention you are simulating.`;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
@@ -167,70 +161,50 @@ CRITICAL BEHAVIOUR RULES (you MUST follow ALL of these):
       }
       userPrompt = code;
     } else if (action === "review") {
-      sysPrompt = `You are a PAIR PROGRAMMER AI Mentor for teens (ages 12-20) in a hackathon. You are NOT building the project for them — you are building WITH them.
+      sysPrompt = `You are a PAIR PROGRAMMER AI Mentor for teens (ages 12-20). Guide, don't build for them.
 
 RULES:
-- NEVER write complete code solutions. Instead, explain concepts and show small snippets (2-5 lines max).
-- Always explain WHY something works, not just WHAT to do.
-- Ask the student "what do you think should happen next?" or "can you try changing X?"
-- Point out what they did WELL before suggesting improvements.
-- Use simple language and analogies a secondary school student would understand.
-- When showing code, always explain every line.
-- End with a question or challenge to keep them engaged.
-- Check which STAGES are complete and suggest working on incomplete ones.
+- NEVER write complete solutions. Show small snippets (2-5 lines max).
+- Explain WHY something works.
+- Check which of the 15 challenges are complete vs default.
+- Praise what they did well, then suggest ONE next challenge.
+- Keep under 200 words. Use markdown.
 
-The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})
-Their system prompt is: "${systemPrompt || 'not set'}"
-
-Keep responses under 200 words. Use markdown formatting.`;
-      userPrompt = `Review this FORGE configuration file and guide the student (pair-programmer style — explain, don't build for them). Check which stages are complete:\n\n\`\`\`python\n${code}\n\`\`\``;
+The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
+      userPrompt = `Review this FORGE config. Check which of the 15 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
-      sysPrompt = `You are a PAIR PROGRAMMER AI Mentor for teens (ages 12-20). Explain code in a way that helps them UNDERSTAND, not just copy.
+      sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
-RULES:
-- Break the configuration into sections and explain what each variable does
-- Use analogies: "TEMPERATURE is like a creativity dial — turn it up for more random/creative answers"
-- After explaining, ask: "Try changing [specific variable] and test in Live Preview to see the difference!"
-- Focus on building their understanding of HOW each variable affects the chatbot
-- Reference the stage system
+After explaining, say: "Try changing [specific variable] and test in Live Preview!"
+Reference the 15-challenge system. Under 200 words.
 
-The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})
-Keep it under 200 words.`;
-      userPrompt = `Explain this FORGE configuration to the student (help them understand how each variable affects their chatbot):\n\n\`\`\`python\n${code}\n\`\`\``;
+Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
+      userPrompt = `Explain this config to the student:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "suggest") {
-      sysPrompt = `You are a PAIR PROGRAMMER AI Mentor for teens (ages 12-20). Suggest next steps that the STUDENT should try themselves.
+      sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
+
+- Check which of 15 challenges are still at default values
+- Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
+- Frame as experiments, not solutions
+- Under 200 words.
+
+Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})
+Prompt: "${systemPrompt || 'not set'}"`;
+      userPrompt = `Suggest which challenges to tackle next:\n\n\`\`\`python\n${code}\n\`\`\``;
+    } else if (action === "mentor-chat") {
+      sysPrompt = `You are a PAIR PROGRAMMER for teens in a live hackathon.
 
 RULES:
-- Look at which STAGES are incomplete and suggest working on those
-- Give 2-3 suggestions as CHALLENGES, not solutions
-- Frame as: "Try adding X — here's a hint: [small example]"  
-- Show just enough to point them in the right direction (1-3 lines max)
-- Ask them what THEY want their AI to do better
-- Encourage experimentation: "What happens if you change TEMPERATURE to 0.9?"
+- Guide, don't build. Give hints + 2-5 line snippets.
+- Reference THEIR actual values: "Your BOT_NAME is currently..."
+- Be encouraging. Under 150 words.
+- End with a next step for them to try.
+- Reference the 15-challenge system.
 
-The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})
-Their system prompt is: "${systemPrompt || 'not set'}"
-Keep it under 200 words.`;
-      userPrompt = `Suggest improvements the student can TRY (challenges, not solutions). Check which stages need work:\n\n\`\`\`python\n${code}\n\`\`\``;
-    } else if (action === "mentor-chat") {
-      sysPrompt = `You are a PAIR PROGRAMMER AI Mentor for teens (ages 12-20) in a live hackathon. You can see their configuration file and you're building WITH them.
+PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
+PROMPT: "${systemPrompt || 'not set'}"
 
-CRITICAL RULES:
-- You are NOT building the project for them. You are GUIDING them.
-- When they ask "how do I do X?", give a HINT and a small snippet (2-5 lines), then say "try this and test in Live Preview"
-- When they share an error, explain what caused it and ask them to try fixing it
-- Always reference THEIR actual configuration — say "your BOT_NAME is currently set to X..."
-- Be encouraging: "Great question!", "You're on the right track!"
-- Keep responses concise (under 150 words)
-- End responses with a guiding question or next step for them to try
-- Reference the 6-stage system
-
-STUDENT'S PROJECT:
-- Name: ${projectName || 'AI Project'}
-- Type: ${projectType || 'chatbot'}
-- System Prompt: "${systemPrompt || 'not set'}"
-
-STUDENT'S CURRENT CONFIGURATION:
+CURRENT CODE:
 \`\`\`python
 ${code}
 \`\`\``;
@@ -245,34 +219,28 @@ ${code}
         ? conversationHistory[conversationHistory.length - 1].content 
         : code;
     } else if (action === "generate") {
-      sysPrompt = `You are a friendly Python AI coding tutor for teens (ages 12-20). Generate clean, well-commented Python code based on the description. Use the specified AI model/library if mentioned. Return ONLY the Python code in a code block.`;
-      userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any appropriate one"}`;
+      sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
+      userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;
     } else if (action === "idea-to-code") {
-      sysPrompt = `You are the FORGE AI project generator. The student will describe an AI project idea. Generate a complete FORGE configuration file following the 6-stage structure (Identity, Personality, Knowledge, Behaviour, Special Features, Advanced).
+      sysPrompt = `You are the FORGE AI project generator. Generate a complete 15-challenge config file.
 
-Include:
-- BOT_NAME, BOT_EMOJI, GREETING_MESSAGE, CREATOR_NAME
-- A detailed SYSTEM_PROMPT (3+ sentences)
-- KNOWLEDGE_BASE with relevant content
-- QA_PAIRS with 3+ entries
-- TEMPERATURE, RESPONSE_STYLE, MAX_RESPONSE_LENGTH
-- CONVERSATION_RULES with 3+ rules
-- CONVERSATION_STARTERS with 4+ starters
-- EASTER_EGGS with 2+ entries
-- CATCHPHRASES with 2+ entries
-- All Stage 6 settings
+Include ALL variables with creative, topic-specific values:
+BOT_NAME, BOT_EMOJI, GREETING_MESSAGE, CREATOR_NAME, SYSTEM_PROMPT (3+ sentences),
+KNOWLEDGE_BASE (detailed), QA_PAIRS (3+), TEMPERATURE, RESPONSE_STYLE, MAX_RESPONSE_LENGTH,
+CONVERSATION_RULES (3+), CONVERSATION_STARTERS (4+), EASTER_EGGS (3+), CATCHPHRASES (3+),
+BLOCKED_TOPICS (2+), FOLLOW_UP_QUESTIONS, REMEMBER_NAME, ERROR_MESSAGE.
 
-Return the code inside a \`\`\`python code block. Make it creative and fun!`;
-      userPrompt = `Create a FORGE AI project configuration for this idea: ${code}`;
+Return in a \`\`\`python code block. Make it creative and complete!`;
+      userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `You are the FORGE visual builder. Generate a FORGE configuration file based on the user's description.`;
-      userPrompt = `Generate FORGE configuration for: ${code}\nModel type: ${model || "auto-detect"}`;
+      sysPrompt = `Generate a complete FORGE 15-challenge configuration file based on the description.`;
+      userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
-      sysPrompt = `You are a friendly AI coding tutor for teens (ages 12-20). Help with any coding question about the FORGE platform. Keep responses concise and encouraging.`;
+      sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;
       userPrompt = code;
     }
 
-    // Determine temperature from bot config or use default
+    // Temperature from bot config
     const modelTemperature = (action === "test-agent" && botConfig?.temperature !== undefined) 
       ? Math.min(Math.max(botConfig.temperature, 0), 1.5) 
       : undefined;
