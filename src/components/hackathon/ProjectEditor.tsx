@@ -697,9 +697,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Memoized config extraction — single source of truth for the Live Preview
   const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
 
-  const handleChatSend = async () => {
-    if (!chatInput.trim() || isStreaming) return;
-    const userMsg = chatInput.trim();
+  const handleChatSend = async (directMessage?: string) => {
+    const msg = directMessage || chatInput.trim();
+    if (!msg || isStreaming) return;
+    const userMsg = msg;
     setChatInput('');
 
     // Use memoized config — always reflects latest code edits
