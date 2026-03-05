@@ -558,6 +558,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       maxThinkingSteps: extractNumber('MAX_THINKING_STEPS', 5),
       tools: extractDict('TOOLS'),
       toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+      // New challenges 16-20
+      forbiddenWords: extractList('FORBIDDEN_WORDS'),
+      mood: extract('MOOD', 'neutral'),
+      examples: extractList('EXAMPLES'),
+      languageStyle: extract('LANGUAGE_STYLE', 'casual'),
+      signOff: extract('SIGN_OFF', ''),
     };
   };
 
