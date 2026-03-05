@@ -560,8 +560,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     } finally { setIsRunning(false); }
   };
 
+  // Memoized config extraction — single source of truth for the Live Preview
+  const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
+
   // Extract all config variables from the student's Python code
   // Supports both SCREAMING_CASE and snake_case variable names
+  // NOTE: This function is kept inside the component for backward compat with handleRunTests/handleChatSend
   const extractConfigFromCode = (code: string) => {
     const extract = (fallback: string, ...varNames: string[]) => {
       for (const name of varNames) {
