@@ -216,4 +216,6 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
       </div>
     </div>
   );
-};
+});
+
+HackathonCard.displayName = 'HackathonCard';
