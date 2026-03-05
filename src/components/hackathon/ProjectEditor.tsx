@@ -1409,12 +1409,12 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
         </div>
 
         {/* RIGHT: Live Preview / Chat */}
-        <div className={`w-72 flex-col flex-shrink-0 bg-ide-sidebar border-l border-ide-border ${
+        <div className={`w-72 flex-col flex-shrink-0 border-l border-ide-border ${
           showMobilePreview ? 'flex fixed inset-0 z-40 w-full lg:relative lg:w-72' : showPreview ? 'hidden lg:flex' : 'hidden'
-        }`}>
-          <div className="px-3 py-2 flex items-center gap-2 border-b border-ide-border h-9 flex-shrink-0">
-            <Circle className="w-2 h-2 fill-ide-green text-ide-green" />
-            <span className="text-xs font-bold uppercase tracking-wider text-ide-text-muted">Live Preview</span>
+        }`} style={{ backgroundColor: selectedTheme.bg }}>
+          <div className="px-3 py-2 flex items-center gap-2 border-b border-ide-border h-9 flex-shrink-0" style={{ backgroundColor: selectedTheme.chat }}>
+            <Circle className="w-2 h-2" style={{ color: selectedTheme.accent, fill: selectedTheme.accent }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: selectedTheme.accent }}>Live Preview</span>
             <div className="flex-1" />
             <Button variant="ghost" size="icon" onClick={() => { setShowMobilePreview(false); setShowPreview(false); }}
               className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 lg:hidden">
