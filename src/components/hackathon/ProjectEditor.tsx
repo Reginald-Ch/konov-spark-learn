@@ -57,9 +57,23 @@ interface Token {
 
 const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
 
-const tokenizeLine = (line: string): Token[] => {
+const tokenizeLine = (line: string, inMultiLineString: { active: boolean; delim: string }): { tokens: Token[]; multiLineState: { active: boolean; delim: string } } => {
   const tokens: Token[] = [];
   let i = 0;
+  // If we're inside a multi-line string from a previous line, consume until closing delimiter
+  if (inMultiLineString.active) {
+    const closeIdx = line.indexOf(inMultiLineString.delim);
+    if (closeIdx === -1) {
+      // Entire line is still inside the multi-line string
+      tokens.push({ type: 'string', value: line });
+      return { tokens, multiLineState: { active: true, delim: inMultiLineString.delim } };
+    } else {
+      const end = closeIdx + inMultiLineString.delim.length;
+      tokens.push({ type: 'string', value: line.slice(0, end) });
+      i = end;
+      // Fall through to parse the rest of the line normally
+    }
+  }
   while (i < line.length) {
     if (line[i] === '#') { tokens.push({ type: 'comment', value: line.slice(i) }); break; }
     if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
@@ -72,10 +86,16 @@ const tokenizeLine = (line: string): Token[] => {
       const triple = line.slice(i, i + 3) === quote.repeat(3);
       const delim = triple ? quote.repeat(3) : quote;
       let end = i + delim.length;
+      let foundClose = false;
       while (end < line.length) {
         if (line[end] === '\\') { end += 2; continue; }
-        if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
+        if (line.slice(end, end + delim.length) === delim) { end += delim.length; foundClose = true; break; }
         end++;
+      }
+      if (!foundClose && triple) {
+        // Multi-line string opens but doesn't close on this line
+        tokens.push({ type: 'string', value: line.slice(i) });
+        return { tokens, multiLineState: { active: true, delim } };
       }
       tokens.push({ type: 'string', value: line.slice(i, end) }); i = end; continue;
     }
@@ -102,7 +122,7 @@ const tokenizeLine = (line: string): Token[] => {
     if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
     tokens.push({ type: 'text', value: line[i] }); i++;
   }
-  return tokens;
+  return { tokens, multiLineState: { active: false, delim: '' } };
 };
 
 const TOKEN_COLORS: Record<Token['type'], string> = {
@@ -153,9 +173,10 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
       if (!match) continue;
       const items: string[] = [];
-      const regex = /["']([^"']+)["']/g;
+      // Quote-aware: match "..." or '...' separately, allowing apostrophes inside double-quoted strings and vice versa
+      const regex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1] ?? m[2]);
       return items;
     }
     return [];
@@ -165,9 +186,10 @@ const extractConfigFromCode = (code: string) => {
       const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
       if (!match) continue;
       const result: Record<string, string> = {};
-      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      // Quote-aware key:value extraction
+      const regex = /(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')\s*:\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)')/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      while ((m = regex.exec(match[1])) !== null) result[m[1] ?? m[2]] = m[3] ?? m[4];
       return result;
     }
     return {};
@@ -176,7 +198,8 @@ const extractConfigFromCode = (code: string) => {
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return [];
     const pairs: Array<{q: string; a: string}> = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    // Quote-aware: handle apostrophes inside double-quoted values
+    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     return pairs;
@@ -414,7 +437,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
       const varName = code.match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
       if (tripleRegex.test(code)) {
-        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${knowledgeBase}"""`) };
+        const sanitized = knowledgeBase.replace(/"""/g, '\\"\\"\\"');
+        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${sanitized}"""`) };
       } else if (singleRegex.test(code)) {
         if (knowledgeBase.includes('\n')) {
           return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = """${knowledgeBase}"""`) };
@@ -451,9 +475,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
       const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
       if (qaRegex.test(code)) {
+        const escapePy = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
         const pairsStr = validPairs.length === 0 
           ? '[]' 
-          : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
+          : '[\n' + validPairs.map(p => `    {"q": "${escapePy(p.q)}", "a": "${escapePy(p.a)}"}`).join(',\n') + '\n]';
         return { ...prev, 'main.py': code.replace(qaRegex, `${varName} = ${pairsStr}`) };
       }
       return prev;
@@ -466,7 +491,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
     const pairs: QAPair[] = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    const regex = /\{\s*["']q["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*,\s*["']a["']\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"\s*\}/g;
     let m;
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     const newSerialized = JSON.stringify(pairs);
@@ -604,14 +629,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
+    let multiLineState = { active: false, delim: '' };
     return codeLines.map((line) => {
-      if (!line) return '&nbsp;';
-      const tokens = tokenizeLine(line);
-      return tokens.map(t => {
+      if (!line && !multiLineState.active) return '&nbsp;';
+      const result = tokenizeLine(line || '', multiLineState);
+      multiLineState = result.multiLineState;
+      return result.tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
-      }).join('');
+      }).join('') || '&nbsp;';
     });
   }, [files, activeFile]);
 
