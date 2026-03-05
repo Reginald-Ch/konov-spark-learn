@@ -19,11 +19,10 @@ interface HackathonCardProps {
     prizes: string | null;
   };
   onRegister: (hackathonId: string) => void;
-  onViewTeams: (hackathonId: string) => void;
   onSubmitProject: (hackathonId: string) => void;
 }
 
-export const HackathonCard = ({ hackathon, onRegister, onViewTeams, onSubmitProject }: HackathonCardProps) => {
+export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: HackathonCardProps) => {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
