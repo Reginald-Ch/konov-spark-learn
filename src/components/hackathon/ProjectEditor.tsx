@@ -561,6 +561,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (isUserTypingRef.current) return;
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
+    filesChangeSourceRef.current = 'sync';
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
@@ -573,9 +574,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [selectedTheme.id]);
 
-  // Read theme from code when code changes
+  // Read theme from code when code changes (only from non-user sources)
   useEffect(() => {
-    if (isUserTypingRef.current) return;
+    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
@@ -595,9 +596,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (isUserTypingRef.current) return;
     if (prevSystemPromptRef.current !== systemPrompt) {
+      filesChangeSourceRef.current = 'sync';
       setFiles(prev => {
         const code = prev['main.py'];
-        // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
         const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
         const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
         const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
@@ -621,8 +622,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [systemPrompt]);
 
+  // Read system prompt from code (only from non-user sources)
   useEffect(() => {
-    if (isUserTypingRef.current) return;
+    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
