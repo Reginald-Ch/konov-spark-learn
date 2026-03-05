@@ -51,7 +51,7 @@ const THEMES = [
 const KEYWORDS = new Set(['import', 'from', 'as', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'global', 'nonlocal', 'assert', 'del', 'True', 'False', 'None', 'async', 'await']);
 
 interface Token {
-  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'text';
+  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'class_name' | 'text';
   value: string;
 }
 
@@ -91,7 +91,12 @@ const tokenizeLine = (line: string): Token[] => {
       const prevTokens = tokens.map(t => t.value.trim()).filter(Boolean);
       const lastKeyword = prevTokens.length > 0 ? prevTokens[prevTokens.length - 1] : '';
       const isAfterImport = lastKeyword === 'from' || lastKeyword === 'import';
-      if (word.includes('.') && isAfterImport) {
+      const isAfterClass = lastKeyword === 'class';
+      if (word === 'self') {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (isAfterClass) {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (word.includes('.') && isAfterImport) {
         tokens.push({ type: 'module', value: word });
       } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
@@ -115,6 +120,7 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   operator: 'text-ide-cyan',
   module: 'text-ide-cyan',
   function_name: 'text-ide-yellow',
+  class_name: 'text-ide-pink',
   text: 'text-ide-text',
 };
 
@@ -601,19 +607,122 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     toast.success('Copied!');
   }, [files, activeFile]);
 
+  const [cursorLine, setCursorLine] = useState(0);
+  const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
+
+  const updateCursorInfo = useCallback((target: HTMLTextAreaElement) => {
+    const pos = target.selectionStart;
+    const textBefore = target.value.substring(0, pos);
+    const line = textBefore.split('\n').length - 1;
+    setCursorLine(line);
+
+    // Bracket matching
+    const code = target.value;
+    const OPEN = '([{';
+    const CLOSE = ')]}';
+    const ch = code[pos] || '';
+    const chBefore = pos > 0 ? code[pos - 1] : '';
+    let bracketPos = -1;
+    let isOpen = false;
+    if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
+    else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
+    else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
+    else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
+
+    if (bracketPos >= 0) {
+      const bracket = code[bracketPos];
+      const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
+      const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
+      let depth = 0;
+      if (isOpen) {
+        for (let j = bracketPos; j < code.length; j++) {
+          if (code[j] === bracket) depth++;
+          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
+        }
+      } else {
+        for (let j = bracketPos; j >= 0; j--) {
+          if (code[j] === bracket) depth++;
+          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+        }
+      }
+    }
+    setMatchedBrackets(null);
+  }, []);
+
+  // Convert matched bracket positions to line/col
+  const bracketHighlights = useMemo(() => {
+    if (!matchedBrackets) return null;
+    const code = files[activeFile];
+    const lines = code.split('\n');
+    const posToLineCol = (pos: number) => {
+      let remaining = pos;
+      for (let l = 0; l < lines.length; l++) {
+        if (remaining <= lines[l].length) return { line: l, col: remaining };
+        remaining -= lines[l].length + 1;
+      }
+      return { line: 0, col: 0 };
+    };
+    return [posToLineCol(matchedBrackets[0]), posToLineCol(matchedBrackets[1])];
+  }, [matchedBrackets, files, activeFile]);
+
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
-    return codeLines.map((line) => {
-      if (!line) return '&nbsp;';
+    let inMultiLineString = false;
+    let multiLineDelim = '"""';
+    return codeLines.map((line, lineIdx) => {
+      if (!line && !inMultiLineString) return '&nbsp;';
+      
+      // If we're inside a multi-line string, check for closing delimiter
+      if (inMultiLineString) {
+        const closeIdx = line.indexOf(multiLineDelim);
+        if (closeIdx !== -1) {
+          inMultiLineString = false;
+          const stringPart = escapeHtml(line.slice(0, closeIdx + multiLineDelim.length));
+          const rest = line.slice(closeIdx + multiLineDelim.length);
+          const restTokens = rest ? tokenizeLine(rest).map(t => {
+            const escaped = escapeHtml(t.value);
+            if (t.type === 'text') return escaped;
+            return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
+          }).join('') : '';
+          return `<span class="${TOKEN_COLORS.string}">${stringPart}</span>${restTokens}`;
+        }
+        return `<span class="${TOKEN_COLORS.string}">${escapeHtml(line)}</span>`;
+      }
+      
+      // Check if this line opens a multi-line string
+      const tripleDoubleCount = (line.match(/"""/g) || []).length;
+      const tripleSingleCount = (line.match(/'''/g) || []).length;
+      
       const tokens = tokenizeLine(line);
-      return tokens.map(t => {
+      let result = tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
+      
+      // If odd number of triple quotes, we're entering a multi-line string
+      if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+      else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+
+      // Bracket highlighting
+      if (bracketHighlights) {
+        for (const bh of bracketHighlights) {
+          if (bh.line === lineIdx) {
+            // We need to highlight the bracket at column bh.col
+            // This is a simplified approach - wrap the character
+            const chars = [...line];
+            if (bh.col < chars.length) {
+              // Re-render with bracket highlight (simplified: add a marker class via data attribute)
+              // For now, we rely on the visual overlay approach
+            }
+          }
+        }
+      }
+
+      return result;
     });
-  }, [files, activeFile]);
+  }, [files, activeFile, bracketHighlights]);
 
   // Q&A helpers
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
@@ -1617,7 +1726,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <div className="flex-1 flex min-h-0 bg-ide-editor">
             <div ref={lineNumberRef} className="w-12 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
               {lines.map((_, i) => (
-                <div key={i} className="text-right pr-2 font-mono leading-6 text-[12px] text-ide-text-muted">{i + 1}</div>
+                <div key={i} className={`text-right pr-2 font-mono leading-6 text-[12px] transition-colors ${
+                  i === cursorLine ? 'text-ide-text bg-ide-line-highlight' : 'text-ide-text-muted'
+                }`}>{i + 1}</div>
               ))}
             </div>
 
@@ -1638,7 +1749,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     aria-hidden="true"
                   >
                     {highlightedContent.map((line, i) => (
-                      <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
+                      <div key={i} className={i === cursorLine ? 'bg-ide-line-highlight' : ''} dangerouslySetInnerHTML={{ __html: line }} />
                     ))}
                   </div>
                 )}
@@ -1646,7 +1757,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <textarea
                   ref={textareaRef}
                   value={files[activeFile]}
-                  onChange={e => updateFile(e.target.value)}
+                  onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
                       e.preventDefault();
@@ -1658,9 +1769,31 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       updateFile(newValue);
                       requestAnimationFrame(() => {
                         target.selectionStart = target.selectionEnd = start + 4;
+                        updateCursorInfo(target);
+                      });
+                    }
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const pos = target.selectionStart;
+                      const value = target.value;
+                      const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
+                      const currentLine = value.slice(lineStart, pos);
+                      const indent = currentLine.match(/^(\s*)/)?.[1] || '';
+                      const trimmedLine = currentLine.trimEnd();
+                      const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
+                      const insertion = '\n' + indent + extraIndent;
+                      const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        const newPos = pos + insertion.length;
+                        target.selectionStart = target.selectionEnd = newPos;
+                        updateCursorInfo(target);
                       });
                     }
                   }}
+                  onClick={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
+                  onSelect={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
                   spellCheck={false}
                   className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
                     activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
