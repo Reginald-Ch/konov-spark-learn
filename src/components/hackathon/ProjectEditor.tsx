@@ -469,14 +469,47 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Imperatively set textarea when activeFile changes or on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+    }
+  }, [activeFile]); // Only on file tab switch — NOT on files changes
+
+  // Also set textarea on initial mount / project load
+  const initialLoadDoneRef = useRef(false);
+  useEffect(() => {
+    if (!initialLoadDoneRef.current && textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+      initialLoadDoneRef.current = true;
+    }
+  });
+
+  // Helper: update files state AND imperatively sync textarea (for sidebar→code syncs)
+  const setFilesAndTextarea = useCallback((updater: (prev: typeof files) => typeof files) => {
+    setFiles(prev => {
+      const next = updater(prev);
+      // Imperatively update textarea if we're on main.py
+      if (textareaRef.current && activeFile === 'main.py' && next['main.py'] !== prev['main.py']) {
+        const ta = textareaRef.current;
+        const cursorStart = ta.selectionStart;
+        const cursorEnd = ta.selectionEnd;
+        ta.value = next['main.py'];
+        // Restore cursor as close as possible
+        ta.selectionStart = Math.min(cursorStart, next['main.py'].length);
+        ta.selectionEnd = Math.min(cursorEnd, next['main.py'].length);
+      }
+      return next;
+    });
+    skipNextSyncRef.current = true;
+  }, [activeFile]);
+
   // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
   const prevKnowledgeRef = useRef(knowledgeBase);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
@@ -494,11 +527,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [knowledgeBase]);
+  }, [knowledgeBase, setFilesAndTextarea]);
 
-  // Read knowledge base from code when code changes (only from non-user sources)
+  // Read knowledge base from code when code changes (only from sidebar syncs, skip if user typed)
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) { skipNextSyncRef.current = false; return; }
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
