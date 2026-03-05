@@ -1872,7 +1872,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 </div>
               </div>
             ))}
-            {isStreaming && (
+            {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
               <div className="flex justify-start">
                 <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '0ms' }} />
