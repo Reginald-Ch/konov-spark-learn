@@ -251,7 +251,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 15 Build-Up Challenges
+🧠 FORGE AI Agent — 20 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -259,7 +259,7 @@ An Agent USES TOOLS to take actions!
 
 Every variable below is LIVE — edit and test instantly.
 
-⏱️ Time: 45-60 minutes
+⏱️ Time: 50-70 minutes
 """
 
 # ═══════════════════════════════════════════════
@@ -284,8 +284,6 @@ CREATOR_NAME = "A FORGE Builder"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 5: Define the Mission (MOST IMPORTANT!)
-# Write what your agent DOES and HOW it thinks.
-# Focus on ACTIONS, not just chatting.
 # ═══════════════════════════════════════════════
 SYSTEM_PROMPT = "You are an AI agent that can use tools to search the web, run calculations, and generate content."
 
@@ -307,14 +305,11 @@ QA_PAIRS = [
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 8: Set Creativity Level
-# Agents usually work best with lower values (0.2-0.5)
 # ═══════════════════════════════════════════════
 TEMPERATURE = 0.3
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 9: Choose Response Style
-# Options: "Concise", "Detailed", "Friendly",
-#          "Professional", "Balanced"
 # ═══════════════════════════════════════════════
 RESPONSE_STYLE = "Professional"
 
@@ -367,6 +362,38 @@ BLOCKED_TOPICS = [
     "inappropriate content"
 ]
 
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 16: Set Forbidden Words
+# Words your agent must NEVER use in responses.
+# ═══════════════════════════════════════════════
+FORBIDDEN_WORDS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 17: Set the Mood
+# Options: "cheerful", "serious", "sarcastic",
+#          "mysterious", "energetic", "calm", "neutral"
+# ═══════════════════════════════════════════════
+MOOD = "neutral"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 18: Add Few-Shot Examples
+# Show your agent HOW you want it to answer.
+# ═══════════════════════════════════════════════
+EXAMPLES = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 19: Set Language Style
+# Options: "casual", "formal", "academic",
+#          "slang", "poetic", "storyteller"
+# ═══════════════════════════════════════════════
+LANGUAGE_STYLE = "casual"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 20: Add a Sign-Off
+# A closing phrase for every response.
+# ═══════════════════════════════════════════════
+SIGN_OFF = ""
+
 # BONUS SETTINGS
 FOLLOW_UP_QUESTIONS = True
 REMEMBER_NAME = True
@@ -405,6 +432,11 @@ TOOL_INSTRUCTIONS = {
 # ☐ 13. EASTER_EGGS — Type "secret mission" to test
 # ☐ 14. CATCHPHRASES — Chat and look for your phrases
 # ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
+# ☐ 16. FORBIDDEN_WORDS — Add words, verify avoidance
+# ☐ 17. MOOD — Try "serious" or "energetic"
+# ☐ 18. EXAMPLES — Add examples to teach format
+# ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
+# ☐ 20. SIGN_OFF — Add a closing phrase
 # ═══════════════════════════════════════════════
 `,
     config: `{
@@ -414,13 +446,13 @@ TOOL_INSTRUCTIONS = {
   "max_iterations": 5,
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],
-  "forge_version": "2.0",
-  "challenges": 15,
+  "forge_version": "3.0",
+  "challenges": 20,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
 # Edit variables in main.py and test in Live Preview.
-forge-sdk>=2.0
+forge-sdk>=3.0
 streamlit>=1.28.0`,
   },
 };

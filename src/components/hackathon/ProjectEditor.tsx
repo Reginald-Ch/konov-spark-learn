@@ -632,6 +632,11 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             rememberName: config.rememberName,
             showReasoning: config.showReasoning,
             toolInstructions: config.toolInstructions,
+            forbiddenWords: config.forbiddenWords,
+            mood: config.mood,
+            examples: config.examples,
+            languageStyle: config.languageStyle,
+            signOff: config.signOff,
           },
         },
         (text) => {
