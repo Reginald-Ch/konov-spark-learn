@@ -544,7 +544,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
     const match = tripleMatch || singleMatch;
-    if (match && match[1] !== systemPrompt) {
+    if (match) {
       const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
         prevSystemPromptRef.current = unescaped;
