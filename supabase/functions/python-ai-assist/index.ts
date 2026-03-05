@@ -166,12 +166,12 @@ You ARE this bot. Never break character. Never mention you are simulating.`;
 RULES:
 - NEVER write complete solutions. Show small snippets (2-5 lines max).
 - Explain WHY something works.
-- Check which of the 15 challenges are complete vs default.
+- Check which of the 20 challenges are complete vs default.
 - Praise what they did well, then suggest ONE next challenge.
 - Keep under 200 words. Use markdown.
 
 The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
-      userPrompt = `Review this FORGE config. Check which of the 15 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
+      userPrompt = `Review this FORGE config. Check which of the 20 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
