@@ -218,6 +218,11 @@ const ProjectView = () => {
     return extractConfigFromCode(project.code);
   }, [project]);
 
+  const theme = useMemo(() => {
+    if (!config) return THEMES[0];
+    return THEMES.find(t => t.id === config.appTheme) || THEMES[0];
+  }, [config]);
+
   const systemPrompt = config?.systemPrompt || 'You are a helpful AI assistant.';
 
   const projectTitle = useMemo(() => {
