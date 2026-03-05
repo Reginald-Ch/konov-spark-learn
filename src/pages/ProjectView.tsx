@@ -127,18 +127,88 @@ const ProjectView = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const systemPrompt = useMemo(() => {
-    if (!project) return 'You are a helpful AI assistant.';
-    const match = project.code.match(/SYSTEM_PROMPT\s*=\s*["'](.*)["']/);
-    return match ? match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : 'You are a helpful AI assistant.';
+  // Extract all config variables from the student's Python code
+  const extractConfigFromCode = (code: string) => {
+    const extract = (varName: string, fallback: string = '') => {
+      const tripleMatch = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`));
+      if (tripleMatch) return tripleMatch[1].trim();
+      const tripleMatch2 = code.match(new RegExp(`${varName}\\s*=\\s*'''([\\s\\S]*?)'''`));
+      if (tripleMatch2) return tripleMatch2[1].trim();
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*["'](.*)["']`));
+      return match ? match[1] : fallback;
+    };
+    const extractNumber = (varName: string, fallback: number) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*([\\d.]+)`));
+      return match ? parseFloat(match[1]) : fallback;
+    };
+    const extractBool = (varName: string, fallback: boolean) => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*(True|False)`));
+      return match ? match[1] === 'True' : fallback;
+    };
+    const extractList = (varName: string): string[] => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+      if (!match) return [];
+      const items: string[] = [];
+      const regex = /["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      return items;
+    };
+    const extractDict = (varName: string): Record<string, string> => {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+      if (!match) return {};
+      const result: Record<string, string> = {};
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      return result;
+    };
+    const extractQAPairs = (): Array<{q: string; a: string}> => {
+      const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
+      if (!match) return [];
+      const pairs: Array<{q: string; a: string}> = [];
+      const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+      return pairs;
+    };
+
+    return {
+      botName: extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot')),
+      botEmoji: extract('BOT_EMOJI', extract('AGENT_EMOJI', '🤖')),
+      greeting: extract('GREETING_MESSAGE', ''),
+      creatorName: extract('CREATOR_NAME', ''),
+      systemPrompt: extract('SYSTEM_PROMPT', 'You are a helpful AI assistant.'),
+      temperature: extractNumber('TEMPERATURE', 0.7),
+      responseStyle: extract('RESPONSE_STYLE', 'Balanced'),
+      maxResponseLength: extract('MAX_RESPONSE_LENGTH', 'medium'),
+      responseFormat: extract('RESPONSE_FORMAT', ''),
+      conversationRules: extractList('CONVERSATION_RULES'),
+      conversationStarters: extractList('CONVERSATION_STARTERS'),
+      easterEggs: extractDict('EASTER_EGGS'),
+      catchphrases: extractList('CATCHPHRASES'),
+      blockedTopics: extractList('BLOCKED_TOPICS'),
+      followUpQuestions: extractBool('FOLLOW_UP_QUESTIONS', true),
+      rememberName: extractBool('REMEMBER_NAME', true),
+      errorMessage: extract('ERROR_MESSAGE', ''),
+      knowledgeBase: extract('KNOWLEDGE_BASE', ''),
+      qaPairs: extractQAPairs(),
+      showReasoning: extractBool('SHOW_REASONING', true),
+      toolInstructions: extractDict('TOOL_INSTRUCTIONS'),
+    };
+  };
+
+  const config = useMemo(() => {
+    if (!project) return null;
+    return extractConfigFromCode(project.code);
   }, [project]);
+
+  const systemPrompt = config?.systemPrompt || 'You are a helpful AI assistant.';
 
   const projectTitle = useMemo(() => {
     if (!project) return '';
-    // Try to extract st.title from code
-    const match = project.code.match(/st\.title\(["'](.+?)["']\)/);
-    return match ? match[1] : project.project_name;
-  }, [project]);
+    return config?.botName && config.botName !== 'AI Bot' ? config.botName : project.project_name;
+  }, [project, config]);
 
   const highlightedLines = useMemo(() => {
     if (!project) return [];
