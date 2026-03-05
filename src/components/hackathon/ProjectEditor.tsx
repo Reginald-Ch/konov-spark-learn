@@ -1511,12 +1511,16 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-ide-accent text-ide-bg-deep'
-                    : msg.role === 'system'
+                  msg.role === 'system'
                     ? 'bg-ide-border text-ide-text-muted italic'
-                    : 'bg-ide-editor text-ide-text'
-                }`}>
+                    : ''
+                }`} style={
+                  msg.role === 'user' 
+                    ? { backgroundColor: selectedTheme.accent, color: '#fff' }
+                    : msg.role === 'assistant'
+                    ? { backgroundColor: selectedTheme.chat, color: '#e2e8f0' }
+                    : undefined
+                }>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
