@@ -203,14 +203,14 @@ The student is building: ${projectName || 'an AI project'} (${projectType || 'ch
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
 After explaining, say: "Try changing [specific variable] and test in Live Preview!"
-Reference the 15-challenge system. Under 200 words.
+Reference the 20-challenge system. Under 200 words.
 
 Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
       userPrompt = `Explain this config to the student:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "suggest") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
 
-- Check which of 15 challenges are still at default values
+- Check which of 20 challenges are still at default values
 - Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
 - Frame as experiments, not solutions
 - Under 200 words.
