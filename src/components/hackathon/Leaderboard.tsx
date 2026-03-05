@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, forwardRef } from 'react';
 import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +38,7 @@ interface ParticipantScore {
   rank: number;
 }
 
-export const Leaderboard = () => {
+export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
@@ -133,7 +133,7 @@ export const Leaderboard = () => {
 
     const channel = supabase
       .channel('leaderboard-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'point_events' }, () => debouncedFetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
       .subscribe();
 
     return () => { 
@@ -203,7 +203,7 @@ export const Leaderboard = () => {
   }), [participants]);
 
   return (
-    <div className="h-full">
+    <div ref={ref} className="h-full">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
@@ -327,4 +327,6 @@ export const Leaderboard = () => {
       </div>
     </div>
   );
-};
+});
+
+Leaderboard.displayName = 'Leaderboard';

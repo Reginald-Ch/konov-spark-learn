@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface CountdownTimerProps {
@@ -13,7 +13,7 @@ interface TimeLeft {
   seconds: number;
 }
 
-export const CountdownTimer = ({ targetDate, label }: CountdownTimerProps) => {
+export const CountdownTimer = forwardRef<HTMLDivElement, CountdownTimerProps>(({ targetDate, label }, ref) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export const CountdownTimer = ({ targetDate, label }: CountdownTimerProps) => {
   const isUrgent = timeLeft.days === 0 && timeLeft.hours < 24;
 
   return (
-    <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3">
+    <div ref={ref} className="bg-[hsl(var(--discord-darker))] rounded-lg p-3">
       <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-2 text-center font-medium uppercase tracking-wider flex items-center justify-center gap-2">
         {isUrgent && <span className="w-2 h-2 rounded-full bg-[#F7941D] animate-pulse" />}
         {label}
@@ -95,4 +95,6 @@ export const CountdownTimer = ({ targetDate, label }: CountdownTimerProps) => {
       </div>
     </div>
   );
-};
+});
+
+CountdownTimer.displayName = 'CountdownTimer';
