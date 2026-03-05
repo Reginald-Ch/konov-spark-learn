@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SEO } from '@/components/SEO';
 import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
-import { TeamsModal } from '@/components/hackathon/TeamsModal';
+
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { Leaderboard } from '@/components/hackathon/Leaderboard';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
