@@ -79,6 +79,7 @@ export default {
           purple: "hsl(var(--ide-purple))",
           cyan: "hsl(var(--ide-cyan))",
           orange: "hsl(var(--ide-orange))",
+          pink: "hsl(var(--ide-pink))",
           "line-highlight": "hsl(var(--ide-line-highlight))",
           selection: "hsl(var(--ide-selection))",
           cursor: "hsl(var(--ide-cursor))",
