@@ -20,12 +20,12 @@ serve(async (req) => {
     // Build knowledge context string if available
     let knowledgeContext = "";
     if (knowledgeBase && knowledgeBase.trim()) {
-      knowledgeContext += `\n\nKNOWLEDGE BASE (reference this when answering):\n${knowledgeBase}\n`;
+      knowledgeContext += `\n\nKNOWLEDGE BASE (you MUST reference this information when answering related questions — treat it as your primary source of truth):\n${knowledgeBase}\n`;
     }
     if (qaData && Array.isArray(qaData) && qaData.length > 0) {
-      knowledgeContext += `\n\nQ&A PAIRS (use these for specific questions):\n`;
+      knowledgeContext += `\n\nEXACT Q&A PAIRS — CRITICAL RULE: When a user asks a question that matches or closely resembles any Q below, you MUST use the corresponding A as your answer. Do NOT ignore these or make up a different answer. You may rephrase slightly but the core answer MUST match:\n`;
       qaData.forEach((pair: { q: string; a: string }, i: number) => {
-        knowledgeContext += `Q${i + 1}: ${pair.q}\nA${i + 1}: ${pair.a}\n`;
+        knowledgeContext += `Q${i + 1}: "${pair.q}" → A${i + 1}: "${pair.a}"\n`;
       });
     }
 
