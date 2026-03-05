@@ -282,14 +282,13 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
-  // Sync theme selection to code's app_theme variable
+  // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
     setFiles(prev => {
       const code = prev['main.py'];
-      // Support both old APP_THEME and new app_theme
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
       if (regex.test(code)) {
         const varName = code.match(/APP_THEME\s*=/) ? 'APP_THEME' : 'app_theme';
@@ -300,7 +299,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     });
   }, [selectedTheme.id]);
 
-  // Read theme from code when code changes (only if user edits app_theme manually)
+  // Read theme from code when code changes
   useEffect(() => {
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
@@ -322,10 +321,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     if (prevSystemPromptRef.current !== systemPrompt) {
       setFiles(prev => {
         const code = prev['main.py'];
-        // Support both old SYSTEM_PROMPT and new system_message
-        const regex = /(?:SYSTEM_PROMPT|system_message)\s*=\s*["'](.*)["']/;
+        // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
+        const regex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
         if (regex.test(code)) {
-          const varName = code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+          const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
           const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           const updated = code.replace(regex, `${varName} = "${escaped}"`);
           return { ...prev, 'main.py': updated };
@@ -338,7 +337,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   useEffect(() => {
     const code = files['main.py'];
-    const match = code.match(/(?:SYSTEM_PROMPT|system_message)\s*=\s*["'](.*)["']/);
+    const match = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
     if (match && match[1] !== systemPrompt) {
       const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
@@ -479,26 +478,26 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     const defaultName = isAgent ? 'Research Agent' : 'Spark';
     
     const localChecks = [
-      { label: 'bot_name', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
-      { label: 'bot_emoji', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
-      { label: 'greeting', ok: !!config.greeting, val: config.greeting ? '✓ set' : '✗ default' },
-      { label: 'creator', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
-      { label: 'system_message', ok: systemPrompt.length > 30, val: `${systemPrompt.length} chars` },
-      { label: 'knowledge_base', ok: !!config.knowledgeBaseFromCode.trim(), val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
-      { label: 'qa_pairs', ok: config.qaPairsFromCode.length > 0, val: `${config.qaPairsFromCode.length} pairs` },
-      { label: 'temperature', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-      { label: 'response_style', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
-      { label: 'max_response_length', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
-      { label: 'rules', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
-      { label: 'conversation_starters', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
-      { label: 'easter_eggs', ok: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3), val: `${Object.keys(config.easterEggs).length} eggs` },
-      { label: 'catchphrases', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
-      { label: 'blocked_topics', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
-      { label: 'forbidden_words', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
-      { label: 'mood', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'few_shot_examples', ok: config.examples.length > 0, val: `${config.examples.length} examples` },
-      { label: 'language_style', ok: config.languageStyle !== 'casual', val: config.languageStyle },
-      { label: 'sign_off', ok: !!config.signOff, val: config.signOff || '✗ none' },
+      { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
+      { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
+      { label: 'AI_MESSAGE', ok: !!config.greeting, val: config.greeting ? '✓ set' : '✗ default' },
+      { label: 'CREATOR_NAME', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
+      { label: 'SYSTEM_MESSAGE', ok: systemPrompt.length > 30, val: `${systemPrompt.length} chars` },
+      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim(), val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
+      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > 0, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
+      { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
+      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+      { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
+      { label: 'EASTER_EGGS', ok: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3), val: `${Object.keys(config.easterEggs).length} eggs` },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
+      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.examples.length > 0, val: `${config.examples.length} examples` },
+      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
+      { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -562,11 +561,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   };
 
   // Extract all config variables from the student's Python code
-  // Supports both old SCREAMING_CASE and new snake_case LangChain-style names
+  // Supports both SCREAMING_CASE and snake_case variable names
   const extractConfigFromCode = (code: string) => {
-    const extract = (varName: string, fallback: string = '', altName?: string) => {
-      // Try primary name first, then alt name
-      for (const name of [varName, altName].filter(Boolean) as string[]) {
+    const extract = (fallback: string, ...varNames: string[]) => {
+      for (const name of varNames) {
         const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
         if (tripleMatch) return tripleMatch[1].trim();
         const tripleMatch2 = code.match(new RegExp(`${name}\\s*=\\s*'''([\\s\\S]*?)'''`));
@@ -576,22 +574,22 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       }
       return fallback;
     };
-    const extractNumber = (varName: string, fallback: number, altName?: string) => {
-      for (const name of [varName, altName].filter(Boolean) as string[]) {
+    const extractNumber = (fallback: number, ...varNames: string[]) => {
+      for (const name of varNames) {
         const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
         if (match) return parseFloat(match[1]);
       }
       return fallback;
     };
-    const extractBool = (varName: string, fallback: boolean, altName?: string) => {
-      for (const name of [varName, altName].filter(Boolean) as string[]) {
+    const extractBool = (fallback: boolean, ...varNames: string[]) => {
+      for (const name of varNames) {
         const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
         if (match) return match[1] === 'True';
       }
       return fallback;
     };
-    const extractList = (varName: string, altName?: string): string[] => {
-      for (const name of [varName, altName].filter(Boolean) as string[]) {
+    const extractList = (...varNames: string[]): string[] => {
+      for (const name of varNames) {
         const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
         if (!match) continue;
         const items: string[] = [];
@@ -602,8 +600,8 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       }
       return [];
     };
-    const extractDict = (varName: string, altName?: string): Record<string, string> => {
-      for (const name of [varName, altName].filter(Boolean) as string[]) {
+    const extractDict = (...varNames: string[]): Record<string, string> => {
+      for (const name of varNames) {
         const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
         if (!match) continue;
         const result: Record<string, string> = {};
@@ -615,8 +613,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
       return {};
     };
     const extractQAPairs = (): Array<{q: string; a: string}> => {
-      // Try both qa_pairs and QA_PAIRS
-      const match = code.match(/(?:qa_pairs|QA_PAIRS)\s*=\s*\[([\s\S]*?)\]/);
+      const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
       if (!match) return [];
       const pairs: Array<{q: string; a: string}> = [];
       const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
@@ -626,33 +623,33 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     };
 
     return {
-      botName: extract('bot_name', extract('BOT_NAME', extract('AGENT_NAME', 'AI Bot'))),
-      botEmoji: extract('bot_emoji', '🤖', 'BOT_EMOJI'),
-      greeting: extract('greeting', '', 'GREETING_MESSAGE'),
-      creatorName: extract('creator', '', 'CREATOR_NAME'),
-      temperature: extractNumber('temperature', 0.7, 'TEMPERATURE'),
-      responseStyle: extract('response_style', 'Balanced', 'RESPONSE_STYLE'),
-      maxResponseLength: extract('max_response_length', 'medium', 'MAX_RESPONSE_LENGTH'),
-      responseFormat: extract('response_format', '', 'RESPONSE_FORMAT'),
-      conversationRules: extractList('rules', 'CONVERSATION_RULES'),
-      conversationStarters: extractList('conversation_starters', 'CONVERSATION_STARTERS'),
-      easterEggs: extractDict('easter_eggs', 'EASTER_EGGS'),
-      catchphrases: extractList('catchphrases', 'CATCHPHRASES'),
-      blockedTopics: extractList('blocked_topics', 'BLOCKED_TOPICS'),
-      followUpQuestions: extractBool('follow_up_questions', true, 'FOLLOW_UP_QUESTIONS'),
-      rememberName: extractBool('memory_enabled', true, 'REMEMBER_NAME'),
-      errorMessage: extract('error_message', '', 'ERROR_MESSAGE'),
-      knowledgeBaseFromCode: extract('knowledge_base', '', 'KNOWLEDGE_BASE'),
+      botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
+      botEmoji: extract('🤖', 'BOT_EMOJI', 'bot_emoji'),
+      greeting: extract('', 'AI_MESSAGE', 'greeting', 'GREETING_MESSAGE'),
+      creatorName: extract('', 'CREATOR_NAME', 'creator'),
+      temperature: extractNumber(0.7, 'TEMPERATURE', 'temperature'),
+      responseStyle: extract('Balanced', 'RESPONSE_STYLE', 'response_style'),
+      maxResponseLength: extract('medium', 'MAX_RESPONSE_LENGTH', 'max_response_length'),
+      responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
+      conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
+      conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
+      easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
+      catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
+      blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
+      followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
+      rememberName: extractBool(true, 'MEMORY_ENABLED', 'memory_enabled', 'REMEMBER_NAME'),
+      errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
+      knowledgeBaseFromCode: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
       qaPairsFromCode: extractQAPairs(),
-      showReasoning: extractBool('show_reasoning', true, 'SHOW_REASONING'),
-      maxThinkingSteps: extractNumber('max_thinking_steps', 5, 'MAX_THINKING_STEPS'),
-      tools: extractDict('tools', 'TOOLS'),
-      toolInstructions: extractDict('tool_instructions', 'TOOL_INSTRUCTIONS'),
-      forbiddenWords: extractList('forbidden_words', 'FORBIDDEN_WORDS'),
-      mood: extract('mood', 'neutral', 'MOOD'),
-      examples: extractList('few_shot_examples', 'EXAMPLES'),
-      languageStyle: extract('language_style', 'casual', 'LANGUAGE_STYLE'),
-      signOff: extract('sign_off', '', 'SIGN_OFF'),
+      showReasoning: extractBool(true, 'SHOW_REASONING', 'show_reasoning'),
+      maxThinkingSteps: extractNumber(5, 'MAX_THINKING_STEPS', 'max_thinking_steps'),
+      tools: extractDict('TOOLS', 'tools'),
+      toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
+      forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
+      mood: extract('neutral', 'MOOD', 'mood'),
+      examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
+      languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
+      signOff: extract('', 'SIGN_OFF', 'sign_off'),
     };
   };
 
