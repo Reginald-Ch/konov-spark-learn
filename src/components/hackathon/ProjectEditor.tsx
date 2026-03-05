@@ -572,6 +572,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setAiOutput('');
     setMentorHistory([]);
     setCurrentProjectId(null);
+    setKnowledgeBase('');
+    setQaData([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
     // Tier 1: Project Setup (10 pts, awarded once)
