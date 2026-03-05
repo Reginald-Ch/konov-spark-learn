@@ -321,10 +321,10 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
     if (prevSystemPromptRef.current !== systemPrompt) {
       setFiles(prev => {
         const code = prev['main.py'];
-        // Support both old SYSTEM_PROMPT and new system_message
-        const regex = /(?:SYSTEM_PROMPT|system_message)\s*=\s*["'](.*)["']/;
+        // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
+        const regex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
         if (regex.test(code)) {
-          const varName = code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+          const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
           const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           const updated = code.replace(regex, `${varName} = "${escaped}"`);
           return { ...prev, 'main.py': updated };
@@ -337,7 +337,7 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
 
   useEffect(() => {
     const code = files['main.py'];
-    const match = code.match(/(?:SYSTEM_PROMPT|system_message)\s*=\s*["'](.*)["']/);
+    const match = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
     if (match && match[1] !== systemPrompt) {
       const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
