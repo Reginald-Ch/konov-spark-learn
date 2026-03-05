@@ -584,11 +584,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
-    if (isUserTypingRef.current) return;
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
-    filesChangeSourceRef.current = 'sync';
-    setFiles(prev => {
+    setFilesAndTextarea(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
       if (regex.test(code)) {
@@ -598,11 +596,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       return prev;
     });
-  }, [selectedTheme.id]);
+  }, [selectedTheme.id, setFilesAndTextarea]);
 
-  // Read theme from code when code changes (only from non-user sources)
+  // Read theme from code when code changes
   useEffect(() => {
-    if (isUserTypingRef.current || filesChangeSourceRef.current === 'user') return;
+    if (skipNextSyncRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
