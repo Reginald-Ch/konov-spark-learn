@@ -637,6 +637,27 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Leaderboard Confirmation */}
+      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-red-400" /> Reset Leaderboard
+            </DialogTitle>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+              This will permanently delete ALL scores and point events. Students will need to re-earn points. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setResetConfirmOpen(false)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+            <Button onClick={handleResetLeaderboard} disabled={isResetting} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+              {isResetting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Reset All Scores
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
