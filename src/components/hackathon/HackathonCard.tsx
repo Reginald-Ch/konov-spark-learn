@@ -1,3 +1,4 @@
+import React from 'react';
 import { Calendar, Users, Clock, Trophy, Zap, ArrowRight, Gamepad2, Code, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ interface HackathonCardProps {
   onSubmitProject: (hackathonId: string) => void;
 }
 
-export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: HackathonCardProps) => {
+export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps>(({ hackathon, onRegister, onSubmitProject }, ref) => {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
@@ -77,6 +78,7 @@ export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: Hackat
 
   return (
     <div
+      ref={ref}
       className={`relative rounded-lg overflow-hidden bg-[hsl(var(--discord-dark))] border ${styles.border} ${styles.glow} transition-all duration-300 group hover:scale-[1.02] hover:-translate-y-1`}
     >
       {/* Live indicator pulse */}
@@ -214,4 +216,6 @@ export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: Hackat
       </div>
     </div>
   );
-};
+});
+
+HackathonCard.displayName = 'HackathonCard';

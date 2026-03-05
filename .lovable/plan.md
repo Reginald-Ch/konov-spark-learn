@@ -1,55 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
 
+## Current State Assessment
 
-# Plan: Bug Fixes & Enhancements
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
 
-## Critical Bug
+## Critical Fixes
 
-### 1. `HackathonCard` needs `forwardRef` (Runtime Warning)
-Console error: `Function components cannot be given refs. Check the render method of Hackathons.`
-The `HackathonCard` component is a plain function component but receives refs from parent context (ScrollArea/motion).
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
 
-**File:** `src/components/hackathon/HackathonCard.tsx`
-- Convert to `React.forwardRef`, forward ref to the outer wrapper div.
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
 
-## Enhancements
+**File:** `supabase/config.toml`
+Add:
 
-### 2. System Prompt bidirectional sync has stale-state risk
-In `ProjectEditor.tsx`, the code→sidebar sync (line 547) compares `match[1] !== systemPrompt` but `systemPrompt` is a stale closure value in this effect. This can cause missed updates when the user edits the code directly. The ref-based pattern used for `knowledgeBase` (lines 407-428) is the correct approach.
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
+```
 
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-- The system prompt code→sidebar effect (line 542-554) already uses `prevSystemPromptRef` but also references `systemPrompt` directly in the comparison (line 547). Change to only compare against `prevSystemPromptRef.current` for consistency with the knowledge/QA sync pattern.
+### 2. Fix Save Flow — Update Requires `author_email` Match
 
-### 3. Knowledge Base and Q&A not reset when switching templates
-When `handleTypeChange` is called (line 556), it resets files, system prompt, chat, and terminal — but does NOT reset `knowledgeBase`, `qaData`, or `selectedTheme`. This means stale knowledge from a previous template carries into the new one, polluting the new bot and breaking mission progress accuracy.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-- In `handleTypeChange`, reset `knowledgeBase` to `''`, `qaData` to `[]`, and read fresh values from the new scaffold code after setting files.
-
-### 4. Mission Progress "System Message" check is always true
-Line 1249: `{ emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' }` — the scaffold always ships with a non-empty `SYSTEM_MESSAGE`, so this mission starts as "done" immediately. It should check whether the student has *changed* it from the default.
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
 
 **File:** `src/components/hackathon/ProjectEditor.tsx`
-- Compare `config.systemMessage` against `PROJECT_SCAFFOLDS[projectType].systemPrompt` instead of empty string.
 
-### 5. `Greeting` mission check doesn't account for scaffold defaults
-Line 1232: `{ emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' }` — the chatbot scaffold has `AI_MESSAGE = "Hey there! I'm Spark..."` which is non-empty, so this is always "done" on load. Should check against the scaffold default greeting.
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
+
+**File:** `src/components/hackathon/PublishModal.tsx`
+
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
 
 **File:** `src/components/hackathon/ProjectEditor.tsx`
-- Extract default greeting from scaffold code and compare against it.
 
----
+- Pass `currentProjectId` to `PublishModal`
 
-## Implementation Plan
+### 4. Rename Platform to "FORGE"
 
-| # | Fix | File |
-|---|-----|------|
-| 1 | Convert `HackathonCard` to `forwardRef` | `HackathonCard.tsx` |
-| 2 | Fix system prompt sync stale closure | `ProjectEditor.tsx` |
-| 3 | Reset knowledge/QA on template switch | `ProjectEditor.tsx` |
-| 4 | Fix "System Message" mission check | `ProjectEditor.tsx` |
-| 5 | Fix "Greeting" mission check | `ProjectEditor.tsx` |
+Update visible branding across the UI.
 
-### Files Modified
-- `src/components/hackathon/HackathonCard.tsx`
+**Files affected:**
+
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
+
+### 5. Streamline the Student Entry Flow
+
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
+
+**File:** `src/pages/Hackathons.tsx`
+
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+
+### 6. Add Live Preview Interactive Demo Chat
+
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+
+**File:** `supabase/functions/python-ai-assist/index.ts`
+
+- Add support for `messages` array in `test-agent` action to maintain conversation context
+
+
+
+### 8. Polish ProjectView Page — Add Live Demo Chat
+
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+
+**File:** `src/pages/ProjectView.tsx`
+
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
+
+## Implementation Order
+
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
+
+## Files Modified
+
+- `supabase/config.toml`
 - `src/components/hackathon/ProjectEditor.tsx`
-
+- `src/components/hackathon/PublishModal.tsx`
+- `src/pages/Hackathons.tsx`
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`
