@@ -132,6 +132,7 @@ const Hackathons = () => {
     if (!hasLiveEvent) return;
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
+    setBuildKey(prev => prev + 1);
     setActiveTab('build');
   };
 
