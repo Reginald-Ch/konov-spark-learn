@@ -126,10 +126,6 @@ const Hackathons = () => {
   const hasLiveEvent = liveHackathons.length > 0;
 
   const handleStartBuilding = (code: string, templateId: string) => {
-    if (!hasLiveEvent) {
-      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
-      return;
-    }
     setBuildCode(code || undefined);
     setBuildTemplate(templateId as ProjectType);
     setBuildKey(prev => prev + 1);
@@ -137,10 +133,6 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
-    if (!hasLiveEvent) {
-      toast.error('No live event yet! Go to Judge Dashboard (code 2059) → Make Live to start.');
-      return;
-    }
     if (buildCode) {
       toast.info('Loading project code into the editor...');
     }
