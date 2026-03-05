@@ -23,7 +23,7 @@ interface HackathonCardProps {
   onSubmitProject: (hackathonId: string) => void;
 }
 
-export const HackathonCard = ({ hackathon, onRegister, onSubmitProject }: HackathonCardProps) => {
+export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps>(({ hackathon, onRegister, onSubmitProject }, ref) => {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
