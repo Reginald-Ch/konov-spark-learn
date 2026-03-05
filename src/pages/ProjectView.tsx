@@ -426,19 +426,20 @@ const ProjectView = () => {
   const codeLines = project.code.split('\n');
 
   return (
-    <div className="min-h-screen bg-ide-bg flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.bg }}>
       <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} />
 
       {/* ── App-like Header ── */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="flex-shrink-0 border-b border-ide-border bg-ide-bg-deep"
+        className="flex-shrink-0 border-b"
+        style={{ backgroundColor: theme.chat, borderColor: `${theme.accent}20` }}
       >
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
-              style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.2), rgba(0,204,102,0.2))' }}>
+              style={{ background: `${theme.accent}20` }}>
               {config?.botEmoji || typeEmoji}
             </div>
             <div>
@@ -471,7 +472,8 @@ const ProjectView = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="px-4 py-3 border-b border-ide-border/50"
+            className="px-4 py-3 border-b"
+            style={{ borderColor: `${theme.accent}15` }}
           >
             <p className="text-sm text-ide-text-muted">{project.description}</p>
           </motion.div>
@@ -485,10 +487,13 @@ const ProjectView = () => {
           className="flex-1 flex flex-col min-h-0"
         >
           {/* Chat Header */}
-          <div className="px-4 py-2.5 border-b border-ide-border/50 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#00CC66] animate-pulse" />
+          <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ borderColor: `${theme.accent}15` }}>
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
             <span className="text-xs font-bold text-white uppercase tracking-wider">Live AI Demo</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00CC66]/15 text-[#00CC66] border border-[#00CC66]/30 ml-auto">Online</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto"
+              style={{ backgroundColor: `${theme.accent}15`, color: theme.accent, border: `1px solid ${theme.accent}30` }}>
+              Online
+            </span>
           </div>
 
           {/* Messages */}
@@ -500,7 +505,7 @@ const ProjectView = () => {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.3 }}
                   className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(0,204,102,0.15))' }}
+                  style={{ background: `${theme.accent}15` }}
                 >
                   <span className="text-4xl">{config.botEmoji}</span>
                 </motion.div>
@@ -518,7 +523,8 @@ const ProjectView = () => {
                     <button
                       key={example}
                       onClick={() => { setChatInput(example); }}
-                      className="text-xs px-3 py-2 rounded-full bg-ide-sidebar border border-ide-border text-ide-text-muted hover:text-white hover:border-ide-accent transition-all"
+                      className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
+                      style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
                     >
                       {example}
                     </button>
@@ -533,11 +539,13 @@ const ProjectView = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-ide-accent text-white rounded-br-md'
-                    : 'bg-ide-sidebar text-ide-text rounded-bl-md'
-                }`}>
+                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+                  style={
+                    msg.role === 'user'
+                      ? { backgroundColor: theme.accent, color: '#fff', borderBottomRightRadius: '4px' }
+                      : { backgroundColor: `${theme.accent}18`, border: `1px solid ${theme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
+                  }
+                >
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
