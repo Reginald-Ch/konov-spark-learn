@@ -421,6 +421,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Typing guard: prevents sidebar→code sync effects from fighting the textarea
   const isUserTypingRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Cursor position preservation
+  const cursorPosRef = useRef({ start: 0, end: 0 });
+  // Source tracking: 'user' when typed in textarea, 'sync' when set by sync effects
+  const filesChangeSourceRef = useRef<'user' | 'sync' | 'init'>('init');
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
