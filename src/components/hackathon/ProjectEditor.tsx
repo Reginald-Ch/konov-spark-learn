@@ -282,6 +282,31 @@ export const ProjectEditor = ({ initialType, initialCode }: ProjectEditorProps) 
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
+  // Sync theme selection to code's APP_THEME variable
+  useEffect(() => {
+    setFiles(prev => {
+      const code = prev['main.py'];
+      const regex = /APP_THEME\s*=\s*["']([^"']*)["']/;
+      if (regex.test(code)) {
+        const updated = code.replace(regex, `APP_THEME = "${selectedTheme.id}"`);
+        if (updated !== code) return { ...prev, 'main.py': updated };
+      }
+      return prev;
+    });
+  }, [selectedTheme]);
+
+  // Read theme from code when code changes
+  useEffect(() => {
+    const code = files['main.py'];
+    const match = code.match(/APP_THEME\s*=\s*["']([^"']*)["']/);
+    if (match && match[1]) {
+      const found = THEMES.find(t => t.id === match[1]);
+      if (found && found.id !== selectedTheme.id) {
+        setSelectedTheme(found);
+      }
+    }
+  }, [files['main.py']]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
