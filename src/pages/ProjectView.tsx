@@ -264,9 +264,9 @@ const ProjectView = () => {
     if (!chatInput.trim() || isStreaming || !config) return;
     const userMsg = chatInput.trim();
     setChatInput('');
-
-    // Check for easter eggs first
     const lowerMsg = userMsg.toLowerCase();
+
+    // 1. Check for easter eggs (client-side, instant)
     for (const [trigger, response] of Object.entries(config.easterEggs)) {
       if (lowerMsg.includes(trigger.toLowerCase())) {
         setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
@@ -274,6 +274,32 @@ const ProjectView = () => {
       }
     }
 
+    // 2. Client-side Q&A matching (reliable, no AI needed)
+    for (const pair of config.qaPairs) {
+      const qLower = pair.q.toLowerCase().trim();
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
+          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) answer += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
+        return;
+      }
+    }
+
+    // 3. Blocked topics (client-side)
+    for (const topic of config.blockedTopics) {
+      if (lowerMsg.includes(topic.toLowerCase())) {
+        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+        if (config.signOff) refusal += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: refusal }]);
+        return;
+      }
+    }
+
+    // 4. AI-powered response for everything else
     const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
     setChatMessages(newMessages);
     setIsStreaming(true);
@@ -284,7 +310,6 @@ const ProjectView = () => {
         .map(m => ({ role: m.role, content: m.content }));
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      // Merge knowledge from code
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
 
@@ -318,6 +343,11 @@ const ProjectView = () => {
               rememberName: config.rememberName,
               showReasoning: config.showReasoning,
               toolInstructions: config.toolInstructions,
+              forbiddenWords: config.forbiddenWords,
+              mood: config.mood,
+              examples: config.examples,
+              languageStyle: config.languageStyle,
+              signOff: config.signOff,
             },
           }),
         }
