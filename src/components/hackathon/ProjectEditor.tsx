@@ -1222,13 +1222,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* ── Mission Progress Bar ── */}
                     {(() => {
                       const config = extractConfigFromCode(files['main.py']);
+                      const isAgent = projectType === 'agent';
+                      const defaultName = isAgent ? 'Research Agent' : 'Spark';
+                      const defaultTemp = isAgent ? 0.3 : 0.7;
+                      const defaultStyle = isAgent ? 'Professional' : 'Friendly';
                       const missions = [
-                        { emoji: '🏷️', name: 'Bot Name', done: config.botName !== 'AI Bot' },
-                        { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' },
+                        { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaultName && config.botName !== 'AI Bot' },
+                        { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
                         { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' },
-                        { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' },
-                        { emoji: '🌡️', name: 'Temperature', done: config.temperature !== 0.7 },
-                        { emoji: '📝', name: 'Response Style', done: config.responseStyle !== 'Balanced' },
+                        { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
+                        { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
+                        { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 0 },
