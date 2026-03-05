@@ -497,7 +497,7 @@ const Hackathons = () => {
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
               {hasLiveEvent ? (
-                <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} />
+                <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
               ) : (
                 <div className="flex-1 flex items-center justify-center p-8">
                   <div className="text-center max-w-md">

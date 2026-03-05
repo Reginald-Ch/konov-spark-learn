@@ -999,7 +999,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-ide-border text-ide-accent border border-ide-border">
             {scaffold.icon} {scaffold.name}
           </span>
-          <CountdownWidget />
+          <CountdownWidget hackathonStartDate={hackathonStartDate} hackathonStatus={hackathonStatus} />
         </div>
         <div className="flex items-center gap-1">
           {[

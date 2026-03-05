@@ -343,4 +343,6 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+PublishModal.displayName = 'PublishModal';
