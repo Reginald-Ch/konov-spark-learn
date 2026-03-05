@@ -371,7 +371,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
@@ -418,6 +418,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
+  // Typing guard: prevents sidebar→code sync effects from fighting the textarea
+  const isUserTypingRef = useRef(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
@@ -426,9 +430,50 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
   useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
+  // Persist currentProjectId to localStorage
+  useEffect(() => {
+    if (currentProjectId) {
+      localStorage.setItem('forge-current-project-id', currentProjectId);
+    } else {
+      localStorage.removeItem('forge-current-project-id');
+    }
+  }, [currentProjectId]);
+
+  // Load saved project on mount if currentProjectId exists and no initialCode was provided
+  useEffect(() => {
+    if (initialCode || !currentProjectId) return;
+    const loadProject = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ai_projects')
+          .select('code, template_id, project_name, description')
+          .eq('id', currentProjectId)
+          .single();
+        if (error || !data) {
+          console.warn('Could not load saved project:', error?.message);
+          setCurrentProjectId(null);
+          return;
+        }
+        setFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
+        setSavedFiles(prev => ({ ...prev, 'main.py': data.code || prev['main.py'] }));
+        if (data.project_name) setProjectName(data.project_name);
+        if (data.template_id) {
+          const validType = data.template_id as ProjectType;
+          if (PROJECT_SCAFFOLDS[validType]) setProjectType(validType);
+        }
+        toast.success('📂 Loaded your saved project');
+      } catch (e) {
+        console.warn('Failed to load project:', e);
+      }
+    };
+    loadProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
   const prevKnowledgeRef = useRef(knowledgeBase);
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
     setFiles(prev => {
@@ -467,6 +512,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevQARef = useRef(JSON.stringify(qaData));
   useEffect(() => {
     const serialized = JSON.stringify(qaData);
+    if (isUserTypingRef.current) return;
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
@@ -504,6 +550,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Sync theme selection to code's APP_THEME variable
   const themeSyncRef = useRef(selectedTheme.id);
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
     setFiles(prev => {
@@ -537,6 +584,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
+    if (isUserTypingRef.current) return;
     if (prevSystemPromptRef.current !== systemPrompt) {
       setFiles(prev => {
         const code = prev['main.py'];
@@ -616,6 +664,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    isUserTypingRef.current = true;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => { isUserTypingRef.current = false; }, 300);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
   };
 
