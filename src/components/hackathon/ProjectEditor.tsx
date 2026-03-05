@@ -1146,6 +1146,70 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       </div>
                     </div>
 
+                    {/* ── Mission Progress Bar ── */}
+                    {(() => {
+                      const config = extractConfigFromCode(code);
+                      const missions = [
+                        { emoji: '🏷️', name: 'Bot Name', done: config.botName !== 'AI Bot' },
+                        { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' },
+                        { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' },
+                        { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' },
+                        { emoji: '🌡️', name: 'Temperature', done: config.temperature !== 0.7 },
+                        { emoji: '📝', name: 'Response Style', done: config.responseStyle !== 'Balanced' },
+                        { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
+                        { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 0 },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 0 },
+                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > 0 },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 0 },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 0 },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 0 },
+                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode !== '' },
+                        { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
+                        { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
+                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
+                        { emoji: '👋', name: 'Sign-off', done: config.signOff !== '' },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' },
+                      ];
+                      const completed = missions.filter(m => m.done).length;
+                      const total = missions.length;
+                      const pct = Math.round((completed / total) * 100);
+
+                      return (
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">
+                            🎯 Mission Progress
+                          </label>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex-1 h-2 rounded-full bg-ide-border">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: pct === 100
+                                    ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                                    : pct >= 50
+                                    ? 'linear-gradient(90deg, #F7941D, #FFD700)'
+                                    : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+                                }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-bold text-ide-accent whitespace-nowrap">
+                              {completed}/{total}
+                            </span>
+                          </div>
+                          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                            {missions.map((m, i) => (
+                              <div key={i} className={`flex items-center gap-1.5 text-[10px] py-0.5 ${m.done ? 'text-ide-green' : 'text-ide-text-muted'}`}>
+                                <span className="w-4 text-center">{m.done ? '✅' : '⬜'}</span>
+                                <span>{m.emoji} {m.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
                       <div className="space-y-1 text-xs">
