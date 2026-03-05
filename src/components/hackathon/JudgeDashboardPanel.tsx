@@ -255,7 +255,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
 
   const handleEndHackathon = useCallback(async (hackathonId: string) => {
     try {
-      const { error } = await supabase.from('hackathons').update({ status: 'ended' } as any).eq('id', hackathonId);
+      const { error } = await supabase.from('hackathons').update({ status: 'ended' }).eq('id', hackathonId);
       if (error) throw error;
       toast.success('Hackathon ended');
       fetchData();
