@@ -1,102 +1,74 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
 
-## Current State Assessment
 
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+# Plan: Bug Fixes for Hackathon Day
 
-## Critical Fixes
+## Bugs Found
 
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+### 1. Textarea Cursor Reset Bug (Critical)
+**File:** `src/components/hackathon/ProjectEditor.tsx` (line 1776)
 
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+The textarea uses `value={files[activeFile]}` (controlled) despite memory stating it should use `defaultValue` (uncontrolled). Every time bidirectional sync effects update `files` state (knowledge base, QA, system prompt, theme), React re-renders the textarea and resets the cursor position. This causes text "glitching" while typing.
 
-**File:** `supabase/config.toml`
-Add:
+**Fix:** Change `value={files[activeFile]}` to `defaultValue` and use imperative updates via `textareaRef.current.value` for file switching and template loading. Update the `onChange` handler to update `files` state without the controlled prop causing re-renders.
 
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
+### 2. ReactMarkdown Ref Warning (Console Error)
+**File:** `src/components/hackathon/ProjectEditor.tsx` (line 2028)
 
-### 2. Fix Save Flow — Update Requires `author_email` Match
+Console shows: "Function components cannot be given refs. Check the render method of ProjectEditor." This is from `<ReactMarkdown>` being used inside framer-motion's `<AnimatePresence>`, which tries to attach refs to children. ReactMarkdown is a function component and doesn't support refs.
 
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+**Fix:** Wrap `<ReactMarkdown>` in a `<div>` within the chat message rendering to absorb the ref from AnimatePresence/motion.
 
+### 3. Leaderboard `team_formed` Milestone Never Awarded
 **File:** `src/components/hackathon/ProjectEditor.tsx`
 
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+The `team_formed` event (now "System Message Quality", 10 pts) is never inserted into `point_events` anywhere in the codebase. The old `project_setup` was removed, and `team_formed` was never wired up. Students can never earn Tier 1 points.
 
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+**Fix:** Award `team_formed` points when the student customizes their system prompt beyond the default (e.g., in `handleSave` or `handleRun`, check if system prompt differs from default scaffold prompt). Insert `team_formed` with dedup via localStorage key.
 
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
+### 4. Judge Score Update Not Possible (point_events table)
+**File:** Database RLS
 
-**File:** `src/components/hackathon/PublishModal.tsx`
+The `point_events` table has no UPDATE policy. If a judge submits a score and wants to change it, they can't. The `JudgeDashboardPanel` marks projects as scored once, with no way to re-score.
 
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
+**Fix:** This is by design (one score per project). No change needed, but note it.
 
-**File:** `src/components/hackathon/ProjectEditor.tsx`
+### 5. `handleRun` Checks 20 Challenges but `first_run_success` Points Don't Require Any
+**File:** `src/components/hackathon/ProjectEditor.tsx` (line 883-888)
 
-- Pass `currentProjectId` to `PublishModal`
+The "Conversation Quality" (5 pts) milestone is awarded on ANY successful run, regardless of code quality. This is intentional per the scoring design (milestone-based), so no fix needed.
 
-### 4. Rename Platform to "FORGE"
+### 6. Go Live Button in Preview Panel Duplicates Submit Flow
+**File:** `src/components/hackathon/ProjectEditor.tsx` (lines 2060-2069)
 
-Update visible branding across the UI.
+The "Submit Project" button at the bottom of the Live Preview panel duplicates the "Go Live" button in the status bar. Both call `handleGoLive()`. This isn't a bug per se, but clutters the UI.
 
-**Files affected:**
+**Fix:** Keep it — it's useful for mobile users who can't see the bottom bar.
 
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
+## Implementation Summary
 
-### 5. Streamline the Student Entry Flow
+| # | Bug | File | Priority |
+|---|-----|------|----------|
+| 1 | Textarea cursor reset — switch to defaultValue | ProjectEditor.tsx | Critical |
+| 2 | ReactMarkdown ref warning | ProjectEditor.tsx | Medium |
+| 3 | `team_formed` milestone never awarded | ProjectEditor.tsx | Critical |
 
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
+### Detailed Changes
 
-**File:** `src/pages/Hackathons.tsx`
+**ProjectEditor.tsx — Textarea (line 1776):**
+- Change `value={files[activeFile]}` to remove controlled prop
+- Use `defaultValue` only on initial render
+- On file tab switch (`activeFile` change), imperatively set `textareaRef.current.value`
+- On template change, imperatively set via ref (already partially done in `handleTypeChange`)
+- On session restore, imperatively set via ref (already done)
+- Keep `onChange` updating `files` state for syntax highlighting and config extraction
 
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+**ProjectEditor.tsx — ReactMarkdown wrapper:**
+- Wrap `<ReactMarkdown>` in the AI mentor panel (line 1868) and chat messages (line 2028) inside a `<div>` so AnimatePresence refs land on the div
 
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
-
-**File:** `supabase/functions/python-ai-assist/index.ts`
-
-- Add support for `messages` array in `test-agent` action to maintain conversation context
-
-
-
-### 8. Polish ProjectView Page — Add Live Demo Chat
-
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
-
-**File:** `src/pages/ProjectView.tsx`
-
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
-
-## Implementation Order
-
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+**ProjectEditor.tsx — Award `team_formed` milestone:**
+- In `handleSave` or `handleRun`, check if `systemPrompt` differs from `PROJECT_SCAFFOLDS[projectType].systemPrompt`
+- If so, insert `team_formed` event with 10 points (dedup via localStorage `forge-scored-team_formed-{email}`)
 
 ## Files Modified
-
-- `supabase/config.toml`
 - `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
-- `src/pages/ProjectView.tsx`
+
