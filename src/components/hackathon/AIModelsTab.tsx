@@ -597,7 +597,7 @@ print("✅ Audio Classifier ready! Call classify('audio.wav')")
                         className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none"
                       />
                       <Button onClick={handleTestText} disabled={!testInput.trim()} className="w-full bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]">
-                        <Sparkles className="w-4 h-4 mr-2" /> Classify
+                        <Rocket className="w-4 h-4 mr-2" /> Classify
                       </Button>
                     </div>
                   ) : (

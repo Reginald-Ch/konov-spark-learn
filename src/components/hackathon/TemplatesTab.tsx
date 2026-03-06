@@ -54,7 +54,7 @@ export const TemplatesTab = ({ onStartBuilding }: TemplatesTabProps) => {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[hsl(var(--discord-blurple)/0.15)] text-[hsl(var(--discord-blurple))] text-sm font-medium mb-4">
-          <Sparkles className="w-4 h-4" />
+          <Rocket className="w-4 h-4" />
           Pick a project type and start building instantly
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">What will you FORGE?</h1>

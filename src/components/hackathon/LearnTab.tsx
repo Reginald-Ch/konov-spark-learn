@@ -80,7 +80,7 @@ const RESOURCES = [
   {
     title: 'Build a Chatbot with LangChain',
     description: 'Step-by-step guide to building a conversational AI chatbot using LangChain and OpenAI APIs.',
-    icon: Sparkles,
+    icon: Rocket,
     color: '#F7941D',
     link: 'https://python.langchain.com/docs/tutorials/',
     level: 'Intermediate',

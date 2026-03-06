@@ -341,7 +341,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
               >
                 <div className="px-3 py-1.5 text-[10px] font-mono text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-dark))] border-b border-[hsl(var(--discord-light)/0.1)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
+                    <Rocket className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
                     AI Mentor
                     {isAiLoading && <Loader2 className="w-3 h-3 animate-spin text-[hsl(var(--discord-blurple))]" />}
                   </div>

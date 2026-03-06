@@ -11,7 +11,7 @@ import {
   Hash, Volume2, Megaphone, Send, Users, Circle, 
   Video, Phone, PhoneOff, X, User, Smile, MessageSquare,
   Mic, MicOff, Settings, ChevronDown, Plus, Heart, ThumbsUp, 
-  Laugh, PartyPopper, Flame, Rocket, Star, Sparkles
+  Laugh, PartyPopper, Flame, Rocket, Star
 } from 'lucide-react';
 
 interface Channel {
