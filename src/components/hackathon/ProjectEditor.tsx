@@ -2025,7 +2025,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 }>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                     </div>
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
