@@ -1806,7 +1806,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ref={textareaRef}
                   defaultValue={files[activeFile]}
                   onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
+                  onPaste={e => {
+                    const pasted = e.clipboardData.getData('text');
+                    editMetricsRef.current.pasteCount++;
+                    editMetricsRef.current.pastedChars += pasted.length;
+                    if (pasted.length > 100) editMetricsRef.current.largePastes++;
+                  }}
                   onKeyDown={e => {
+                    editMetricsRef.current.keystrokes++;
                     if (e.key === 'Tab') {
                       e.preventDefault();
                       const target = e.target as HTMLTextAreaElement;
