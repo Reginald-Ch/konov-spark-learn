@@ -354,7 +354,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
@@ -400,6 +400,28 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
+
+  // Restore session from DB on mount if we have a saved project ID
+  useEffect(() => {
+    const savedId = localStorage.getItem('forge-current-project-id');
+    if (!savedId) return;
+    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
+      if (error || !data) {
+        localStorage.removeItem('forge-current-project-id');
+        return;
+      }
+      setCurrentProjectId(data.id);
+      if (data.code) {
+        setFiles(prev => ({ ...prev, 'main.py': data.code }));
+        setSavedFiles(prev => ({ ...prev, 'main.py': data.code }));
+        if (textareaRef.current) textareaRef.current.value = data.code;
+      }
+      if (data.template_id && (data.template_id === 'chatbot' || data.template_id === 'agent')) {
+        setProjectType(data.template_id as ProjectType);
+      }
+      if (data.project_name) setProjectName(data.project_name);
+    });
+  }, []);
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
@@ -578,18 +600,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setAiOutput('');
     setMentorHistory([]);
     setCurrentProjectId(null);
+    localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
     setQaData([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
-    // Tier 1: Project Setup (10 pts, awarded once)
-    if (authorEmail) {
-      const setupKey = `forge-scored-project_setup-${authorEmail}`;
-      if (!localStorage.getItem(setupKey)) {
-        localStorage.setItem(setupKey, 'true');
-        supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'project_setup', points: 10, metadata: { template: type } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
-      }
-    }
   };
 
   const toggleCapability = (cap: string) => {
@@ -869,7 +884,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
           localStorage.setItem(runKey, 'true');
-          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 10, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 5, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
         }
       }
     } catch (e: any) {
@@ -1021,7 +1036,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           .select('id')
           .single();
         if (error) throw error;
-        setCurrentProjectId(data?.id || null);
+        const newId = data?.id || null;
+        setCurrentProjectId(newId);
+        if (newId) localStorage.setItem('forge-current-project-id', newId);
       }
       setSavedFiles({ ...files });
       setLastSaved(new Date().toLocaleTimeString());
@@ -2114,7 +2131,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         prefillEmail={authorEmail}
         prefillAuthorName={authorName}
         currentProjectId={currentProjectId}
-        onProjectIdUpdate={(id) => setCurrentProjectId(id)}
+        onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
       />
     </div>
   );

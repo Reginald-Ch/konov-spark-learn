@@ -1,77 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
 
+## Current State Assessment
 
-# Plan: Leaderboard Update, Bug Fixes & Session Persistence
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
 
-## 1. Update Leaderboard Scoring System
+## Critical Fixes
 
-**File:** `src/components/hackathon/Leaderboard.tsx`
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
 
-Remove `project_setup` and `app_runs_live` from `SCORING_CONFIG`. Rename remaining milestones and update points:
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
 
-| Event Key | New Label | Points | Tier |
-|-----------|-----------|--------|------|
-| `team_formed` | System Message Quality | 10 | 1 |
-| `project_deployed` | Knowledge Accuracy | 10 | 2 |
-| `first_run_success` | Conversation Quality | 5 | 2 |
-| `submitted_on_time` | Creativity & Personality | 5 | 3 |
-| `judge_score` | Judge Score | 25 | 4 |
+**File:** `supabase/config.toml`
+Add:
 
-Update `TIER_META` max values accordingly (Tier 1: 10, Tier 2: 15, Tier 3: 5, Tier 4: 25). `MAX_SCORE` = 55.
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
+```
 
-## 2. Remove `app_runs_live` from Publish Flow
+### 2. Fix Save Flow — Update Requires `author_email` Match
+
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+
+**File:** `src/components/hackathon/ProjectEditor.tsx`
+
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
+
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
 
 **File:** `src/components/hackathon/PublishModal.tsx`
 
-Remove the `app_runs_live` milestone from the `milestones` array (line 140). Update points badge to show correct total.
-
-## 3. Remove `project_setup` from Template Switch
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-Remove the `project_setup` point_events insert in `handleTypeChange` (lines 586-592).
-
-## 4. Fix Session Persistence — `currentProjectId` Not Saved
-
-**Critical Bug:** `currentProjectId` is initialized as `null` every time the component mounts. On page reload, saved work exists in the DB but the IDE doesn't know about it, so the next save creates a duplicate record.
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
 
 **File:** `src/components/hackathon/ProjectEditor.tsx`
 
-- Initialize `currentProjectId` from `localStorage.getItem('forge-current-project-id')`
-- After every successful save/publish that sets `currentProjectId`, also write to `localStorage`
-- On mount, if `currentProjectId` exists in localStorage, fetch the project from DB and restore code, template, and project name into state
+- Pass `currentProjectId` to `PublishModal`
 
-## 5. Fix CommunityChat `forwardRef` Warning
+### 4. Rename Platform to "FORGE"
 
-**File:** `src/components/hackathon/CommunityChat.tsx`
+Update visible branding across the UI.
 
-Console error: "Function components cannot be given refs" from `CommunityChat`. The `Dialog` component passes a ref. Convert `CommunityChat` to use `forwardRef` or wrap the exported component appropriately.
+**Files affected:**
 
-## 6. Go Live → Navigate to Live App
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
 
-**File:** `src/components/hackathon/PublishModal.tsx`
+### 5. Streamline the Student Entry Flow
 
-After successful deployment, the "Open My App" button currently opens in a new tab via `<a target="_blank">`. Change to also auto-navigate or make the primary action navigate directly to `/projects/:id` instead of just showing the URL. Replace "Open My App" to use `window.open` in the same flow, making the deployed experience immediate.
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
 
-## 7. Fix `value` Cursor Reset on Bidirectional Sync
+**File:** `src/pages/Hackathons.tsx`
+
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+
+### 6. Add Live Preview Interactive Demo Chat
+
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
 
 **File:** `src/components/hackathon/ProjectEditor.tsx`
 
-The textarea uses `value={files[activeFile]}` (controlled). When bidirectional sync effects (knowledge base, QA, system prompt, theme) update `files` state, React re-renders and can reset the cursor position. 
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
 
-Fix: In the sync effects that write to `files['main.py']` from sidebar changes, use `textareaRef.current` to imperatively update the textarea value only if it differs, avoiding a state-driven re-render that resets the cursor. Or: guard updates to not trigger if the textarea is currently focused.
+**File:** `supabase/functions/python-ai-assist/index.ts`
+
+- Add support for `messages` array in `test-agent` action to maintain conversation context
+
+
+
+### 8. Polish ProjectView Page — Add Live Demo Chat
+
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+
+**File:** `src/pages/ProjectView.tsx`
+
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
 
 ## Implementation Order
 
-1. Leaderboard scoring update (Leaderboard.tsx)
-2. Remove `app_runs_live` from PublishModal + `project_setup` from ProjectEditor
-3. Add `currentProjectId` localStorage persistence + mount restore
-4. Fix CommunityChat forwardRef warning
-5. Go Live navigation improvement
-6. Guard cursor stability in sync effects
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
 
 ## Files Modified
-- `src/components/hackathon/Leaderboard.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/CommunityChat.tsx`
 
+- `supabase/config.toml`
+- `src/components/hackathon/ProjectEditor.tsx`
+- `src/components/hackathon/PublishModal.tsx`
+- `src/pages/Hackathons.tsx`
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`

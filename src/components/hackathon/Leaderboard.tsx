@@ -6,25 +6,23 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 
 const SCORING_CONFIG = {
-  team_formed:       { points: 10, tier: 1, label: 'Team Formed',        icon: '👥', desc: 'All members joined' },
-  project_setup:     { points: 10, tier: 1, label: 'Project Setup',      icon: '⚙️', desc: 'Template loaded & configured' },
-  first_run_success: { points: 10, tier: 2, label: 'First Successful Run', icon: '▶️', desc: 'Code executed cleanly' },
-  project_deployed:  { points: 20, tier: 2, label: 'Project Deployed',   icon: '🚀', desc: 'Live URL confirmed' },
-  submitted_on_time: { points: 5,  tier: 3, label: 'Submitted On Time',  icon: '⏰', desc: 'Before deadline' },
-  app_runs_live:     { points: 20, tier: 3, label: 'App Runs Live',      icon: '✅', desc: 'Tested without crashing' },
-  judge_score:       { points: 25, tier: 4, label: 'Judge Score',        icon: '⭐', desc: 'Scored by judges' },
+  team_formed:       { points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt' },
+  project_deployed:  { points: 10, tier: 2, label: 'Knowledge Accuracy',     icon: '📚', desc: 'Accurate knowledge base & Q&A' },
+  first_run_success: { points: 5,  tier: 2, label: 'Conversation Quality',   icon: '💬', desc: 'Natural, helpful responses' },
+  submitted_on_time: { points: 5,  tier: 3, label: 'Creativity & Personality', icon: '🎨', desc: 'Unique personality & features' },
+  judge_score:       { points: 25, tier: 4, label: 'Judge Score',            icon: '⭐', desc: 'Scored by judges' },
 } as const;
 
 type ScoringEvent = keyof typeof SCORING_CONFIG;
 
 const TIER_META = [
-  { tier: 1, name: 'Foundation', max: 20, color: 'from-blue-500 to-cyan-400', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
-  { tier: 2, name: 'Execution',  max: 30, color: 'from-amber-500 to-orange-400', textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
-  { tier: 3, name: 'Quality',    max: 25, color: 'from-emerald-500 to-green-400', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
+  { tier: 1, name: 'System Message', max: 10, color: 'from-blue-500 to-cyan-400', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
+  { tier: 2, name: 'Knowledge & Conversation', max: 15, color: 'from-amber-500 to-orange-400', textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
+  { tier: 3, name: 'Creativity', max: 5, color: 'from-emerald-500 to-green-400', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
   { tier: 4, name: 'Judge Score', max: 25, color: 'from-yellow-500 to-amber-400', textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
 ];
 
-const MAX_SCORE = 100;
+const MAX_SCORE = 55;
 
 interface ParticipantScore {
   email: string;
@@ -280,9 +278,9 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
-                      {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
-                      {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
+                      {p.tier1 >= 10 && <span className="text-[10px]">🔵</span>}
+                      {p.tier2 >= 15 && <span className="text-[10px]">🟠</span>}
+                      {p.tier3 >= 5 && <span className="text-[10px]">🟢</span>}
                       {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
                       {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                     </div>

@@ -127,7 +127,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
           .single();
         if (error) throw error;
         resultId = data?.id || null;
-        if (resultId && onProjectIdUpdate) onProjectIdUpdate(resultId);
+        if (resultId) {
+          if (onProjectIdUpdate) onProjectIdUpdate(resultId);
+          localStorage.setItem('forge-current-project-id', resultId);
+        }
       }
 
       setPublishedId(resultId);
@@ -135,9 +138,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       toast.success('🎉 Your AI is live!');
 
       const milestones = [
-        { event_type: 'project_deployed', points: 20, metadata: { project: projectName } },
+        { event_type: 'project_deployed', points: 10, metadata: { project: projectName } },
         { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
-        { event_type: 'app_runs_live', points: 20, metadata: { project: projectName, project_id: resultId } },
       ];
       for (const m of milestones) {
         const key = `forge-scored-${m.event_type}-${finalEmail}`;
@@ -231,7 +233,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                 {/* Points */}
                 <div className="flex items-center justify-center gap-2 py-2 rounded-lg" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)' }}>
                   <Trophy className="w-4 h-4 text-[#FFD700]" />
-                  <span className="text-sm font-bold text-[#FFD700]">+20 Points Earned</span>
+                  <span className="text-sm font-bold text-[#FFD700]">+15 Points Earned</span>
                 </div>
 
                 {/* URL */}
@@ -323,7 +325,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               <div className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.12)' }}>
                 <Trophy className="w-3.5 h-3.5 text-[#FFD700] flex-shrink-0" />
                 <p className="text-[11px] text-white/50">
-                  Submitting earns <strong className="text-[#FFD700]">20 leaderboard points</strong> and sends your project to judges.
+                  Submitting earns <strong className="text-[#FFD700]">15 leaderboard points</strong> and sends your project to judges.
                 </p>
               </div>
 
