@@ -6,13 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 
 const SCORING_CONFIG = {
-  team_formed:       { points: 10, tier: 1, label: 'Team Formed',        icon: '👥', desc: 'All members joined' },
-  project_setup:     { points: 10, tier: 1, label: 'Project Setup',      icon: '⚙️', desc: 'Template loaded & configured' },
-  first_run_success: { points: 10, tier: 2, label: 'First Successful Run', icon: '▶️', desc: 'Code executed cleanly' },
-  project_deployed:  { points: 20, tier: 2, label: 'Project Deployed',   icon: '🚀', desc: 'Live URL confirmed' },
-  submitted_on_time: { points: 5,  tier: 3, label: 'Submitted On Time',  icon: '⏰', desc: 'Before deadline' },
-  app_runs_live:     { points: 20, tier: 3, label: 'App Runs Live',      icon: '✅', desc: 'Tested without crashing' },
-  judge_score:       { points: 25, tier: 4, label: 'Judge Score',        icon: '⭐', desc: 'Scored by judges' },
+  team_formed:       { points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt' },
+  project_deployed:  { points: 10, tier: 2, label: 'Knowledge Accuracy',     icon: '📚', desc: 'Accurate knowledge base & Q&A' },
+  first_run_success: { points: 5,  tier: 2, label: 'Conversation Quality',   icon: '💬', desc: 'Natural, helpful responses' },
+  submitted_on_time: { points: 5,  tier: 3, label: 'Creativity & Personality', icon: '🎨', desc: 'Unique personality & features' },
+  judge_score:       { points: 25, tier: 4, label: 'Judge Score',            icon: '⭐', desc: 'Scored by judges' },
 } as const;
 
 type ScoringEvent = keyof typeof SCORING_CONFIG;
