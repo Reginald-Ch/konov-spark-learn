@@ -600,6 +600,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setAiOutput('');
     setMentorHistory([]);
     setCurrentProjectId(null);
+    localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
     setQaData([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
