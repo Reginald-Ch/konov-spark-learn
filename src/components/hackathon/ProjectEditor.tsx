@@ -565,6 +565,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
     if (prevSystemPromptRef.current !== systemPrompt) {
+      externalUpdateRef.current = true;
       setFiles(prev => {
         const code = prev['main.py'];
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT

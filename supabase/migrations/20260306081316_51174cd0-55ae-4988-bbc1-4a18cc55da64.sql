@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_projects ALTER COLUMN points_earned SET DEFAULT 0;
