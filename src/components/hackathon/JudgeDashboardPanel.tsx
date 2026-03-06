@@ -104,27 +104,25 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
 
       <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-25)</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-70)</label>
           {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />}
         </div>
-        <div className="flex items-center gap-2">
-          {[5, 10, 15, 20, 25].map(val => (
-            <button key={val} onClick={() => onScoreChange(project.id, val)} disabled={isScored}
-              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${score === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'} ${isScored ? 'opacity-60 cursor-not-allowed' : ''}`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          {[10, 20, 30, 40, 50, 60, 70].map(val => (
+            <button key={val} onClick={() => onScoreChange(project.id, val)}
+              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${score === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'}`}>
               {val}
             </button>
           ))}
         </div>
         <Textarea value={feedbackText} onChange={e => onFeedbackChange(project.id, e.target.value)}
-          placeholder="Optional feedback..." disabled={isScored} rows={2}
+          placeholder="Optional feedback..." rows={2}
           className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
-        {!isScored && (
-          <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined}
-            className="w-full h-8 text-xs font-bold"
-            style={{ background: score !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
-            <Send className="w-3 h-3 mr-1" /> Submit Score
-          </Button>
-        )}
+        <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined}
+          className="w-full h-8 text-xs font-bold"
+          style={{ background: score !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
+          <Send className="w-3 h-3 mr-1" /> {isScored ? 'Update Score' : 'Submit Score'}
+        </Button>
       </div>
     </div>
   </div>
@@ -178,7 +176,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
     setIsLoading(true);
     try {
       const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
-        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('is_published', true).order('created_at', { ascending: false }).limit(100),
+        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').order('created_at', { ascending: false }).limit(100),
         supabase.from('hackathons').select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules').order('start_date', { ascending: false }).limit(50),
         supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score').limit(500),
       ]);
@@ -206,11 +204,19 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
 
   const handleSubmitScore = useCallback(async (project: Project) => {
     const score = scores[project.id];
-    if (score === undefined || score < 0 || score > 25) {
-      toast.error('Score must be between 0 and 25');
+    if (score === undefined || score < 0 || score > 70) {
+      toast.error('Score must be between 0 and 70');
       return;
     }
     try {
+      // Delete any existing judge score for this specific project first (prevents score inflation)
+      await supabase
+        .from('point_events')
+        .delete()
+        .eq('event_type', 'judge_score')
+        .eq('participant_email', project.author_email)
+        .filter('metadata->>project_id', 'eq', project.id);
+
       const { error } = await supabase.from('point_events').insert({
         participant_email: project.author_email,
         event_type: 'judge_score',
@@ -222,12 +228,16 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
           feedback: feedback[project.id] || '',
         },
       });
-      if (error) throw error;
+      if (error) {
+        console.error('Score insert error:', error);
+        toast.error(`Failed to submit score: ${error.message}`);
+        return;
+      }
       setSubmittedScores(prev => new Set([...prev, project.id]));
       toast.success(`Score submitted for ${project.project_name}`);
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to submit score');
+    } catch (e: any) {
+      console.error('Score submit exception:', e);
+      toast.error(`Failed to submit score: ${e?.message || 'Unknown error'}`);
     }
   }, [scores, feedback, judgeName]);
 
@@ -511,7 +521,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       <div>
         <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
           <Award className="w-5 h-5 text-[#FFD700]" /> Projects to Score
-          <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 25 points per project</span>
+          <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
         </h2>
 
         {isLoading ? (
