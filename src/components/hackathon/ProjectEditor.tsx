@@ -598,6 +598,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
     });
+    // Imperatively update textarea for uncontrolled component
+    requestAnimationFrame(() => {
+      if (textareaRef.current) textareaRef.current.value = scaffold.main;
+    });
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
