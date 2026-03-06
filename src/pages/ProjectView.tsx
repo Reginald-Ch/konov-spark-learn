@@ -449,7 +449,7 @@ const ProjectView = () => {
               ? 'This project has been saved but hasn\'t been published yet. The author needs to click "Submit Project" to make it public.'
               : 'This project may not exist or the link is incorrect.'}
           </p>
-          <Link to="/hackathons">
+          <Link to="/hackathons?tab=templates">
             <Button className="bg-ide-accent text-ide-bg-deep">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to FORGE
             </Button>
