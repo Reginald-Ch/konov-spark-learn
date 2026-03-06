@@ -240,7 +240,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
                 {/* Idea to Code */}
                 <div className="mt-4 pt-3 border-t border-[hsl(var(--discord-light)/0.2)]">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Rocket className="w-3.5 h-3.5" />
                     Idea → Code
                   </h3>
                   <div className="relative">
