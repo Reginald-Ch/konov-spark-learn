@@ -45,7 +45,7 @@ export const HackathonBanner = () => {
             transition={{ delay: 0.2 }}
             className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto"
           >
-            Join our Python AI Hackathons — pick a template, write code in our browser IDE, 
+            Forge your way up — pick a template, write code in our browser IDE, 
             and deploy a working chatbot or AI agent. No setup required.
           </motion.p>
 
