@@ -532,6 +532,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
+    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
