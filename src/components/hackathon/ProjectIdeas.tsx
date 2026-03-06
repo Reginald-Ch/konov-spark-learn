@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lightbulb, MessageCircle, ChevronRight,
-  Star, Sparkles, Zap, Users, Brain, Eye, Palette, BarChart3,
+  Star, Rocket, Zap, Users, Brain, Eye, Palette, BarChart3,
   Bot, BookOpen, Mic, Swords
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
