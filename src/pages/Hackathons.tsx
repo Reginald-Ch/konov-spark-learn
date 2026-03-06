@@ -180,7 +180,7 @@ const Hackathons = () => {
               style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
             >
               <div className="absolute inset-0 opacity-10">
-                <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
+                <Rocket className="w-32 h-32 text-white absolute top-4 right-4" />
                 <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
               </div>
               <div className="relative z-10">
