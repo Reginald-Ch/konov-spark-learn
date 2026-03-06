@@ -393,6 +393,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
 
+  // Anti-cheat metrics
+  const editMetricsRef = useRef({ keystrokes: 0, pasteCount: 0, pastedChars: 0, largePastes: 0, sessionStart: Date.now() });
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
