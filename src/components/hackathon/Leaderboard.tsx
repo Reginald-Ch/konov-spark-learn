@@ -278,9 +278,9 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      {p.tier1 >= 20 && <span className="text-[10px]">🔵</span>}
-                      {p.tier2 >= 30 && <span className="text-[10px]">🟠</span>}
-                      {p.tier3 >= 25 && <span className="text-[10px]">🟢</span>}
+                      {p.tier1 >= 10 && <span className="text-[10px]">🔵</span>}
+                      {p.tier2 >= 15 && <span className="text-[10px]">🟠</span>}
+                      {p.tier3 >= 5 && <span className="text-[10px]">🟢</span>}
                       {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
                       {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                     </div>

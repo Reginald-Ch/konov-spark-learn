@@ -322,7 +322,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               <div className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.12)' }}>
                 <Trophy className="w-3.5 h-3.5 text-[#FFD700] flex-shrink-0" />
                 <p className="text-[11px] text-white/50">
-                  Submitting earns <strong className="text-[#FFD700]">20 leaderboard points</strong> and sends your project to judges.
+                  Submitting earns <strong className="text-[#FFD700]">15 leaderboard points</strong> and sends your project to judges.
                 </p>
               </div>
 
