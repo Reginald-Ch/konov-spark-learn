@@ -13,7 +13,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   const steps = [
     {
       number: 1,
-      title: 'Register for a Python AI Hackathon',
+      title: 'Register for a Hackathon',
       description: 'Browse our upcoming and live hackathons, then click "Register" to join. You\'ll need your name, email, and preferred experience level.',
       icon: UserPlus,
       color: '#C70110',
@@ -22,23 +22,23 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     {
       number: 2,
       title: 'Join or Create a Team',
-      description: 'Team up with other Python AI enthusiasts! Join an existing team or create your own and recruit teammates with complementary skills in ML, data science, or frontend.',
+      description: 'Team up with other  AI enthusiasts! Join an existing team or create your own and recruit teammates with complementary skills in ML, data science, or frontend.',
       icon: Users,
       color: '#F7941D',
       action: { label: 'Find Teams', channel: 'all-events' }
     },
     {
       number: 3,
-      title: 'Build Your Python AI Project',
-      description: 'Set up your Python environment in Google Colab or Kaggle (free GPU!). Pick an AI model from Hugging Face or OpenAI, build your logic, and create a demo UI with Streamlit or Gradio.',
+      title: 'Select a project template ',
+      description: 'Want to create a cool chatbot or agent?',
       icon: Brain,
       color: '#006600',
-      action: { label: 'Get Python AI Ideas', channel: 'project-ideas' }
+      action: { label: 'Forge your AI Ideas', channel: 'project-ideas' }
     },
     {
       number: 4,
       title: 'Submit & Win',
-      description: 'Submit your Python AI project before the deadline. Include a Colab/GitHub link, demo URL (Streamlit/Gradio/HuggingFace Spaces), and a short video of your AI in action.',
+      description: 'Submit your Python AI project before the deadline. .',
       icon: Trophy,
       color: '#5865F2',
       action: { label: 'View Leaderboard', channel: 'leaderboard' }
@@ -46,11 +46,12 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   ];
 
   const tips = [
-    { icon: Sparkles, text: 'Use Google Colab for free GPU access' },
-    { icon: Zap, text: 'Start with Hugging Face pre-trained models' },
-    { icon: Lightbulb, text: 'Use Streamlit or Gradio to build your demo UI fast' },
-    { icon: CheckCircle2, text: 'pip install everything in requirements.txt' },
-    { icon: MessageSquare, text: 'Test your model on small data first, then scale up' },
+    { icon: Lightbulb, text: 'Start with SYSTEM_MESSAGES, spend at least 10 minutes on the.' },
+    { icon: Zap, text: 'one edit one test' },
+    { icon: Lightbulb, text: 'Be specific in KNOWLEDGE_BASE' },
+    { icon: CheckCircle2, text: 'Pick thematic Easter Egg Keyword' },
+    { icon: MessageSquare, text: 'Add follow-up questions to system' },
+    { icon: MessageSquare, text: 'Save checkpoint often every 5 minutes at least' },
     { icon: Rocket, text: 'Submit early to avoid last-minute issues' }
   ];
 
@@ -70,8 +71,8 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
             <Rocket className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Getting Started with Python AI</h1>
-            <p className="text-[hsl(var(--discord-text-muted))]">Your guide to building AI projects with Python</p>
+            <h1 className="text-3xl font-bold text-white">Forge Your Way Up>
+            <p className="text-[hsl(var(--discord-text-muted))]">Elevate your skills, challenge your thinking.</p>
           </div>
         </div>
       </motion.div>
@@ -159,7 +160,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
           style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}
         >
           <Rocket className="w-5 h-5 mr-2" />
-          Start Your Python AI Journey
+          Forge Your Way UP
         </Button>
       </motion.div>
     </div>
