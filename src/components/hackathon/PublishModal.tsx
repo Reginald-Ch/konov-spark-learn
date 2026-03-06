@@ -135,9 +135,8 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       toast.success('🎉 Your AI is live!');
 
       const milestones = [
-        { event_type: 'project_deployed', points: 20, metadata: { project: projectName } },
+        { event_type: 'project_deployed', points: 10, metadata: { project: projectName } },
         { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
-        { event_type: 'app_runs_live', points: 20, metadata: { project: projectName, project_id: resultId } },
       ];
       for (const m of milestones) {
         const key = `forge-scored-${m.event_type}-${finalEmail}`;
