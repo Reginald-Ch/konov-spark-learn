@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, MessageSquare, Bot } from 'lucide-react';
+import { BookOpen, ExternalLink, Rocket, Brain, Code, Zap, GraduationCap, MessageSquare, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
