@@ -1,39 +1,90 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef } from 'react';
-import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, ShieldCheck, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 
-const SCORING_CONFIG = {
-  team_formed:       { points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt' },
-  project_deployed:  { points: 10, tier: 2, label: 'Knowledge Accuracy',     icon: '📚', desc: 'Accurate knowledge base & Q&A' },
-  first_run_success: { points: 5,  tier: 2, label: 'Conversation Quality',   icon: '💬', desc: 'Natural, helpful responses' },
-  submitted_on_time: { points: 5,  tier: 3, label: 'Creativity & Personality', icon: '🎨', desc: 'Unique personality & features' },
-  judge_score:       { points: 25, tier: 4, label: 'Judge Score',            icon: '⭐', desc: 'Scored by judges' },
-} as const;
+// Scoring criteria derived from project fields
+const SCORING_CRITERIA = [
+  { key: 'system_message', points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt (code length > 200 chars)' },
+  { key: 'knowledge_accuracy', points: 10, tier: 2, label: 'Knowledge Accuracy', icon: '📚', desc: 'Project is published & deployed' },
+  { key: 'conversation_quality', points: 5, tier: 2, label: 'Conversation Quality', icon: '💬', desc: 'Project has a description' },
+  { key: 'creativity', points: 5, tier: 3, label: 'Creativity & Personality', icon: '🎨', desc: 'Project has a demo URL' },
+  { key: 'judge_score', points: 70, tier: 4, label: 'Judge Score', icon: '⭐', desc: 'Scored by judges' },
+] as const;
 
-type ScoringEvent = keyof typeof SCORING_CONFIG;
+type ScoringKey = typeof SCORING_CRITERIA[number]['key'];
 
 const TIER_META = [
-  { tier: 1, name: 'System Message', max: 10, color: 'from-blue-500 to-cyan-400', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
-  { tier: 2, name: 'Knowledge & Conversation', max: 15, color: 'from-amber-500 to-orange-400', textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
-  { tier: 3, name: 'Creativity', max: 5, color: 'from-emerald-500 to-green-400', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
-  { tier: 4, name: 'Judge Score', max: 25, color: 'from-yellow-500 to-amber-400', textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
+  { tier: 1, name: 'System Message', max: 10, textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
+  { tier: 2, name: 'Knowledge & Conversation', max: 15, textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
+  { tier: 3, name: 'Creativity', max: 5, textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
+  { tier: 4, name: 'Judge Score', max: 70, textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
 ];
 
-const MAX_SCORE = 55;
+const MAX_SCORE = 100;
 
 interface ParticipantScore {
   email: string;
   name: string;
+  projectName: string;
+  demoUrl: string | null;
   points: number;
   tier1: number;
   tier2: number;
   tier3: number;
   tier4: number;
-  events: Set<string>;
+  achieved: Set<ScoringKey>;
   rank: number;
+}
+
+function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore, 'rank'> {
+  const achieved = new Set<ScoringKey>();
+  let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0;
+
+  // 🧠 System Message Quality: code is substantial (>200 chars)
+  if (project.code && project.code.length > 200) {
+    achieved.add('system_message');
+    tier1 = 10;
+  }
+  // 📚 Knowledge Accuracy: project is published
+  if (project.is_published) {
+    achieved.add('knowledge_accuracy');
+    tier2 += 10;
+  }
+  // 💬 Conversation Quality: has a description
+  if (project.description && project.description.trim().length > 0) {
+    achieved.add('conversation_quality');
+    tier2 += 5;
+  }
+  // 🎨 Creativity & Personality: has a demo URL
+  if (project.demo_url && project.demo_url.trim().length > 0) {
+    achieved.add('creativity');
+    tier3 = 5;
+  }
+  // ⭐ Judge Score
+  if (judgePoints > 0) {
+    achieved.add('judge_score');
+    tier4 = Math.min(judgePoints, 70);
+  }
+
+  const points = tier1 + tier2 + tier3 + tier4;
+  const displayName = (project.author_name && !project.author_name.startsWith('Student-'))
+    ? project.author_name
+    : project.author_email.split('@')[0].replace(/^student-/, '');
+
+  return {
+    email: project.author_email,
+    name: displayName,
+    projectName: project.project_name,
+    demoUrl: project.demo_url || null,
+    points,
+    tier1,
+    tier2,
+    tier3,
+    tier4,
+    achieved,
+  };
 }
 
 export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
@@ -47,71 +98,58 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const fetchLeaderboardData = useCallback(async () => {
     try {
       setError(null);
-      const [pointEventsRes, projectsRes, registrationsRes] = await Promise.all([
-        supabase.from('point_events').select('participant_email, points, event_type, metadata').limit(1000),
-        supabase.from('ai_projects').select('author_email, author_name').limit(500),
-        supabase.from('hackathon_registrations').select('participant_email, participant_name').limit(500),
+      const [projectsRes, judgeEventsRes] = await Promise.all([
+        supabase
+          .from('ai_projects')
+          .select('id, author_email, author_name, project_name, code, description, is_published, demo_url')
+          .limit(500),
+        supabase
+          .from('point_events')
+          .select('participant_email, points, metadata')
+          .eq('event_type', 'judge_score')
+          .limit(500),
       ]);
 
       if (!isMountedRef.current) return;
 
-      if (pointEventsRes.error) {
-        console.error('point_events fetch error:', pointEventsRes.error);
+      if (projectsRes.error) {
+        console.error('ai_projects fetch error:', projectsRes.error);
         setError('Failed to load leaderboard data');
         return;
       }
 
-      const nameMap = new Map<string, string>();
-      (registrationsRes.data || []).forEach((r: any) => { if (r.participant_name) nameMap.set(r.participant_email, r.participant_name); });
-      (projectsRes.data || []).forEach((p: any) => { if (p.author_name && !p.author_name.startsWith('Student-')) nameMap.set(p.author_email, p.author_name); });
-
-      const participantMap = new Map<string, ParticipantScore>();
-
-      (pointEventsRes.data || []).forEach((evt: any) => {
-        const config = SCORING_CONFIG[evt.event_type as ScoringEvent];
-        if (!config) return;
-
-        let p = participantMap.get(evt.participant_email);
-        if (!p) {
-          p = {
-            email: evt.participant_email,
-            name: nameMap.get(evt.participant_email) || evt.participant_email.split('@')[0].replace(/^student-/, ''),
-            points: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0,
-            events: new Set<string>(),
-            rank: 0,
-          };
-          participantMap.set(evt.participant_email, p);
-        }
-
-        if (evt.event_type === 'judge_score') {
-          const pts = Math.min(evt.points, 25);
-          if (pts > p.tier4) {
-            p.points = p.points - p.tier4 + pts;
-            p.tier4 = pts;
-          }
-          p.events.add(evt.event_type);
-        } else if (!p.events.has(evt.event_type)) {
-          p.events.add(evt.event_type);
-          const pts = config.points;
-          p.points += pts;
-          if (config.tier === 1) p.tier1 += pts;
-          else if (config.tier === 2) p.tier2 += pts;
-          else if (config.tier === 3) p.tier3 += pts;
+      // Build judge score map keyed by project_id (most recent/highest per project)
+      // Falls back to email-keyed map for legacy events without project_id in metadata
+      const judgeByProject = new Map<string, number>(); // project_id -> points
+      const judgeByEmail = new Map<string, number>();   // email -> points (fallback)
+      (judgeEventsRes.data || []).forEach((evt: any) => {
+        const projectId = evt.metadata?.project_id;
+        if (projectId) {
+          const prev = judgeByProject.get(projectId) || 0;
+          if (evt.points > prev) judgeByProject.set(projectId, evt.points);
+        } else {
+          const prev = judgeByEmail.get(evt.participant_email) || 0;
+          if (evt.points > prev) judgeByEmail.set(evt.participant_email, evt.points);
         }
       });
 
-      // Apply resolved names
-      participantMap.forEach((p) => {
-        if (nameMap.has(p.email)) p.name = nameMap.get(p.email)!;
+      // One entry per author (keep best project if multiple submitted)
+      const authorMap = new Map<string, ParticipantScore>();
+      (projectsRes.data || []).forEach((project: any) => {
+        // Prefer project-linked score, fall back to email-linked score
+        const judgePoints = judgeByProject.get(project.id) ?? judgeByEmail.get(project.author_email) ?? 0;
+        const scored = scoreProject(project, judgePoints);
+        const existing = authorMap.get(project.author_email);
+        if (!existing || scored.points > existing.points) {
+          authorMap.set(project.author_email, { ...scored, rank: 0 });
+        }
       });
 
-      const sorted = Array.from(participantMap.values())
+      const sorted = Array.from(authorMap.values())
         .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
         .map((p, i) => ({ ...p, rank: i + 1 }));
 
-      if (isMountedRef.current) {
-        setParticipants(sorted);
-      }
+      if (isMountedRef.current) setParticipants(sorted);
     } catch (err) {
       console.error('Leaderboard fetch error:', err);
       if (isMountedRef.current) setError('Failed to load leaderboard');
@@ -131,10 +169,11 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
 
     const channel = supabase
       .channel('leaderboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => debouncedFetch())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
       .subscribe();
 
-    return () => { 
+    return () => {
       isMountedRef.current = false;
       supabase.removeChannel(channel);
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -161,10 +200,23 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
 
   const TierBreakdown = ({ participant }: { participant: ParticipantScore }) => (
     <div className="space-y-3 mt-3">
+      {participant.projectName && (
+        <div className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text-muted))] mb-1">
+          <span className="text-white font-medium truncate">{participant.projectName}</span>
+          {participant.demoUrl && (
+            <a href={participant.demoUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1 text-[hsl(var(--discord-blurple))] hover:underline flex-shrink-0"
+            >
+              <ExternalLink className="w-3 h-3" /> Demo
+            </a>
+          )}
+        </div>
+      )}
       {TIER_META.map(tier => {
         const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : tier.tier === 3 ? participant.tier3 : participant.tier4;
         const pct = Math.round((tierPts / tier.max) * 100);
-        const tierEvents = Object.entries(SCORING_CONFIG).filter(([_, c]) => c.tier === tier.tier);
+        const tierCriteria = SCORING_CRITERIA.filter(c => c.tier === tier.tier);
         return (
           <div key={tier.tier} className={`rounded-lg p-3 border ${tier.bgColor} ${tier.borderColor}`}>
             <div className="flex items-center justify-between mb-1.5">
@@ -173,18 +225,18 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
             </div>
             <Progress value={pct} className="h-1.5 mb-2" />
             <div className="space-y-1">
-              {tierEvents.map(([key, config]) => {
-                const achieved = participant.events.has(key);
+              {tierCriteria.map(criterion => {
+                const isAchieved = participant.achieved.has(criterion.key);
                 return (
-                  <div key={key} className="flex items-center gap-2 text-xs">
-                    {achieved
+                  <div key={criterion.key} className="flex items-center gap-2 text-xs">
+                    {isAchieved
                       ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                       : <Circle className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
                     }
-                    <span className={achieved ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}>
-                      {config.icon} {config.label}
+                    <span className={isAchieved ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}>
+                      {criterion.icon} {criterion.label}
                     </span>
-                    <span className="ml-auto text-[hsl(var(--discord-text-muted))]">+{config.points}</span>
+                    <span className="ml-auto text-[hsl(var(--discord-text-muted))]">+{criterion.points}</span>
                   </div>
                 );
               })}
@@ -277,11 +329,13 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {p.tier1 >= 10 && <span className="text-[10px]">🔵</span>}
-                      {p.tier2 >= 15 && <span className="text-[10px]">🟠</span>}
-                      {p.tier3 >= 5 && <span className="text-[10px]">🟢</span>}
-                      {p.tier4 > 0 && <span className="text-[10px]">⭐</span>}
+                    <p className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate">{p.projectName}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {p.achieved.has('system_message') && <span className="text-[10px]">🧠</span>}
+                      {p.achieved.has('knowledge_accuracy') && <span className="text-[10px]">📚</span>}
+                      {p.achieved.has('conversation_quality') && <span className="text-[10px]">💬</span>}
+                      {p.achieved.has('creativity') && <span className="text-[10px]">🎨</span>}
+                      {p.achieved.has('judge_score') && <span className="text-[10px]">⭐</span>}
                       {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                     </div>
                   </div>
@@ -311,10 +365,10 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
           How Scoring Works
         </h4>
         <div className="space-y-1.5 text-xs text-[hsl(var(--discord-text-muted))]">
-          {Object.entries(SCORING_CONFIG).map(([key, config]) => (
-            <div key={key} className="flex items-center justify-between">
-              <span>{config.icon} {config.label}</span>
-              <span className="font-mono">+{config.points} pts</span>
+          {SCORING_CRITERIA.map(criterion => (
+            <div key={criterion.key} className="flex items-center justify-between">
+              <span>{criterion.icon} {criterion.label}</span>
+              <span className="font-mono">+{criterion.points} pts</span>
             </div>
           ))}
           <div className="border-t border-[hsl(var(--discord-light)/0.2)] pt-1.5 mt-1.5 flex items-center justify-between text-white font-bold">
