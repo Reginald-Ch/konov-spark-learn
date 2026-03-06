@@ -492,7 +492,7 @@ const ProjectView = () => {
             <Button size="sm" variant="ghost" onClick={handleShareUrl} className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
               <Share2 className="w-3.5 h-3.5 mr-1" /> Share
             </Button>
-            <Link to="/hackathons">
+            <Link to="/hackathons?tab=templates">
               <Button size="sm" variant="ghost" className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" /> FORGE
               </Button>
