@@ -1052,12 +1052,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     try {
       const codePayload = files['main.py'];
       const m = editMetricsRef.current;
-      const metricsTag = `\n<!--FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}-->`;
-      const descWithMetrics = systemPrompt + metricsTag;
+      const metricsComment = `\n# FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}`;
+      // Strip any existing metrics comment before appending fresh one
+      const cleanCode = codePayload.replace(/\n# FORGE_METRICS:.*$/, '');
+      const codeWithMetrics = cleanCode + metricsComment;
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: authorName })
+          .update({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
