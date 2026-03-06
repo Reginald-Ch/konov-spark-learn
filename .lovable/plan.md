@@ -1,102 +1,61 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
 
-## Current State Assessment
 
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+# Plan: Fix Scoring Display, Live Demo Link & Polish
 
-## Critical Fixes
+## Bugs Found
 
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+### 1. PublishModal shows "+15 Points Earned" — incorrect total
+**File:** `src/components/hackathon/PublishModal.tsx` (line 236 and line 328)
 
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+The "You're Live" success screen shows "+15 Points Earned" and the form says "15 leaderboard points". The actual milestones awarded in `handlePublish` are `project_deployed` (10 pts) + `submitted_on_time` (5 pts) = 15. However, the leaderboard MAX_SCORE is 55, and the old `points_earned: 10` field on the `ai_projects` table is a legacy artifact. The display is technically correct (10+5=15), but the user mentioned "you are live says 15 points earned" as an issue — this likely refers to the fact that `points_earned: 10` is set on the record itself (line 108), which is an old system.
 
-**File:** `supabase/config.toml`
-Add:
+**Fix:** Remove the legacy `points_earned: 10` from the insert/update in PublishModal (set to 0 since scoring is now milestone-based via `point_events`). Keep the "+15 Points Earned" display since it's accurate (10+5).
 
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
+### 2. FORGE link on Live Demo (ProjectView) goes to `/hackathons` instead of the IDE
+**File:** `src/pages/ProjectView.tsx` (lines 452, 495, 674)
 
-### 2. Fix Save Flow — Update Requires `author_email` Match
+Three "FORGE" / "Back to FORGE" links all point to `/hackathons`. The user wants these to go to the templates/IDE selection instead.
 
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
+**Fix:** Change the links to `/hackathons?tab=templates` so clicking them lands on the project selection (templates tab) rather than the events listing. The Hackathons page already reads URL params for tab selection — need to verify and wire up if not.
 
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
-
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
-
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
+### 3. Hackathons page doesn't read `tab` from URL query params
 **File:** `src/pages/Hackathons.tsx`
 
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
+Need to check if the page reads a `?tab=templates` query param to set the initial tab. If not, add `useSearchParams` to read it.
 
-### 6. Add Live Preview Interactive Demo Chat
+### 4. ReactMarkdown ref warning in PublishModal (console error)
+**File:** `src/components/hackathon/PublishModal.tsx`
 
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
+Console shows: "Function components cannot be given refs. Check the render method of PublishModal." The `AnimatePresence` with `mode="wait"` tries to attach refs to direct `motion.div` children, but the issue is likely from framer-motion trying to ref a child. Since the children are already `motion.div`, this should work — the warning may come from the `DialogContent` interaction with `AnimatePresence`. Wrap each `motion.div` key variant to ensure no bare function components are direct children.
 
-**File:** `src/components/hackathon/ProjectEditor.tsx`
+### 5. Save doesn't refresh Live Preview immediately
+The Live Preview uses `liveConfig` which is `useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']])`. Since `executeSave` doesn't change `files` state (it reads from it), saving itself doesn't need to trigger a refresh — the preview already reacts to code edits in real-time. This is working correctly. No fix needed.
 
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
+## Implementation Summary
 
-**File:** `supabase/functions/python-ai-assist/index.ts`
+| # | Fix | File | Priority |
+|---|-----|------|----------|
+| 1 | Remove legacy `points_earned: 10` from PublishModal | PublishModal.tsx | Medium |
+| 2 | Change FORGE links to `/hackathons?tab=templates` | ProjectView.tsx | High |
+| 3 | Read `tab` query param in Hackathons page | Hackathons.tsx | High |
+| 4 | Fix AnimatePresence ref warning in PublishModal | PublishModal.tsx | Low |
 
-- Add support for `messages` array in `test-agent` action to maintain conversation context
+## Technical Details
 
+**PublishModal.tsx:**
+- Line 108: Change `points_earned: 10` to `points_earned: 0`
+- Line 125: Change `points_earned: 10` to `points_earned: 0`
 
+**ProjectView.tsx:**
+- Lines 452, 495, 674: Change `to="/hackathons"` to `to="/hackathons?tab=templates"`
 
-### 8. Polish ProjectView Page — Add Live Demo Chat
-
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
-
-**File:** `src/pages/ProjectView.tsx`
-
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
-
-## Implementation Order
-
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+**Hackathons.tsx:**
+- Import `useSearchParams` from `react-router-dom`
+- Read `tab` param on mount and set initial `mainTab` accordingly
+- e.g., `const [searchParams] = useSearchParams(); const initialTab = searchParams.get('tab');` then use it in the initial state
 
 ## Files Modified
-
-- `supabase/config.toml`
-- `src/components/hackathon/ProjectEditor.tsx`
 - `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
 - `src/pages/ProjectView.tsx`
+- `src/pages/Hackathons.tsx`
+
