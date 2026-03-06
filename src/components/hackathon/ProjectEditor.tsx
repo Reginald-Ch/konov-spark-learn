@@ -1865,7 +1865,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <div className="flex-1 overflow-y-auto">
                         {aiOutput ? (
                           <div className="prose prose-invert prose-sm max-w-none">
-                            <ReactMarkdown>{aiOutput}</ReactMarkdown>
+                            <div><ReactMarkdown>{aiOutput}</ReactMarkdown></div>
                           </div>
                         ) : (
                           <div className="text-center py-4 space-y-2">
