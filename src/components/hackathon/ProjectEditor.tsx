@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PublishModal } from './PublishModal';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
+  Code, Play, Send, X, Copy, Check, Trash2,
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
@@ -392,6 +392,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
+
+  // Anti-cheat metrics
+  const editMetricsRef = useRef({ keystrokes: 0, pasteCount: 0, pastedChars: 0, largePastes: 0, sessionStart: Date.now() });
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1033,17 +1036,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setIsSaving(true);
     try {
       const codePayload = files['main.py'];
+      const m = editMetricsRef.current;
+      const metricsTag = `\n<!--FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}-->`;
+      const descWithMetrics = systemPrompt + metricsTag;
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: authorName })
+          .update({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
@@ -1240,7 +1246,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         </div>
         <div className="flex items-center gap-1">
           {[
-            { action: 'review', icon: Sparkles, label: 'Review', primary: true },
+            { action: 'review', icon: Rocket, label: 'Review', primary: true },
             { action: 'explain', icon: MessageSquare, label: 'Explain', primary: false },
             { action: 'suggest', icon: Lightbulb, label: 'Suggest', primary: false },
           ].map(({ action, icon: Icon, label, primary }) => (
@@ -1803,7 +1809,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   ref={textareaRef}
                   defaultValue={files[activeFile]}
                   onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
+                  onPaste={e => {
+                    const pasted = e.clipboardData.getData('text');
+                    editMetricsRef.current.pasteCount++;
+                    editMetricsRef.current.pastedChars += pasted.length;
+                    if (pasted.length > 100) editMetricsRef.current.largePastes++;
+                  }}
                   onKeyDown={e => {
+                    editMetricsRef.current.keystrokes++;
                     if (e.key === 'Tab') {
                       e.preventDefault();
                       const target = e.target as HTMLTextAreaElement;
@@ -2085,16 +2098,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
-              <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
-                  <Send className="w-3 h-3 mr-1" /> Submit Project
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -2144,7 +2147,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <Button size="sm" onClick={handleGoLive}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Go Live</span>
+            <span className="hidden sm:inline">Submit & Go Live</span>
           </Button>
         </div>
       </div>

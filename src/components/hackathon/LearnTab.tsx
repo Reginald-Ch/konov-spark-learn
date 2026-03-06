@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, MessageSquare, Bot } from 'lucide-react';
+import { BookOpen, ExternalLink, Rocket, Brain, Code, Zap, GraduationCap, MessageSquare, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
@@ -80,7 +80,7 @@ const RESOURCES = [
   {
     title: 'Build a Chatbot with LangChain',
     description: 'Step-by-step guide to building a conversational AI chatbot using LangChain and OpenAI APIs.',
-    icon: Sparkles,
+    icon: Rocket,
     color: '#F7941D',
     link: 'https://python.langchain.com/docs/tutorials/',
     level: 'Intermediate',
