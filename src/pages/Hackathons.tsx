@@ -186,10 +186,10 @@ const Hackathons = () => {
               <div className="relative z-10">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
                   <Sparkles className="w-8 h-8" />
-                  Build AI Projects with Python!
+                  Forge Your Way Up!
                 </h1>
                 <p className="text-white/90 text-lg max-w-2xl">
-                  Use Python, PyTorch, TensorFlow, and AI models to build innovative solutions.
+                  Design, build, and showcase your own AI solutions alongside the brightest minds of the next generation.
                 </p>
                 <div className="flex flex-wrap items-center gap-6 mt-4">
                   <div className="flex items-center gap-2 text-white">
