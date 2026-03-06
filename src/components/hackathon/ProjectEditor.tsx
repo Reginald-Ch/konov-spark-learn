@@ -423,6 +423,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, []);
 
+  // Imperatively update textarea when switching file tabs (uncontrolled component)
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+    }
+  }, [activeFile]);
+
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
@@ -590,6 +597,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       'main.py': scaffold.main,
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
+    });
+    // Imperatively update textarea for uncontrolled component
+    requestAnimationFrame(() => {
+      if (textareaRef.current) textareaRef.current.value = scaffold.main;
     });
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
@@ -1055,6 +1066,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
+
+    // Award team_formed (System Message Quality) milestone if system prompt was customized
+    const defaultPrompt = PROJECT_SCAFFOLDS[projectType].systemPrompt;
+    if (systemPrompt && systemPrompt !== defaultPrompt && systemPrompt.length > 30) {
+      const teamKey = `forge-scored-team_formed-${authorEmail}`;
+      if (!localStorage.getItem(teamKey)) {
+        localStorage.setItem(teamKey, 'true');
+        supabase.from('point_events').insert({
+          participant_email: authorEmail,
+          event_type: 'team_formed',
+          points: 10,
+          metadata: { project: projectName, reason: 'System prompt customized' },
+        }).then(({ error }) => {
+          if (error) console.warn('team_formed point_events insert failed:', error);
+        });
+      }
+    }
   };
 
   const handleAiAssist = async (action: string) => {
@@ -1773,7 +1801,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                 <textarea
                   ref={textareaRef}
-                  value={files[activeFile]}
+                  defaultValue={files[activeFile]}
                   onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
                   onKeyDown={e => {
                     if (e.key === 'Tab') {
@@ -1865,7 +1893,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <div className="flex-1 overflow-y-auto">
                         {aiOutput ? (
                           <div className="prose prose-invert prose-sm max-w-none">
-                            <ReactMarkdown>{aiOutput}</ReactMarkdown>
+                            <div><ReactMarkdown>{aiOutput}</ReactMarkdown></div>
                           </div>
                         ) : (
                           <div className="text-center py-4 space-y-2">
@@ -2025,7 +2053,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 }>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                     </div>
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
