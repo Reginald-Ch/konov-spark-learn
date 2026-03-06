@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Brain, Upload, Sparkles, Zap, Loader2, CheckCircle2, Code, 
+  Brain, Upload, Rocket, Zap, Loader2, CheckCircle2, Code, 
   ChevronRight, Plus, X, Image as ImageIcon, Type, Mic, Trash2, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
