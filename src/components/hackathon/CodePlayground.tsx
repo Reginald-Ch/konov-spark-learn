@@ -289,7 +289,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
 
             <Button size="sm" onClick={() => handleAiAssist('review')} disabled={isAiLoading}
               className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white">
-              {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+              {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Rocket className="w-3 h-3 mr-1" />}
               Review
             </Button>
             <Button size="sm" onClick={() => handleAiAssist('explain')} disabled={isAiLoading} variant="ghost"
