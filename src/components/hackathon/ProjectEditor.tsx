@@ -401,6 +401,28 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
+  // Restore session from DB on mount if we have a saved project ID
+  useEffect(() => {
+    const savedId = localStorage.getItem('forge-current-project-id');
+    if (!savedId) return;
+    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
+      if (error || !data) {
+        localStorage.removeItem('forge-current-project-id');
+        return;
+      }
+      setCurrentProjectId(data.id);
+      if (data.code) {
+        setFiles(prev => ({ ...prev, 'main.py': data.code }));
+        setSavedFiles(prev => ({ ...prev, 'main.py': data.code }));
+        if (textareaRef.current) textareaRef.current.value = data.code;
+      }
+      if (data.template_id && (data.template_id === 'chatbot' || data.template_id === 'agent')) {
+        setProjectType(data.template_id as ProjectType);
+      }
+      if (data.project_name) setProjectName(data.project_name);
+    });
+  }, []);
+
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
