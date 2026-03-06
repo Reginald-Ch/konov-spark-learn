@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
   Brain, Rocket, Lightbulb, Zap, 
-  Rocket, CheckCircle2, Heart, Code, Bot, 
+  CheckCircle2, Heart, Code, Bot, 
   Database, Eye, MessageSquare, 
   Gamepad2,
   ChevronRight, Play
