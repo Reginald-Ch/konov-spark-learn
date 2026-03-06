@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Rocket, Trophy, Sparkles, ArrowRight, Code, Zap } from "lucide-react";
+import { Rocket, Trophy, ArrowRight, Code, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const HackathonBanner = () => {
