@@ -127,7 +127,10 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
           .single();
         if (error) throw error;
         resultId = data?.id || null;
-        if (resultId && onProjectIdUpdate) onProjectIdUpdate(resultId);
+        if (resultId) {
+          if (onProjectIdUpdate) onProjectIdUpdate(resultId);
+          localStorage.setItem('forge-current-project-id', resultId);
+        }
       }
 
       setPublishedId(resultId);
