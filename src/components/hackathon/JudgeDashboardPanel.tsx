@@ -59,11 +59,17 @@ const emptyHackathon = (): Partial<Hackathon> => ({
   rules: '',
 });
 
-const parseMetrics = (desc: string | null) => {
-  if (!desc) return null;
-  const match = desc.match(/<!--FORGE_METRICS:(.*?)-->/);
-  if (!match) return null;
-  try { return JSON.parse(match[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { return null; }
+const parseMetrics = (project: { description: string | null; code: string }) => {
+  // Try code field first (new format), then description (legacy)
+  const codeMatch = project.code?.match(/# FORGE_METRICS:(.*?)$/m);
+  if (codeMatch) {
+    try { return JSON.parse(codeMatch[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { /* fall through */ }
+  }
+  const descMatch = project.description?.match(/<!--FORGE_METRICS:(.*?)-->/);
+  if (descMatch) {
+    try { return JSON.parse(descMatch[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { return null; }
+  }
+  return null;
 };
 
 const getAuthenticityLabel = (metrics: { ks: number; pch: number; lp: number } | null) => {
