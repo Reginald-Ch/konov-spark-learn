@@ -1066,6 +1066,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
+
+    // Award team_formed (System Message Quality) milestone if system prompt was customized
+    const defaultPrompt = PROJECT_SCAFFOLDS[projectType].systemPrompt;
+    if (systemPrompt && systemPrompt !== defaultPrompt && systemPrompt.length > 30) {
+      const teamKey = `forge-scored-team_formed-${authorEmail}`;
+      if (!localStorage.getItem(teamKey)) {
+        localStorage.setItem(teamKey, 'true');
+        supabase.from('point_events').insert({
+          participant_email: authorEmail,
+          event_type: 'team_formed',
+          points: 10,
+          metadata: { project: projectName, reason: 'System prompt customized' },
+        }).then(({ error }) => {
+          if (error) console.warn('team_formed point_events insert failed:', error);
+        });
+      }
+    }
   };
 
   const handleAiAssist = async (action: string) => {
