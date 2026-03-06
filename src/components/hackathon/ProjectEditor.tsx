@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PublishModal } from './PublishModal';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Code, Play, Send, X, Copy, Check, Trash2,
+  Code, Play, Sparkles, Send, X, Copy, Check, Trash2,
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
@@ -393,9 +393,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
 
-  // Anti-cheat metrics
-  const editMetricsRef = useRef({ keystrokes: 0, pasteCount: 0, pastedChars: 0, largePastes: 0, sessionStart: Date.now() });
-
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
@@ -426,24 +423,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, []);
 
-  // Track whether a file update came from sidebar sync (not user typing)
-  const externalUpdateRef = useRef(false);
-
-  // Imperatively update textarea when switching file tabs (uncontrolled component)
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.value = files[activeFile];
-    }
-  }, [activeFile]);
-
-  // Sync textarea when sidebar edits update files externally
-  useEffect(() => {
-    if (externalUpdateRef.current && textareaRef.current && activeFile === 'main.py') {
-      textareaRef.current.value = files['main.py'];
-      externalUpdateRef.current = false;
-    }
-  }, [files['main.py']]);
-
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
@@ -457,7 +436,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
-    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
@@ -496,7 +474,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
-    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
@@ -532,7 +509,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
-    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
@@ -565,7 +541,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
     if (prevSystemPromptRef.current !== systemPrompt) {
-      externalUpdateRef.current = true;
       setFiles(prev => {
         const code = prev['main.py'];
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
@@ -615,10 +590,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       'main.py': scaffold.main,
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
-    });
-    // Imperatively update textarea for uncontrolled component
-    requestAnimationFrame(() => {
-      if (textareaRef.current) textareaRef.current.value = scaffold.main;
     });
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
@@ -1051,22 +1022,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setIsSaving(true);
     try {
       const codePayload = files['main.py'];
-      const m = editMetricsRef.current;
-      const metricsComment = `\n# FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}`;
-      // Strip any existing metrics comment before appending fresh one
-      const cleanCode = codePayload.replace(/\n# FORGE_METRICS:.*$/, '');
-      const codeWithMetrics = cleanCode + metricsComment;
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: authorName })
+          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
@@ -1089,23 +1055,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
-
-    // Award team_formed (System Message Quality) milestone if system prompt was customized
-    const defaultPrompt = PROJECT_SCAFFOLDS[projectType].systemPrompt;
-    if (systemPrompt && systemPrompt !== defaultPrompt && systemPrompt.length > 30) {
-      const teamKey = `forge-scored-team_formed-${authorEmail}`;
-      if (!localStorage.getItem(teamKey)) {
-        localStorage.setItem(teamKey, 'true');
-        supabase.from('point_events').insert({
-          participant_email: authorEmail,
-          event_type: 'team_formed',
-          points: 10,
-          metadata: { project: projectName, reason: 'System prompt customized' },
-        }).then(({ error }) => {
-          if (error) console.warn('team_formed point_events insert failed:', error);
-        });
-      }
-    }
   };
 
   const handleAiAssist = async (action: string) => {
@@ -1263,7 +1212,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         </div>
         <div className="flex items-center gap-1">
           {[
-            { action: 'review', icon: Rocket, label: 'Review', primary: true },
+            { action: 'review', icon: Sparkles, label: 'Review', primary: true },
             { action: 'explain', icon: MessageSquare, label: 'Explain', primary: false },
             { action: 'suggest', icon: Lightbulb, label: 'Suggest', primary: false },
           ].map(({ action, icon: Icon, label, primary }) => (
@@ -1824,16 +1773,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                 <textarea
                   ref={textareaRef}
-                  defaultValue={files[activeFile]}
+                  value={files[activeFile]}
                   onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
-                  onPaste={e => {
-                    const pasted = e.clipboardData.getData('text');
-                    editMetricsRef.current.pasteCount++;
-                    editMetricsRef.current.pastedChars += pasted.length;
-                    if (pasted.length > 100) editMetricsRef.current.largePastes++;
-                  }}
                   onKeyDown={e => {
-                    editMetricsRef.current.keystrokes++;
                     if (e.key === 'Tab') {
                       e.preventDefault();
                       const target = e.target as HTMLTextAreaElement;
@@ -1923,7 +1865,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <div className="flex-1 overflow-y-auto">
                         {aiOutput ? (
                           <div className="prose prose-invert prose-sm max-w-none">
-                            <div><ReactMarkdown>{aiOutput}</ReactMarkdown></div>
+                            <ReactMarkdown>{aiOutput}</ReactMarkdown>
                           </div>
                         ) : (
                           <div className="text-center py-4 space-y-2">
@@ -2083,7 +2025,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 }>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
-                      <div><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
@@ -2114,6 +2056,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
+            </div>
+            <div className="pt-1 border-t border-ide-border">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
+              <div className="flex gap-1.5 mt-1.5">
+                <Button size="sm" variant="ghost"
+                  onClick={handleGoLive}
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                  <Send className="w-3 h-3 mr-1" /> Submit Project
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -2164,7 +2116,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <Button size="sm" onClick={handleGoLive}
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Submit & Go Live</span>
+            <span className="hidden sm:inline">Go Live</span>
           </Button>
         </div>
       </div>

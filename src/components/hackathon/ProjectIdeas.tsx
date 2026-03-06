@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lightbulb, MessageCircle, ChevronRight,
-  Star, Rocket, Zap, Users, Brain, Eye, Palette, BarChart3,
+  Star, Sparkles, Zap, Users, Brain, Eye, Palette, BarChart3,
   Bot, BookOpen, Mic, Swords
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ export const ProjectIdeas = () => {
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
 
   const categories = [
-    { id: 'all', name: 'All Ideas', icon: Rocket },
+    { id: 'all', name: 'All Ideas', icon: Sparkles },
     { id: 'nlp', name: 'NLP / Chatbots', icon: Bot },
     { id: 'vision', name: 'Computer Vision', icon: Eye },
     { id: 'datascience', name: 'Data Science', icon: BarChart3 },

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { 
   Rocket, UserPlus, Users, Brain, Trophy, CheckCircle2, 
-  ArrowRight, Lightbulb, Zap, MessageSquare
+  ArrowRight, Lightbulb, Zap, MessageSquare, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -71,7 +71,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
             <Rocket className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Forge Your Way Up</h1>
+            <h1 className="text-3xl font-bold text-white">Forge Your Way Up>
             <p className="text-[hsl(var(--discord-text-muted))]">Elevate your skills, challenge your thinking.</p>
           </div>
         </div>

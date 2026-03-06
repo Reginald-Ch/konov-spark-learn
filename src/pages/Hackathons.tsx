@@ -17,11 +17,11 @@ import { LearnTab } from '@/components/hackathon/LearnTab';
 import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Code, Trophy, ArrowLeft, Brain,
+  Code, Trophy, Sparkles, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
   Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,10 +58,8 @@ const Hackathons = () => {
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Tab state — read from URL query param if present
-  const [searchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as MainTab) || 'templates';
-  const [activeTab, setActiveTab] = useState<MainTab>(initialTab);
+  // Tab state
+  const [activeTab, setActiveTab] = useState<MainTab>('templates');
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
   
   // Build tab state
@@ -182,12 +180,12 @@ const Hackathons = () => {
               style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
             >
               <div className="absolute inset-0 opacity-10">
-                <Rocket className="w-32 h-32 text-white absolute top-4 right-4" />
+                <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
                 <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
               </div>
               <div className="relative z-10">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                  <Rocket className="w-8 h-8" />
+                  <Sparkles className="w-8 h-8" />
                   Forge Your Way Up!
                 </h1>
                 <p className="text-white/90 text-lg max-w-2xl">
@@ -274,7 +272,7 @@ const Hackathons = () => {
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
                     style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}>
-                    <Rocket className="w-8 h-8 text-white" />
+                    <Sparkles className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-1">Welcome to FORGE! 🎉</h2>
                   <p className="text-[hsl(var(--discord-text-muted))] text-sm">Build AI projects with Python in 3 easy steps</p>
