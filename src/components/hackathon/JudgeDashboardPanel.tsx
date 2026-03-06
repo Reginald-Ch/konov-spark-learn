@@ -125,7 +125,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
       </div>
 
       {project.description && (
-        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description?.replace(/\n<!--FORGE_METRICS:.*?-->/, '')}</p>
+        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
       )}
       
       <div className="flex gap-1.5 mb-3">

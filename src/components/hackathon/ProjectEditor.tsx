@@ -1066,7 +1066,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
