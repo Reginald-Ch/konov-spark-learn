@@ -496,6 +496,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
+    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
