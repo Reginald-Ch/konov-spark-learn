@@ -2108,7 +2108,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         prefillEmail={authorEmail}
         prefillAuthorName={authorName}
         currentProjectId={currentProjectId}
-        onProjectIdUpdate={(id) => setCurrentProjectId(id)}
+        onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
       />
     </div>
   );
