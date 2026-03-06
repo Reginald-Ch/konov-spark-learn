@@ -122,7 +122,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 10 })
+          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;

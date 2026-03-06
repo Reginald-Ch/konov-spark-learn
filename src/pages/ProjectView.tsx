@@ -671,7 +671,7 @@ const ProjectView = () => {
         <div className="px-4 py-3 text-center border-t border-ide-border/50">
           <p className="text-[11px] text-ide-text-muted">
             Built with <span className="font-bold text-ide-accent">FORGE</span> — 
-            <Link to="/hackathons" className="text-ide-accent hover:underline ml-1">Build your own AI app →</Link>
+            <Link to="/hackathons?tab=templates" className="text-ide-accent hover:underline ml-1">Build your own AI app →</Link>
           </p>
         </div>
       </div>
