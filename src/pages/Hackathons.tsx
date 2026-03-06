@@ -17,7 +17,7 @@ import { LearnTab } from '@/components/hackathon/LearnTab';
 import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Code, Trophy, Sparkles, ArrowLeft, Brain,
+  Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
   Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield
 } from 'lucide-react';
