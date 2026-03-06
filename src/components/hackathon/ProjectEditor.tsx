@@ -354,7 +354,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
