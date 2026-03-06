@@ -1013,7 +1013,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           .select('id')
           .single();
         if (error) throw error;
-        setCurrentProjectId(data?.id || null);
+        const newId = data?.id || null;
+        setCurrentProjectId(newId);
+        if (newId) localStorage.setItem('forge-current-project-id', newId);
       }
       setSavedFiles({ ...files });
       setLastSaved(new Date().toLocaleTimeString());
