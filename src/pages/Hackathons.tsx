@@ -58,8 +58,10 @@ const Hackathons = () => {
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<MainTab>('templates');
+  // Tab state — read from URL query param if present
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as MainTab) || 'templates';
+  const [activeTab, setActiveTab] = useState<MainTab>(initialTab);
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
   
   // Build tab state
