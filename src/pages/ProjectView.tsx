@@ -449,7 +449,7 @@ const ProjectView = () => {
               ? 'This project has been saved but hasn\'t been published yet. The author needs to click "Submit Project" to make it public.'
               : 'This project may not exist or the link is incorrect.'}
           </p>
-          <Link to="/hackathons">
+          <Link to="/hackathons?tab=templates">
             <Button className="bg-ide-accent text-ide-bg-deep">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to FORGE
             </Button>
@@ -492,7 +492,7 @@ const ProjectView = () => {
             <Button size="sm" variant="ghost" onClick={handleShareUrl} className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
               <Share2 className="w-3.5 h-3.5 mr-1" /> Share
             </Button>
-            <Link to="/hackathons">
+            <Link to="/hackathons?tab=templates">
               <Button size="sm" variant="ghost" className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" /> FORGE
               </Button>
@@ -671,7 +671,7 @@ const ProjectView = () => {
         <div className="px-4 py-3 text-center border-t border-ide-border/50">
           <p className="text-[11px] text-ide-text-muted">
             Built with <span className="font-bold text-ide-accent">FORGE</span> — 
-            <Link to="/hackathons" className="text-ide-accent hover:underline ml-1">Build your own AI app →</Link>
+            <Link to="/hackathons?tab=templates" className="text-ide-accent hover:underline ml-1">Build your own AI app →</Link>
           </p>
         </div>
       </div>

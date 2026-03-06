@@ -21,7 +21,7 @@ import {
   Rocket, Zap, Circle, Calendar, Hash,
   Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,8 +58,10 @@ const Hackathons = () => {
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<MainTab>('templates');
+  // Tab state — read from URL query param if present
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as MainTab) || 'templates';
+  const [activeTab, setActiveTab] = useState<MainTab>(initialTab);
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
   
   // Build tab state
