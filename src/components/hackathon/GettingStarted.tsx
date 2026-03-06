@@ -71,7 +71,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
             <Rocket className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Forge Your Way Up>
+            <h1 className="text-3xl font-bold text-white">Forge Your Way Up</h1>
             <p className="text-[hsl(var(--discord-text-muted))]">Elevate your skills, challenge your thinking.</p>
           </div>
         </div>
