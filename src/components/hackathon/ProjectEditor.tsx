@@ -426,12 +426,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, []);
 
+  // Track whether a file update came from sidebar sync (not user typing)
+  const externalUpdateRef = useRef(false);
+
   // Imperatively update textarea when switching file tabs (uncontrolled component)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.value = files[activeFile];
     }
   }, [activeFile]);
+
+  // Sync textarea when sidebar edits update files externally
+  useEffect(() => {
+    if (externalUpdateRef.current && textareaRef.current && activeFile === 'main.py') {
+      textareaRef.current.value = files['main.py'];
+      externalUpdateRef.current = false;
+    }
+  }, [files['main.py']]);
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
