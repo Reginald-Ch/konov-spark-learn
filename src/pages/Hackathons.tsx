@@ -185,7 +185,7 @@ const Hackathons = () => {
               </div>
               <div className="relative z-10">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                  <Sparkles className="w-8 h-8" />
+                  <Rocket className="w-8 h-8" />
                   Forge Your Way Up!
                 </h1>
                 <p className="text-white/90 text-lg max-w-2xl">
