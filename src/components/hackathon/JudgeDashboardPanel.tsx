@@ -59,6 +59,23 @@ const emptyHackathon = (): Partial<Hackathon> => ({
   rules: '',
 });
 
+const parseMetrics = (desc: string | null) => {
+  if (!desc) return null;
+  const match = desc.match(/<!--FORGE_METRICS:(.*?)-->/);
+  if (!match) return null;
+  try { return JSON.parse(match[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { return null; }
+};
+
+const getAuthenticityLabel = (metrics: { ks: number; pch: number; lp: number } | null) => {
+  if (!metrics) return { label: 'No data', color: 'text-[hsl(var(--discord-text-muted))]', icon: '❓' };
+  const codeLen = metrics.ks + metrics.pch;
+  if (codeLen === 0) return { label: 'No edits', color: 'text-[hsl(var(--discord-text-muted))]', icon: '❓' };
+  const pasteRatio = metrics.pch / codeLen;
+  if (metrics.lp >= 3 || pasteRatio > 0.7) return { label: 'High paste ratio', color: 'text-red-400', icon: '⚠️' };
+  if (metrics.lp >= 1 || pasteRatio > 0.4) return { label: 'Some pasting', color: 'text-yellow-400', icon: '⚡' };
+  return { label: 'Organic editing', color: 'text-green-400', icon: '✅' };
+};
+
 const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
   project: Project;
   meta: { icon: string; label: string };
@@ -69,7 +86,11 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
   onFeedbackChange: (id: string, val: string) => void;
   onSubmitScore: (project: Project) => void;
   onTogglePublish: (project: Project) => void;
-}) => (
+}) => {
+  const metrics = parseMetrics(project.description);
+  const auth = getAuthenticityLabel(metrics);
+  const sessionMins = metrics ? Math.round(metrics.dur / 60) : null;
+  return (
   <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
     <div className="p-4">
       <div className="flex items-start justify-between mb-2">
@@ -86,8 +107,19 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
           </Badge>
         </div>
       </div>
+      
+      {/* Anti-cheat indicator */}
+      <div className="flex items-center gap-2 mb-2 text-[10px]">
+        <span className={auth.color}>{auth.icon} {auth.label}</span>
+        {metrics && (
+          <span className="text-[hsl(var(--discord-text-muted))]">
+            • {metrics.ks} keys • {metrics.pc} pastes • {sessionMins}m session
+          </span>
+        )}
+      </div>
+
       {project.description && (
-        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
+        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description?.replace(/\n<!--FORGE_METRICS:.*?-->/, '')}</p>
       )}
       
       <div className="flex gap-1.5 mb-3">
@@ -128,7 +160,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
       </div>
     </div>
   </div>
-));
+)});
 ProjectCard.displayName = 'ProjectCard';
 
 interface JudgeDashboardPanelProps {
