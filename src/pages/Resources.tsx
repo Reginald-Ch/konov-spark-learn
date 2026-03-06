@@ -7,7 +7,7 @@ import { ActionBurst } from "@/components/ActionBurst";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
-  Brain, Sparkles, Lightbulb, Zap, 
+  Brain, Rocket, Lightbulb, Zap, 
   Rocket, CheckCircle2, Heart, Code, Bot, 
   Database, Eye, MessageSquare, 
   Gamepad2,
