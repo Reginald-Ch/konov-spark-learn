@@ -423,6 +423,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, []);
 
+  // Imperatively update textarea when switching file tabs (uncontrolled component)
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+    }
+  }, [activeFile]);
+
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
