@@ -93,7 +93,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
   onSubmitScore: (project: Project) => void;
   onTogglePublish: (project: Project) => void;
 }) => {
-  const metrics = parseMetrics(project.description);
+  const metrics = parseMetrics(project);
   const auth = getAuthenticityLabel(metrics);
   const sessionMins = metrics ? Math.round(metrics.dur / 60) : null;
   return (
