@@ -59,11 +59,17 @@ const emptyHackathon = (): Partial<Hackathon> => ({
   rules: '',
 });
 
-const parseMetrics = (desc: string | null) => {
-  if (!desc) return null;
-  const match = desc.match(/<!--FORGE_METRICS:(.*?)-->/);
-  if (!match) return null;
-  try { return JSON.parse(match[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { return null; }
+const parseMetrics = (project: { description: string | null; code: string }) => {
+  // Try code field first (new format), then description (legacy)
+  const codeMatch = project.code?.match(/# FORGE_METRICS:(.*?)$/m);
+  if (codeMatch) {
+    try { return JSON.parse(codeMatch[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { /* fall through */ }
+  }
+  const descMatch = project.description?.match(/<!--FORGE_METRICS:(.*?)-->/);
+  if (descMatch) {
+    try { return JSON.parse(descMatch[1]) as { ks: number; pc: number; pch: number; lp: number; dur: number }; } catch { return null; }
+  }
+  return null;
 };
 
 const getAuthenticityLabel = (metrics: { ks: number; pch: number; lp: number } | null) => {
@@ -87,7 +93,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
   onSubmitScore: (project: Project) => void;
   onTogglePublish: (project: Project) => void;
 }) => {
-  const metrics = parseMetrics(project.description);
+  const metrics = parseMetrics(project);
   const auth = getAuthenticityLabel(metrics);
   const sessionMins = metrics ? Math.round(metrics.dur / 60) : null;
   return (
@@ -119,7 +125,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
       </div>
 
       {project.description && (
-        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description?.replace(/\n<!--FORGE_METRICS:.*?-->/, '')}</p>
+        <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
       )}
       
       <div className="flex gap-1.5 mb-3">

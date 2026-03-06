@@ -426,12 +426,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, []);
 
+  // Track whether a file update came from sidebar sync (not user typing)
+  const externalUpdateRef = useRef(false);
+
   // Imperatively update textarea when switching file tabs (uncontrolled component)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.value = files[activeFile];
     }
   }, [activeFile]);
+
+  // Sync textarea when sidebar edits update files externally
+  useEffect(() => {
+    if (externalUpdateRef.current && textareaRef.current && activeFile === 'main.py') {
+      textareaRef.current.value = files['main.py'];
+      externalUpdateRef.current = false;
+    }
+  }, [files['main.py']]);
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
@@ -446,6 +457,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (prevKnowledgeRef.current === knowledgeBase) return;
     prevKnowledgeRef.current = knowledgeBase;
+    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
@@ -484,6 +496,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
+    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
@@ -519,6 +532,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (themeSyncRef.current === selectedTheme.id) return;
     themeSyncRef.current = selectedTheme.id;
+    externalUpdateRef.current = true;
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
@@ -551,6 +565,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
     if (prevSystemPromptRef.current !== systemPrompt) {
+      externalUpdateRef.current = true;
       setFiles(prev => {
         const code = prev['main.py'];
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
@@ -1037,19 +1052,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     try {
       const codePayload = files['main.py'];
       const m = editMetricsRef.current;
-      const metricsTag = `\n<!--FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}-->`;
-      const descWithMetrics = systemPrompt + metricsTag;
+      const metricsComment = `\n# FORGE_METRICS:${JSON.stringify({ ks: m.keystrokes, pc: m.pasteCount, pch: m.pastedChars, lp: m.largePastes, dur: Math.round((Date.now() - m.sessionStart) / 1000) })}`;
+      // Strip any existing metrics comment before appending fresh one
+      const cleanCode = codePayload.replace(/\n# FORGE_METRICS:.*$/, '');
+      const codeWithMetrics = cleanCode + metricsComment;
       if (currentProjectId) {
         const { error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: authorName })
+          .update({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: authorName })
           .eq('id', currentProjectId)
           .eq('author_email', email);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: descWithMetrics, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codeWithMetrics, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
           .select('id')
           .single();
         if (error) throw error;
