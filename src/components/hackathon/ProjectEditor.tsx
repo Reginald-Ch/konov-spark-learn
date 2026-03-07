@@ -373,6 +373,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
   const [aiCallCount, setAiCallCount] = useState(0);
 
+  // Undo/redo history stack
+  const undoStackRef = useRef<string[]>([]);
+  const redoStackRef = useRef<string[]>([]);
+  const lastSnapshotRef = useRef<string>(initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main);
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-save timer
+  const [autoSaveCountdown, setAutoSaveCountdown] = useState(120);
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
