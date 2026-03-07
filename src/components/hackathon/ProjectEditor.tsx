@@ -2187,6 +2187,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <Circle className={`w-1.5 h-1.5 ${isDirty ? 'fill-ide-orange text-ide-orange' : 'fill-ide-green text-ide-green'}`} />
             <span className="text-[10px] font-mono text-ide-text-muted">{isDirty ? 'Unsaved changes' : 'All changes saved'}</span>
           </div>
+          {isDirty && (
+            <div className="flex items-center gap-1 text-[10px] font-mono text-ide-text-muted">
+              <Save className="w-3 h-3" />
+              <span>Auto-save in {Math.floor(autoSaveCountdown / 60)}:{String(autoSaveCountdown % 60).padStart(2, '0')}</span>
+            </div>
+          )}
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
