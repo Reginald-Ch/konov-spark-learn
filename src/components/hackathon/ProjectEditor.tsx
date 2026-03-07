@@ -534,6 +534,26 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [files['main.py']]);
 
+  // Sync textarea value imperatively when switching file tabs
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.value = files[activeFile];
+    }
+  }, [activeFile]);
+
+  // Imperatively sync textarea when sync effects update files (only if not focused)
+  const syncTextareaIfNotFocused = useCallback((newCode: string) => {
+    if (textareaRef.current && document.activeElement !== textareaRef.current) {
+      textareaRef.current.value = newCode;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeFile === 'main.py') {
+      syncTextareaIfNotFocused(files['main.py']);
+    }
+  }, [files['main.py'], activeFile, syncTextareaIfNotFocused]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
