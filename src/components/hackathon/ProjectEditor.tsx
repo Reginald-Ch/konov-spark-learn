@@ -1892,6 +1892,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const end = target.selectionEnd;
                       const value = target.value;
                       const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                      target.value = newValue;
                       updateFile(newValue);
                       requestAnimationFrame(() => {
                         target.selectionStart = target.selectionEnd = start + 4;
