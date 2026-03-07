@@ -1,25 +1,81 @@
 import { motion } from 'framer-motion';
-import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, Palette, Target, Smile } from 'lucide-react';
+import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, Palette, Target, Smile, CheckCircle2, Circle, Timer, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface LearnTabProps {
   onNavigateToBuild: () => void;
   onNavigateToTemplates: () => void;
+  currentCode?: string;
 }
 
-const CHALLENGE_STEPS = [
+// Validation rules for each variable
+interface ChallengeValidation {
+  name: string;
+  desc: string;
+  example: string;
+  validate: (code: string) => boolean;
+  points: number;
+}
+
+const createValidator = (varName: string, type: 'string' | 'number' | 'list' | 'dict' | 'triple-string', defaults: string[] = []): ((code: string) => boolean) => {
+  return (code: string) => {
+    if (type === 'triple-string') {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`)) ||
+                    code.match(new RegExp(`${varName}\\s*=\\s*'''([\\s\\S]*?)'''`));
+      if (!match) return false;
+      const val = match[1].trim();
+      return val.length > 10 && !defaults.includes(val);
+    }
+    if (type === 'string') {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*["'](.+?)["']`));
+      if (!match) return false;
+      return !defaults.includes(match[1]) && match[1].length > 0;
+    }
+    if (type === 'number') {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*([\\d.]+)`));
+      if (!match) return false;
+      const val = parseFloat(match[1]);
+      return !defaults.some(d => parseFloat(d) === val);
+    }
+    if (type === 'list') {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
+      if (!match) return false;
+      return /["'][^"']+["']/.test(match[1]);
+    }
+    if (type === 'dict') {
+      const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
+      if (!match) return false;
+      return /["'][^"']+["']\s*:\s*["'][^"']+["']/.test(match[1]);
+    }
+    return false;
+  };
+};
+
+const CHALLENGE_STEPS: Array<{
+  step: number;
+  title: string;
+  subtitle: string;
+  icon: any;
+  color: string;
+  challenges: ChallengeValidation[];
+  tip: string;
+  badExample?: string;
+  goodExample?: string;
+  timeLimit?: number; // minutes
+}> = [
   {
     step: 1,
     title: "Give Your Bot an Identity",
     subtitle: "Challenges 1–4 — Takes 2 minutes",
     icon: Target,
     color: "#F7941D",
+    timeLimit: 3,
     challenges: [
-      { name: 'BOT_NAME', desc: 'The name shown in the header', example: 'BOT_NAME = "GhanaFreedom Guide"' },
-      { name: 'BOT_EMOJI', desc: 'The emoji avatar next to messages', example: 'BOT_EMOJI = "🇬🇭"' },
-      { name: 'AI_MESSAGE', desc: 'First message users see', example: 'AI_MESSAGE = "Akwaaba! Welcome!"' },
-      { name: 'CREATOR_NAME', desc: 'Your name as creator', example: 'CREATOR_NAME = "Your Name"' },
+      { name: 'BOT_NAME', desc: 'The name shown in the header', example: 'BOT_NAME = "GhanaFreedom Guide"', points: 5, validate: createValidator('BOT_NAME', 'string', ['AI Bot', 'Spark', 'Research Agent']) },
+      { name: 'BOT_EMOJI', desc: 'The emoji avatar next to messages', example: 'BOT_EMOJI = "🇬🇭"', points: 5, validate: createValidator('BOT_EMOJI', 'string', ['🤖', '🧠']) },
+      { name: 'AI_MESSAGE', desc: 'First message users see', example: 'AI_MESSAGE = "Akwaaba! Welcome!"', points: 5, validate: createValidator('AI_MESSAGE', 'string', ["Hey there! I'm Spark, your AI buddy. Ask me anything!", "I'm your research agent. I can search, calculate, and analyse. Give me a task!"]) },
+      { name: 'CREATOR_NAME', desc: 'Your name as creator', example: 'CREATOR_NAME = "Your Name"', points: 5, validate: createValidator('CREATOR_NAME', 'string', ['', 'A FORGE Builder']) },
     ],
     tip: 'After saving, your bot name and emoji appear in Live Preview immediately.',
   },
@@ -29,8 +85,9 @@ const CHALLENGE_STEPS = [
     subtitle: "Challenge 5 — Spend the most time here",
     icon: Brain,
     color: "#C70110",
+    timeLimit: 10,
     challenges: [
-      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""' },
+      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""', points: 15, validate: createValidator('SYSTEM_MESSAGE', 'triple-string', ['You are a helpful AI assistant.']) },
     ],
     tip: 'Formula: WHO (name, role) + HOW (tone) + WHAT (topics) + RULES (special instructions). Judges score this highest!',
     badExample: 'SYSTEM_MESSAGE = "You are a helpful AI assistant."',
@@ -42,9 +99,14 @@ const CHALLENGE_STEPS = [
     subtitle: "Challenges 6 & 7 — The smarter your bot, the better it scores",
     icon: BookOpen,
     color: "#006600",
+    timeLimit: 8,
     challenges: [
-      { name: 'KNOWLEDGE_BASE', desc: 'Paste facts here — the more specific, the smarter', example: 'KNOWLEDGE_BASE = """DATES: March 6 1957: Independence..."""' },
-      { name: 'QA_PAIRS', desc: 'Guaranteed exact answers for specific questions', example: 'QA_PAIRS = [{"q": "When did Ghana gain independence?", "a": "March 6, 1957!"}]' },
+      { name: 'KNOWLEDGE_BASE', desc: 'Paste facts here — the more specific, the smarter', example: 'KNOWLEDGE_BASE = """DATES: March 6 1957: Independence..."""', points: 10, validate: createValidator('KNOWLEDGE_BASE', 'triple-string') },
+      { name: 'QA_PAIRS', desc: 'Guaranteed exact answers for specific questions', example: 'QA_PAIRS = [{"q": "When did Ghana gain independence?", "a": "March 6, 1957!"}]', points: 10, validate: (code: string) => {
+        const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
+        if (!match) return false;
+        return /\{\s*["']q["']\s*:\s*["'][^"']+["']/.test(match[1]);
+      }},
     ],
     tip: 'KNOWLEDGE_BASE gives the AI info to draw from. QA_PAIRS gives EXACT answers word for word — the AI doesn\'t need to think.',
   },
@@ -54,12 +116,13 @@ const CHALLENGE_STEPS = [
     subtitle: "Challenges 8–12 — Shape how your bot responds",
     icon: Sparkles,
     color: "#5865F2",
+    timeLimit: 8,
     challenges: [
-      { name: 'TEMPERATURE', desc: '0.1–0.3 factual, 0.5–0.7 balanced, 0.8–1.0 creative', example: 'TEMPERATURE = 0.6' },
-      { name: 'RESPONSE_STYLE', desc: 'Friendly, Professional, Academic, Storyteller...', example: 'RESPONSE_STYLE = "Friendly"' },
-      { name: 'MAX_RESPONSE_LENGTH', desc: 'short (1–2 sentences), medium (1 paragraph), long', example: 'MAX_RESPONSE_LENGTH = "medium"' },
-      { name: 'RULES', desc: 'Enforce consistent behaviour', example: 'RULES = ["Use an emoji each time", "Ask a follow-up"]' },
-      { name: 'CONVERSATION_STARTERS', desc: 'Quick reply buttons for visitors', example: 'CONVERSATION_STARTERS = ["Who was Nkrumah?"]' },
+      { name: 'TEMPERATURE', desc: '0.1–0.3 factual, 0.5–0.7 balanced, 0.8–1.0 creative', example: 'TEMPERATURE = 0.6', points: 5, validate: createValidator('TEMPERATURE', 'number', ['0.7', '0.3']) },
+      { name: 'RESPONSE_STYLE', desc: 'Friendly, Professional, Academic, Storyteller...', example: 'RESPONSE_STYLE = "Friendly"', points: 5, validate: createValidator('RESPONSE_STYLE', 'string', ['Balanced', 'Friendly', 'Professional']) },
+      { name: 'MAX_RESPONSE_LENGTH', desc: 'short (1–2 sentences), medium (1 paragraph), long', example: 'MAX_RESPONSE_LENGTH = "medium"', points: 3, validate: createValidator('MAX_RESPONSE_LENGTH', 'string', ['medium']) },
+      { name: 'RULES', desc: 'Enforce consistent behaviour', example: 'RULES = ["Use an emoji each time", "Ask a follow-up"]', points: 5, validate: createValidator('RULES', 'list') },
+      { name: 'CONVERSATION_STARTERS', desc: 'Quick reply buttons for visitors', example: 'CONVERSATION_STARTERS = ["Who was Nkrumah?"]', points: 5, validate: createValidator('CONVERSATION_STARTERS', 'list') },
     ],
     tip: 'Temperature 0.6 is the sweet spot for educational bots — factual but engaging.',
   },
@@ -69,12 +132,13 @@ const CHALLENGE_STEPS = [
     subtitle: "Challenges 13–17 — The fun part + safety",
     icon: Smile,
     color: "#9B59B6",
+    timeLimit: 8,
     challenges: [
-      { name: 'EASTER_EGGS', desc: 'Secret instant responses by keyword', example: 'EASTER_EGGS = {"freedom": "Ghana is free forever! 🎉"}' },
-      { name: 'CATCHPHRASES', desc: 'Signature phrases woven into responses', example: 'CATCHPHRASES = ["Here\'s a piece of history...", "Did you know?"]' },
-      { name: 'BLOCKED_TOPICS', desc: 'Topics the bot politely refuses', example: 'BLOCKED_TOPICS = ["inappropriate content", "homework answers"]' },
-      { name: 'FORBIDDEN_WORDS', desc: 'Words the bot must never use', example: 'FORBIDDEN_WORDS = ["primitive", "tribe"]' },
-      { name: 'MOOD', desc: 'Overall emotional tone: energetic, cheerful, serious, calm...', example: 'MOOD = "energetic"' },
+      { name: 'EASTER_EGGS', desc: 'Secret instant responses by keyword', example: 'EASTER_EGGS = {"freedom": "Ghana is free forever! 🎉"}', points: 5, validate: createValidator('EASTER_EGGS', 'dict') },
+      { name: 'CATCHPHRASES', desc: 'Signature phrases woven into responses', example: 'CATCHPHRASES = ["Here\'s a piece of history...", "Did you know?"]', points: 3, validate: createValidator('CATCHPHRASES', 'list') },
+      { name: 'BLOCKED_TOPICS', desc: 'Topics the bot politely refuses', example: 'BLOCKED_TOPICS = ["inappropriate content", "homework answers"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list') },
+      { name: 'FORBIDDEN_WORDS', desc: 'Words the bot must never use', example: 'FORBIDDEN_WORDS = ["primitive", "tribe"]', points: 5, validate: createValidator('FORBIDDEN_WORDS', 'list') },
+      { name: 'MOOD', desc: 'Overall emotional tone: energetic, cheerful, serious, calm...', example: 'MOOD = "energetic"', points: 3, validate: createValidator('MOOD', 'string', ['neutral']) },
     ],
     tip: 'Easter eggs fire BEFORE the AI — instant, no API call. Judges notice personality and cultural authenticity!',
   },
@@ -84,14 +148,18 @@ const CHALLENGE_STEPS = [
     subtitle: "Challenges 18–20 — Finishing touches that make you stand out",
     icon: Palette,
     color: "#3498DB",
+    timeLimit: 5,
     challenges: [
-      { name: 'FEW_SHOT_EXAMPLES', desc: 'Show the AI exactly HOW to answer', example: 'FEW_SHOT_EXAMPLES = [{"input": "Tell me about 1957", "output": "Ayekoo! 🇬🇭 On March 6..."}]' },
-      { name: 'LANGUAGE_STYLE', desc: 'casual, formal, academic, slang, poetic, storyteller', example: 'LANGUAGE_STYLE = "storyteller"' },
-      { name: 'SIGN_OFF', desc: 'Closing phrase on every response', example: 'SIGN_OFF = "🇬🇭 Freedom and Justice!"' },
+      { name: 'FEW_SHOT_EXAMPLES', desc: 'Show the AI exactly HOW to answer', example: 'FEW_SHOT_EXAMPLES = [{"input": "Tell me about 1957", "output": "Ayekoo! 🇬🇭 On March 6..."}]', points: 5, validate: createValidator('FEW_SHOT_EXAMPLES', 'list') },
+      { name: 'LANGUAGE_STYLE', desc: 'casual, formal, academic, slang, poetic, storyteller', example: 'LANGUAGE_STYLE = "storyteller"', points: 3, validate: createValidator('LANGUAGE_STYLE', 'string', ['casual']) },
+      { name: 'SIGN_OFF', desc: 'Closing phrase on every response', example: 'SIGN_OFF = "🇬🇭 Freedom and Justice!"', points: 5, validate: createValidator('SIGN_OFF', 'string', ['']) },
     ],
     tip: 'Recommended order: Identity (1–4) → System Message (5) → Knowledge (6–7) → Behaviour (8–12) → Fun extras (13–20)',
   },
 ];
+
+const ALL_CHALLENGES = CHALLENGE_STEPS.flatMap(s => s.challenges);
+const TOTAL_POINTS = ALL_CHALLENGES.reduce((sum, c) => sum + c.points, 0);
 
 const RESOURCES = [
   { title: 'Python for AI Beginners', description: 'Learn Python basics: variables, loops, functions, and data structures for AI.', icon: Code, color: '#006600', link: 'https://www.learnpython.org/', level: 'Beginner' },
@@ -104,23 +172,140 @@ const RESOURCES = [
 
 const LEVEL_COLORS: Record<string, string> = { Beginner: '#006600', Intermediate: '#F7941D', Advanced: '#C70110' };
 
-export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates }: LearnTabProps) => {
+export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode }: LearnTabProps) => {
   const [showTutorial, setShowTutorial] = useState(true);
   const [expandedStep, setExpandedStep] = useState<number | null>(1);
+  const [timerActive, setTimerActive] = useState<number | null>(null); // step number
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Read code from localStorage if not passed as prop
+  const code = currentCode || localStorage.getItem('forge-editor-code') || '';
+
+  // Validate all challenges against the current code
+  const validationResults = ALL_CHALLENGES.map(ch => ({
+    name: ch.name,
+    passed: code ? ch.validate(code) : false,
+    points: ch.points,
+  }));
+
+  const completedCount = validationResults.filter(v => v.passed).length;
+  const earnedPoints = validationResults.filter(v => v.passed).reduce((s, v) => s + v.points, 0);
+
+  // Step-level completion
+  const stepResults = CHALLENGE_STEPS.map(step => {
+    const stepValidations = step.challenges.map(ch => ({
+      passed: code ? ch.validate(code) : false,
+      points: ch.points,
+    }));
+    const allPassed = stepValidations.every(v => v.passed);
+    const completedInStep = stepValidations.filter(v => v.passed).length;
+    return { allPassed, completedInStep, total: stepValidations.length };
+  });
+
+  // Timer logic
+  const startTimer = useCallback((stepNum: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimerActive(stepNum);
+    setTimerSeconds(0);
+    timerRef.current = setInterval(() => {
+      setTimerSeconds(s => s + 1);
+    }, 1000);
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimerActive(null);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  // Auto-stop timer when step is completed
+  useEffect(() => {
+    if (timerActive !== null) {
+      const stepIdx = timerActive - 1;
+      if (stepResults[stepIdx]?.allPassed) {
+        stopTimer();
+      }
+    }
+  }, [timerActive, stepResults, stopTimer]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeLimitSeconds = (step: typeof CHALLENGE_STEPS[0]) => (step.timeLimit || 5) * 60;
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
           background: 'linear-gradient(135deg, #006600 0%, #F7941D 100%)'
         }}>
           <BookOpen className="w-6 h-6 text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-white">Challenge Guide</h2>
           <p className="text-[hsl(var(--discord-text-muted))] text-sm">Complete all 20 challenges to build your AI bot</p>
         </div>
       </div>
+
+      {/* Score Banner */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="mb-6 rounded-lg p-4 border border-[hsl(var(--discord-blurple)/0.3)]"
+        style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), hsl(var(--discord-blurple) / 0.05))' }}
+      >
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/20</span></div>
+              <div className="text-[10px] text-[hsl(var(--discord-text-muted))] uppercase tracking-wider">Challenges</div>
+            </div>
+            <div className="w-px h-10 bg-[hsl(var(--discord-light)/0.2)]" />
+            <div className="text-center">
+              <div className="text-3xl font-black" style={{ color: earnedPoints >= TOTAL_POINTS ? '#22C55E' : '#F7941D' }}>
+                {earnedPoints}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/{TOTAL_POINTS}</span>
+              </div>
+              <div className="text-[10px] text-[hsl(var(--discord-text-muted))] uppercase tracking-wider">Points</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {completedCount === 20 && (
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/30">
+                <Trophy className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-bold text-green-400">All Complete! 🎉</span>
+              </motion.div>
+            )}
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 h-2 rounded-full bg-[hsl(var(--discord-dark))]">
+          <motion.div
+            className="h-full rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${(completedCount / 20) * 100}%` }}
+            transition={{ duration: 0.5 }}
+            style={{
+              background: completedCount === 20
+                ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                : completedCount >= 10
+                ? 'linear-gradient(90deg, #F7941D, #FFD700)'
+                : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+            }}
+          />
+        </div>
+        {!code && (
+          <p className="text-[10px] text-[hsl(var(--discord-text-muted))] mt-2 italic">
+            💡 Open the Build tab and start coding to see your progress here in real-time!
+          </p>
+        )}
+      </motion.div>
 
       {/* Challenge Tutorial */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
@@ -152,15 +337,30 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates }: LearnTabP
 
             {/* Steps accordion */}
             <div className="divide-y divide-[hsl(var(--discord-light)/0.1)]">
-              {CHALLENGE_STEPS.map((step) => {
+              {CHALLENGE_STEPS.map((step, stepIdx) => {
                 const Icon = step.icon;
                 const isExpanded = expandedStep === step.step;
+                const sr = stepResults[stepIdx];
+                const isTimerRunning = timerActive === step.step;
+                const timeLimitSec = getTimeLimitSeconds(step);
+                const isOverTime = isTimerRunning && timerSeconds > timeLimitSec;
+
                 return (
                   <div key={step.step}>
                     <button
                       onClick={() => setExpandedStep(isExpanded ? null : step.step)}
                       className="w-full flex items-center gap-3 p-4 hover:bg-[hsl(var(--discord-light)/0.05)] transition-colors text-left"
                     >
+                      {/* Completion indicator */}
+                      <div className="flex-shrink-0">
+                        {sr.allPassed ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border-2 border-[hsl(var(--discord-light)/0.3)] flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-[hsl(var(--discord-text-muted))]">{sr.completedInStep}/{sr.total}</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${step.color}20`, border: `2px solid ${step.color}40` }}>
                         <Icon className="w-5 h-5" style={{ color: step.color }} />
@@ -179,20 +379,76 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates }: LearnTabP
 
                     {isExpanded && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-4">
+                        {/* Timer bar */}
+                        {step.timeLimit && (
+                          <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-[hsl(var(--discord-dark)/0.6)] border border-[hsl(var(--discord-light)/0.1)]">
+                            <Timer className={`w-4 h-4 ${isTimerRunning ? (isOverTime ? 'text-red-400' : 'text-green-400') : 'text-[hsl(var(--discord-text-muted))]'}`} />
+                            {isTimerRunning ? (
+                              <>
+                                <span className={`text-sm font-mono font-bold ${isOverTime ? 'text-red-400' : 'text-green-400'}`}>
+                                  {formatTime(timerSeconds)}
+                                </span>
+                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">/ {step.timeLimit}:00 target</span>
+                                <div className="flex-1" />
+                                {sr.allPassed && (
+                                  <span className="text-[10px] font-bold text-green-400 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Completed!
+                                  </span>
+                                )}
+                                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); stopTimer(); }}
+                                  className="h-6 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                                  Stop
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Target: {step.timeLimit} min</span>
+                                <div className="flex-1" />
+                                {sr.allPassed ? (
+                                  <span className="text-[10px] font-bold text-green-400">✅ Done</span>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); startTimer(step.step); }}
+                                    className="h-6 text-[10px] text-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.1)]">
+                                    <Timer className="w-3 h-3 mr-1" /> Start Timer
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+
                         <div className="space-y-2 mb-3">
-                          {step.challenges.map(ch => (
-                            <div key={ch.name} className="bg-[hsl(var(--discord-dark)/0.6)] rounded-md p-3 border border-[hsl(var(--discord-light)/0.1)]">
-                              <div className="flex items-center gap-2 mb-1">
-                                <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
-                                  {ch.name}
-                                </code>
-                                <span className="text-[11px] text-[hsl(var(--discord-text-muted))]">{ch.desc}</span>
+                          {step.challenges.map(ch => {
+                            const passed = code ? ch.validate(code) : false;
+                            return (
+                              <div key={ch.name} className={`rounded-md p-3 border transition-all ${
+                                passed 
+                                  ? 'bg-green-500/5 border-green-500/20' 
+                                  : 'bg-[hsl(var(--discord-dark)/0.6)] border-[hsl(var(--discord-light)/0.1)]'
+                              }`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                  {passed ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                                  ) : (
+                                    <Circle className="w-4 h-4 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
+                                  )}
+                                  <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
+                                    {ch.name}
+                                  </code>
+                                  <span className="text-[11px] text-[hsl(var(--discord-text-muted))]">{ch.desc}</span>
+                                  <div className="flex-1" />
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                    passed ? 'bg-green-500/20 text-green-400' : 'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-muted))]'
+                                  }`}>
+                                    {passed ? `+${ch.points}` : `${ch.points} pts`}
+                                  </span>
+                                </div>
+                                <div className="bg-[hsl(var(--discord-darker))] rounded p-2 mt-1.5 ml-6">
+                                  <code className="text-[10px] text-[hsl(var(--discord-text))] font-mono">{ch.example}</code>
+                                </div>
                               </div>
-                              <div className="bg-[hsl(var(--discord-darker))] rounded p-2 mt-1.5">
-                                <code className="text-[10px] text-[hsl(var(--discord-text))] font-mono">{ch.example}</code>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {step.badExample && (
