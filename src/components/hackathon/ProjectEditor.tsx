@@ -1817,6 +1817,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             })}
             <div className="flex-1" />
             <div className="flex items-center gap-1 pr-2">
+              <Button variant="ghost" size="icon" onClick={handleUndo} title="Undo (Ctrl+Z)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Undo2 className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleRedo} title="Redo (Ctrl+Y)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Redo2 className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleDownload} title="Download main.py"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Download className="w-3 h-3" />
+              </Button>
+              <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (
                 <>
                   <Circle className="w-2 h-2 fill-ide-orange text-ide-orange" />
