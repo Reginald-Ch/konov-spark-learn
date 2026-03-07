@@ -12,7 +12,7 @@ import {
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
-  Download, Undo2, Redo2
+  Download, Upload, Undo2, Redo2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -654,6 +654,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }, 500);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
+    // Sync to localStorage so LearnTab can read it for validation
+    if (activeFile === 'main.py') {
+      localStorage.setItem('forge-editor-code', content);
+    }
   };
 
   const handleUndo = useCallback(() => {
@@ -685,6 +689,40 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     a.click();
     URL.revokeObjectURL(url);
     toast.success('📥 main.py downloaded!');
+  }, [files]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.py')) {
+      toast.error('Please upload a .py file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      if (content) {
+        // Push current state to undo stack
+        undoStackRef.current.push(files['main.py']);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        lastSnapshotRef.current = content;
+
+        setFiles(f => ({ ...f, 'main.py': content }));
+        if (textareaRef.current) textareaRef.current.value = content;
+        // isDirty is computed automatically from files vs savedFiles
+        toast.success(`📂 Loaded ${file.name}!`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be uploaded again
+    e.target.value = '';
   }, [files]);
 
   const handleCopy = useCallback(() => {
@@ -1829,6 +1867,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
                 <Download className="w-3 h-3" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={handleUpload} title="Upload .py file"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Upload className="w-3 h-3" />
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".py" onChange={handleFileChange} className="hidden" />
               <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (
                 <>
