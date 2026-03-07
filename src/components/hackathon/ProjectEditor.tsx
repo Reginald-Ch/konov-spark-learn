@@ -712,7 +712,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
         setFiles(f => ({ ...f, 'main.py': content }));
         if (textareaRef.current) textareaRef.current.value = content;
-        setIsDirty(true);
+        // isDirty is computed automatically from files vs savedFiles
         toast.success(`📂 Loaded ${file.name}!`);
       }
     };
