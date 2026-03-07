@@ -654,6 +654,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }, 500);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
+    // Sync to localStorage so LearnTab can read it for validation
+    if (activeFile === 'main.py') {
+      localStorage.setItem('forge-editor-code', content);
+    }
   };
 
   const handleUndo = useCallback(() => {
