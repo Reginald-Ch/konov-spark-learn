@@ -1207,16 +1207,40 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { handleSaveRef.current = handleSave; });
   useEffect(() => { handleRunRef.current = handleRun; });
 
+  const handleUndoRef = useRef<() => void>(() => {});
+  const handleRedoRef = useRef<() => void>(() => {});
+  useEffect(() => { handleUndoRef.current = handleUndo; });
+  useEffect(() => { handleRedoRef.current = handleRedo; });
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === 's') { e.preventDefault(); handleSaveRef.current(); }
       if (mod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current(); }
       if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndoRef.current(); }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedoRef.current(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  // Auto-save every 2 minutes
+  useEffect(() => {
+    autoSaveIntervalRef.current = setInterval(() => {
+      setAutoSaveCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger auto-save
+          if (isDirty) {
+            handleSaveRef.current();
+          }
+          return 120;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
+  }, [isDirty]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
