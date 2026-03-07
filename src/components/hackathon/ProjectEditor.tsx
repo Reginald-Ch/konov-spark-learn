@@ -687,6 +687,40 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     toast.success('📥 main.py downloaded!');
   }, [files]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.py')) {
+      toast.error('Please upload a .py file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      if (content) {
+        // Push current state to undo stack
+        undoStackRef.current.push(files['main.py']);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        lastSnapshotRef.current = content;
+
+        setFiles(f => ({ ...f, 'main.py': content }));
+        if (textareaRef.current) textareaRef.current.value = content;
+        setIsDirty(true);
+        toast.success(`📂 Loaded ${file.name}!`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be uploaded again
+    e.target.value = '';
+  }, [files]);
+
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
     setCopied(true);
