@@ -643,8 +643,49 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    // Snapshot for undo: debounce to avoid storing every keystroke
+    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    snapshotTimerRef.current = setTimeout(() => {
+      if (lastSnapshotRef.current !== content) {
+        undoStackRef.current.push(lastSnapshotRef.current);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        lastSnapshotRef.current = content;
+      }
+    }, 500);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
   };
+
+  const handleUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    const prev = undoStackRef.current.pop()!;
+    redoStackRef.current.push(files['main.py']);
+    lastSnapshotRef.current = prev;
+    setFiles(f => ({ ...f, 'main.py': prev }));
+    if (textareaRef.current) textareaRef.current.value = prev;
+    toast.success('Undo');
+  }, [files]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return;
+    const next = redoStackRef.current.pop()!;
+    undoStackRef.current.push(files['main.py']);
+    lastSnapshotRef.current = next;
+    setFiles(f => ({ ...f, 'main.py': next }));
+    if (textareaRef.current) textareaRef.current.value = next;
+    toast.success('Redo');
+  }, [files]);
+
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([files['main.py']], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'main.py';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('📥 main.py downloaded!');
+  }, [files]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
