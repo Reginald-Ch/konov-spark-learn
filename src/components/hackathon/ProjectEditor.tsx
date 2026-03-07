@@ -1892,6 +1892,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const end = target.selectionEnd;
                       const value = target.value;
                       const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                      target.value = newValue;
                       updateFile(newValue);
                       requestAnimationFrame(() => {
                         target.selectionStart = target.selectionEnd = start + 4;
@@ -1910,6 +1911,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
                       const insertion = '\n' + indent + extraIndent;
                       const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
+                      target.value = newValue;
                       updateFile(newValue);
                       requestAnimationFrame(() => {
                         const newPos = pos + insertion.length;
