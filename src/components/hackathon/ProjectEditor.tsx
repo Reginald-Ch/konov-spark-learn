@@ -11,7 +11,8 @@ import {
   Rocket, Loader2, Save, Bot, Brain, Clock,
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
-  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus
+  PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
+  Download, Undo2, Redo2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -372,6 +373,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
   const [aiCallCount, setAiCallCount] = useState(0);
 
+  // Undo/redo history stack
+  const undoStackRef = useRef<string[]>([]);
+  const redoStackRef = useRef<string[]>([]);
+  const lastSnapshotRef = useRef<string>(initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main);
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-save timer
+  const [autoSaveCountdown, setAutoSaveCountdown] = useState(120);
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
@@ -632,8 +643,49 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    // Snapshot for undo: debounce to avoid storing every keystroke
+    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    snapshotTimerRef.current = setTimeout(() => {
+      if (lastSnapshotRef.current !== content) {
+        undoStackRef.current.push(lastSnapshotRef.current);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        lastSnapshotRef.current = content;
+      }
+    }, 500);
     setFiles(prev => ({ ...prev, [activeFile]: content }));
   };
+
+  const handleUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    const prev = undoStackRef.current.pop()!;
+    redoStackRef.current.push(files['main.py']);
+    lastSnapshotRef.current = prev;
+    setFiles(f => ({ ...f, 'main.py': prev }));
+    if (textareaRef.current) textareaRef.current.value = prev;
+    toast.success('Undo');
+  }, [files]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return;
+    const next = redoStackRef.current.pop()!;
+    undoStackRef.current.push(files['main.py']);
+    lastSnapshotRef.current = next;
+    setFiles(f => ({ ...f, 'main.py': next }));
+    if (textareaRef.current) textareaRef.current.value = next;
+    toast.success('Redo');
+  }, [files]);
+
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([files['main.py']], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'main.py';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('📥 main.py downloaded!');
+  }, [files]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
@@ -1155,16 +1207,40 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { handleSaveRef.current = handleSave; });
   useEffect(() => { handleRunRef.current = handleRun; });
 
+  const handleUndoRef = useRef<() => void>(() => {});
+  const handleRedoRef = useRef<() => void>(() => {});
+  useEffect(() => { handleUndoRef.current = handleUndo; });
+  useEffect(() => { handleRedoRef.current = handleRedo; });
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === 's') { e.preventDefault(); handleSaveRef.current(); }
       if (mod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current(); }
       if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndoRef.current(); }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedoRef.current(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  // Auto-save every 2 minutes
+  useEffect(() => {
+    autoSaveIntervalRef.current = setInterval(() => {
+      setAutoSaveCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger auto-save
+          if (isDirty) {
+            handleSaveRef.current();
+          }
+          return 120;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
+  }, [isDirty]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
@@ -1741,6 +1817,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             })}
             <div className="flex-1" />
             <div className="flex items-center gap-1 pr-2">
+              <Button variant="ghost" size="icon" onClick={handleUndo} title="Undo (Ctrl+Z)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Undo2 className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleRedo} title="Redo (Ctrl+Y)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Redo2 className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleDownload} title="Download main.py"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Download className="w-3 h-3" />
+              </Button>
+              <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (
                 <>
                   <Circle className="w-2 h-2 fill-ide-orange text-ide-orange" />
@@ -2098,6 +2187,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <Circle className={`w-1.5 h-1.5 ${isDirty ? 'fill-ide-orange text-ide-orange' : 'fill-ide-green text-ide-green'}`} />
             <span className="text-[10px] font-mono text-ide-text-muted">{isDirty ? 'Unsaved changes' : 'All changes saved'}</span>
           </div>
+          {isDirty && (
+            <div className="flex items-center gap-1 text-[10px] font-mono text-ide-text-muted">
+              <Save className="w-3 h-3" />
+              <span>Auto-save in {Math.floor(autoSaveCountdown / 60)}:{String(autoSaveCountdown % 60).padStart(2, '0')}</span>
+            </div>
+          )}
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
