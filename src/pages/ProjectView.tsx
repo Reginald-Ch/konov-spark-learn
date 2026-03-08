@@ -747,21 +747,60 @@ const ProjectView = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t p-3 flex gap-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
-            <Input
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-              placeholder="Type a message..."
-              disabled={isStreaming}
-              className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
-              style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
-            />
-            <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
-              className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
-              style={{ backgroundColor: theme.accent }}>
-              {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
+          <div className="border-t p-3 space-y-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
+            {isListening && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <div className="relative">
+                  <Mic className="w-4 h-4 text-red-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
+                </div>
+                <span className="text-xs text-red-400 font-medium animate-pulse">Listening...</span>
+              </div>
+            )}
+            {isSpeaking && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <Volume2 className="w-4 h-4 animate-pulse" style={{ color: theme.accent }} />
+                <span className="text-xs font-medium" style={{ color: theme.accent }}>Speaking...</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleChatSend()}
+                placeholder={isListening ? '🎤 Listening...' : 'Type a message...'}
+                disabled={isStreaming || isListening}
+                className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
+                style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
+              />
+              {config?.voiceEnabled && (
+                <>
+                  <Button onClick={toggleListening} disabled={isStreaming}
+                    title={isListening ? 'Stop listening' : 'Push to talk'}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-white hover:opacity-90'}`}
+                    style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
+                    <Mic className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={toggleVoiceConversation} disabled={isStreaming}
+                    title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free'}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90`}
+                    style={{ backgroundColor: voiceConversationMode ? theme.accent : `${theme.accent}30` }}>
+                    <Radio className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
+                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                    className="h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90"
+                    style={{ backgroundColor: `${theme.accent}30` }}>
+                    {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
+                className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
+                style={{ backgroundColor: theme.accent }}>
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </motion.div>
 
