@@ -372,6 +372,8 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 20. CATCHPHRASES — Write signature phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
+# ☐ 23. WAKE_WORD — Set a trigger phrase for hands-free
+# ☐ 24. VOICE_GENDER — "female", "male", or "default"
 # ═══════════════════════════════════════════════
 
 
