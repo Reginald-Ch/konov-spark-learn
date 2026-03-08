@@ -486,15 +486,6 @@ APP_THEME = "default"
     toast.success('Code exported to Build tab! 🚀');
   };
 
-  const speakText = useCallback((text: string) => {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const cleaned = text.replace(/[*#_`~]/g, '').replace(/\[.*?\]/g, '');
-    const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.1;
-    window.speechSynthesis.speak(utterance);
-  }, [voiceEnabled]);
 
   const toggleListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
