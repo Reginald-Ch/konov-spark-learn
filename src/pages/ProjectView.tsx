@@ -323,7 +323,7 @@ const ProjectView = () => {
   // ── Voice Helpers ──
   const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback((text: string, voiceGender?: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const cleaned = stripMarkdown(text);
@@ -331,6 +331,12 @@ const ProjectView = () => {
     const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
+    if (voiceGender && voiceGender !== 'default') {
+      const voices = window.speechSynthesis.getVoices();
+      const genderKeywords = voiceGender === 'female' ? ['female', 'woman', 'zira', 'samantha', 'karen', 'fiona', 'moira', 'tessa', 'victoria'] : ['male', 'man', 'david', 'daniel', 'james', 'alex', 'fred', 'thomas'];
+      const match = voices.find(v => genderKeywords.some(k => v.name.toLowerCase().includes(k)));
+      if (match) utterance.voice = match;
+    }
     setIsSpeaking(true);
     utterance.onend = () => {
       setIsSpeaking(false);
