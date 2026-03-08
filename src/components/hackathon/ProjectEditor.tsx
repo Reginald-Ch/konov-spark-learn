@@ -703,7 +703,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setSystemPrompt(scaffold.systemPrompt);
     prevSystemPromptRef.current = scaffold.systemPrompt;
     setKnowledgeBase('');
+    prevKnowledgeRef.current = '';
     setQaData([]);
+    prevQARef.current = '[]';
+    setSelectedTheme(THEMES[0]);
+    themeSyncRef.current = 'default';
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
     toast.success('🔄 Code reset to original template');
   }, [projectType, files]);
