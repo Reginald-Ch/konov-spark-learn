@@ -316,8 +316,8 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
             {participants.map((p, index) => (
               <div
                 key={p.email}
-                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedParticipant?.email === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
-                onClick={() => setSelectedParticipant(selectedParticipant?.email === p.email ? null : p)}
+                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedEmail === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
+                onClick={() => setSelectedEmail(selectedEmail === p.email ? null : p.email)}
               >
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
