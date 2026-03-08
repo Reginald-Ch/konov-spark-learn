@@ -347,7 +347,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                     <Progress value={(p.points / MAX_SCORE) * 100} className="h-1 w-16 mt-1" />
                   </div>
                 </div>
-                {selectedParticipant?.email === p.email && (
+                {selectedEmail === p.email && (
                   <div className="px-3 pb-3">
                     <TierBreakdown participant={p} />
                   </div>
