@@ -2216,7 +2216,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               <div className="flex gap-1.5 mt-1.5">
                 <Button size="sm" variant="ghost"
                   onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-green/20 text-ide-green hover:text-white hover:bg-ide-green/40 border border-ide-green/30">
                   <Send className="w-3 h-3 mr-1" /> Submit Project
                 </Button>
               </div>
