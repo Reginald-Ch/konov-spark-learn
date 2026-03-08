@@ -399,7 +399,7 @@ const ProjectView = () => {
               toolInstructions: config.toolInstructions,
               forbiddenWords: config.forbiddenWords,
               mood: config.mood,
-              examples: config.examples,
+              fewShotExamples: config.fewShotExamples,
               languageStyle: config.languageStyle,
               signOff: config.signOff,
             },
