@@ -591,6 +591,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Cap chat messages to prevent memory bloat in long sessions
+    if (chatMessages.length > 100) {
+      setChatMessages(prev => prev.slice(-80));
+    }
   }, [chatMessages]);
 
   const prevSystemPromptRef = useRef(systemPrompt);
