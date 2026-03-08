@@ -275,6 +275,8 @@ const ProjectView = () => {
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
       voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
       voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+      wakeWord: extract('', 'WAKE_WORD', 'wake_word'),
+      voiceGender: extract('default', 'VOICE_GENDER', 'voice_gender'),
       moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
       responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
       responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
@@ -321,7 +323,7 @@ const ProjectView = () => {
   // ── Voice Helpers ──
   const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback((text: string, voiceGender?: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const cleaned = stripMarkdown(text);
@@ -329,6 +331,12 @@ const ProjectView = () => {
     const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
+    if (voiceGender && voiceGender !== 'default') {
+      const voices = window.speechSynthesis.getVoices();
+      const genderKeywords = voiceGender === 'female' ? ['female', 'woman', 'zira', 'samantha', 'karen', 'fiona', 'moira', 'tessa', 'victoria'] : ['male', 'man', 'david', 'daniel', 'james', 'alex', 'fred', 'thomas'];
+      const match = voices.find(v => genderKeywords.some(k => v.name.toLowerCase().includes(k)));
+      if (match) utterance.voice = match;
+    }
     setIsSpeaking(true);
     utterance.onend = () => {
       setIsSpeaking(false);
@@ -340,7 +348,9 @@ const ProjectView = () => {
     window.speechSynthesis.speak(utterance);
   }, [ttsEnabled]);
 
-  const startListeningOnce = useCallback(() => {
+  const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+
+  const startListeningOnce = useCallback((wakeWord?: string) => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
     if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
@@ -349,15 +359,36 @@ const ProjectView = () => {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
+    const isWakeWordMode = !!wakeWord && voiceModeRef.current;
+    if (isWakeWordMode) setWaitingForWakeWord(true);
     setIsListening(true);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
+      if (isWakeWordMode) {
+        if (transcript.trim().toLowerCase().includes(wakeWord!.toLowerCase())) {
+          setWaitingForWakeWord(false);
+          toast.success(`🎤 "${wakeWord}" detected! Listening...`);
+          setTimeout(() => {
+            const r2 = new SpeechRecognition();
+            r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
+            recognitionRef.current = r2;
+            r2.onresult = (ev: any) => { const t = ev.results[0][0].transcript; if (t.trim()) handleChatSend(t.trim()); };
+            r2.onend = () => setIsListening(false);
+            r2.onerror = (e: any) => { if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`); setIsListening(false); };
+            r2.start();
+          }, 200);
+        } else {
+          setTimeout(() => startListeningOnce(wakeWord), 300);
+        }
+        return;
+      }
       if (transcript.trim()) handleChatSend(transcript.trim());
     };
-    recognition.onend = () => setIsListening(false);
+    recognition.onend = () => { if (!isWakeWordMode) setIsListening(false); };
     recognition.onerror = (e: any) => {
       if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
       setIsListening(false);
+      setWaitingForWakeWord(false);
     };
     recognition.start();
   }, []);
@@ -379,15 +410,17 @@ const ProjectView = () => {
     voiceModeRef.current = newMode;
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
-      startListeningOnce();
+      const ww = config?.wakeWord || '';
+      startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
       setIsSpeaking(false);
+      setWaitingForWakeWord(false);
     }
-  }, [voiceConversationMode, startListeningOnce]);
+  }, [voiceConversationMode, startListeningOnce, config]);
 
   useEffect(() => {
     return () => {
@@ -554,7 +587,7 @@ const ProjectView = () => {
       }
       // TTS: Speak the response if voice is enabled
       if (fullText && config?.voiceEnabled && ttsEnabled) {
-        speakText(fullText);
+        speakText(fullText, config?.voiceGender);
       }
     } catch (e) {
       console.error('Chat error:', e);

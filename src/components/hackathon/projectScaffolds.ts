@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 22 Build-Up Challenges
+🤖 FORGE AI Chatbot — 24 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,7 +26,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-   - Complete all 22 challenges to build a unique AI!
+   - Complete all 24 challenges to build a unique AI!
 
 ⏱️ Time: 50-70 minutes
 """
@@ -311,6 +311,29 @@ VOICE_ENABLED = False
 VOICE_MODE = "push-to-talk"
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 23: Set a Wake Word (String)
+# Like "Hey Siri" or "OK Google" — your bot only
+# starts listening after hearing this phrase!
+# Only works in hands-free mode.
+#
+#   WAKE_WORD = "Hey Spark"
+#
+# 🧪 TEST: Set hands-free + wake word → say the phrase!
+# ═══════════════════════════════════════════════
+WAKE_WORD = ""
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 24: Choose Voice Gender (String)
+# Controls the TTS voice used to speak responses.
+#   "default" = browser default voice
+#   "female"  = picks a female voice
+#   "male"    = picks a male voice
+#
+# 🧪 TEST: Switch between "female" and "male" and listen!
+# ═══════════════════════════════════════════════
+VOICE_GENDER = "default"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -349,6 +372,8 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 20. CATCHPHRASES — Write signature phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
+# ☐ 23. WAKE_WORD — Set a trigger phrase for hands-free
+# ☐ 24. VOICE_GENDER — "female", "male", or "default"
 # ═══════════════════════════════════════════════
 
 
@@ -399,7 +424,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 22,
+  "challenges": 24,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
@@ -416,7 +441,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 22 Build-Up Challenges
+🧠 FORGE AI Agent — 24 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -619,6 +644,29 @@ VOICE_ENABLED = False
 VOICE_MODE = "push-to-talk"
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 23: Set a Wake Word (String)
+# Like "Hey Siri" or "OK Google" — your agent only
+# starts listening after hearing this phrase!
+# Only works in hands-free mode.
+#
+#   WAKE_WORD = "Hey Agent"
+#
+# 🧪 TEST: Set hands-free + wake word → say the phrase!
+# ═══════════════════════════════════════════════
+WAKE_WORD = ""
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 24: Choose Voice Gender (String)
+# Controls the TTS voice used to speak responses.
+#   "default" = browser default voice
+#   "female"  = picks a female voice
+#   "male"    = picks a male voice
+#
+# 🧪 TEST: Switch between "female" and "male" and listen!
+# ═══════════════════════════════════════════════
+VOICE_GENDER = "default"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -670,6 +718,8 @@ TOOL_INSTRUCTIONS = {
 # ☐ 20. CATCHPHRASES — Chat and look for your phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your agent speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
+# ☐ 23. WAKE_WORD — Set a trigger phrase for hands-free
+# ☐ 24. VOICE_GENDER — "female", "male", or "default"
 # ═══════════════════════════════════════════════
 
 
@@ -727,7 +777,7 @@ TOOL_INSTRUCTIONS = {
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 22,
+  "challenges": 24,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!

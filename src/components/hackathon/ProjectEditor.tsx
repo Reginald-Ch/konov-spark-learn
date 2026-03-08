@@ -246,6 +246,8 @@ const extractConfigFromCode = (code: string) => {
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
     voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
     voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+    wakeWord: extract('', 'WAKE_WORD', 'wake_word'),
+    voiceGender: extract('default', 'VOICE_GENDER', 'voice_gender'),
     moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
     responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
     timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
@@ -1016,7 +1018,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // ── Voice Assistant Helpers ──
   const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback((text: string, voiceGender?: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const cleaned = stripMarkdown(text);
@@ -1024,6 +1026,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
+    // Voice gender selection
+    if (voiceGender && voiceGender !== 'default') {
+      const voices = window.speechSynthesis.getVoices();
+      const genderKeywords = voiceGender === 'female' ? ['female', 'woman', 'zira', 'samantha', 'karen', 'fiona', 'moira', 'tessa', 'victoria'] : ['male', 'man', 'david', 'daniel', 'james', 'alex', 'fred', 'thomas'];
+      const match = voices.find(v => genderKeywords.some(k => v.name.toLowerCase().includes(k)));
+      if (match) utterance.voice = match;
+    }
     setIsSpeaking(true);
     utterance.onend = () => {
       setIsSpeaking(false);
@@ -1035,7 +1044,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     window.speechSynthesis.speak(utterance);
   }, [ttsEnabled]);
 
-  const startListeningOnce = useCallback(() => {
+  const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+
+  const startListeningOnce = useCallback((wakeWord?: string) => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
     if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
@@ -1044,15 +1055,38 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
+    const isWakeWordMode = !!wakeWord && voiceModeRef.current;
+    if (isWakeWordMode) setWaitingForWakeWord(true);
     setIsListening(true);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
+      if (isWakeWordMode) {
+        if (transcript.trim().toLowerCase().includes(wakeWord!.toLowerCase())) {
+          setWaitingForWakeWord(false);
+          toast.success(`🎤 "${wakeWord}" detected! Listening...`);
+          // Now listen for the actual message
+          setTimeout(() => {
+            const r2 = new SpeechRecognition();
+            r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
+            recognitionRef.current = r2;
+            r2.onresult = (ev: any) => { const t = ev.results[0][0].transcript; if (t.trim()) handleChatSend(t.trim()); };
+            r2.onend = () => setIsListening(false);
+            r2.onerror = (e: any) => { if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`); setIsListening(false); };
+            r2.start();
+          }, 200);
+        } else {
+          // Didn't hear wake word — restart listening
+          setTimeout(() => startListeningOnce(wakeWord), 300);
+        }
+        return;
+      }
       if (transcript.trim()) handleChatSend(transcript.trim());
     };
-    recognition.onend = () => setIsListening(false);
+    recognition.onend = () => { if (!isWakeWordMode) setIsListening(false); };
     recognition.onerror = (e: any) => {
       if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
       setIsListening(false);
+      setWaitingForWakeWord(false);
     };
     recognition.start();
   }, []);
@@ -1074,15 +1108,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     voiceModeRef.current = newMode;
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
-      startListeningOnce();
+      const ww = debouncedLiveConfig?.wakeWord || '';
+      startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
       setIsSpeaking(false);
+      setWaitingForWakeWord(false);
     }
-  }, [voiceConversationMode, startListeningOnce]);
+  }, [voiceConversationMode, startListeningOnce, debouncedLiveConfig]);
 
   // Cleanup recognition on unmount
   useEffect(() => {
@@ -1134,6 +1170,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
+      { label: 'WAKE_WORD', ok: !!(config as any).wakeWord, val: (config as any).wakeWord || '(empty)' },
+      { label: 'VOICE_GENDER', ok: (config as any).voiceGender !== 'default', val: (config as any).voiceGender || 'default' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1336,7 +1374,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
-        speakText(assistantReply);
+        speakText(assistantReply, liveConfig.voiceGender);
       }
     } catch (e: any) {
       // Bug 6: Remove the trailing '...' placeholder before adding error
