@@ -263,7 +263,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
           <div className="flex items-center gap-4">
             <div className="text-center">
               <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/20</span></div>
-              <div className="text-[10px] text-whiteChallenges</div>
+              <div className="text-[10px] text-white uppercase tracking-wider">Challenges</div>
             </div>
             <div className="w-px h-10 bg-[hsl(var(--discord-light)/0.2)]" />
             <div className="text-center">
