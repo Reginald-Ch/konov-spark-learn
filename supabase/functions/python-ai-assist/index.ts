@@ -227,7 +227,7 @@ Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
     } else if (action === "suggest") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
 
-- Check which of 20 challenges are still at default values
+- Check which of 22 challenges are still at default values
 - Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
 - Frame as experiments, not solutions
 - Under 200 words.
