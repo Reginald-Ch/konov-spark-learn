@@ -1168,6 +1168,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
+      { label: 'WAKE_WORD', ok: !!(config as any).wakeWord, val: (config as any).wakeWord || '(empty)' },
+      { label: 'VOICE_GENDER', ok: (config as any).voiceGender !== 'default', val: (config as any).voiceGender || 'default' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
