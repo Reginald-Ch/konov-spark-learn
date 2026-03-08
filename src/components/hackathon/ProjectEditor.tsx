@@ -386,6 +386,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [chatInput, setChatInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Voice assistant state
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [voiceConversationMode, setVoiceConversationMode] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceModeRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
   const [lastSaved, setLastSaved] = useState<string | null>(null);
