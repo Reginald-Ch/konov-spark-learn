@@ -1,109 +1,102 @@
+# Plan: Complete FORGE Platform for Training Tomorrow
 
+## Current State Assessment
 
-# Plan: Systematic Build Studio Bug Audit and Fixes
+The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
 
-## Methodology
-Scrutinize every feature area of Build Studio one-by-one. Each step below is a discrete bug with evidence from the code.
+## Critical Fixes
 
----
+### 1. Fix `supabase/config.toml` — Edge Function JWT Config
 
-## Bug 1: Mission Progress checklist uses wrong defaults — many challenges show "done" on fresh template
+The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
 
-**Location:** `ProjectEditor.tsx` lines 1501-1522 (sidebar Mission Progress)
+**File:** `supabase/config.toml`
+Add:
 
-**Problem:** The sidebar Mission Progress and the Live Preview challenge counter use *different* default-checking logic. For example:
-- Sidebar checks `conversationRules.length > 0` (line 1510) — a fresh chatbot template has 3 rules, so this is always "done"
-- Live Preview checks `conversationRules.length > 3` (line 2111) — correct threshold
-- Same mismatch for: `conversationStarters`, `easterEggs`, `catchphrases`, `blockedTopics`, `qaPairsFromCode`
-
-**Fix:** Unify both progress trackers to use the same thresholds (the stricter Live Preview ones that check if the student *added* beyond defaults).
-
----
-
-## Bug 2: `handleChatSend` uses stale `liveConfig` for easter eggs / Q&A matching
-
-**Location:** `ProjectEditor.tsx` line 1018
-
-**Problem:** `liveConfig` is a `useMemo` that depends on `files['main.py']`, but `handleChatSend` captures it at call time. The real issue: `handleChatSend` is not wrapped in `useCallback` with the right deps — it's a plain `async` function that closes over `liveConfig`, `qaData`, `chatMessages`, `chatInput`, etc. Each render creates a new closure, which is fine, but conversation starters call `handleChatSend(example)` via an inline `onClick` which always gets the latest closure. This is actually okay. **However**, the Q&A matching logic at line 1044 is too aggressive:
-
-```js
-lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word))
+```toml
+[functions.python-ai-assist]
+verify_jwt = false
 ```
 
-If a user types "what can do" (3 words > 2 chars), it matches "what can you do" — but it would also match many unrelated messages. A short message like "can you help" would match "what can you do?" because all 3 words appear in it.
+### 2. Fix Save Flow — Update Requires `author_email` Match
 
-**Fix:** Require at least 60% word overlap in both directions, or require user message length to be > 50% of the Q length, to reduce false positive Q&A matches.
+The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
 
----
+**File:** `src/components/hackathon/ProjectEditor.tsx`
 
-## Bug 3: Chat history sent to AI includes stale placeholder `...`
+- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
 
-**Location:** `ProjectEditor.tsx` lines 1077-1081
+### 3. Fix Publish (Go Live) — Duplicate Insert Issue
 
-**Problem:** The history filter at line 1079 filters `m.content !== '...'` but only *before* the new user message is appended. When the stream starts, the `...` placeholder is added (line 1086). If the user sends another message quickly (before streaming finishes), the previous `...` placeholder could still be in `chatMessages`. The filter handles this, but there's an edge case: if the stream never completes (timeout/error), the `...` placeholder remains permanently in the chat as a visible message.
+When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
 
-**Fix:** In the `catch` block (line 1130-1131), remove the trailing `...` placeholder before adding the error message. Currently it appends an error but leaves the `...` visible.
+**File:** `src/components/hackathon/PublishModal.tsx`
 
----
+- Accept `currentProjectId` as a prop
+- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
+- Otherwise insert as before
 
-## Bug 4: Auto-save fires even when there's no project to save to
+**File:** `src/components/hackathon/ProjectEditor.tsx`
 
-**Location:** `ProjectEditor.tsx` lines 1272-1286
+- Pass `currentProjectId` to `PublishModal`
 
-**Problem:** The auto-save interval calls `handleSaveRef.current()` when `isDirty` is true, but `handleSave` → `executeSave` will *insert a new project* if `currentProjectId` is null. This means auto-save can silently create DB records before the student intentionally saves for the first time.
+### 4. Rename Platform to "FORGE"
 
-**Fix:** Guard auto-save to only trigger when `currentProjectId` is not null (i.e., the student has explicitly saved at least once).
+Update visible branding across the UI.
 
----
+**Files affected:**
 
-## Bug 5: Stream timeout is only 30 seconds — too short for complex AI responses
+- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
+- `src/components/hackathon/TemplatesTab.tsx` — Header text
 
-**Location:** `ProjectEditor.tsx` line 864
+### 5. Streamline the Student Entry Flow
 
-**Problem:** The `AbortController` timeout is 30s. For complex "run" simulations or detailed mentor responses, the AI may take longer, causing abrupt "AbortError" failures.
+For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
 
-**Fix:** Increase timeout to 60s, or make it action-dependent (30s for test-agent, 60s for run/review/mentor-chat).
+**File:** `src/pages/Hackathons.tsx`
 
----
+- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
 
-## Bug 6: Streaming `...` placeholder never removed on error
+### 6. Add Live Preview Interactive Demo Chat
 
-**Location:** `ProjectEditor.tsx` line 1130-1131
+The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
 
-**Problem:** When the chat stream fails, the code appends a new error system message but never removes the `{ role: 'assistant', content: '...' }` placeholder added at line 1086. This leaves a visible "..." bubble in the chat.
+**File:** `src/components/hackathon/ProjectEditor.tsx`
 
-**Fix:** In the catch block, replace the last message (the placeholder) instead of appending.
+- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
 
----
+**File:** `supabase/functions/python-ai-assist/index.ts`
 
-## Bug 7: Knowledge base double-sends to AI
+- Add support for `messages` array in `test-agent` action to maintain conversation context
 
-**Location:** `ProjectEditor.tsx` line 1088
 
-**Problem:** `mergedKnowledge` concatenates sidebar `knowledgeBase` state AND `config.knowledgeBaseFromCode`. But these are kept in sync via bidirectional effects (lines 447-481) — so they're always identical. The AI receives the same text twice, wasting tokens and potentially confusing responses.
 
-**Fix:** Use only `config.knowledgeBaseFromCode` (the code is the source of truth) or deduplicate by checking if they're equal.
+### 8. Polish ProjectView Page — Add Live Demo Chat
 
----
+The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
 
-## Bug 8: `handleTypeChange` doesn't reset textarea imperatively
+**File:** `src/pages/ProjectView.tsx`
 
-**Location:** `ProjectEditor.tsx` lines 617-641
-
-**Problem:** When switching project type, `setFiles` updates state but the uncontrolled textarea still shows old content. The imperative sync effect (line 564-568) only runs when `files['main.py']` changes and the textarea isn't focused — but after type change, it may not trigger reliably since the component isn't remounted.
-
-**Fix:** Add `if (textareaRef.current) textareaRef.current.value = scaffold.main;` after `setFiles`.
-
----
+- Add a chat panel using the same streaming logic as the IDE preview
+- Extract system prompt from the code's `SYSTEM_PROMPT` variable
+- Show chat alongside code view
 
 ## Implementation Order
 
-1. **Bug 6** — Fix streaming placeholder not removed on error (quick, high visibility)
-2. **Bug 3** — Clean up stale `...` in chat history  
-3. **Bug 4** — Guard auto-save against creating unintended DB records
-4. **Bug 1** — Unify mission progress thresholds
-5. **Bug 7** — Deduplicate knowledge base sent to AI
-6. **Bug 2** — Tighten Q&A fuzzy matching to reduce false positives
-7. **Bug 8** — Reset textarea on type change
-8. **Bug 5** — Increase stream timeout
+1. Fix config.toml (critical — prevents 401s)
+2. Fix Save/Publish flow (critical — reported broken)
+3. Rename to FORGE + default to templates tab
+4. Add conversation history to Live Preview
+5. Polish ProjectView with interactive demo
+6. Add "Try It" to gallery
 
+## Files Modified
+
+- `supabase/config.toml`
+- `src/components/hackathon/ProjectEditor.tsx`
+- `src/components/hackathon/PublishModal.tsx`
+- `src/pages/Hackathons.tsx`
+- `src/components/hackathon/TemplatesTab.tsx`
+- `supabase/functions/python-ai-assist/index.ts`
+- `src/components/hackathon/ProjectGallery.tsx`
+- `src/pages/ProjectView.tsx`

@@ -637,6 +637,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setKnowledgeBase('');
     setQaData([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
+    // Bug 8: Imperatively reset textarea to match new scaffold
+    if (textareaRef.current) textareaRef.current.value = scaffold.main;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
@@ -861,7 +863,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeoutMs = (body as any).action === 'test-agent' ? 30000 : 60000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -1039,9 +1042,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const mergedQA = [...sidebarPairs, ...codePairs];
     for (const pair of mergedQA) {
       const qLower = pair.q.toLowerCase().trim();
-      // Match if user message contains the question keywords or is very similar
-      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
-          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+      // Bug 2: Tighter fuzzy matching — require bidirectional overlap ≥60%
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
+      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
+      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+      const fuzzyMatch = userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6;
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || fuzzyMatch)) {
         // Build the answer with bot personality
         let answer = pair.a;
         if (config.catchphrases.length > 0) {
@@ -1085,7 +1092,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      const mergedKnowledge = [knowledgeBase, config.knowledgeBaseFromCode].filter(Boolean).join('\n\n');
+      // Bug 7: Use code as source of truth to avoid sending duplicates
+      const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
 
       await streamFromEdgeFunction(
         { 
@@ -1128,7 +1136,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         }
       );
     } catch (e: any) {
-      setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
+      // Bug 6: Remove the trailing '...' placeholder before adding error
+      setChatMessages(prev => {
+        const updated = [...prev];
+        if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
+          updated.pop();
+        }
+        updated.push({ role: 'system', content: `❌ ${e.message}` });
+        return updated;
+      });
     } finally { setIsStreaming(false); }
   };
 
@@ -1273,8 +1289,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          // Trigger auto-save
-          if (isDirty) {
+          // Bug 4: Only auto-save if project was explicitly saved before
+          if (isDirty && currentProjectId) {
             handleSaveRef.current();
           }
           return 120;
@@ -1283,7 +1299,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       });
     }, 1000);
     return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
-  }, [isDirty]);
+  }, [isDirty, currentProjectId]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
@@ -1498,6 +1514,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
                         : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
                       const defaultSystemMessage = scaffold.systemPrompt;
+                      // Bug 1: Unified thresholds matching Live Preview — check beyond defaults
+                      const defaultKB = isAgent 
+                        ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+                        : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
                       const missions = [
                         { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaultName && config.botName !== 'AI Bot' },
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
@@ -1507,13 +1527,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 0 },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 0 },
-                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > 0 },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 0 },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 0 },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 0 },
-                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode !== '' },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
+                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3) },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
+                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
