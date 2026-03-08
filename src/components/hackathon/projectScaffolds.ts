@@ -662,11 +662,11 @@ TOOL_INSTRUCTIONS = {
 # ☐ 12. BLOCKED_TOPICS — Ask about a blocked topic
 # ☐ 13. FEW_SHOT_EXAMPLES — Add examples to teach format
 # ☐ 14. SECRET_RESPONSES — Type exact trigger to test
-# ☐ 15. RESPONSE_STYLE — Try "Concise" vs "Detailed"
+# ☐ 15. MOOD_RESPONSES — Dict mapping moods to instructions
 # ☐ 16. MAX_RESPONSE_LENGTH — "short" vs "long"
 # ☐ 17. MAX_TOKENS — Try 50 vs 1024!
 # ☐ 18. MOOD — Try "serious" or "energetic"
-# ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
+# ☐ 19. RESPONSE_TONE — If/elif conditional logic!
 # ☐ 20. CATCHPHRASES — Chat and look for your phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your agent speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
