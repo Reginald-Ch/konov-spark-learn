@@ -2241,8 +2241,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               totalCatchphrases > 3,
               totalBlocked > 2,
               cfg.forbiddenWords.length > 0,
-              cfg.mood && cfg.mood !== 'fewShotEeutral',
-              cfg.examples.length > 0,
+              cfg.mood && cfg.mood !== 'neutral',
+              cfg.fewShotExamples.length > 0,
               cfg.languageStyle && cfg.languageStyle !== 'casual',
               cfg.signOff && cfg.signOff !== '',
             ].filter(Boolean).length;
