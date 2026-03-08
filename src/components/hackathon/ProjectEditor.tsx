@@ -573,6 +573,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, []);
 
   useEffect(() => {
+    if (isTypingRef.current) return; // Skip during active typing — textarea is already correct
     if (activeFile === 'main.py') {
       syncTextareaIfNotFocused(files['main.py']);
     }
@@ -810,27 +811,27 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const bracketHighlights = useMemo(() => {
     if (!matchedBrackets) return null;
     const code = files[activeFile];
-    const lines = code.split('\n');
+    const codeLines = code.split('\n');
     const posToLineCol = (pos: number) => {
       let remaining = pos;
-      for (let l = 0; l < lines.length; l++) {
-        if (remaining <= lines[l].length) return { line: l, col: remaining };
-        remaining -= lines[l].length + 1;
+      for (let l = 0; l < codeLines.length; l++) {
+        if (remaining <= codeLines[l].length) return { line: l, col: remaining };
+        remaining -= codeLines[l].length + 1;
       }
       return { line: 0, col: 0 };
     };
     return [posToLineCol(matchedBrackets[0]), posToLineCol(matchedBrackets[1])];
-  }, [matchedBrackets, files, activeFile]);
+  }, [matchedBrackets, files[activeFile]]);
 
+  // Syntax highlighting — only depends on code content, NOT bracket highlights or cursor
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
     let inMultiLineString = false;
     let multiLineDelim = '"""';
-    return codeLines.map((line, lineIdx) => {
+    return codeLines.map((line) => {
       if (!line && !inMultiLineString) return '&nbsp;';
       
-      // If we're inside a multi-line string, check for closing delimiter
       if (inMultiLineString) {
         const closeIdx = line.indexOf(multiLineDelim);
         if (closeIdx !== -1) {
@@ -847,7 +848,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         return `<span class="${TOKEN_COLORS.string}">${escapeHtml(line)}</span>`;
       }
       
-      // Check if this line opens a multi-line string
       const tripleDoubleCount = (line.match(/"""/g) || []).length;
       const tripleSingleCount = (line.match(/'''/g) || []).length;
       
@@ -858,28 +858,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
       
-      // If odd number of triple quotes, we're entering a multi-line string
       if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
       else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
 
-      // Bracket highlighting
-      if (bracketHighlights) {
-        for (const bh of bracketHighlights) {
-          if (bh.line === lineIdx) {
-            // We need to highlight the bracket at column bh.col
-            // This is a simplified approach - wrap the character
-            const chars = [...line];
-            if (bh.col < chars.length) {
-              // Re-render with bracket highlight (simplified: add a marker class via data attribute)
-              // For now, we rely on the visual overlay approach
-            }
-          }
-        }
-      }
-
       return result;
     });
-  }, [files, activeFile, bracketHighlights]);
+  }, [files['main.py'], activeFile]);
 
   // Q&A helpers
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
