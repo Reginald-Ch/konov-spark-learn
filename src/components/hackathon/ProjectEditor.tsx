@@ -412,6 +412,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
+  // Typing performance refs
+  const fileUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorRafRef = useRef<number | null>(null);
+  const liveConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedLiveConfig, setDebouncedLiveConfig] = useState(() => extractConfigFromCode(files['main.py']));
+
   // Restore session from DB on mount if we have a saved project ID
   // Skip restore if initialCode was explicitly provided (user picked a new template)
   useEffect(() => {
