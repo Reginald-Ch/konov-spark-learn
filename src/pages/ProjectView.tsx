@@ -410,15 +410,17 @@ const ProjectView = () => {
     voiceModeRef.current = newMode;
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
-      startListeningOnce();
+      const ww = config?.wakeWord || '';
+      startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
       setIsSpeaking(false);
+      setWaitingForWakeWord(false);
     }
-  }, [voiceConversationMode, startListeningOnce]);
+  }, [voiceConversationMode, startListeningOnce, config]);
 
   useEffect(() => {
     return () => {
