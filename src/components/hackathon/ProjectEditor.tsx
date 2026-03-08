@@ -656,6 +656,29 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
+  // Reset current file to original template code
+  const handleResetToTemplate = useCallback(() => {
+    const scaffold = PROJECT_SCAFFOLDS[projectType];
+    const confirmMsg = 'Reset to original template? Your current edits will be lost (you can Undo after).';
+    if (!window.confirm(confirmMsg)) return;
+    // Push current state to undo stack first
+    undoStackRef.current.push(files['main.py']);
+    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    redoStackRef.current = [];
+    lastSnapshotRef.current = scaffold.main;
+    setFiles({
+      'main.py': scaffold.main,
+      'config.json': scaffold.config,
+      'requirements.txt': scaffold.requirements,
+    });
+    setSystemPrompt(scaffold.systemPrompt);
+    prevSystemPromptRef.current = scaffold.systemPrompt;
+    setKnowledgeBase('');
+    setQaData([]);
+    if (textareaRef.current) textareaRef.current.value = scaffold.main;
+    toast.success('🔄 Code reset to original template');
+  }, [projectType, files]);
+
   const toggleCapability = (cap: string) => {
     setCapabilities(prev => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap]);
   };
@@ -677,11 +700,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }, 500);
 
-    // Debounce the React state update to avoid re-renders on every keystroke
-    if (fileUpdateTimerRef.current) clearTimeout(fileUpdateTimerRef.current);
-    fileUpdateTimerRef.current = setTimeout(() => {
-      setFiles(prev => ({ ...prev, [activeFile]: content }));
-    }, 150);
+    // Update state immediately — isTypingRef guards prevent effect cascade
+    setFiles(prev => ({ ...prev, [activeFile]: content }));
 
     // Sync to localStorage immediately (lightweight)
     if (activeFile === 'main.py') {
