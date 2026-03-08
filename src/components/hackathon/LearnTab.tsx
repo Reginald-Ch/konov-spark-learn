@@ -228,7 +228,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
   {
     step: 8,
     title: "Voice & Beyond",
-    subtitle: "Challenges 21–22 — Make your bot speak!",
+    subtitle: "Challenges 21–24 — Make your bot speak!",
     icon: Rocket,
     color: "#00B4D8",
     timeLimit: 5,
@@ -238,8 +238,10 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
         return match ? match[1] === 'True' : false;
       }},
       { name: 'VOICE_MODE', desc: '"push-to-talk" or "hands-free" — choose interaction style', example: 'VOICE_MODE = "hands-free"', points: 5, validate: createValidator('VOICE_MODE', 'string', ['push-to-talk']) },
+      { name: 'WAKE_WORD', desc: 'Set a trigger phrase like "Hey Bot" for hands-free mode', example: 'WAKE_WORD = "Hey Spark"', points: 5, validate: createValidator('WAKE_WORD', 'string', ['']) },
+      { name: 'VOICE_GENDER', desc: '"female", "male", or "default" — pick your bot\'s voice', example: 'VOICE_GENDER = "female"', points: 5, validate: createValidator('VOICE_GENDER', 'string', ['default']) },
     ],
-    tip: 'VOICE_ENABLED is a Feature Flag — a real technique developers use to turn features on/off without changing code!',
+    tip: 'VOICE_ENABLED is a Feature Flag — a real technique developers use to turn features on/off! WAKE_WORD makes it feel like Siri or Alexa!',
   },
 ];
 
