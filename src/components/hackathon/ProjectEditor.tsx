@@ -1027,7 +1027,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
       setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/20 challenges done.` }]);
-      // Milestone points removed — scoring is project-field-based + judge scores
+      if (authorEmail) {
+        const runKey = `forge-scored-first_run_success-${authorEmail}`;
+        if (!localStorage.getItem(runKey)) {
+          localStorage.setItem(runKey, 'true');
+          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 5, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
+        }
+      }
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ Error: ${e.message}`, '', '💡 Tip: Check your code for syntax errors, or try again in a moment.']);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
