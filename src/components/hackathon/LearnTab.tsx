@@ -205,14 +205,25 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     color: "#E67E22",
     timeLimit: 8,
     challenges: [
-      { name: 'RESPONSE_STYLE', desc: 'Friendly, Professional, Academic, Storyteller...', example: 'RESPONSE_STYLE = "Friendly"', points: 3, validate: createValidator('RESPONSE_STYLE', 'string', ['Balanced', 'Friendly', 'Professional']) },
+      { name: 'MOOD_RESPONSES', desc: 'Dictionary mapping user moods → bot behavior instructions', example: 'MOOD_RESPONSES = {"happy": "Be enthusiastic! 🎉", "confused": "Break it down simply"}', points: 5, validate: (code: string) => {
+        const match = code.match(/MOOD_RESPONSES\s*=\s*\{([\s\S]*?)\}/);
+        if (!match) return false;
+        const entries = match[1].match(/["'][^"']+["']\s*:\s*["'][^"']+["']/g);
+        return entries ? entries.length > (isAgent ? 3 : 0) : false;
+      }},
       { name: 'MAX_RESPONSE_LENGTH', desc: 'short, medium, or long', example: 'MAX_RESPONSE_LENGTH = "short"', points: 3, validate: createValidator('MAX_RESPONSE_LENGTH', 'string', ['medium']) },
       { name: 'MAX_TOKENS', desc: 'Token limit — try 50 to see cut-off!', example: 'MAX_TOKENS = 200', points: 5, validate: createValidator('MAX_TOKENS', 'number', ['512']) },
       { name: 'MOOD', desc: 'cheerful, serious, sarcastic, mysterious, energetic, calm', example: 'MOOD = "energetic"', points: 3, validate: createValidator('MOOD', 'string', ['neutral']) },
-      { name: 'LANGUAGE_STYLE', desc: 'casual, formal, academic, slang, poetic, storyteller', example: 'LANGUAGE_STYLE = "storyteller"', points: 3, validate: createValidator('LANGUAGE_STYLE', 'string', ['casual']) },
+      { name: 'RESPONSE_TONE', desc: 'If/elif conditional — tone changes based on TIME_OF_DAY!', example: 'if TIME_OF_DAY == "morning":\n    RESPONSE_TONE = "energetic"', points: 5, validate: (code: string) => {
+        // Check that student has customized the if/elif RESPONSE_TONE values
+        const defaults = ['energetic and cheerful', 'sharp and analytical'];
+        const match = code.match(/if\s+TIME_OF_DAY\s*==.*\n\s*RESPONSE_TONE\s*=\s*["']([^"']+)["']/);
+        if (!match) return false;
+        return !defaults.includes(match[1]);
+      }},
       { name: 'CATCHPHRASES', desc: 'Signature phrases woven into every response', example: 'CATCHPHRASES = ["Fun fact!", "Pro tip:"]', points: 3, validate: createValidator('CATCHPHRASES', 'list', [], isAgent ? 3 : undefined) },
     ],
-    tip: 'MAX_TOKENS controls how many "words" the AI can use. Set to 50 and ask a complex question to see context windows in action!',
+    tip: 'MOOD_RESPONSES uses a Python dictionary to route behavior — like a lookup table! RESPONSE_TONE uses if/elif — Python\'s branching logic!',
   },
   {
     step: 8,
