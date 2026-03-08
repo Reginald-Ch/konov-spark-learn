@@ -822,15 +822,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return [posToLineCol(matchedBrackets[0]), posToLineCol(matchedBrackets[1])];
   }, [matchedBrackets, files[activeFile]]);
 
+  // Syntax highlighting — only depends on code content, NOT bracket highlights or cursor
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
     const codeLines = files['main.py'].split('\n');
     let inMultiLineString = false;
     let multiLineDelim = '"""';
-    return codeLines.map((line, lineIdx) => {
+    return codeLines.map((line) => {
       if (!line && !inMultiLineString) return '&nbsp;';
       
-      // If we're inside a multi-line string, check for closing delimiter
       if (inMultiLineString) {
         const closeIdx = line.indexOf(multiLineDelim);
         if (closeIdx !== -1) {
@@ -847,7 +847,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         return `<span class="${TOKEN_COLORS.string}">${escapeHtml(line)}</span>`;
       }
       
-      // Check if this line opens a multi-line string
       const tripleDoubleCount = (line.match(/"""/g) || []).length;
       const tripleSingleCount = (line.match(/'''/g) || []).length;
       
@@ -858,7 +857,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
       
-      // If odd number of triple quotes, we're entering a multi-line string
       if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
       else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
 
