@@ -177,7 +177,7 @@ const Hackathons = () => {
             {/* Welcome Banner */}
             <div 
               className="rounded-lg p-6 mb-8 relative overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
+              style={{ background: '#C70110' }}
             >
               <div className="absolute inset-0 opacity-10">
                 <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
@@ -271,7 +271,7 @@ const Hackathons = () => {
                 </button>
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}>
+                    style={{ background: '#C70110' }}>
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-1">Welcome to FORGE! 🎉</h2>
@@ -297,8 +297,8 @@ const Hackathons = () => {
                   ))}
                 </div>
 
-                <Button onClick={() => { setShowOnboarding(false); setActiveTab('templates'); }} className="w-full"
-                  style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}>
+                <Button onClick={() => { setShowOnboarding(false); setActiveTab('templates'); }}
+                  className="w-full bg-primary hover:bg-primary/90">
                   <Rocket className="w-4 h-4 mr-2" />
                   Get Started — Pick a Template
                 </Button>

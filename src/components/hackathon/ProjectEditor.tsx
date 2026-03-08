@@ -413,7 +413,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleRunRef = useRef<() => void>(() => {});
 
   // Restore session from DB on mount if we have a saved project ID
+  // Skip restore if initialCode was explicitly provided (user picked a new template)
   useEffect(() => {
+    if (initialCode) return; // Fresh template selected — don't overwrite with old project
     const savedId = localStorage.getItem('forge-current-project-id');
     if (!savedId) return;
     supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
@@ -1029,10 +1031,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
 
     // 2. Check for EXACT Q&A matches client-side (most reliable)
-    const mergedQA = [
-      ...qaData.filter(p => p.q.trim() && p.a.trim()),
-      ...config.qaPairsFromCode,
-    ];
+    // Deduplicate: sidebar qaData syncs to code, so qaPairsFromCode may duplicate.
+    // Use sidebar qaData as primary, then add any code-only pairs not already present.
+    const sidebarPairs = qaData.filter(p => p.q.trim() && p.a.trim());
+    const sidebarQs = new Set(sidebarPairs.map(p => p.q.toLowerCase().trim()));
+    const codePairs = config.qaPairsFromCode.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
+    const mergedQA = [...sidebarPairs, ...codePairs];
     for (const pair of mergedQA) {
       const qLower = pair.q.toLowerCase().trim();
       // Match if user message contains the question keywords or is very similar

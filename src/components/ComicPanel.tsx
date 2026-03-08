@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, forwardRef } from "react";
 
 interface ComicPanelProps {
   children: ReactNode;
@@ -8,12 +8,12 @@ interface ComicPanelProps {
   delay?: number;
 }
 
-export const ComicPanel = ({ 
+export const ComicPanel = forwardRef<HTMLDivElement, ComicPanelProps>(({ 
   children, 
   color = "default", 
   className = "",
   delay = 0 
-}: ComicPanelProps) => {
+}, ref) => {
   const borderClass = {
     primary: "comic-border-primary",
     secondary: "comic-border-secondary",
@@ -33,9 +33,11 @@ export const ComicPanel = ({
         stiffness: 200
       }}
       whileHover={{ scale: 1.02, rotate: 1 }}
+      ref={ref}
       className={`${borderClass} bg-card overflow-hidden ${className}`}
     >
       {children}
     </motion.div>
   );
-};
+});
+ComicPanel.displayName = "ComicPanel";
