@@ -228,6 +228,8 @@ const extractConfigFromCode = (code: string) => {
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
+    voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
+    voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
   };
 };
 
