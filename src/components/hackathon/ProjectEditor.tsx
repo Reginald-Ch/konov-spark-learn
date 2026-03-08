@@ -2250,7 +2250,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
               systemPrompt !== defaultPrompt,
               codeKB.trim() && codeKB !== (isAgent ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts." : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects."),
-              codeQA.length > 3,
+              codeQA.length > (isAgent ? 3 : 0),
               cfg.temperature !== defaultTemp,
               cfg.responseStyle !== defaultStyle,
               cfg.maxResponseLength !== 'medium',
@@ -2263,7 +2263,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.maxTokens !== 512,
               cfg.mood && cfg.mood !== 'neutral',
               cfg.languageStyle && cfg.languageStyle !== 'casual',
-              totalCatchphrases > (isAgent ? 3 : 0),
+              totalCatchphrases > (isAgent ? 3 : 0)isAgent ? 3 : 0),
             ].filter(Boolean).length;
 
             return (
