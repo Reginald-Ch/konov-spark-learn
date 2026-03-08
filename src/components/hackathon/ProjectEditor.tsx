@@ -1487,7 +1487,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     {/* ── Mission Progress Bar ── */}
                     {(() => {
-                      const config = extractConfigFromCode(files['main.py']);
+                      const config = liveConfig;
                       const isAgent = projectType === 'agent';
                       const scaffold = PROJECT_SCAFFOLDS[projectType];
                       const defaultName = isAgent ? 'Research Agent' : 'Spark';
