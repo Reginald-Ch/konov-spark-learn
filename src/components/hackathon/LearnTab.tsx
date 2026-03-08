@@ -464,7 +464,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
 
                         <div className="bg-[hsl(var(--discord-blurple)/0.1)] rounded-md p-2.5 border border-[hsl(var(--discord-blurple)/0.2)]">
                           <span className="text-[10px] font-bold" style={{ color: step.color }}>💡 TIP:</span>
-                          <p className="text-[10px] text-[hsl(var(--discord-text))] mt-0.5">{step.tip}</p>
+                          <p className="text-[10px] text-white mt-0.5">{step.tip}</p>
                         </div>
                       </motion.div>
                     )}
