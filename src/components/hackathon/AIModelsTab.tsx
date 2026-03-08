@@ -389,6 +389,14 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     } finally {
       setIsStreaming(false);
       abortRef.current = null;
+      // Speak the last assistant message
+      setChatMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && voiceEnabled) {
+          speakText(last.content);
+        }
+        return prev;
+      });
     }
   };
 
