@@ -1681,7 +1681,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               selectedTheme.id === theme.id ? 'border-ide-accent' : 'border-ide-border hover:border-ide-text-muted'
                             }`}
                           >
-                            <div className="w-full h-6 rounded-md mb-1" style={{ background: `linear-gradient(135deg, ${theme.bg}, ${theme.accent}40)` }} />
+                            <div className="w-full h-6 rounded-md mb-1" style={{ background: theme.bg }} />
                             <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
                             <span className="text-[9px] text-ide-text-muted mt-1 block">{theme.name}</span>
                           </button>
