@@ -1025,6 +1025,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
+      { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
+      { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
