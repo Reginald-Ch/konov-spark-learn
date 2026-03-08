@@ -4,7 +4,7 @@ import {
   Brain, Bot, Cpu, Sparkles, Zap, Send, Loader2, CheckCircle2, Code, 
   ChevronRight, ChevronDown, Plus, X, Play, MessageSquare,
   User, Shield, BookOpen, Palette, Settings, Wand2, ArrowRight, RotateCcw, Mic, MicOff, Volume2, VolumeX,
-  Eye, EyeOff, Copy, Check, Search, Calculator, Globe
+  Eye, EyeOff, Copy, Check, Search, Calculator, Globe, Phone, PhoneOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
