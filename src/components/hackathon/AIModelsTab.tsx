@@ -669,7 +669,9 @@ print("✅ Audio Classifier ready! Call classify('audio.wav')")
       )}
     </div>
   );
-};
+});
+
+AIModelsTab.displayName = 'AIModelsTab';
 
 /* Small helper component for text sample input */
 const TextSampleInput = ({ onAdd }: { onAdd: (text: string) => void }) => {
@@ -689,6 +691,4 @@ const TextSampleInput = ({ onAdd }: { onAdd: (text: string) => void }) => {
       </Button>
     </div>
   );
-});
-
-AIModelsTab.displayName = 'AIModelsTab';
+};
