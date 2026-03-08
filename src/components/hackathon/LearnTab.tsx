@@ -262,14 +262,16 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/20</span></div>
-              <div className="text-[10px] text-white uppercase tracking-wider">  </div>
+              <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-white/60">/20</span></div>
+              <div className="text-[10px] text-white uppercase tracking-wider">Challenges</div>
+            </div>
             <div className="w-px h-10 bg-[hsl(var(--discord-light)/0.2)]" />
             <div className="text-center">
               <div className="text-3xl font-black" style={{ color: earnedPoints >= TOTAL_POINTS ? '#22C55E' : '#F7941D' }}>
-                {earnedPoints}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/{TOTAL_POINTS}</span>
+                {earnedPoints}<span className="text-lg text-white/60">/{TOTAL_POINTS}</span>
               </div>
-              <div cwhite uppercase tracking-wilassName="text-[10px] text-white uppercase tracking-wider">div>
+              <div className="text-[10px] text-white uppercase tracking-wider">Points</div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {completedCount === 20 && (
