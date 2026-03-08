@@ -2497,12 +2497,47 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           </div>
 
           <div className="p-3 border-t border-ide-border space-y-2">
+            {/* Voice listening indicator */}
+            {isListening && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <div className="relative">
+                  <Mic className="w-4 h-4 text-red-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
+                </div>
+                <span className="text-[10px] text-red-400 font-medium animate-pulse">Listening...</span>
+              </div>
+            )}
+            {isSpeaking && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <Volume2 className="w-4 h-4 text-ide-accent animate-pulse" />
+                <span className="text-[10px] text-ide-accent font-medium">Speaking...</span>
+              </div>
+            )}
             <div className="flex gap-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
-                placeholder={`Ask ${liveConfig.botName} something...`}
-                disabled={isStreaming}
+                placeholder={isListening ? '🎤 Listening...' : `Ask ${liveConfig.botName} something...`}
+                disabled={isStreaming || isListening}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+              {liveConfig.voiceEnabled && (
+                <>
+                  <Button size="sm" onClick={toggleListening} disabled={isStreaming}
+                    title={isListening ? 'Stop listening' : 'Push to talk'}
+                    className={`h-8 w-8 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                    <Mic className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
+                    title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
+                    className={`h-8 w-8 p-0 flex-shrink-0 ${voiceConversationMode ? 'bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                    <Radio className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
+                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                    className="h-8 w-8 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
+                    {ttsEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                  </Button>
+                </>
+              )}
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
                 className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
