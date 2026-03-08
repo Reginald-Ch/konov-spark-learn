@@ -433,7 +433,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                   <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
                                     {ch.name}
                                   </code>
-                                  <span className="text-[11px] text-[hsl(var(--discord-text-muted))]">{ch.desc}</span>
+                                  <span className="text-[11px] text-white">{ch.desc}</span>
                                   <div className="flex-1" />
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                                     passed ? 'bg-green-500/20 text-green-400' : 'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-muted))]'
