@@ -214,6 +214,22 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     ],
     tip: 'MAX_TOKENS controls how many "words" the AI can use. Set to 50 and ask a complex question to see context windows in action!',
   },
+  {
+    step: 8,
+    title: "Voice & Beyond",
+    subtitle: "Challenges 21–22 — Make your bot speak!",
+    icon: Rocket,
+    color: "#00B4D8",
+    timeLimit: 5,
+    challenges: [
+      { name: 'VOICE_ENABLED', desc: 'Set to True to make your bot speak responses aloud', example: 'VOICE_ENABLED = True', points: 5, validate: (code: string) => {
+        const match = code.match(/VOICE_ENABLED\s*=\s*(True|False)/);
+        return match ? match[1] === 'True' : false;
+      }},
+      { name: 'VOICE_MODE', desc: '"push-to-talk" or "hands-free" — choose interaction style', example: 'VOICE_MODE = "hands-free"', points: 5, validate: createValidator('VOICE_MODE', 'string', ['push-to-talk']) },
+    ],
+    tip: 'VOICE_ENABLED is a Feature Flag — a real technique developers use to turn features on/off without changing code!',
+  },
 ];
 
 // These are now computed inside the component based on projectType
