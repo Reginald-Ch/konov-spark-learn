@@ -304,11 +304,26 @@ const ProjectView = () => {
       }
     }
 
-    // 2. Client-side Q&A matching (reliable, no AI needed)
+    // 2. Client-side Q&A matching with tighter fuzzy logic
     for (const pair of config.qaPairs) {
       const qLower = pair.q.toLowerCase().trim();
-      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
-          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+      if (!qLower) continue;
+      // Exact match
+      if (lowerMsg === qLower || lowerMsg.includes(qLower) || qLower.includes(lowerMsg)) {
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) answer += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
+        return;
+      }
+      // Fuzzy match: require ≥60% bidirectional word overlap
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
+      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
+      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+      if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
         let answer = pair.a;
         if (config.catchphrases.length > 0) {
           answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
@@ -418,9 +433,14 @@ const ProjectView = () => {
       }
     } catch (e) {
       console.error('Chat error:', e);
+      // Remove the '...' placeholder and replace with error message
       setChatMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
+        if (updated.length > 0 && updated[updated.length - 1].content === '...') {
+          updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
+        } else {
+          updated.push({ role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' });
+        }
         return updated;
       });
     } finally {
