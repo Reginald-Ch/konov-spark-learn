@@ -218,7 +218,7 @@ export const ProgramCard = ({
                 className="w-full group/btn border hover:border-primary/80 relative overflow-hidden text-sm py-2"
               >
                 <motion.span 
-                  className={`absolute inset-0 bg-gradient-to-r ${color}`}
+                  className={`absolute inset-0 ${color}`}
                   initial={{ x: '-100%' }}
                   whileHover={{ x: 0 }}
                   transition={{ duration: 0.4 }}
