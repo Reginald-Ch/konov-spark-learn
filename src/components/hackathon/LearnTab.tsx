@@ -517,7 +517,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                 }}>{resource.level}</span>
               </div>
             </div>
-            <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2">{resource.description}</p>
+            <p className="text-xs text-white line-clamp-2">{resource.description}</p>
           </motion.a>
         ))}
       </div>
