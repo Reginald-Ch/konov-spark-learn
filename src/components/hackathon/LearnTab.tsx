@@ -109,11 +109,20 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     color: "#C70110",
     timeLimit: 10,
     challenges: [
-      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""', points: 15, validate: createValidator('SYSTEM_MESSAGE', 'triple-string', [
-        'You are a helpful AI assistant.',
-        'You are a helpful AI assistant that answers questions clearly and concisely.',
-        'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
-      ]) },
+      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""', points: 15, validate: (code: string) => {
+        // Accept both single-line and triple-quoted system messages
+        const defaults = [
+          'You are a helpful AI assistant.',
+          'You are a helpful AI assistant that answers questions clearly and concisely.',
+          'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
+        ];
+        const tripleMatch = code.match(/SYSTEM_MESSAGE\s*=\s*"""([\s\S]*?)"""/);
+        const singleMatch = code.match(/SYSTEM_MESSAGE\s*=\s*["'](.+?)["']/);
+        const match = tripleMatch || singleMatch;
+        if (!match) return false;
+        const val = match[1].trim();
+        return val.length > 20 && !defaults.includes(val);
+      } },
     ],
     tip: 'Formula: WHO (name, role) + HOW (tone) + WHAT (topics) + RULES (special instructions). Judges score this highest!',
     badExample: 'SYSTEM_MESSAGE = "You are a helpful AI assistant."',
