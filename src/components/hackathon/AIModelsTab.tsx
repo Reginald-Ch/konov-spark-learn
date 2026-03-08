@@ -469,6 +469,53 @@ APP_THEME = "default"
     toast.success('Code exported to Build tab! 🚀');
   };
 
+  const speakText = useCallback((text: string) => {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const cleaned = text.replace(/[*#_`~]/g, '').replace(/\[.*?\]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.1;
+    window.speechSynthesis.speak(utterance);
+  }, [voiceEnabled]);
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('');
+      setChatInput(transcript);
+      if (event.results[event.results.length - 1]?.isFinal) {
+        setIsListening(false);
+        if (transcript.trim()) {
+          setTimeout(() => handleChatSend(transcript.trim()), 100);
+        }
+      }
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+  }, [isListening, handleChatSend]);
+
   const { completed, total } = builderType ? getCompletionCount() : { completed: 0, total: 0 };
 
   // ─── Type Selection ───
