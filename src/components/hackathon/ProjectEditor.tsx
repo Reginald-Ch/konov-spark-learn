@@ -436,7 +436,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (initialCode) return; // Fresh template selected — don't overwrite with old project
     const savedId = localStorage.getItem('forge-current-project-id');
     if (!savedId) return;
-    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
+    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).maybeSingle().then(({ data, error }) => {
       if (error || !data) {
         localStorage.removeItem('forge-current-project-id');
         return;
