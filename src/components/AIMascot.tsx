@@ -288,7 +288,7 @@ export const AIMascot = () => {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-card border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
+        <div className="bg-carded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
           <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
@@ -315,7 +315,7 @@ export const AIMascot = () => {
       >
         <div className="relative">
           {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-full blur-xl opacity-40 animate-pulse-glow"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"></div>
           
           {/* Mascot image with mood-based animations */}
           <div className="relative">
