@@ -412,6 +412,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleSaveRef = useRef<() => void>(() => {});
   const handleRunRef = useRef<() => void>(() => {});
 
+  // Typing performance refs
+  const fileUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorRafRef = useRef<number | null>(null);
+  const liveConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedLiveConfig, setDebouncedLiveConfig] = useState(() => extractConfigFromCode(files['main.py']));
+
   // Restore session from DB on mount if we have a saved project ID
   // Skip restore if initialCode was explicitly provided (user picked a new template)
   useEffect(() => {
@@ -468,8 +476,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [knowledgeBase]);
 
-  // Read knowledge base from code when code changes
+  // Read knowledge base from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
@@ -501,8 +510,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [qaData]);
 
-  // Read Q&A pairs from code when code changes
+  // Read Q&A pairs from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
     if (!match) return;
@@ -534,8 +544,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [selectedTheme.id]);
 
-  // Read theme from code when code changes
+  // Read theme from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
@@ -600,7 +611,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [systemPrompt]);
 
+  // Read system prompt from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
@@ -647,6 +660,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    // Mark as typing to suppress read-back effects
+    isTypingRef.current = true;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => { isTypingRef.current = false; }, 300);
+
     // Snapshot for undo: debounce to avoid storing every keystroke
     if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
     snapshotTimerRef.current = setTimeout(() => {
@@ -657,8 +675,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         lastSnapshotRef.current = content;
       }
     }, 500);
-    setFiles(prev => ({ ...prev, [activeFile]: content }));
-    // Sync to localStorage so LearnTab can read it for validation
+
+    // Debounce the React state update to avoid re-renders on every keystroke
+    if (fileUpdateTimerRef.current) clearTimeout(fileUpdateTimerRef.current);
+    fileUpdateTimerRef.current = setTimeout(() => {
+      setFiles(prev => ({ ...prev, [activeFile]: content }));
+    }, 150);
+
+    // Sync to localStorage immediately (lightweight)
     if (activeFile === 'main.py') {
       localStorage.setItem('forge-editor-code', content);
     }
@@ -740,42 +764,46 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
 
   const updateCursorInfo = useCallback((target: HTMLTextAreaElement) => {
-    const pos = target.selectionStart;
-    const textBefore = target.value.substring(0, pos);
-    const line = textBefore.split('\n').length - 1;
-    setCursorLine(line);
+    // Throttle via requestAnimationFrame to avoid per-keystroke CPU load
+    if (cursorRafRef.current) cancelAnimationFrame(cursorRafRef.current);
+    cursorRafRef.current = requestAnimationFrame(() => {
+      const pos = target.selectionStart;
+      const textBefore = target.value.substring(0, pos);
+      const line = textBefore.split('\n').length - 1;
+      setCursorLine(line);
 
-    // Bracket matching
-    const code = target.value;
-    const OPEN = '([{';
-    const CLOSE = ')]}';
-    const ch = code[pos] || '';
-    const chBefore = pos > 0 ? code[pos - 1] : '';
-    let bracketPos = -1;
-    let isOpen = false;
-    if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
-    else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
-    else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
-    else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
+      // Bracket matching
+      const code = target.value;
+      const OPEN = '([{';
+      const CLOSE = ')]}';
+      const ch = code[pos] || '';
+      const chBefore = pos > 0 ? code[pos - 1] : '';
+      let bracketPos = -1;
+      let isOpen = false;
+      if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
+      else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
+      else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
+      else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
 
-    if (bracketPos >= 0) {
-      const bracket = code[bracketPos];
-      const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
-      const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
-      let depth = 0;
-      if (isOpen) {
-        for (let j = bracketPos; j < code.length; j++) {
-          if (code[j] === bracket) depth++;
-          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
-        }
-      } else {
-        for (let j = bracketPos; j >= 0; j--) {
-          if (code[j] === bracket) depth++;
-          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+      if (bracketPos >= 0) {
+        const bracket = code[bracketPos];
+        const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
+        const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
+        let depth = 0;
+        if (isOpen) {
+          for (let j = bracketPos; j < code.length; j++) {
+            if (code[j] === bracket) depth++;
+            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
+          }
+        } else {
+          for (let j = bracketPos; j >= 0; j--) {
+            if (code[j] === bracket) depth++;
+            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+          }
         }
       }
-    }
-    setMatchedBrackets(null);
+      setMatchedBrackets(null);
+    });
   }, []);
 
   // Convert matched bracket positions to line/col
@@ -1008,8 +1036,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     } finally { setIsRunning(false); }
   };
 
-  // Memoized config extraction — single source of truth for the Live Preview
-  const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
+  // Debounced config extraction — avoids 30+ regex runs on every keystroke
+  useEffect(() => {
+    if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current);
+    liveConfigTimerRef.current = setTimeout(() => {
+      setDebouncedLiveConfig(extractConfigFromCode(files['main.py']));
+    }, 250);
+    return () => { if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current); };
+  }, [files['main.py']]);
+  const liveConfig = debouncedLiveConfig;
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
@@ -1302,7 +1337,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [isDirty, currentProjectId]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
-  const lines = files[activeFile].split('\n');
+  const lines = useMemo(() => files[activeFile].split('\n'), [files[activeFile]]);
 
   const FILE_TABS: { id: FileTab; icon: React.ElementType; label: string }[] = [
     { id: 'main.py', icon: FileCode, label: 'main.py' },
