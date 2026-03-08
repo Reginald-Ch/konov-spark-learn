@@ -366,7 +366,7 @@ const Hackathons = () => {
               <motion.div 
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
                 onClick={() => setCommunityChatOpen(true)}
-                className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center cursor-pointer"
+                className="w-12 h-12 rounded-[24px] bg-primary flex items-center justify-center cursor-pointer"
               >
                 <MessageSquare className="w-5 h-5 text-white" />
               </motion.div>

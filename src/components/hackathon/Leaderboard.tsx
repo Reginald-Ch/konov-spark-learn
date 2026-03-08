@@ -322,7 +322,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{
-                    background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#4752C4'} 0%, ${index === 0 ? '#F7941D' : index === 1 ? '#A9A9A9' : index === 2 ? '#8B4513' : '#5865F2'} 100%)`
+                    background: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#5865F2'
                   }}>
                     {p.name.charAt(0).toUpperCase()}
                   </div>

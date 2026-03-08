@@ -2274,7 +2274,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <span className="hidden sm:inline">Save Checkpoint</span>
           </Button>
           <Button size="sm" onClick={handleGoLive}
-            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
+            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-green text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Go Live</span>
           </Button>

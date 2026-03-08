@@ -71,10 +71,10 @@ export const SocialProof = () => {
             <div className="p-5">
               <div className="flex items-center gap-4">
                 <motion.div 
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${
-                    proof.color === 'primary' ? 'from-primary to-primary/70' :
-                    proof.color === 'secondary' ? 'from-secondary to-secondary/70' :
-                    'from-accent to-accent/70'
+                  className={`w-12 h-12 rounded-xl ${
+                    proof.color === 'primary' ? 'bg-primary' :
+                    proof.color === 'secondary' ? 'bg-secondary' :
+                    'bg-accent'
                   } flex items-center justify-center`}
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.5 }}

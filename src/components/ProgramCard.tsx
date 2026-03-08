@@ -240,7 +240,7 @@ export const ProgramCard = ({
 
           {/* Corner glow effect */}
           <motion.div 
-            className={`absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br ${color} rounded-full blur-3xl`}
+            className={`absolute -bottom-20 -right-20 w-40 h-40 ${color} rounded-full blur-3xl`}
             animate={{ 
               opacity: isHovered ? 0.4 : 0,
               scale: isHovered ? 1.2 : 1

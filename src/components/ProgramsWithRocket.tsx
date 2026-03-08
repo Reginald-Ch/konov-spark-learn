@@ -142,9 +142,7 @@ export const ProgramsWithRocket = () => {
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-secondary opacity-60 blur-sm"
-                />
-                
+                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-secondary          
                 {/* Rocket Body */}
                 <svg width="80" height="120" viewBox="0 0 80 120" className="drop-shadow-2xl">
                   {/* Main rocket body */}
@@ -267,7 +265,7 @@ const ProgramCard = ({ program, isSelected, onClick }: ProgramCardProps) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="glow-card p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10 backdrop-blur-sm border border-primary/40 h-full"
+            className="glow-card p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 tprim40 h-full"
           >
             <h3 className="text-xl font-orbitron font-bold mb-2 gradient-text">
               {program.title}

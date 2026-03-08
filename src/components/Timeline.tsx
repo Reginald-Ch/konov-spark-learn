@@ -113,10 +113,10 @@ export const Timeline = () => {
                             <p className="text-muted-foreground font-space mb-3">
                               {event.description}
                             </p>
-                            <span className={`inline-block px-4 py-1 rounded-full text-sm font-fredoka font-bold bg-gradient-to-r ${
-                              event.color === 'primary' ? 'from-primary/20 to-primary/10 text-primary border-2 border-primary/30' :
-                              event.color === 'secondary' ? 'from-secondary/20 to-secondary/10 text-secondary border-2 border-secondary/30' :
-                              'from-accent/20 to-accent/10 text-accent border-2 border-accent/30'
+                            <span className={`inline-block px-4 py-1 rounded-full text-sm font-fredoka font-bold ${
+                              event.color === 'primary' ? 'bg-primary/20 text-primary border-2 border-primary/30' :
+                              event.color === 'secondary' ? 'bg-secondary/20 text-secondary border-2 border-secondary/30' :
+                              'bg-accent/20 text-accent border-2 border-accent/30'
                             }`}>
                               {event.age}
                             </span>

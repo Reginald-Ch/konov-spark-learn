@@ -6,8 +6,7 @@ import { Link } from "react-router-dom";
 export const HackathonBanner = () => {
   return (
     <section className="py-20 md:py-28 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[#0d1117]" />
-      <div className="absolute inset-0 opacity-20">
+      <div className="absolute inset-0 bg-set-0 opacity-20">
         <div className="absolute top-10 left-10 w-72 h-72 bg-primary/30 rounded-full blur-[100px]" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-[120px]" />
       </div>
@@ -33,9 +32,7 @@ export const HackathonBanner = () => {
             className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight"
           >
             Build Your First{" "}
-            <span className="bg-gradient-to-r from-[#F7941D] via-[#C70110] to-[#006600] bg-clip-text text-transparent">
-              AI Project
-            </span>
+            <span className="bg-gradient-to-r from-[#F7941D] via-[#C70110] ttext-secondary
           </motion.h2>
 
           <motion.p

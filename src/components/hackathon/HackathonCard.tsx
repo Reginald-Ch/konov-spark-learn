@@ -184,10 +184,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
         {hackathon.status === 'upcoming' && isRegistrationOpen && (
           <Button 
             onClick={() => onRegister(hackathon.id)} 
-            className="flex-1 text-white font-medium"
-            style={{
-              background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)'
-            }}
+            className="flex-1 text-white font-medium bg-primary hover:bg-primary/90"
             size="sm"
           >
             Register Now

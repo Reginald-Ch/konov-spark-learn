@@ -124,7 +124,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-gradient-to-br from-[hsl(var(--discord-blurple)/0.2)] to-transparent rounded-lg p-6 border border-[hsl(var(--discord-blurple)/0.3)]"
+        className="bg-[hsl(var(--discord-blurple)/0.15)] rounded-lg p-6 border border-[hsl(var(--discord-blurple)/0.3)]"
       >
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Zap className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />

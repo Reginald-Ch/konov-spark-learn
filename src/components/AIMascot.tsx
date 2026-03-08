@@ -288,8 +288,7 @@ export const AIMascot = () => {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-cardx] backdrop-blur-lg">
-          <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
+        <div className="bg-card <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
             <Button
@@ -315,9 +314,7 @@ export const AIMascot = () => {
       >
         <div className="relative">
           {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"primary/40 mood-based animations */}
-          <div className="relative">
-            <img
+          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"primary/40 mood-based animationprimary/40     <img
               src={mascotImage}
               alt="Konovy AI Mascot"
               className={`relative w-20 h-20 rounded-full border-2 border-primary/50 shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:border-secondary ${getMoodAnimation()}`}
@@ -339,9 +336,7 @@ export const AIMascot = () => {
           {/* Mood indicator with enhanced animation */}
           <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center secondary border-white animate-bounce">
             {getMoodEmoji()}
-          </div>
-
-          {/* Interaction pulse rings */}
+  secondaryon pulse rings */}
           {isVisible && (
             <>
               <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
@@ -351,7 +346,7 @@ export const AIMascot = () => {
         </div>
 
         {/* Enhanced hover tooltip */}
-        <div className="absolute bottom-0 right-full mr-4 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
+        <div className="absolute bottom-0 right-full mr-4 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hoverprim-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
           Click me! ✨
         </div>
       </div>

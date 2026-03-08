@@ -637,7 +637,7 @@ print("✅ Audio Classifier ready! Call classify('audio.wav')")
                               transition={{ duration: 0.8, delay: i * 0.1, ease: 'easeOut' }}
                               className="h-full rounded-full"
                               style={{ 
-                                background: i === 0 ? 'linear-gradient(90deg, #57F287, #006600)' : 
+                                background: i === 0 ? '#006600' : 
                                   `hsl(var(--discord-light) / ${0.5 - i * 0.1})` 
                               }}
                             />

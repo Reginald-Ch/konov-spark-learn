@@ -12,7 +12,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
-      color: "primaryorithms and prediction and applied these concept by training a computer to recognize  images.",
+      color: "primarydiction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },
@@ -21,8 +21,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "We know  how AI learns  and can train it with Datasets",
       icon: Award,
-      color: "from-accent to-accent "These saccentrkshop. Taccenthines leaaccent ethics .",
-      project: "AI vrs Robots",
+      color: "from-accent to-accent "These saccentrkshop. Taccenthines leaaccent ethics .accents Robots",
       quote: "We enjoyed the lessons and also we got to play with AI games!"
     },
     {
@@ -31,16 +30,13 @@ export const SuccessStories = () => {
       achievement: "Trained my AI to classify between images and objects",
       icon: Trophy,
       color: "from-secondary to-primary",
-     second a good understand of AI fuseconds journey as a AI young buisecond "I know how AI can be bias",
-      quote: "I trained my AI with Datasets."
+     second a good understand of AI fuseconds journey as a AI young buisecond "I know how AI can be biassecondined my AI with Datasets."
     },
   ];
 
   return (
     <section className="py-24 md:py-32 relative overflow-hidden bg-gradient-to-b from-background to-background/50">
-background4 w-96 h-96 bg-primary/10 rounded-full backgroundttom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-      
-      <div className="container mx-auto px-4 relative z-10">
+background4 w-96 h-96 bg-primary/10 rounded-full backgroundttom-1/4 right-1/4 w-96 h-96 bg-accent/background className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
             Student <span className="gradient-text">Success Stories</span>
@@ -66,7 +62,7 @@ background4 w-96 h-96 bg-primary/10 rounded-full backgroundttom-1/4 right-1/4 w-
                   }`}
                 >
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${story.color} flex items-center justify-center mb-4 shadow-lg`}>
- ${story.color === 'primary' ? 'bg-primary' : story.color === 'accent' ? 'bg-accent' : 'bg-secondary'ame="w-7 h-7 text-foreground" />
+ ${story.color === 'primary' ? 'bg-primary' : story.color === 'accent' ? 'bg-accent' :${story.color === 'primary' ? 'bg-primary' : story.color === 'accent' ? 'bg-accent' : 'bg-secondary't-foreground" />
                   </div>
                   <h3 className="text-xl font-orbitron font-bold mb-2 text-foreground">
                     {story.name}
@@ -94,8 +90,7 @@ background4 w-96 h-96 bg-primary/10 rounded-full backgroundttom-1/4 right-1/4 w-
                     {stories[activeStory].name} • {stories[activeStory].location}
                   </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full text-sm font-space font-semibold bg-gradient-to-r ${stories[activeStory].color} text-foreground`}>
-                  {stories[activeStory].project}
+                <span className={`px-4 py-2 rounded-full text-sm font-space font-semibold bg-gradient-to-r${stories[activeStory].color === 'primary' ? 'bg-primary/20 text-primary' : stories[activeStory].color === 'accent' ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}      {stories[activeStory].project}
                 </span>
               </div>
 
