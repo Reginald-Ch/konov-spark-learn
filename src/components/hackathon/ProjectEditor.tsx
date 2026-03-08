@@ -1581,7 +1581,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
-                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3) },
+                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3) },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
                         { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
