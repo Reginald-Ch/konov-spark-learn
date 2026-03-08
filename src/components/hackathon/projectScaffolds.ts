@@ -57,147 +57,173 @@ CREATOR_NAME = "A FORGE Builder"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 5: Define the Personality (MOST IMPORTANT!)
-# This is your bot's "brain". Write 3+ sentences:
-#   - WHO is your bot? (name, role, expertise)
-#   - HOW does it talk? (formal? funny? casual?)
-#   - WHAT is it an expert in?
-#   - Any special RULES?
+# This is your bot's "brain". Write 3+ sentences using
+# triple-quoted strings (Python multi-line syntax):
 #
-# Example:
 #   SYSTEM_MESSAGE = """
 #     You are Chef Kofi, a Ghanaian cooking expert who
 #     explains recipes using fun stories. You always
 #     mention local ingredients and keep things simple.
 #   """
+#
+# TIP: Use triple quotes \"\"\" for multi-line strings!
 # ═══════════════════════════════════════════════
 SYSTEM_MESSAGE = "You are a helpful AI assistant that answers questions clearly and concisely."
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 6: Add Knowledge
-# Give your bot facts it should know. The more you
-# add, the smarter it gets on this topic!
+# 🏆 CHALLENGE 6: Add Knowledge (Triple-Quoted String)
+# Write a multi-line string with facts your bot should know.
+# Use triple quotes and format with line breaks:
+#
+#   KNOWLEDGE_BASE = \"\"\"
+#   TOPIC: Python Programming
+#   - Created by Guido van Rossum in 1991
+#   - Used for AI, web development, data science
+#   - Key libraries: TensorFlow, Django, Pandas
+#   \"\"\"
 # ═══════════════════════════════════════════════
-KNOWLEDGE_BASE = """Python was created by Guido van Rossum in 1991.
-AI stands for Artificial Intelligence.
-FORGE is a platform where students build AI projects."""
+KNOWLEDGE_BASE = """"""
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 7: Add Exact Q&A Pairs
-# When someone asks these questions, your bot MUST
-# give YOUR answer — not make one up!
+# 🏆 CHALLENGE 7: Write Q&A Pairs (List of Dictionaries)
+# Type this structure yourself — each pair is a Python dict
+# inside a list. You MUST use the exact keys "q" and "a":
+#
+#   QA_PAIRS = [
+#       {"q": "What is AI?", "a": "AI is machines that learn!"},
+#       {"q": "Who made you?", "a": "I was built at FORGE!"},
+#   ]
+#
+# 🧪 TEST: Ask your exact "q" text → bot gives your "a"
 # ═══════════════════════════════════════════════
-QA_PAIRS = [
-    {"q": "What is your name?", "a": "I'm Spark, built at the FORGE Hackathon!"},
-    {"q": "Who created you?", "a": "I was created by a talented FORGE builder!"},
-    {"q": "What can you do?", "a": "I can chat, answer questions, and share knowledge!"}
-]
+QA_PAIRS = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 8: Set Creativity Level
-# 0.0 = very strict/factual (robot-like)
-# 0.5 = balanced
-# 1.0 = very creative/random (wild answers!)
+# 🏆 CHALLENGE 8: Set Creativity Level (Float)
+# Type a decimal number between 0.0 and 1.0
+#   0.0 = very strict/factual (robot-like)
+#   0.5 = balanced
+#   1.0 = very creative/random
+#
+# 🧪 TEST: Set to 0.1, ask a question. Then set to 0.9
+#          and ask the SAME question — compare the answers!
 # ═══════════════════════════════════════════════
 TEMPERATURE = 0.7
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 9: Choose Response Style
+# 🏆 CHALLENGE 9: Write Conversation Rules (Python List)
+# Type a list of strings — each string is a rule.
+# Your bot MUST follow every rule you write here!
+#
+#   RULES = [
+#       "Always be friendly and encouraging",
+#       "Use at least one emoji in every response",
+#       "If you don't know something, say so honestly",
+#       "Never give answers longer than 3 sentences",
+#   ]
+#
+# Write at least 3 rules from scratch:
+# ═══════════════════════════════════════════════
+RULES = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 10: Write Conversation Starters (Python List)
+# These appear as clickable buttons in Live Preview.
+# Create a list of 3-5 strings:
+#
+#   CONVERSATION_STARTERS = [
+#       "Tell me about yourself",
+#       "What can you help me with?",
+#   ]
+# ═══════════════════════════════════════════════
+CONVERSATION_STARTERS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 11: Build Easter Eggs (Python Dictionary)
+# Write a dict where keys are trigger words and
+# values are instant responses. Use curly braces {}:
+#
+#   EASTER_EGGS = {
+#       "secret": "🎉 You found a hidden feature!",
+#       "hello world": "👨‍💻 Every great programmer starts here.",
+#       "magic": "✨ Abracadabra!",
+#   }
+#
+# 🧪 TEST: Type a trigger word → instant response!
+# ═══════════════════════════════════════════════
+EASTER_EGGS = {}
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 12: Add Catchphrases (Python List)
+# Your bot naturally weaves these into responses.
+# Type a list of signature phrases:
+# ═══════════════════════════════════════════════
+CATCHPHRASES = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 13: Set Blocked Topics (Python List)
+# Topics your bot will REFUSE to discuss.
+# Write the list from scratch:
+# ═══════════════════════════════════════════════
+BLOCKED_TOPICS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 14: Set Forbidden Words (Python List)
+# Words your bot must NEVER use. The AI finds alternatives.
+# ═══════════════════════════════════════════════
+FORBIDDEN_WORDS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 15: Write Few-Shot Examples (List of Dicts)
+# Teach your bot HOW to answer by showing examples.
+# Each example is a dict with "input" and "output" keys:
+#
+#   FEW_SHOT_EXAMPLES = [
+#       {
+#           "input": "Tell me about 1957",
+#           "output": "Ayekoo! 🇬🇭 On March 6, 1957, Ghana became the first sub-Saharan African country to gain independence!"
+#       },
+#       {
+#           "input": "What is jollof rice?",
+#           "output": "Jollof rice is a beloved West African dish — and Ghana's version is the BEST! 🍚🔥"
+#       },
+#   ]
+#
+# Write at least 2 examples with nested dict syntax:
+# ═══════════════════════════════════════════════
+FEW_SHOT_EXAMPLES = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 16: Choose Response Style (String)
 # Options: "Concise", "Detailed", "Friendly",
 #          "Professional", "Balanced"
 # ═══════════════════════════════════════════════
 RESPONSE_STYLE = "Friendly"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 10: Set Response Length
-# "short"  = 1-2 sentences (quick answers)
-# "medium" = 1 paragraph (balanced)
-# "long"   = detailed multi-paragraph answers
+# 🏆 CHALLENGE 17: Set Response Length (String)
+# "short"  = 1-2 sentences
+# "medium" = 1 paragraph
+# "long"   = detailed multi-paragraph
 # ═══════════════════════════════════════════════
 MAX_RESPONSE_LENGTH = "medium"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 11: Add Conversation Rules
-# These are STRICT rules your bot MUST follow.
-# Add at least 3 rules!
-# ═══════════════════════════════════════════════
-RULES = [
-    "Always be friendly and encouraging",
-    "Use at least one emoji in every response",
-    "If you don't know something, say so honestly"
-]
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 12: Set Conversation Starters
-# These appear as clickable buttons in Live Preview.
-# ═══════════════════════════════════════════════
-CONVERSATION_STARTERS = [
-    "Tell me about yourself",
-    "What can you help me with?",
-    "Share a fun fact",
-    "Give me a tip"
-]
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 13: Add Easter Eggs!
-# Secret responses triggered by keywords.
-# ═══════════════════════════════════════════════
-EASTER_EGGS = {
-    "secret": "🎉 You found a hidden feature! You're a true explorer!",
-    "magic": "✨ Abracadabra! Here's something special just for you...",
-    "hello world": "👨‍💻 A classic! Every great programmer starts here."
-}
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 14: Add Catchphrases
-# Your bot will naturally include these phrases
-# ═══════════════════════════════════════════════
-CATCHPHRASES = [
-    "Fun fact!",
-    "Here's the thing...",
-    "Between you and me..."
-]
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Set Blocked Topics
-# Topics your bot will REFUSE to discuss.
-# ═══════════════════════════════════════════════
-BLOCKED_TOPICS = [
-    "homework answers",
-    "inappropriate content"
-]
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 16: Set Forbidden Words
-# Words your bot must NEVER use in any response.
-# The AI will find alternative words instead.
-# ═══════════════════════════════════════════════
-FORBIDDEN_WORDS = []
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 17: Set the Mood
+# 🏆 CHALLENGE 18: Set the Mood (String)
 # Options: "cheerful", "serious", "sarcastic",
 #          "mysterious", "energetic", "calm", "neutral"
-# This changes the overall vibe of responses!
 # ═══════════════════════════════════════════════
 MOOD = "neutral"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 18: Add Few-Shot Examples
-# Show your bot HOW you want it to answer.
-# Each example teaches the AI your preferred format!
-# ═══════════════════════════════════════════════
-FEW_SHOT_EXAMPLES = []
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 19: Set Language Style
+# 🏆 CHALLENGE 19: Set Language Style (String)
 # Options: "casual", "formal", "academic",
 #          "slang", "poetic", "storyteller"
-# Changes HOW your bot constructs sentences!
 # ═══════════════════════════════════════════════
 LANGUAGE_STYLE = "casual"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 20: Add a Sign-Off
+# 🏆 CHALLENGE 20: Add a Sign-Off (String)
 # A closing phrase your bot adds to every response.
 # Example: "Stay curious! 🌟" or "— Chef Kofi 👨‍🍳"
 # ═══════════════════════════════════════════════
@@ -223,22 +249,22 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 2.  BOT_EMOJI — Change it, see the avatar update
 # ☐ 3.  AI_MESSAGE — See it in the welcome screen
 # ☐ 4.  CREATOR_NAME — Ask "who created you?" to test
-# ☐ 5.  SYSTEM_MESSAGE — This changes EVERYTHING about your bot
-# ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
-# ☐ 7.  QA_PAIRS — Ask exact questions to test answers
-# ☐ 8.  TEMPERATURE — Set to 0.1 vs 1.0 and compare
-# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
-# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
-# ☐ 11. RULES — Ask something to test rules
-# ☐ 12. CONVERSATION_STARTERS — See buttons update
-# ☐ 13. EASTER_EGGS — Type "secret" or "magic" to test
-# ☐ 14. CATCHPHRASES — Chat and look for your phrases
-# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
-# ☐ 16. FORBIDDEN_WORDS — Add words, verify bot avoids them
-# ☐ 17. MOOD — Try "sarcastic" or "mysterious"
-# ☐ 18. FEW_SHOT_EXAMPLES — Add example Q&As to teach format
-# ☐ 19. LANGUAGE_STYLE — Try "poetic" or "formal"
-# ☐ 20. SIGN_OFF — Add a closing phrase, see it appear
+# ☐ 5.  SYSTEM_MESSAGE — Triple-quoted multi-line string
+# ☐ 6.  KNOWLEDGE_BASE — Triple-quoted facts block
+# ☐ 7.  QA_PAIRS — Write a list of {"q": ..., "a": ...} dicts
+# ☐ 8.  TEMPERATURE — Type a float between 0.0 and 1.0
+# ☐ 9.  RULES — Write a list of rule strings
+# ☐ 10. CONVERSATION_STARTERS — Write a list of strings
+# ☐ 11. EASTER_EGGS — Write a dict {"trigger": "response"}
+# ☐ 12. CATCHPHRASES — Write a list of phrase strings
+# ☐ 13. BLOCKED_TOPICS — Write a list of topic strings
+# ☐ 14. FORBIDDEN_WORDS — Write a list of words
+# ☐ 15. FEW_SHOT_EXAMPLES — List of {"input":..., "output":...}
+# ☐ 16. RESPONSE_STYLE — Pick from options
+# ☐ 17. MAX_RESPONSE_LENGTH — "short", "medium", or "long"
+# ☐ 18. MOOD — Pick from options
+# ☐ 19. LANGUAGE_STYLE — Pick from options
+# ☐ 20. SIGN_OFF — Write a closing phrase
 # ═══════════════════════════════════════════════
 
 
