@@ -764,42 +764,46 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
 
   const updateCursorInfo = useCallback((target: HTMLTextAreaElement) => {
-    const pos = target.selectionStart;
-    const textBefore = target.value.substring(0, pos);
-    const line = textBefore.split('\n').length - 1;
-    setCursorLine(line);
+    // Throttle via requestAnimationFrame to avoid per-keystroke CPU load
+    if (cursorRafRef.current) cancelAnimationFrame(cursorRafRef.current);
+    cursorRafRef.current = requestAnimationFrame(() => {
+      const pos = target.selectionStart;
+      const textBefore = target.value.substring(0, pos);
+      const line = textBefore.split('\n').length - 1;
+      setCursorLine(line);
 
-    // Bracket matching
-    const code = target.value;
-    const OPEN = '([{';
-    const CLOSE = ')]}';
-    const ch = code[pos] || '';
-    const chBefore = pos > 0 ? code[pos - 1] : '';
-    let bracketPos = -1;
-    let isOpen = false;
-    if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
-    else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
-    else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
-    else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
+      // Bracket matching
+      const code = target.value;
+      const OPEN = '([{';
+      const CLOSE = ')]}';
+      const ch = code[pos] || '';
+      const chBefore = pos > 0 ? code[pos - 1] : '';
+      let bracketPos = -1;
+      let isOpen = false;
+      if (OPEN.includes(ch)) { bracketPos = pos; isOpen = true; }
+      else if (CLOSE.includes(ch)) { bracketPos = pos; isOpen = false; }
+      else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
+      else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
 
-    if (bracketPos >= 0) {
-      const bracket = code[bracketPos];
-      const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
-      const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
-      let depth = 0;
-      if (isOpen) {
-        for (let j = bracketPos; j < code.length; j++) {
-          if (code[j] === bracket) depth++;
-          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
-        }
-      } else {
-        for (let j = bracketPos; j >= 0; j--) {
-          if (code[j] === bracket) depth++;
-          else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+      if (bracketPos >= 0) {
+        const bracket = code[bracketPos];
+        const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
+        const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
+        let depth = 0;
+        if (isOpen) {
+          for (let j = bracketPos; j < code.length; j++) {
+            if (code[j] === bracket) depth++;
+            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
+          }
+        } else {
+          for (let j = bracketPos; j >= 0; j--) {
+            if (code[j] === bracket) depth++;
+            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+          }
         }
       }
-    }
-    setMatchedBrackets(null);
+      setMatchedBrackets(null);
+    });
   }, []);
 
   // Convert matched bracket positions to line/col
