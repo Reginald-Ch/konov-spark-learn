@@ -197,6 +197,22 @@ const extractConfigFromCode = (code: string) => {
     while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
     return examples;
   };
+  // Extract if/elif/else conditional blocks that set a target variable
+  const extractConditionalVar = (targetVar: string): Record<string, string> => {
+    const result: Record<string, string> = {};
+    const blockRegex = new RegExp(
+      `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+      'g'
+    );
+    let m;
+    while ((m = blockRegex.exec(code)) !== null) {
+      result[m[1]] = m[2];
+    }
+    const elseRegex = new RegExp(`else\\s*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
+    const elseMatch = code.match(elseRegex);
+    if (elseMatch) result['__else__'] = elseMatch[1];
+    return result;
+  };
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -230,6 +246,10 @@ const extractConfigFromCode = (code: string) => {
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
     voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
     voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+    moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
+    responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
+    timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
+    responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
   };
 };
 
@@ -1013,7 +1033,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
       { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-      { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
+      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0), val: `${Object.keys(config.moodResponses).length} moods` },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
@@ -1023,7 +1043,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
+      { label: 'RESPONSE_TONE', ok: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical', val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
@@ -1213,6 +1233,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             languageStyle: config.languageStyle,
             signOff: config.signOff,
             maxTokens: config.maxTokens,
+            moodResponses: config.moodResponses,
+            responseTone: config.responseTone,
+            responseToneConditional: config.responseToneConditional,
           },
         },
         (text) => {

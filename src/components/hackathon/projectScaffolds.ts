@@ -200,11 +200,24 @@ FEW_SHOT_EXAMPLES = []
 SECRET_RESPONSES = {}
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Choose Response Style (String)
-# Options: "Concise", "Detailed", "Friendly",
-#          "Professional", "Balanced"
+# 🏆 CHALLENGE 15: Mood-Based Responses (Dictionary Routing!)
+# Your bot changes HOW it responds based on detected mood!
+# This teaches DICTIONARY LOOKUP — a key Python pattern.
+#
+# Each key is a mood the bot detects, and the value is
+# the instruction for how to respond in that mood:
+#
+#   MOOD_RESPONSES = {
+#       "happy": "Be enthusiastic and use lots of emojis! 🎉",
+#       "confused": "Break things down step by step simply",
+#       "frustrated": "Be extra patient and empathetic",
+#       "curious": "Go deeper with fascinating details",
+#   }
+#
+# 🧪 TEST: Say "I'm frustrated" → bot should be empathetic!
+#          Say "I'm curious about space" → bot goes deep!
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Friendly"
+MOOD_RESPONSES = {}
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 16: Set Response Length (String)
@@ -238,11 +251,34 @@ MAX_TOKENS = 512
 MOOD = "neutral"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 19: Set Language Style (String)
-# Options: "casual", "formal", "academic",
-#          "slang", "poetic", "storyteller"
+# 🏆 CHALLENGE 19: Smart Tone Routing (If/Elif Conditional!)
+# Your bot picks a RESPONSE_TONE based on TIME_OF_DAY!
+# This teaches IF/ELIF/ELSE — Python's conditional logic.
+#
+# Edit the values to customize how your bot greets users
+# at different times:
+#
+#   if TIME_OF_DAY == "morning":
+#       RESPONSE_TONE = "energetic and cheerful, use morning greetings"
+#   elif TIME_OF_DAY == "afternoon":
+#       RESPONSE_TONE = "warm and productive"
+#   elif TIME_OF_DAY == "evening":
+#       RESPONSE_TONE = "relaxed and reflective"
+#   else:
+#       RESPONSE_TONE = "friendly"
+#
+# 🧪 TEST: Change TIME_OF_DAY and chat — notice the tone shift!
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+TIME_OF_DAY = "morning"
+
+if TIME_OF_DAY == "morning":
+    RESPONSE_TONE = "energetic and cheerful"
+elif TIME_OF_DAY == "afternoon":
+    RESPONSE_TONE = "warm and productive"
+elif TIME_OF_DAY == "evening":
+    RESPONSE_TONE = "relaxed and reflective"
+else:
+    RESPONSE_TONE = "friendly"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add Catchphrases (Python List)
@@ -305,11 +341,11 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 12. BLOCKED_TOPICS — Write a list of refused topics
 # ☐ 13. FEW_SHOT_EXAMPLES — List of {"input":..., "output":...}
 # ☐ 14. SECRET_RESPONSES — Dict {"trigger": "response"}
-# ☐ 15. RESPONSE_STYLE — Pick from options
+# ☐ 15. MOOD_RESPONSES — Dict mapping moods to instructions
 # ☐ 16. MAX_RESPONSE_LENGTH — "short", "medium", or "long"
 # ☐ 17. MAX_TOKENS — Try 50 vs 1024 to see the difference!
 # ☐ 18. MOOD — Pick from options
-# ☐ 19. LANGUAGE_STYLE — Pick from options
+# ☐ 19. RESPONSE_TONE — If/elif conditional logic!
 # ☐ 20. CATCHPHRASES — Write signature phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
@@ -493,9 +529,24 @@ SECRET_RESPONSES = {
 }
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Choose Response Style
+# 🏆 CHALLENGE 15: Mood-Based Responses (Dictionary Routing!)
+# Your agent adapts its style based on detected user mood!
+# This teaches DICTIONARY LOOKUP — a key Python pattern.
+#
+#   MOOD_RESPONSES = {
+#       "happy": "Match their energy with enthusiasm! 🎉",
+#       "confused": "Break it down step by step",
+#       "frustrated": "Be extra patient and empathetic",
+#       "curious": "Go deep with fascinating analysis",
+#   }
+#
+# 🧪 TEST: Say "I'm frustrated" → agent should be empathetic!
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Professional"
+MOOD_RESPONSES = {
+    "happy": "Be enthusiastic and celebrate with the user!",
+    "frustrated": "Be extra patient, empathetic, and break things down",
+    "curious": "Go deeper with thorough analysis and extra details"
+}
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 16: Set Response Length
@@ -517,11 +568,31 @@ MAX_TOKENS = 512
 MOOD = "neutral"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 19: Set Language Style
-# Options: "casual", "formal", "academic",
-#          "slang", "poetic", "storyteller"
+# 🏆 CHALLENGE 19: Smart Tone Routing (If/Elif Conditional!)
+# Your agent picks a RESPONSE_TONE based on TIME_OF_DAY!
+# This teaches IF/ELIF/ELSE — Python's conditional logic.
+#
+#   if TIME_OF_DAY == "morning":
+#       RESPONSE_TONE = "sharp and analytical"
+#   elif TIME_OF_DAY == "afternoon":
+#       RESPONSE_TONE = "efficient and focused"
+#   elif TIME_OF_DAY == "evening":
+#       RESPONSE_TONE = "thorough and reflective"
+#   else:
+#       RESPONSE_TONE = "balanced"
+#
+# 🧪 TEST: Change TIME_OF_DAY and chat — notice the tone shift!
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+TIME_OF_DAY = "morning"
+
+if TIME_OF_DAY == "morning":
+    RESPONSE_TONE = "sharp and analytical"
+elif TIME_OF_DAY == "afternoon":
+    RESPONSE_TONE = "efficient and focused"
+elif TIME_OF_DAY == "evening":
+    RESPONSE_TONE = "thorough and reflective"
+else:
+    RESPONSE_TONE = "balanced"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add Catchphrases (Python List)
@@ -591,11 +662,11 @@ TOOL_INSTRUCTIONS = {
 # ☐ 12. BLOCKED_TOPICS — Ask about a blocked topic
 # ☐ 13. FEW_SHOT_EXAMPLES — Add examples to teach format
 # ☐ 14. SECRET_RESPONSES — Type exact trigger to test
-# ☐ 15. RESPONSE_STYLE — Try "Concise" vs "Detailed"
+# ☐ 15. MOOD_RESPONSES — Dict mapping moods to instructions
 # ☐ 16. MAX_RESPONSE_LENGTH — "short" vs "long"
 # ☐ 17. MAX_TOKENS — Try 50 vs 1024!
 # ☐ 18. MOOD — Try "serious" or "energetic"
-# ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
+# ☐ 19. RESPONSE_TONE — If/elif conditional logic!
 # ☐ 20. CATCHPHRASES — Chat and look for your phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your agent speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"

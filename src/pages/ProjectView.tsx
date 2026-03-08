@@ -219,6 +219,22 @@ const ProjectView = () => {
       while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
       return examples;
     };
+    // Extract if/elif/else conditional blocks that set a target variable
+    const extractConditionalVar = (targetVar: string): Record<string, string> => {
+      const result: Record<string, string> = {};
+      const blockRegex = new RegExp(
+        `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+        'g'
+      );
+      let m;
+      while ((m = blockRegex.exec(code)) !== null) {
+        result[m[1]] = m[2];
+      }
+      const elseRegex = new RegExp(`else\\s*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
+      const elseMatch = code.match(elseRegex);
+      if (elseMatch) result['__else__'] = elseMatch[1];
+      return result;
+    };
 
     return {
       botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -251,6 +267,9 @@ const ProjectView = () => {
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
       voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
       voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+      moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
+      responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
+      responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
     };
   };
 
@@ -406,6 +425,9 @@ const ProjectView = () => {
               languageStyle: config.languageStyle,
               signOff: config.signOff,
               maxTokens: config.maxTokens,
+              moodResponses: config.moodResponses,
+              responseTone: config.responseTone,
+              responseToneConditional: config.responseToneConditional,
             },
           }),
         }

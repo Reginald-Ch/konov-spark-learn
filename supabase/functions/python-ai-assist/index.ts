@@ -144,6 +144,28 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
         const langDesc: Record<string, string> = { "formal": "Proper grammar, sophisticated vocabulary.", "academic": "Write like a professor.", "slang": "Modern internet slang.", "poetic": "Metaphors and imagery.", "storyteller": "Frame as narrative." };
         botConfigContext += `\n\nLANGUAGE STYLE: ${cfg.languageStyle.toUpperCase()} — ${langDesc[cfg.languageStyle] || cfg.languageStyle}`;
       }
+      // Mood-based response routing (dictionary)
+      if (cfg.moodResponses && Object.keys(cfg.moodResponses).length > 0) {
+        botConfigContext += `\n\n🎯 MOOD-BASED ROUTING — Detect the user's emotional state and adapt your response accordingly:\n`;
+        for (const [mood, instruction] of Object.entries(cfg.moodResponses)) {
+          botConfigContext += `  - When user seems "${mood}": ${instruction}\n`;
+        }
+        botConfigContext += `If you detect keywords like "frustrated", "confused", "happy", "curious" etc. in the user's message, match the closest mood above and follow that instruction.\n`;
+      }
+      // Conditional response tone (if/elif)
+      if (cfg.responseTone) {
+        botConfigContext += `\n\n🎵 RESPONSE TONE: "${cfg.responseTone}" — Adopt this tone in ALL your responses.`;
+      }
+      if (cfg.responseToneConditional && Object.keys(cfg.responseToneConditional).length > 0) {
+        botConfigContext += `\n\n📋 CONDITIONAL TONE ROUTING (the student configured if/elif logic):\n`;
+        for (const [condition, tone] of Object.entries(cfg.responseToneConditional)) {
+          if (condition === '__else__') {
+            botConfigContext += `  - Otherwise: "${tone}"\n`;
+          } else {
+            botConfigContext += `  - When time is "${condition}": respond with tone "${tone}"\n`;
+          }
+        }
+      }
       if (cfg.signOff && cfg.signOff.trim()) {
         botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
       }
