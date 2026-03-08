@@ -1250,7 +1250,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const liveConfig = debouncedLiveConfig;
 
   const handleChatSend = async (directMessage?: string) => {
-    handleChatSendRef.current = handleChatSend;
     const msg = directMessage || chatInput.trim();
     if (!msg || isStreaming) return;
     const userMsg = msg;

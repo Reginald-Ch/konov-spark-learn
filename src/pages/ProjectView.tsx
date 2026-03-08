@@ -447,7 +447,6 @@ const ProjectView = () => {
   };
 
   const handleChatSend = async (directMessage?: string) => {
-    handleChatSendRef.current = handleChatSend;
     const msg = directMessage || chatInput.trim();
     if (!msg || isStreaming || !config) return;
     const userMsg = msg;
