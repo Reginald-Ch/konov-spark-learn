@@ -413,7 +413,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleRunRef = useRef<() => void>(() => {});
 
   // Restore session from DB on mount if we have a saved project ID
+  // Skip restore if initialCode was explicitly provided (user picked a new template)
   useEffect(() => {
+    if (initialCode) return; // Fresh template selected — don't overwrite with old project
     const savedId = localStorage.getItem('forge-current-project-id');
     if (!savedId) return;
     supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
