@@ -343,7 +343,7 @@ const ProjectView = () => {
     utterance.onend = () => {
       setIsSpeaking(false);
       if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(), 300);
+        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 300);
       }
     };
     utterance.onerror = () => setIsSpeaking(false);
