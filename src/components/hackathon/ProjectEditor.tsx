@@ -2296,7 +2296,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
+                    <div className={`prose prose-invert prose-xs max-w-none [&_p]:m-0 ${
+                      projectType === 'agent' && msg.content.includes('**🤔 Thought:**')
+                        ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
+                        : ''
+                    }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
