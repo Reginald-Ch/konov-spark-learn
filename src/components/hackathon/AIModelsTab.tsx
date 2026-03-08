@@ -213,6 +213,11 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Keep ref in sync for use in callbacks
+  useEffect(() => {
+    voiceModeRef.current = voiceConversationMode;
+  }, [voiceConversationMode]);
+
   const selectType = (type: BuilderType) => {
     setBuilderType(type);
     setConfig(type === 'agent' ? { ...DEFAULT_AGENT_CONFIG } : { ...DEFAULT_CHATBOT_CONFIG });
