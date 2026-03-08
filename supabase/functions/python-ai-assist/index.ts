@@ -266,18 +266,21 @@ ${code}
       sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;
     } else if (action === "idea-to-code") {
-      sysPrompt = `You are the FORGE AI project generator. Generate a complete 15-challenge config file.
+      sysPrompt = `You are the FORGE AI project generator. Generate a complete 20-challenge config file.
 
 Include ALL variables with creative, topic-specific values:
-BOT_NAME, BOT_EMOJI, GREETING_MESSAGE, CREATOR_NAME, SYSTEM_PROMPT (3+ sentences),
-KNOWLEDGE_BASE (detailed), QA_PAIRS (3+), TEMPERATURE, RESPONSE_STYLE, MAX_RESPONSE_LENGTH,
-CONVERSATION_RULES (3+), CONVERSATION_STARTERS (4+), EASTER_EGGS (3+), CATCHPHRASES (3+),
-BLOCKED_TOPICS (2+), FOLLOW_UP_QUESTIONS, REMEMBER_NAME, ERROR_MESSAGE.
+BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE (3+ sentences, triple-quoted),
+KNOWLEDGE_BASE (detailed, triple-quoted), QA_PAIRS (3+ dicts with "q" and "a" keys),
+TEMPERATURE (float 0.0-1.0), RULES (list of 4+ strings), CONVERSATION_STARTERS (5+ strings),
+FORBIDDEN_WORDS (list), BLOCKED_TOPICS (2+ strings), FEW_SHOT_EXAMPLES (list of {"input":..., "output":...} dicts),
+SECRET_RESPONSES (dict of trigger phrases), RESPONSE_STYLE, MAX_RESPONSE_LENGTH,
+MAX_TOKENS (integer), MOOD, LANGUAGE_STYLE, CATCHPHRASES (4+ strings),
+FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 
 Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `Generate a complete FORGE 15-challenge configuration file based on the description.`;
+      sysPrompt = `Generate a complete FORGE 20-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, RESPONSE_STYLE, MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, LANGUAGE_STYLE, CATCHPHRASES.`;
       userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
       sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;

@@ -965,29 +965,37 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // First, do a local config analysis
     const config = extractConfigFromCode(files['main.py']);
     const isAgent = projectType === 'agent';
+    const scaffold = PROJECT_SCAFFOLDS[projectType];
     const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const defaultGreeting = isAgent
+      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
+    const defaultSystemMsg = scaffold.systemPrompt;
+    const defaultKB = isAgent 
+      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+      : "";
     
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
       { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
-      { label: 'AI_MESSAGE', ok: !!config.greeting, val: config.greeting ? '✓ set' : '✗ default' },
+      { label: 'AI_MESSAGE', ok: !!config.greeting && config.greeting !== defaultGreeting, val: config.greeting ? '✓ set' : '✗ default' },
       { label: 'CREATOR_NAME', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
-      { label: 'SYSTEM_MESSAGE', ok: systemPrompt.length > 30, val: `${systemPrompt.length} chars` },
-      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim(), val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
-      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > 0, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaultSystemMsg && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
+      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
+      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
       { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1578,20 +1586,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
                         { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
                         { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
                         { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > 0 },
-                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3) },
+                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0) },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
@@ -2242,20 +2250,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
               systemPrompt !== defaultPrompt,
               codeKB.trim() && codeKB !== (isAgent ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts." : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects."),
-              codeQA.length > 3,
+              codeQA.length > (isAgent ? 3 : 0),
               cfg.temperature !== defaultTemp,
               cfg.responseStyle !== defaultStyle,
               cfg.maxResponseLength !== 'medium',
               cfg.forbiddenWords.length > 0,
               totalBlocked > 2,
               cfg.fewShotExamples.length > 0,
-              totalEggs > (isAgent ? 2 : 3),
+              totalEggs > (isAgent ? 2 : 0),
               totalRules > 3,
               totalStarters > 4,
               cfg.maxTokens !== 512,
               cfg.mood && cfg.mood !== 'neutral',
               cfg.languageStyle && cfg.languageStyle !== 'casual',
-              totalCatchphrases > 3,
+              totalCatchphrases > (isAgent ? 3 : 0),
             ].filter(Boolean).length;
 
             return (
