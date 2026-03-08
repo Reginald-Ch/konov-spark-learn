@@ -654,9 +654,9 @@ TOOL_INSTRUCTIONS = {
   "max_tokens": 512,
   "max_iterations": 5,
   "tools": ["web_search", "calculator", "wikipedia"],
-  "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],
+  "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 20,
+  "challenges": 22,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
