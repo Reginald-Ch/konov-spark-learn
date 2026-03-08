@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 20 Build-Up Challenges
+🤖 FORGE AI Chatbot — 22 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
