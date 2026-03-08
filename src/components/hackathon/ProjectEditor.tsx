@@ -2321,7 +2321,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <div className="flex gap-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
-                placeholder="Type a message..."
+                placeholder={`Ask ${liveConfig.botName} something...`}
                 disabled={isStreaming}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
