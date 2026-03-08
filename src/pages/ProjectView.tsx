@@ -305,10 +305,10 @@ const ProjectView = () => {
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
 
-    // 1. Check for easter eggs (client-side, instant)
-    for (const [trigger, response] of Object.entries(config.easterEggs)) {
-      if (lowerMsg.includes(trigger.toLowerCase())) {
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
+    // 1. Check for secret responses (client-side, EXACT match only)
+    for (const [trigger, response] of Object.entries(config.secretResponses)) {
+      if (lowerMsg === trigger.toLowerCase()) {
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: String(response) }]);
         return;
       }
     }
