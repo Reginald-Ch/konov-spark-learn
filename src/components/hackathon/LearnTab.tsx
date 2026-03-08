@@ -291,10 +291,10 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             transition={{ duration: 0.5 }}
             style={{
               background: completedCount === 20
-                ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                ? '#22C55E'
                 : completedCount >= 10
-                ? 'linear-gradient(90deg, #F7941D, #FFD700)'
-                : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+                ? '#F7941D'
+                : '#5865F2',
             }}
           />
         </div>
