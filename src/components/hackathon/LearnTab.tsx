@@ -71,7 +71,10 @@ const createValidator = (varName: string, type: 'string' | 'number' | 'list' | '
   };
 };
 
-const CHALLENGE_STEPS: Array<{
+// Agent template defaults — used to ensure pre-filled values don't count as "completed"
+const AGENT_KB_DEFAULT = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
+
+const buildChallengeSteps = (isAgent: boolean): Array<{
   step: number;
   title: string;
   subtitle: string;
@@ -81,8 +84,8 @@ const CHALLENGE_STEPS: Array<{
   tip: string;
   badExample?: string;
   goodExample?: string;
-  timeLimit?: number; // minutes
-}> = [
+  timeLimit?: number;
+}> => [
   {
     step: 1,
     title: "Give Your Bot an Identity",
@@ -106,7 +109,11 @@ const CHALLENGE_STEPS: Array<{
     color: "#C70110",
     timeLimit: 10,
     challenges: [
-      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""', points: 15, validate: createValidator('SYSTEM_MESSAGE', 'triple-string', ['You are a helpful AI assistant.']) },
+      { name: 'SYSTEM_MESSAGE', desc: 'Your bot\'s personality, expertise, and rules — this IS your bot', example: '"""You are GhanaFreedom Guide — a passionate educator on Ghana independence..."""', points: 15, validate: createValidator('SYSTEM_MESSAGE', 'triple-string', [
+        'You are a helpful AI assistant.',
+        'You are a helpful AI assistant that answers questions clearly and concisely.',
+        'You are an AI agent that can use tools to search the web, run calculations, and generate content.',
+      ]) },
     ],
     tip: 'Formula: WHO (name, role) + HOW (tone) + WHAT (topics) + RULES (special instructions). Judges score this highest!',
     badExample: 'SYSTEM_MESSAGE = "You are a helpful AI assistant."',
@@ -120,11 +127,17 @@ const CHALLENGE_STEPS: Array<{
     color: "#006600",
     timeLimit: 8,
     challenges: [
-      { name: 'KNOWLEDGE_BASE', desc: 'Paste facts here — the more specific, the smarter', example: 'KNOWLEDGE_BASE = """DATES: March 6 1957: Independence..."""', points: 10, validate: createValidator('KNOWLEDGE_BASE', 'triple-string') },
+      { name: 'KNOWLEDGE_BASE', desc: 'Paste facts here — the more specific, the smarter', example: 'KNOWLEDGE_BASE = """DATES: March 6 1957: Independence..."""', points: 10, validate: createValidator('KNOWLEDGE_BASE', 'triple-string', isAgent ? [AGENT_KB_DEFAULT] : []) },
       { name: 'QA_PAIRS', desc: 'Guaranteed exact answers for specific questions', example: 'QA_PAIRS = [{"q": "When did Ghana gain independence?", "a": "March 6, 1957!"}]', points: 10, validate: (code: string) => {
         const match = code.match(/QA_PAIRS\s*=\s*\[([\s\S]*?)\]/);
         if (!match) return false;
-        return /\{\s*["']q["']\s*:\s*["'][^"']+["']/.test(match[1]);
+        if (!/\{\s*["']q["']\s*:\s*["'][^"']+["']/.test(match[1])) return false;
+        // Agent has 3 default pairs — require more than 3
+        const pairRegex = /\{\s*["']q["']\s*:\s*["'][^"']+["']/g;
+        const pairs: string[] = [];
+        let m;
+        while ((m = pairRegex.exec(match[1])) !== null) pairs.push(m[0]);
+        return pairs.length > (isAgent ? 3 : 0);
       }},
     ],
     tip: 'KNOWLEDGE_BASE gives the AI info to draw from. QA_PAIRS gives EXACT answers word for word — the AI doesn\'t need to think.',
@@ -138,10 +151,12 @@ const CHALLENGE_STEPS: Array<{
     timeLimit: 10,
     challenges: [
       { name: 'TEMPERATURE', desc: 'Type a float: 0.0 (strict) to 1.0 (creative)', example: 'TEMPERATURE = 0.6', points: 5, validate: createValidator('TEMPERATURE', 'number', ['0.7', '0.3']) },
-      { name: 'RULES', desc: 'Write a Python list of rule strings from scratch', example: 'RULES = ["Use emojis", "Ask follow-up questions", "Stay on topic"]', points: 8, validate: createValidator('RULES', 'list') },
-      { name: 'CONVERSATION_STARTERS', desc: 'Write a list of button strings from scratch', example: 'CONVERSATION_STARTERS = ["Tell me about yourself"]', points: 5, validate: createValidator('CONVERSATION_STARTERS', 'list') },
+      { name: 'RULES', desc: 'Write a Python list of rule strings from scratch', example: 'RULES = ["Use emojis", "Ask follow-up questions", "Stay on topic"]', points: 8, validate: createValidator('RULES', 'list', [], isAgent ? 3 : undefined) },
+      { name: 'CONVERSATION_STARTERS', desc: 'Write a list of button strings from scratch', example: 'CONVERSATION_STARTERS = ["Tell me about yourself"]', points: 5, validate: createValidator('CONVERSATION_STARTERS', 'list', [], isAgent ? 4 : undefined) },
     ],
-    tip: 'These variables start EMPTY — you must type proper Python list syntax: ["item1", "item2"]',
+    tip: isAgent
+      ? 'The agent template includes starter values — add MORE items to complete these challenges!'
+      : 'These variables start EMPTY — you must type proper Python list syntax: ["item1", "item2"]',
   },
   {
     step: 5,
@@ -152,7 +167,7 @@ const CHALLENGE_STEPS: Array<{
     timeLimit: 6,
     challenges: [
       { name: 'FORBIDDEN_WORDS', desc: 'Words your bot must NEVER use — AI finds alternatives', example: 'FORBIDDEN_WORDS = ["stupid", "dumb", "boring"]', points: 5, validate: createValidator('FORBIDDEN_WORDS', 'list') },
-      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list') },
+      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list', [], isAgent ? 2 : undefined) },
     ],
     tip: 'FORBIDDEN_WORDS = bot finds alternatives. BLOCKED_TOPICS = bot refuses completely. Different safety levels!',
   },
@@ -169,7 +184,7 @@ const CHALLENGE_STEPS: Array<{
         if (!match) return false;
         return /["']input["']\s*:\s*["'][^"']+["']/.test(match[1]) && /["']output["']\s*:\s*["'][^"']+["']/.test(match[1]);
       } },
-      { name: 'SECRET_RESPONSES', desc: 'Dict of EXACT trigger phrases → instant fun replies', example: 'SECRET_RESPONSES = {"secret": "🎉 Found it!", "magic": "✨"}', points: 8, validate: createValidator('SECRET_RESPONSES', 'dict') },
+      { name: 'SECRET_RESPONSES', desc: 'Dict of EXACT trigger phrases → instant fun replies', example: 'SECRET_RESPONSES = {"secret": "🎉 Found it!", "magic": "✨"}', points: 8, validate: createValidator('SECRET_RESPONSES', 'dict', [], isAgent ? 2 : undefined) },
     ],
     tip: 'FEW_SHOT teaches HOW to answer. SECRET_RESPONSES are fun easter eggs — EXACT phrase triggers only (unlike Q&A keyword matching).',
   },
@@ -186,7 +201,7 @@ const CHALLENGE_STEPS: Array<{
       { name: 'MAX_TOKENS', desc: 'Token limit — try 50 to see cut-off!', example: 'MAX_TOKENS = 200', points: 5, validate: createValidator('MAX_TOKENS', 'number', ['512']) },
       { name: 'MOOD', desc: 'cheerful, serious, sarcastic, mysterious, energetic, calm', example: 'MOOD = "energetic"', points: 3, validate: createValidator('MOOD', 'string', ['neutral']) },
       { name: 'LANGUAGE_STYLE', desc: 'casual, formal, academic, slang, poetic, storyteller', example: 'LANGUAGE_STYLE = "storyteller"', points: 3, validate: createValidator('LANGUAGE_STYLE', 'string', ['casual']) },
-      { name: 'CATCHPHRASES', desc: 'Signature phrases woven into every response', example: 'CATCHPHRASES = ["Fun fact!", "Pro tip:"]', points: 3, validate: createValidator('CATCHPHRASES', 'list') },
+      { name: 'CATCHPHRASES', desc: 'Signature phrases woven into every response', example: 'CATCHPHRASES = ["Fun fact!", "Pro tip:"]', points: 3, validate: createValidator('CATCHPHRASES', 'list', [], isAgent ? 3 : undefined) },
     ],
     tip: 'MAX_TOKENS controls how many "words" the AI can use. Set to 50 and ask a complex question to see context windows in action!',
   },
