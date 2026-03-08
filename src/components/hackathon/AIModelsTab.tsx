@@ -41,7 +41,7 @@ const MODEL_OPTIONS = [
   { id: 'audio' as ModelType, name: 'Audio Classifier', emoji: '🎵', description: 'Classify audio files by sound', color: '#9B59B6', dataHint: 'MP3, WAV files' },
 ];
 
-export const AIforwardRef<HTMLDivElement, AIModelsTabProps>(({ onViewCode }, refdelsTabProps) => {
+export const AIModelsTab = forwardRef(function AIModelsTab({ onViewCode }: AIModelsTabProps, ref: React.Ref<HTMLDivElement>) {
   const [selectedType, setSelectedType] = useState<ModelType | null>(null);
   const [step, setStep] = useState<Step>('upload');
   const [classes, setClasses] = useState<ClassData[]>([
