@@ -860,24 +860,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
       else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
 
-      // Bracket highlighting
-      if (bracketHighlights) {
-        for (const bh of bracketHighlights) {
-          if (bh.line === lineIdx) {
-            // We need to highlight the bracket at column bh.col
-            // This is a simplified approach - wrap the character
-            const chars = [...line];
-            if (bh.col < chars.length) {
-              // Re-render with bracket highlight (simplified: add a marker class via data attribute)
-              // For now, we rely on the visual overlay approach
-            }
-          }
-        }
-      }
-
       return result;
     });
-  }, [files, activeFile, bracketHighlights]);
+  }, [files['main.py'], activeFile]);
 
   // Q&A helpers
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
