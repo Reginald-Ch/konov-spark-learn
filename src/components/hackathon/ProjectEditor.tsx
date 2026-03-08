@@ -1187,7 +1187,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/22 challenges completed (${Math.round(completedCount / 22 * 100)}%)`,
+      `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
