@@ -1156,6 +1156,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setSavedFiles({ ...files });
       setLastSaved(new Date().toLocaleTimeString());
+      setAutoSaveCountdown(120);
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
       // No points for saves — scoring is milestone-based only
@@ -1487,7 +1488,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     {/* ── Mission Progress Bar ── */}
                     {(() => {
-                      const config = extractConfigFromCode(files['main.py']);
+                      const config = liveConfig;
                       const isAgent = projectType === 'agent';
                       const scaffold = PROJECT_SCAFFOLDS[projectType];
                       const defaultName = isAgent ? 'Research Agent' : 'Spark';
@@ -2083,7 +2084,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const totalStarters = cfg.conversationStarters.length;
             const totalCatchphrases = cfg.catchphrases.length;
             const totalBlocked = cfg.blockedTopics.length;
-            const mergedQACount = qaData.filter(p => p.q.trim()).length + codeQA.length;
+            const sidebarQs = new Set(qaData.filter(p => p.q.trim()).map(p => p.q.toLowerCase().trim()));
+            const uniqueCodeQA = codeQA.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
+            const mergedQACount = qaData.filter(p => p.q.trim()).length + uniqueCodeQA.length;
             
             // Type-aware defaults
             const isAgent = projectType === 'agent';
