@@ -361,9 +361,9 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "temperature": 0.7,
   "max_tokens": 512,
   "memory_window": 20,
-  "capabilities": ["conversation_memory", "streaming", "knowledge_base"],
+  "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 20,
+  "challenges": 22,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
