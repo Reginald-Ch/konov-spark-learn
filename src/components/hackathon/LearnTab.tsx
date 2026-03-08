@@ -221,7 +221,7 @@ const RESOURCES = [
 
 const LEVEL_COLORS: Record<string, string> = { Beginner: '#006600', Intermediate: '#F7941D', Advanced: '#C70110' };
 
-export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode }: LearnTabProps) => {
+export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode, projectType }: LearnTabProps) => {
   const [showTutorial, setShowTutorial] = useState(true);
   const [expandedStep, setExpandedStep] = useState<number | null>(1);
   const [timerActive, setTimerActive] = useState<number | null>(null); // step number
