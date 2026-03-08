@@ -228,13 +228,20 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Detect project type: use prop, or auto-detect from code
+  const isAgent = projectType === 'agent' || (!projectType && /SHOW_REASONING\s*=/.test(code));
+
+  // Build template-aware challenge steps
+  const CHALLENGE_STEPS = useMemo(() => buildChallengeSteps(isAgent), [isAgent]);
+  const ALL_CHALLENGES = useMemo(() => CHALLENGE_STEPS.flatMap(s => s.challenges), [CHALLENGE_STEPS]);
+
   // Read code from localStorage if not passed as prop
-  const code = currentCode || localStorage.getItem('forge-editor-code') || '';
+  const codeToValidate = currentCode || localStorage.getItem('forge-editor-code') || '';
 
   // Validate all challenges against the current code
   const validationResults = ALL_CHALLENGES.map(ch => ({
     name: ch.name,
-    passed: code ? ch.validate(code) : false,
+    passed: codeToValidate ? ch.validate(codeToValidate) : false,
     points: ch.points,
   }));
 
@@ -244,7 +251,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   // Step-level completion
   const stepResults = CHALLENGE_STEPS.map(step => {
     const stepValidations = step.challenges.map(ch => ({
-      passed: code ? ch.validate(code) : false,
+      passed: codeToValidate ? ch.validate(codeToValidate) : false,
       points: ch.points,
     }));
     const allPassed = stepValidations.every(v => v.passed);
