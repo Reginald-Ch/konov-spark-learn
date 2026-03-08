@@ -355,7 +355,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                           <CheckCircle2 className="w-5 h-5 text-green-400" />
                         ) : (
                           <div className="w-5 h-5 rounded-full border-2 border-[hsl(var(--discord-light)/0.3)] flex items-center justify-center">
-                            <span className="text-[9px] font-bold text-[hsl(var(--discord-text-muted))]">{sr.completedInStep}/{sr.total}</span>
+                            <span className="text-[9px] font-bold text-white">{sr.completedInStep}/{sr.total}</span>
                           </div>
                         )}
                       </div>
