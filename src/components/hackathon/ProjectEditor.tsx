@@ -2371,17 +2371,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {showPreview ? <PanelRightClose className="w-3 h-3 mr-1" /> : <PanelRightOpen className="w-3 h-3 mr-1" />}
             Preview
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={isRunning}
+          <Button size="sm" onClick={handleRun} disabled={isRunning} title="Run Tests (Ctrl+Enter)"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-border text-ide-text hover:bg-ide-selection border border-ide-border">
             {isRunning ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <TestTube className="w-3 h-3 mr-1" />}
-            <span className="hidden sm:inline">Run Tests</span>
+            <span className="hidden sm:inline">Run</span>
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving}
+          <Button size="sm" onClick={handleSave} disabled={isSaving} title="Save Checkpoint (Ctrl+S)"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
-            <span className="hidden sm:inline">Save Checkpoint</span>
+            <span className="hidden sm:inline">Save</span>
           </Button>
-          <Button size="sm" onClick={handleGoLive}
+          <Button size="sm" onClick={handleGoLive} title="Publish & get shareable link"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-green text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Go Live</span>
