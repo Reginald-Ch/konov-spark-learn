@@ -2263,7 +2263,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.maxTokens !== 512,
               cfg.mood && cfg.mood !== 'neutral',
               cfg.languageStyle && cfg.languageStyle !== 'casual',
-              totalCatchphrases > 3,
+              totalCatchphrases > (isAgent ? 3 : 0),
             ].filter(Boolean).length;
 
             return (
