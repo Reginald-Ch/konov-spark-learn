@@ -199,7 +199,11 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
   const [chatInput, setChatInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const recognitionRef = useRef<any>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const sections = useMemo(() => builderType === 'agent' ? AGENT_SECTIONS : CHATBOT_SECTIONS, [builderType]);
