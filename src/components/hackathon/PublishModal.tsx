@@ -214,7 +214,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               exit={{ opacity: 0 }}
             >
               {/* Success header — compact */}
-              <div className="px-5 pt-5 pb-4 text-center" style={{ background: 'linear-gradient(180deg, rgba(16,185,129,0.15) 0%, transparent 100%)' }}>
+              <div className="px-5 pt-5 pb-4 text-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
