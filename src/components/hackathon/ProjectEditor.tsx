@@ -1935,6 +1935,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
                 <Upload className="w-3 h-3" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={handleResetToTemplate} title="Reset to original template"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-orange hover:bg-ide-border/50">
+                <RotateCcw className="w-3 h-3" />
+              </Button>
               <input ref={fileInputRef} type="file" accept=".py" onChange={handleFileChange} className="hidden" />
               <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (

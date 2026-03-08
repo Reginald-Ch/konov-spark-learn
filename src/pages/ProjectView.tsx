@@ -433,9 +433,14 @@ const ProjectView = () => {
       }
     } catch (e) {
       console.error('Chat error:', e);
+      // Remove the '...' placeholder and replace with error message
       setChatMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
+        if (updated.length > 0 && updated[updated.length - 1].content === '...') {
+          updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
+        } else {
+          updated.push({ role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' });
+        }
         return updated;
       });
     } finally {
