@@ -229,7 +229,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Detect project type: use prop, or auto-detect from code
-  const isAgent = projectType === 'agent' || (!projectType && /SHOW_REASONING\s*=/.test(code));
+  const isAgent = projectType === 'agent' || (!projectType && /SHOW_REASONING\s*=/.test(codeToValidate));
 
   // Build template-aware challenge steps
   const CHALLENGE_STEPS = useMemo(() => buildChallengeSteps(isAgent), [isAgent]);
