@@ -1606,7 +1606,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               {completed}/{total}
                             </span>
                           </div>
-                          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                          <div className="space-y-0.5 max-h-64 overflow-y-auto">
                             {missions.map((m, i) => (
                               <div key={i} className={`flex items-center gap-1.5 text-[10px] py-0.5 ${m.done ? 'text-ide-green' : 'text-ide-text-muted'}`}>
                                 <span className="w-4 text-center">{m.done ? '✅' : '⬜'}</span>
