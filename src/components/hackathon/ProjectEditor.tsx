@@ -1112,9 +1112,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
       const ww = debouncedLiveConfig?.wakeWord || '';
+      wakeWordRef.current = ww;
       startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
+      wakeWordRef.current = '';
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);

@@ -416,9 +416,11 @@ const ProjectView = () => {
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
       const ww = config?.wakeWord || '';
+      wakeWordRef.current = ww;
       startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
+      wakeWordRef.current = '';
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
