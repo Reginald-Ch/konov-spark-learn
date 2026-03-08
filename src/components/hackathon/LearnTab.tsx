@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, Palette, Target, Smile, CheckCircle2, Circle, Timer, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 interface LearnTabProps {
   onNavigateToBuild: () => void;
