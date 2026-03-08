@@ -148,4 +148,5 @@ export const SuccessStories = forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-};
+});
+SuccessStories.displayName = "SuccessStories";
