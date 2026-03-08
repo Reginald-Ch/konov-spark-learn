@@ -119,6 +119,8 @@ const ProjectView = () => {
   const [voiceConversationMode, setVoiceConversationMode] = useState(false);
   const recognitionRef = useRef<any>(null);
   const voiceModeRef = useRef(false);
+  const handleChatSendRef = useRef<(msg?: string) => void>(() => {});
+  const wakeWordRef = useRef<string>('');
 
   useEffect(() => {
     if (!id) return;
@@ -341,7 +343,7 @@ const ProjectView = () => {
     utterance.onend = () => {
       setIsSpeaking(false);
       if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(), 300);
+        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 300);
       }
     };
     utterance.onerror = () => setIsSpeaking(false);
@@ -372,8 +374,11 @@ const ProjectView = () => {
             const r2 = new SpeechRecognition();
             r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
             recognitionRef.current = r2;
-            r2.onresult = (ev: any) => { const t = ev.results[0][0].transcript; if (t.trim()) handleChatSend(t.trim()); };
-            r2.onend = () => setIsListening(false);
+            r2.onresult = (ev: any) => {
+              const t = ev.results[0][0].transcript;
+              if (t.trim()) handleChatSendRef.current(t.trim());
+            };
+            r2.onend = () => { setIsListening(false); };
             r2.onerror = (e: any) => { if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`); setIsListening(false); };
             r2.start();
           }, 200);
@@ -382,7 +387,7 @@ const ProjectView = () => {
         }
         return;
       }
-      if (transcript.trim()) handleChatSend(transcript.trim());
+      if (transcript.trim()) handleChatSendRef.current(transcript.trim());
     };
     recognition.onend = () => { if (!isWakeWordMode) setIsListening(false); };
     recognition.onerror = (e: any) => {
@@ -411,9 +416,11 @@ const ProjectView = () => {
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
       const ww = config?.wakeWord || '';
+      wakeWordRef.current = ww;
       startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
+      wakeWordRef.current = '';
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
@@ -605,6 +612,7 @@ const ProjectView = () => {
       setIsStreaming(false);
     }
   };
+  handleChatSendRef.current = handleChatSend;
 
   if (isLoading) {
     return (
