@@ -90,7 +90,7 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
 export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -102,6 +102,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
         supabase
           .from('ai_projects')
           .select('id, author_email, author_name, project_name, code, description, is_published, demo_url')
+          .eq('is_published', true)
           .limit(500),
         supabase
           .from('point_events')
@@ -315,8 +316,8 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
             {participants.map((p, index) => (
               <div
                 key={p.email}
-                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedParticipant?.email === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
-                onClick={() => setSelectedParticipant(selectedParticipant?.email === p.email ? null : p)}
+                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedEmail === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
+                onClick={() => setSelectedEmail(selectedEmail === p.email ? null : p.email)}
               >
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
@@ -346,7 +347,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                     <Progress value={(p.points / MAX_SCORE) * 100} className="h-1 w-16 mt-1" />
                   </div>
                 </div>
-                {selectedParticipant?.email === p.email && (
+                {selectedEmail === p.email && (
                   <div className="px-3 pb-3">
                     <TierBreakdown participant={p} />
                   </div>
