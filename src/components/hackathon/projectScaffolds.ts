@@ -529,9 +529,24 @@ SECRET_RESPONSES = {
 }
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Choose Response Style
+# 🏆 CHALLENGE 15: Mood-Based Responses (Dictionary Routing!)
+# Your agent adapts its style based on detected user mood!
+# This teaches DICTIONARY LOOKUP — a key Python pattern.
+#
+#   MOOD_RESPONSES = {
+#       "happy": "Match their energy with enthusiasm! 🎉",
+#       "confused": "Break it down step by step",
+#       "frustrated": "Be extra patient and empathetic",
+#       "curious": "Go deep with fascinating analysis",
+#   }
+#
+# 🧪 TEST: Say "I'm frustrated" → agent should be empathetic!
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Professional"
+MOOD_RESPONSES = {
+    "happy": "Be enthusiastic and celebrate with the user!",
+    "frustrated": "Be extra patient, empathetic, and break things down",
+    "curious": "Go deeper with thorough analysis and extra details"
+}
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 16: Set Response Length
@@ -553,11 +568,31 @@ MAX_TOKENS = 512
 MOOD = "neutral"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 19: Set Language Style
-# Options: "casual", "formal", "academic",
-#          "slang", "poetic", "storyteller"
+# 🏆 CHALLENGE 19: Smart Tone Routing (If/Elif Conditional!)
+# Your agent picks a RESPONSE_TONE based on TIME_OF_DAY!
+# This teaches IF/ELIF/ELSE — Python's conditional logic.
+#
+#   if TIME_OF_DAY == "morning":
+#       RESPONSE_TONE = "sharp and analytical"
+#   elif TIME_OF_DAY == "afternoon":
+#       RESPONSE_TONE = "efficient and focused"
+#   elif TIME_OF_DAY == "evening":
+#       RESPONSE_TONE = "thorough and reflective"
+#   else:
+#       RESPONSE_TONE = "balanced"
+#
+# 🧪 TEST: Change TIME_OF_DAY and chat — notice the tone shift!
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+TIME_OF_DAY = "morning"
+
+if TIME_OF_DAY == "morning":
+    RESPONSE_TONE = "sharp and analytical"
+elif TIME_OF_DAY == "afternoon":
+    RESPONSE_TONE = "efficient and focused"
+elif TIME_OF_DAY == "evening":
+    RESPONSE_TONE = "thorough and reflective"
+else:
+    RESPONSE_TONE = "balanced"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add Catchphrases (Python List)
