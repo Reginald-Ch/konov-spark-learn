@@ -476,8 +476,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [knowledgeBase]);
 
-  // Read knowledge base from code when code changes
+  // Read knowledge base from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
