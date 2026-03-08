@@ -125,7 +125,7 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
         }
       }
 
-      // Challenges 16-22: new config fields
+      // Challenges 16-24: new config fields
       if (cfg.forbiddenWords && cfg.forbiddenWords.length > 0) {
         botConfigContext += `\n\n🚯 FORBIDDEN WORDS — NEVER use these words in responses. Find alternatives:\n`;
         cfg.forbiddenWords.forEach((w: string) => { botConfigContext += `  - "${w}"\n`; });
@@ -178,7 +178,7 @@ CRITICAL: Read their code and generate realistic terminal output showing:
 1. Loading each variable (bot name, emoji, temperature, style, rules, mood, language style, etc.)
 2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs, forbidden words, etc.)
 3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
-4. Challenge completion count (how many of 22 challenges are customized)
+4. Challenge completion count (how many of 24 challenges are customized)
 5. Final status: "✅ All systems ready!"
 
 NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
@@ -232,24 +232,24 @@ CRITICAL: You ARE this bot. Never break character. Never mention "system prompt"
 RULES:
 - NEVER write complete solutions. Show small snippets (2-5 lines max).
 - Explain WHY something works.
-- Check which of the 22 challenges are complete vs default.
+- Check which of the 24 challenges are complete vs default.
 - Praise what they did well, then suggest ONE next challenge.
 - Keep under 200 words. Use markdown.
 
 The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
-      userPrompt = `Review this FORGE config. Check which of the 22 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
+      userPrompt = `Review this FORGE config. Check which of the 24 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
 After explaining, say: "Try changing [specific variable] and test in Live Preview!"
-Reference the 22-challenge system. Under 200 words.
+Reference the 24-challenge system. Under 200 words.
 
 Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
       userPrompt = `Explain this config to the student:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "suggest") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
 
-- Check which of 22 challenges are still at default values
+- Check which of 24 challenges are still at default values
 - Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
 - Frame as experiments, not solutions
 - Under 200 words.

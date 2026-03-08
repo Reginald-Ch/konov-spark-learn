@@ -1170,8 +1170,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
-      { label: 'WAKE_WORD', ok: !!(config as any).wakeWord, val: (config as any).wakeWord || '(empty)' },
-      { label: 'VOICE_GENDER', ok: (config as any).voiceGender !== 'default', val: (config as any).voiceGender || 'default' },
+      { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
+      { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1182,12 +1182,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 22 challenges...`,
+      `📋 Scanning 24 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/22 challenges completed (${Math.round(completedCount / 22 * 100)}%)`,
+      `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
@@ -1220,7 +1220,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/22 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/24 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
@@ -2425,7 +2425,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 22;
+            const totalChallenges = 24;
             const activeCount = [
               cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
               cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
