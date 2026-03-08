@@ -2083,7 +2083,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const totalStarters = cfg.conversationStarters.length;
             const totalCatchphrases = cfg.catchphrases.length;
             const totalBlocked = cfg.blockedTopics.length;
-            const mergedQACount = qaData.filter(p => p.q.trim()).length + codeQA.length;
+            const sidebarQs = new Set(qaData.filter(p => p.q.trim()).map(p => p.q.toLowerCase().trim()));
+            const uniqueCodeQA = codeQA.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
+            const mergedQACount = qaData.filter(p => p.q.trim()).length + uniqueCodeQA.length;
             
             // Type-aware defaults
             const isAgent = projectType === 'agent';
