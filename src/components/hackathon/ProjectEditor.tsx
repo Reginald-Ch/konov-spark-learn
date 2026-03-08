@@ -1051,19 +1051,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const startListeningOnce = useCallback((wakeWord?: string) => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
+    if (!voiceModeRef.current) return; // don't start if mode is off
     if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
-    const isWakeWordMode = !!wakeWord && voiceModeRef.current;
+    const isWakeWordMode = !!wakeWord;
     if (isWakeWordMode) setWaitingForWakeWord(true);
     setIsListening(true);
+    let gotResult = false;
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      gotResult = true;
+      const transcript = event.results[0][0].transcript.trim();
       if (isWakeWordMode) {
-        if (transcript.trim().toLowerCase().includes(wakeWord!.toLowerCase())) {
+        if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
           setTimeout(() => {
@@ -1071,23 +1074,44 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
             recognitionRef.current = r2;
             r2.onresult = (ev: any) => {
-              const t = ev.results[0][0].transcript;
-              if (t.trim()) handleChatSendRef.current(t.trim());
+              const t = ev.results[0][0].transcript.trim();
+              if (t) handleChatSendRef.current(t);
             };
             r2.onend = () => { setIsListening(false); };
-            r2.onerror = (e: any) => { if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`); setIsListening(false); };
+            r2.onerror = (e: any) => {
+              setIsListening(false);
+              if (e.error === 'no-speech' && voiceModeRef.current) {
+                toast.info('No speech detected, waiting for wake word...');
+                setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
+                return;
+              }
+              if (e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
+            };
             r2.start();
           }, 200);
         } else {
-          setTimeout(() => startListeningOnce(wakeWord), 300);
+          // Didn't hear wake word — restart
+          setTimeout(() => { if (voiceModeRef.current) startListeningOnce(wakeWord); }, 300);
         }
         return;
       }
-      if (transcript.trim()) handleChatSendRef.current(transcript.trim());
+      // No wake word mode - send message
+      if (transcript) handleChatSendRef.current(transcript);
     };
-    recognition.onend = () => { if (!isWakeWordMode) setIsListening(false); };
+    recognition.onend = () => {
+      if (!gotResult && voiceModeRef.current) {
+        // Timed out / no speech - restart
+        setTimeout(() => startListeningOnce(wakeWord), 300);
+        return;
+      }
+      if (!isWakeWordMode) setIsListening(false);
+    };
     recognition.onerror = (e: any) => {
-      if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
+      if (e.error === 'no-speech' && voiceModeRef.current) {
+        setTimeout(() => startListeningOnce(wakeWord), 300);
+        return;
+      }
+      if (e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
       setIsListening(false);
       setWaitingForWakeWord(false);
     };
@@ -1380,6 +1404,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
         speakText(assistantReply, liveConfig.voiceGender);
+      } else if (voiceModeRef.current) {
+        // TTS is disabled but hands-free is on — restart listening after AI responds
+        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
       }
     } catch (e: any) {
       // Bug 6: Remove the trailing '...' placeholder before adding error
