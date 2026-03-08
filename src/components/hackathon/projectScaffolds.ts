@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 22 Build-Up Challenges
+🤖 FORGE AI Chatbot — 24 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,7 +26,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-   - Complete all 22 challenges to build a unique AI!
+   - Complete all 24 challenges to build a unique AI!
 
 ⏱️ Time: 50-70 minutes
 """
