@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe } from 'lucide-react';
+import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Project {
@@ -111,6 +111,14 @@ const ProjectView = () => {
   const [chatInput, setChatInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice state
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [voiceConversationMode, setVoiceConversationMode] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceModeRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
@@ -310,6 +318,84 @@ const ProjectView = () => {
     toast.success('Code copied!');
   };
 
+  // ── Voice Helpers ──
+  const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
+
+  const speakText = useCallback((text: string) => {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const cleaned = stripMarkdown(text);
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (voiceModeRef.current) {
+        setTimeout(() => startListeningOnce(), 300);
+      }
+    };
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  }, [ttsEnabled]);
+
+  const startListeningOnce = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
+    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript.trim()) handleChatSend(transcript.trim());
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
+      setIsListening(false);
+    };
+    recognition.start();
+  }, []);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      setIsListening(false);
+    } else {
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+      startListeningOnce();
+    }
+  }, [isListening, startListeningOnce]);
+
+  const toggleVoiceConversation = useCallback(() => {
+    const newMode = !voiceConversationMode;
+    setVoiceConversationMode(newMode);
+    voiceModeRef.current = newMode;
+    if (newMode) {
+      toast.success('🎙️ Hands-free mode ON');
+      startListeningOnce();
+    } else {
+      toast.info('Hands-free mode OFF');
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      window.speechSynthesis?.cancel();
+      setIsListening(false);
+      setIsSpeaking(false);
+    }
+  }, [voiceConversationMode, startListeningOnce]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
   const handleShareUrl = () => {
     const url = window.location.href;
     if (navigator.share) {
@@ -465,6 +551,10 @@ const ProjectView = () => {
             }
           } catch { /* partial JSON */ }
         }
+      }
+      // TTS: Speak the response if voice is enabled
+      if (fullText && config?.voiceEnabled && ttsEnabled) {
+        speakText(fullText);
       }
     } catch (e) {
       console.error('Chat error:', e);
@@ -657,21 +747,60 @@ const ProjectView = () => {
           </div>
 
           {/* Input */}
-          <div className="border-t p-3 flex gap-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
-            <Input
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-              placeholder="Type a message..."
-              disabled={isStreaming}
-              className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
-              style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
-            />
-            <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
-              className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
-              style={{ backgroundColor: theme.accent }}>
-              {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
+          <div className="border-t p-3 space-y-2" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.chat }}>
+            {isListening && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <div className="relative">
+                  <Mic className="w-4 h-4 text-red-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
+                </div>
+                <span className="text-xs text-red-400 font-medium animate-pulse">Listening...</span>
+              </div>
+            )}
+            {isSpeaking && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <Volume2 className="w-4 h-4 animate-pulse" style={{ color: theme.accent }} />
+                <span className="text-xs font-medium" style={{ color: theme.accent }}>Speaking...</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleChatSend()}
+                placeholder={isListening ? '🎤 Listening...' : 'Type a message...'}
+                disabled={isStreaming || isListening}
+                className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
+                style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
+              />
+              {config?.voiceEnabled && (
+                <>
+                  <Button onClick={toggleListening} disabled={isStreaming}
+                    title={isListening ? 'Stop listening' : 'Push to talk'}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-white hover:opacity-90'}`}
+                    style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
+                    <Mic className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={toggleVoiceConversation} disabled={isStreaming}
+                    title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free'}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90`}
+                    style={{ backgroundColor: voiceConversationMode ? theme.accent : `${theme.accent}30` }}>
+                    <Radio className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
+                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                    className="h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90"
+                    style={{ backgroundColor: `${theme.accent}30` }}>
+                    {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
+                className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
+                style={{ backgroundColor: theme.accent }}>
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </motion.div>
 
