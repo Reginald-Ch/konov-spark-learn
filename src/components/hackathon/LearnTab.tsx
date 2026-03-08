@@ -386,7 +386,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                 <span className={`text-sm font-mono font-bold ${isOverTime ? 'text-red-400' : 'text-green-400'}`}>
                                   {formatTime(timerSeconds)}
                                 </span>
-                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">/ {step.timeLimit}:00 target</span>
+                                <span className="text-[10px] text-white">/ {step.timeLimit}:00 target</span>
                                 <div className="flex-1" />
                                 {sr.allPassed && (
                                   <span className="text-[10px] font-bold text-green-400 flex items-center gap-1">
