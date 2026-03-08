@@ -125,7 +125,7 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
         }
       }
 
-      // Challenges 16-22: new config fields
+      // Challenges 16-24: new config fields
       if (cfg.forbiddenWords && cfg.forbiddenWords.length > 0) {
         botConfigContext += `\n\n🚯 FORBIDDEN WORDS — NEVER use these words in responses. Find alternatives:\n`;
         cfg.forbiddenWords.forEach((w: string) => { botConfigContext += `  - "${w}"\n`; });
