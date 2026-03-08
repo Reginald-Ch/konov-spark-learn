@@ -237,7 +237,7 @@ RULES:
 - Keep under 200 words. Use markdown.
 
 The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
-      userPrompt = `Review this FORGE config. Check which of the 22 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
+      userPrompt = `Review this FORGE config. Check which of the 24 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
