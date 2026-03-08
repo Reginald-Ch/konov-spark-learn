@@ -96,10 +96,10 @@ export const Timeline = () => {
                       <div className="p-6">
                         <div className={`flex items-start gap-4 ${isLeft ? "" : "md:flex-row-reverse"}`}>
                           <motion.div 
-                            className={`p-3 rounded-xl bg-gradient-to-br ${
-                              event.color === 'primary' ? 'from-primary to-primary/70' :
-                              event.color === 'secondary' ? 'from-secondary to-secondary/70' :
-                              'from-accent to-accent/70'
+                            className={`p-3 rounded-xl ${
+                              event.color === 'primary' ? 'bg-primary' :
+                              event.color === 'secondary' ? 'bg-secondary' :
+                              'bg-accent'
                             }`}
                             whileHover={{ rotate: 360 }}
                             transition={{ duration: 0.5 }}
