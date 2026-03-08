@@ -1337,7 +1337,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [isDirty, currentProjectId]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
-  const lines = files[activeFile].split('\n');
+  const lines = useMemo(() => files[activeFile].split('\n'), [files[activeFile]]);
 
   const FILE_TABS: { id: FileTab; icon: React.ElementType; label: string }[] = [
     { id: 'main.py', icon: FileCode, label: 'main.py' },
