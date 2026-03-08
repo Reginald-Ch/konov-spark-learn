@@ -1586,7 +1586,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
                         { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0)            { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0)oji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
@@ -1598,8 +1598,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchp(isAgent ? 3 : 0)rases.length > 3 },
-                      ];
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchp(isAgent ? 3 : 0hrases.length > (isAgent ? 3 : 0)          ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
                       const pct = Math.round((completed / total) * 100);
