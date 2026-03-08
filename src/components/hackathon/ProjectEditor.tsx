@@ -2332,15 +2332,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
-              <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-green/20 text-ide-green hover:text-white hover:bg-ide-green/40 border border-ide-green/30">
-                  <Send className="w-3 h-3 mr-1" /> Submit Project
-                </Button>
-              </div>
             </div>
           </div>
         </div>
