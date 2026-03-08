@@ -83,7 +83,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
     >
       {/* Live indicator pulse */}
       {hackathon.status === 'live' && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#C70110] via-[#F7941D] to-[#C70110] animate-pulse" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary animate-pulse" />
       )}
       
       {/* Upcoming indicator with Konov colors */}
