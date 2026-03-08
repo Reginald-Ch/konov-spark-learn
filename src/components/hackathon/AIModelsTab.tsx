@@ -2,10 +2,9 @@ import { useState, useRef, useCallback, forwardRef, useEffect, useMemo } from 'r
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Brain, Bot, Cpu, Sparkles, Zap, Send, Loader2, CheckCircle2, Code, 
-  ChevronRight, ChevronLeft, ChevronDown, Plus, X, Trash2, Play, MessageSquare,
+  ChevronRight, ChevronDown, Plus, X, Play, MessageSquare,
   User, Shield, BookOpen, Palette, Settings, Wand2, ArrowRight, RotateCcw,
-  Eye, EyeOff, Copy, Check, Lightbulb, Rocket, Target, Heart, GraduationCap,
-  Gamepad2, HelpCircle, Layers, GitBranch, ArrowDown, Search, Calculator, Globe
+  Eye, EyeOff, Copy, Check, Search, Calculator, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +17,6 @@ interface AIModelsTabProps {
 }
 
 type BuilderType = 'chatbot' | 'agent' | null;
-type BuilderStep = 'type' | 'preset' | 'build' | 'test';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -46,105 +44,6 @@ interface ConfigField {
   step?: number;
 }
 
-interface Preset {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  color: string;
-  config: Record<string, any>;
-}
-
-// ─── Presets ───
-const CHATBOT_PRESETS: Preset[] = [
-  {
-    id: 'tutor', name: 'Study Buddy', emoji: '📚', description: 'Patient tutor that explains concepts step-by-step',
-    color: '#10B981',
-    config: {
-      BOT_NAME: 'StudyBot', BOT_EMOJI: '📚', AI_MESSAGE: "Hey! I'm your Study Buddy 📚 Ask me anything and I'll explain it simply!",
-      SYSTEM_MESSAGE: 'You are a patient, encouraging tutor. Break down complex topics into simple explanations with examples. Use analogies kids can relate to.',
-      MOOD: 'cheerful', LANGUAGE_STYLE: 'casual', RESPONSE_STYLE: 'Detailed',
-      CONVERSATION_STARTERS: ['Explain photosynthesis', 'Help me with fractions', 'What is gravity?'],
-      RULES: ['Always encourage the student', 'Use simple language', 'Give real-world examples'],
-      CATCHPHRASES: ['Great question! 🌟', 'Let me break that down...', 'You\'re doing amazing!'],
-    }
-  },
-  {
-    id: 'creative', name: 'Story Wizard', emoji: '✨', description: 'Creative writing companion that helps craft amazing stories',
-    color: '#8B5CF6',
-    config: {
-      BOT_NAME: 'StoryWiz', BOT_EMOJI: '✨', AI_MESSAGE: "Welcome, young author! ✨ Ready to create an epic story together?",
-      SYSTEM_MESSAGE: 'You are a creative storytelling companion. Help users craft imaginative stories with vivid descriptions, interesting characters, and exciting plots.',
-      MOOD: 'energetic', LANGUAGE_STYLE: 'storyteller', RESPONSE_STYLE: 'Detailed',
-      CONVERSATION_STARTERS: ['Start a fantasy adventure', 'Create a mystery story', 'Write about a robot'],
-      RULES: ['Be highly imaginative', 'Use descriptive language', 'Encourage creativity'],
-      CATCHPHRASES: ['Once upon a time...', 'Plot twist! 🌀', 'And then something magical happened...'],
-    }
-  },
-  {
-    id: 'quiz', name: 'Quiz Master', emoji: '🎯', description: 'Fun quiz bot that tests knowledge with challenges',
-    color: '#F59E0B',
-    config: {
-      BOT_NAME: 'QuizBot', BOT_EMOJI: '🎯', AI_MESSAGE: "Hey challenger! 🎯 I'm QuizBot — ready to test your brain?",
-      SYSTEM_MESSAGE: 'You are a fun quiz master. Ask engaging trivia questions, give hints when asked, celebrate correct answers, and gently correct wrong ones. Keep score mentally.',
-      MOOD: 'energetic', LANGUAGE_STYLE: 'casual', RESPONSE_STYLE: 'Concise',
-      CONVERSATION_STARTERS: ['Quiz me on science', 'Ask me about history', 'Challenge me!'],
-      RULES: ['Make questions fun and age-appropriate', 'Give hints if asked', 'Celebrate correct answers'],
-      CATCHPHRASES: ['🎉 Correct!', 'So close! Try again!', 'Here\'s a hint...'],
-    }
-  },
-  {
-    id: 'blank', name: 'Start Fresh', emoji: '🔧', description: 'Empty canvas — build your chatbot from scratch',
-    color: '#6B7280',
-    config: {}
-  }
-];
-
-const AGENT_PRESETS: Preset[] = [
-  {
-    id: 'researcher', name: 'Research Pro', emoji: '🔬', description: 'Searches, calculates, and finds accurate answers',
-    color: '#06B6D4',
-    config: {
-      BOT_NAME: 'ResearchBot', BOT_EMOJI: '🔬', AI_MESSAGE: "Hi! I'm ResearchBot 🔬 I can search, calculate, and find facts for you!",
-      SYSTEM_MESSAGE: 'You are a research agent. Use your tools to find accurate, up-to-date information. Always cite sources and show your reasoning.',
-      MOOD: 'serious', LANGUAGE_STYLE: 'academic', RESPONSE_STYLE: 'Detailed',
-      TOOLS: ['Search', 'Calculator', 'Wikipedia'], MAX_ITERATIONS: 5, VERBOSE: true,
-      CONVERSATION_STARTERS: ['Search for climate change facts', 'Calculate the distance to Mars', 'Look up Albert Einstein'],
-      RULES: ['Always cite sources', 'Use tools before guessing', 'Be precise and factual'],
-    }
-  },
-  {
-    id: 'coder', name: 'Code Helper', emoji: '💻', description: 'Debugging companion that helps write and fix code',
-    color: '#10B981',
-    config: {
-      BOT_NAME: 'CodeBot', BOT_EMOJI: '💻', AI_MESSAGE: "Hey coder! 💻 I can help you write, debug, and understand code!",
-      SYSTEM_MESSAGE: 'You are a coding assistant agent. Help users write, debug, and understand code. Use tools to look up documentation and test solutions.',
-      MOOD: 'calm', LANGUAGE_STYLE: 'casual', RESPONSE_STYLE: 'Detailed',
-      TOOLS: ['Search', 'Calculator'], MAX_ITERATIONS: 3, VERBOSE: true,
-      CONVERSATION_STARTERS: ['Help me write a Python function', 'Debug this code', 'Explain loops'],
-      RULES: ['Write clean, commented code', 'Explain your reasoning', 'Suggest best practices'],
-    }
-  },
-  {
-    id: 'planner', name: 'Task Planner', emoji: '📋', description: 'Breaks big tasks into steps and helps organize work',
-    color: '#F59E0B',
-    config: {
-      BOT_NAME: 'PlanBot', BOT_EMOJI: '📋', AI_MESSAGE: "Hi! I'm PlanBot 📋 Tell me your goal and I'll create a step-by-step plan!",
-      SYSTEM_MESSAGE: 'You are a planning agent. Break down complex tasks into manageable steps. Use tools to research and validate your plans.',
-      MOOD: 'cheerful', LANGUAGE_STYLE: 'casual', RESPONSE_STYLE: 'Detailed',
-      TOOLS: ['Search', 'Calculator'], MAX_ITERATIONS: 5, VERBOSE: true,
-      CONVERSATION_STARTERS: ['Plan a science project', 'Help me study for exams', 'Organize my week'],
-      RULES: ['Break tasks into small steps', 'Set realistic timelines', 'Prioritize important tasks'],
-    }
-  },
-  {
-    id: 'blank', name: 'Start Fresh', emoji: '🔧', description: 'Empty canvas — build your agent from scratch',
-    color: '#6B7280',
-    config: {}
-  }
-];
-
-// Default config values
 const DEFAULT_CHATBOT_CONFIG: Record<string, any> = {
   BOT_NAME: 'Spark', BOT_EMOJI: '🤖',
   AI_MESSAGE: "Hey there! I'm Spark, your AI buddy. Ask me anything!",
@@ -205,7 +104,7 @@ const CHATBOT_SECTIONS: ConfigSection[] = [
     ]
   },
   {
-    id: 'rules', title: 'Safety', subtitle: 'Guardrails & restrictions', icon: <Shield className="w-4 h-4" />, color: '#EF4444',
+    id: 'rules', title: 'Safety & Rules', subtitle: 'Guardrails & restrictions', icon: <Shield className="w-4 h-4" />, color: '#EF4444',
     fields: [
       { key: 'RULES', label: 'Rules', type: 'list', placeholder: 'Always be friendly' },
       { key: 'FORBIDDEN_WORDS', label: 'Forbidden Words', type: 'list', placeholder: 'stupid' },
@@ -293,20 +192,17 @@ const AGENT_SECTIONS: ConfigSection[] = [
 const EMOJI_OPTIONS = ['🤖', '🧠', '🚀', '💡', '🎯', '📚', '🔬', '💻', '🎨', '🎮', '🌟', '⚡', '🦊', '🐱', '🦄', '👾', '🤓', '😎', '🧙', '🦸', '🎭', '🏆', '💎', '🔮'];
 
 export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function AIModelsTab({ onViewCode }, ref) {
-  const [step, setStep] = useState<BuilderStep>('type');
   const [builderType, setBuilderType] = useState<BuilderType>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
-  const [activeSection, setActiveSection] = useState(0);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['identity']);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const sections = useMemo(() => builderType === 'agent' ? AGENT_SECTIONS : CHATBOT_SECTIONS, [builderType]);
-  const presets = builderType === 'agent' ? AGENT_PRESETS : CHATBOT_PRESETS;
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -314,26 +210,21 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
 
   const selectType = (type: BuilderType) => {
     setBuilderType(type);
-    setStep('preset');
-  };
-
-  const selectPreset = (preset: Preset) => {
-    const defaults = builderType === 'agent' ? { ...DEFAULT_AGENT_CONFIG } : { ...DEFAULT_CHATBOT_CONFIG };
-    if (preset.id === 'blank') {
-      setConfig(defaults);
-    } else {
-      setConfig({ ...defaults, ...preset.config });
-    }
+    setConfig(type === 'agent' ? { ...DEFAULT_AGENT_CONFIG } : { ...DEFAULT_CHATBOT_CONFIG });
     setChatMessages([]);
-    setActiveSection(0);
-    setStep('build');
+    setExpandedSections(['identity']);
   };
 
   const updateConfig = (key: string, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  // Count completed fields
+  const toggleSection = (id: string) => {
+    setExpandedSections(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+
   const getCompletionCount = () => {
     const defaults = builderType === 'agent' ? DEFAULT_AGENT_CONFIG : DEFAULT_CHATBOT_CONFIG;
     let completed = 0, total = 0;
@@ -342,8 +233,8 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
         total++;
         const val = config[field.key];
         const def = defaults[field.key];
-        if (JSON.stringify(val) !== JSON.stringify(def) && val !== undefined && val !== '' && 
-            !(Array.isArray(val) && val.length === 0) && !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)) {
+        if (JSON.stringify(val) !== JSON.stringify(def) && val !== undefined && val !== '' &&
+          !(Array.isArray(val) && val.length === 0) && !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)) {
           completed++;
         }
       }
@@ -357,15 +248,14 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     for (const field of section.fields) {
       const val = config[field.key];
       const def = defaults[field.key];
-      if (JSON.stringify(val) !== JSON.stringify(def) && val !== undefined && val !== '' && 
-          !(Array.isArray(val) && val.length === 0) && !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)) {
+      if (JSON.stringify(val) !== JSON.stringify(def) && val !== undefined && val !== '' &&
+        !(Array.isArray(val) && val.length === 0) && !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)) {
         done++;
       }
     }
     return { done, total: section.fields.length };
   };
 
-  // Build system prompt from config
   const buildSystemPrompt = () => {
     let prompt = config.SYSTEM_MESSAGE || 'You are a helpful AI assistant.';
     if (config.KNOWLEDGE_BASE) prompt += `\n\nKnowledge:\n${config.KNOWLEDGE_BASE}`;
@@ -577,112 +467,78 @@ APP_THEME = "default"
   };
 
   const { completed, total } = builderType ? getCompletionCount() : { completed: 0, total: 0 };
-  const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  // ─── STEP: Type Selection ───
-  if (step === 'type') {
+  // ─── Type Selection ───
+  if (!builderType) {
     return (
-      <div ref={ref} className="max-w-5xl mx-auto p-6">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <motion.div
-            className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-5 relative"
-            style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple)), #7c3aed)' }}
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <Wand2 className="w-12 h-12 text-white" />
-            <motion.div
-              className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[hsl(var(--discord-yellow))] flex items-center justify-center"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Sparkles className="w-3 h-3 text-black" />
-            </motion.div>
-          </motion.div>
-          <h1 className="text-4xl font-black text-white mb-3">Visual AI Builder</h1>
-          <p className="text-lg text-[hsl(var(--discord-text-muted))] max-w-md mx-auto">
-            Design, configure, and test your AI — all without writing a single line of code ✨
+      <div ref={ref} className="max-w-4xl mx-auto p-6">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20">
+            <Wand2 className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-black text-white mb-2">Visual AI Builder</h1>
+          <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto">
+            Choose what you want to build — configure everything visually, test it live, then export code ✨
           </p>
         </motion.div>
 
-        {/* Flow diagram */}
-        <div className="flex items-center justify-center gap-2 mb-10">
-          {[
-            { label: 'Choose Type', icon: <Layers className="w-3.5 h-3.5" />, active: true },
-            { label: 'Pick Template', icon: <Lightbulb className="w-3.5 h-3.5" /> },
-            { label: 'Configure', icon: <Settings className="w-3.5 h-3.5" /> },
-            { label: 'Test & Export', icon: <Rocket className="w-3.5 h-3.5" /> },
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                s.active ? 'bg-[hsl(var(--discord-blurple))] text-white' : 'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-muted))]'
-              }`}>
-                {s.icon} {s.label}
-              </div>
-              {i < 3 && <ChevronRight className="w-4 h-4 text-[hsl(var(--discord-light)/0.3)]" />}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {/* Chatbot Card */}
           <motion.button
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             whileHover={{ y: -4, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => selectType('chatbot')}
-            className="group relative p-8 rounded-3xl bg-gradient-to-b from-[hsl(var(--discord-darker))] to-[hsl(var(--discord-dark))] border-2 border-[hsl(var(--discord-light)/0.15)] hover:border-[hsl(var(--discord-blurple))] transition-colors text-left overflow-hidden"
+            className="group relative p-8 rounded-2xl bg-[hsl(var(--discord-darker))] border-2 border-[hsl(var(--discord-light)/0.15)] hover:border-[hsl(var(--discord-blurple))] transition-all text-left overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--discord-blurple)/0.08)] to-transparent" />
-            <div className="absolute top-4 right-4 opacity-10 text-8xl leading-none group-hover:opacity-20 transition-opacity">💬</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--discord-blurple)/0.06)] to-transparent" />
             <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-indigo-600 flex items-center justify-center mb-5 shadow-lg shadow-indigo-500/20">
-                <Bot className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/20">
+                <Bot className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-black text-white mb-2">AI Chatbot</h3>
-              <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-5 leading-relaxed">
+              <h3 className="text-xl font-black text-white mb-2">AI Chatbot</h3>
+              <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-4 leading-relaxed">
                 Conversational AI with personality, knowledge base, and custom rules. Perfect for tutors, support bots, and fun companions!
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-5">
+              <div className="flex flex-wrap gap-1.5 mb-4">
                 {['Personality', 'Knowledge', 'Q&A', 'Rules', 'Memory'].map(tag => (
                   <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--discord-blurple)/0.12)] text-[hsl(var(--discord-blurple))] font-medium">{tag}</span>
                 ))}
               </div>
               <div className="flex items-center gap-2 text-[hsl(var(--discord-blurple))] font-bold text-sm group-hover:gap-3 transition-all">
-                Choose Chatbot <ArrowRight className="w-4 h-4" />
+                Build Chatbot <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </motion.button>
 
           {/* Agent Card */}
           <motion.button
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             whileHover={{ y: -4, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => selectType('agent')}
-            className="group relative p-8 rounded-3xl bg-gradient-to-b from-[hsl(var(--discord-darker))] to-[hsl(var(--discord-dark))] border-2 border-[hsl(var(--discord-light)/0.15)] hover:border-purple-500 transition-colors text-left overflow-hidden"
+            className="group relative p-8 rounded-2xl bg-[hsl(var(--discord-darker))] border-2 border-[hsl(var(--discord-light)/0.15)] hover:border-purple-500 transition-all text-left overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/8 to-transparent" />
-            <div className="absolute top-4 right-4 opacity-10 text-8xl leading-none group-hover:opacity-20 transition-opacity">🧠</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
             <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center mb-5 shadow-lg shadow-purple-500/20">
-                <Brain className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
+                <Brain className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-black text-white mb-2">AI Agent</h3>
-              <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-5 leading-relaxed">
+              <h3 className="text-xl font-black text-white mb-2">AI Agent</h3>
+              <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-4 leading-relaxed">
                 Autonomous AI that uses tools to search, calculate, and reason step-by-step. Great for research helpers and smart assistants!
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-5">
+              <div className="flex flex-wrap gap-1.5 mb-4">
                 {['Tools', 'ReAct', 'Search', 'Calculate', 'Reason'].map(tag => (
                   <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/12 text-purple-400 font-medium">{tag}</span>
                 ))}
               </div>
               <div className="flex items-center gap-2 text-purple-400 font-bold text-sm group-hover:gap-3 transition-all">
-                Choose Agent <ArrowRight className="w-4 h-4" />
+                Build Agent <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </motion.button>
@@ -691,381 +547,266 @@ APP_THEME = "default"
     );
   }
 
-  // ─── STEP: Preset Selection ───
-  if (step === 'preset') {
-    return (
-      <div ref={ref} className="max-w-5xl mx-auto p-6">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <button onClick={() => setStep('type')} className="flex items-center gap-1.5 text-sm text-[hsl(var(--discord-text-muted))] hover:text-white mb-4 transition-colors">
-            <ChevronLeft className="w-4 h-4" /> Back to type selection
-          </button>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">{builderType === 'agent' ? '🧠' : '🤖'}</span>
-            <h1 className="text-3xl font-black text-white">Pick a Template</h1>
-          </div>
-          <p className="text-[hsl(var(--discord-text-muted))]">
-            Start with a pre-built template or build from scratch. You can customize everything later!
-          </p>
-        </motion.div>
+  // ─── Builder View ───
+  return (
+    <div ref={ref} className="h-full flex flex-col">
+      {/* Top Bar */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))]">
+        <Button variant="ghost" size="sm" onClick={() => { setBuilderType(null); setShowPreview(false); }} className="text-[hsl(var(--discord-text-muted))] hover:text-white h-8 px-2">
+          <ArrowRight className="w-4 h-4 rotate-180" />
+        </Button>
+        <span className="text-lg">{config.BOT_EMOJI || '🤖'}</span>
+        <span className="font-bold text-white text-sm">{config.BOT_NAME || 'My Bot'}</span>
+        <Badge className="text-[9px] px-1.5 py-0 bg-[hsl(var(--discord-blurple)/0.15)] text-[hsl(var(--discord-blurple))] border-[hsl(var(--discord-blurple)/0.3)]">
+          {builderType === 'agent' ? 'AGENT' : 'CHATBOT'}
+        </Badge>
 
-        {/* Flow steps */}
-        <div className="flex items-center gap-2 mb-8">
-          {[
-            { label: 'Choose Type', done: true },
-            { label: 'Pick Template', active: true },
-            { label: 'Configure' },
-            { label: 'Test & Export' },
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                s.done ? 'bg-[hsl(var(--discord-green)/0.2)] text-[hsl(var(--discord-green))]' :
-                s.active ? 'bg-[hsl(var(--discord-blurple))] text-white' :
-                'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-muted))]'
-              }`}>
-                {s.done ? <CheckCircle2 className="w-3.5 h-3.5" /> : null} {s.label}
-              </div>
-              {i < 3 && <ChevronRight className="w-4 h-4 text-[hsl(var(--discord-light)/0.3)]" />}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {presets.map((preset, i) => (
-            <motion.button
-              key={preset.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              whileHover={{ y: -3, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => selectPreset(preset)}
-              className="group relative p-6 rounded-2xl bg-[hsl(var(--discord-darker))] border-2 border-[hsl(var(--discord-light)/0.15)] hover:border-opacity-60 transition-all text-left overflow-hidden"
-              style={{ '--hover-color': preset.color } as any}
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(135deg, ${preset.color}10, transparent)` }} />
-              <div className="relative z-10">
-                <span className="text-4xl block mb-3">{preset.emoji}</span>
-                <h3 className="text-lg font-bold text-white mb-1">{preset.name}</h3>
-                <p className="text-xs text-[hsl(var(--discord-text-muted))] leading-relaxed">{preset.description}</p>
-                <div className="mt-4 flex items-center gap-1.5 text-xs font-bold transition-all group-hover:gap-2" style={{ color: preset.color }}>
-                  Use template <ArrowRight className="w-3 h-3" />
-                </div>
-              </div>
-            </motion.button>
-          ))}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[10px] text-[hsl(var(--discord-text-muted))] font-bold">{completed}/{total} configured</span>
+          <div className="w-px h-5 bg-[hsl(var(--discord-light)/0.15)]" />
+          <Button
+            size="sm" variant="ghost"
+            onClick={() => setShowPreview(!showPreview)}
+            className={`h-8 text-xs gap-1.5 ${showPreview ? 'text-[hsl(var(--discord-green))]' : 'text-[hsl(var(--discord-text-muted))]'}`}
+          >
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showPreview ? 'Hide Chat' : 'Test Chat'}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleExportCode}
+            className="h-8 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white font-bold text-xs gap-1.5"
+          >
+            <Code className="w-3.5 h-3.5" /> Export Code
+          </Button>
         </div>
       </div>
-    );
-  }
 
-  // ─── STEP: Build (main builder) ───
-  if (step === 'build' || step === 'test') {
-    const currentSection = sections[activeSection];
-
-    return (
-      <div ref={ref} className="h-full flex flex-col">
-        {/* Top Bar */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))]">
-          <Button variant="ghost" size="sm" onClick={() => { setStep('preset'); setShowPreview(false); }} className="text-[hsl(var(--discord-text-muted))] hover:text-white h-8 px-2">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{config.BOT_EMOJI || '🤖'}</span>
-            <span className="font-bold text-white text-sm">{config.BOT_NAME || 'My Bot'}</span>
-            <Badge className="text-[9px] px-1.5 py-0 bg-[hsl(var(--discord-blurple)/0.15)] text-[hsl(var(--discord-blurple))] border-[hsl(var(--discord-blurple)/0.3)]">
-              {builderType === 'agent' ? 'AGENT' : 'CHATBOT'}
-            </Badge>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            {/* Progress ring */}
-            <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8">
-                <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                  <circle cx="16" cy="16" r="12" fill="none" stroke="hsl(var(--discord-light)/0.15)" strokeWidth="3" />
-                  <circle cx="16" cy="16" r="12" fill="none" stroke="hsl(var(--discord-green))" strokeWidth="3"
-                    strokeDasharray={`${progressPct * 0.754} 75.4`} strokeLinecap="round" />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white">{progressPct}%</span>
-              </div>
-              <span className="text-[10px] text-[hsl(var(--discord-text-muted))] hidden sm:block">{completed}/{total}</span>
-            </div>
-
-            <div className="w-px h-6 bg-[hsl(var(--discord-light)/0.15)]" />
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowPreview(!showPreview)}
-              className={`h-8 text-xs gap-1 ${showPreview ? 'text-[hsl(var(--discord-green))]' : 'text-[hsl(var(--discord-text-muted))]'}`}
-            >
-              {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{showPreview ? 'Hide' : 'Preview'}</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleExportCode}
-              className="h-8 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white font-bold text-xs gap-1"
-            >
-              <Code className="w-3.5 h-3.5" /> Export
-            </Button>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left: Section Nav */}
-          <div className="w-14 sm:w-48 flex-shrink-0 border-r border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-darker))] overflow-auto">
-            <div className="p-2 space-y-1">
-              {sections.map((section, i) => {
-                const { done, total: secTotal } = getSectionCompletion(section);
-                const isActive = activeSection === i;
-                return (
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Config Cards */}
+        <div className={`flex-1 overflow-auto ${showPreview ? 'hidden md:block' : ''}`}>
+          <div className="p-4 max-w-2xl mx-auto space-y-3">
+            {sections.map((section, i) => {
+              const isExpanded = expandedSections.includes(section.id);
+              const { done, total: secTotal } = getSectionCompletion(section);
+              return (
+                <motion.div
+                  key={section.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="rounded-xl border border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))] overflow-hidden"
+                >
+                  {/* Card Header */}
                   <button
-                    key={section.id}
-                    onClick={() => setActiveSection(i)}
-                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all ${
-                      isActive
-                        ? 'bg-[hsl(var(--discord-light)/0.1)] text-white'
-                        : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.05)] hover:text-white'
-                    }`}
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[hsl(var(--discord-light)/0.04)] transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${section.color}${isActive ? '30' : '15'}`, color: section.color }}>
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${section.color}20`, color: section.color }}
+                    >
                       {section.icon}
                     </div>
-                    <div className="hidden sm:block flex-1 min-w-0">
-                      <div className="text-xs font-bold truncate">{section.title}</div>
-                      <div className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate">{section.subtitle}</div>
+                    <div className="text-left flex-1">
+                      <div className="text-sm font-bold text-white">{section.title}</div>
+                      <div className="text-[10px] text-[hsl(var(--discord-text-muted))]">{section.subtitle}</div>
                     </div>
                     {done > 0 && (
-                      <span className="hidden sm:flex text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[hsl(var(--discord-green)/0.15)] text-[hsl(var(--discord-green))]">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[hsl(var(--discord-green)/0.15)] text-[hsl(var(--discord-green))]">
                         {done}/{secTotal}
                       </span>
                     )}
+                    <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+                    </motion.div>
                   </button>
-                );
-              })}
-            </div>
 
-            {/* Visual flow arrow at bottom */}
-            <div className="hidden sm:block p-3 mt-4 border-t border-[hsl(var(--discord-light)/0.1)]">
-              <div className="text-[10px] text-[hsl(var(--discord-text-muted))] font-bold mb-2 text-center">HOW IT WORKS</div>
-              <div className="space-y-1.5">
-                {['User sends message', 'Check Q&A pairs', 'Check Easter Eggs', 'Apply rules', 'AI generates reply'].map((s, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${i === 4 ? 'bg-[hsl(var(--discord-green))]' : 'bg-[hsl(var(--discord-light)/0.3)]'}`} />
-                    <span className="text-[9px] text-[hsl(var(--discord-text-muted))]">{s}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Center: Config Panel */}
-          <div className={`flex-1 ${showPreview ? 'hidden md:block' : ''} overflow-auto`}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentSection.id}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.15 }}
-                className="p-5 max-w-2xl"
-              >
-                {/* Section header */}
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${currentSection.color}20`, color: currentSection.color }}>
-                    {currentSection.icon}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-white">{currentSection.title}</h2>
-                    <p className="text-xs text-[hsl(var(--discord-text-muted))]">{currentSection.subtitle}</p>
-                  </div>
-                </div>
-
-                {/* Fields */}
-                <div className="space-y-5">
-                  {currentSection.fields.map((field) => (
-                    <FieldRenderer key={field.key} field={field} value={config[field.key]} onChange={(val) => updateConfig(field.key, val)} builderType={builderType} config={config} />
-                  ))}
-                </div>
-
-                {/* Navigation */}
-                <div className="flex items-center justify-between mt-8 pt-5 border-t border-[hsl(var(--discord-light)/0.1)]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
-                    disabled={activeSection === 0}
-                    className="text-[hsl(var(--discord-text-muted))] hover:text-white h-8"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Previous
-                  </Button>
-                  {activeSection < sections.length - 1 ? (
-                    <Button
-                      size="sm"
-                      onClick={() => setActiveSection(activeSection + 1)}
-                      className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white h-8"
-                    >
-                      Next <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => setShowPreview(true)}
-                      className="bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white h-8"
-                    >
-                      <Play className="w-4 h-4 mr-1" /> Test Your Bot
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Right: Live Preview */}
-          <AnimatePresence>
-            {showPreview && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: '50%', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col border-l border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))] overflow-hidden md:max-w-[50%]"
-                style={{ minWidth: showPreview ? '320px' : 0 }}
-              >
-                {/* Preview Header */}
-                <div className="px-4 py-2.5 border-b border-[hsl(var(--discord-light)/0.12)] flex items-center gap-2">
-                  <span className="text-lg">{config.BOT_EMOJI || '🤖'}</span>
-                  <span className="font-bold text-white text-sm">{config.BOT_NAME || 'My Bot'}</span>
-                  <Badge className="ml-auto text-[9px] px-1.5 py-0 bg-[hsl(var(--discord-green)/0.15)] text-[hsl(var(--discord-green))] border-[hsl(var(--discord-green)/0.3)]">
-                    LIVE
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setChatMessages([]); }}
-                    className="h-7 px-2 text-[hsl(var(--discord-text-muted))] hover:text-white"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                {/* Chat */}
-                <div className="flex-1 overflow-auto p-4 space-y-3">
-                  {config.AI_MESSAGE && chatMessages.length === 0 && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0 shadow-lg shadow-indigo-500/10">
-                        {config.BOT_EMOJI || '🤖'}
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-[hsl(var(--discord-text-muted))] font-bold mb-1">{config.BOT_NAME || 'Bot'}</div>
-                        <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[90%]">
-                          <p className="text-sm text-white leading-relaxed">{config.AI_MESSAGE}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {chatMessages.map((msg, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : ''}`}
-                    >
-                      {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
-                          {config.BOT_EMOJI || '🤖'}
-                        </div>
-                      )}
-                      <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] ${
-                        msg.role === 'user' 
-                          ? 'bg-[hsl(var(--discord-blurple))] text-white rounded-tr-md' 
-                          : 'bg-[hsl(var(--discord-darker))] text-white rounded-tl-md'
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {isStreaming && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
-                    <div className="flex gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
-                        {config.BOT_EMOJI || '🤖'}
-                      </div>
-                      <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-3">
-                        <div className="flex gap-1">
-                          {[0, 1, 2].map(i => (
-                            <motion.div
-                              key={i}
-                              className="w-2 h-2 rounded-full bg-[hsl(var(--discord-blurple))]"
-                              animate={{ y: [0, -6, 0] }}
-                              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                  {/* Card Content */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4 pt-1 space-y-4 border-t border-[hsl(var(--discord-light)/0.08)]">
+                          {section.fields.map((field) => (
+                            <FieldRenderer
+                              key={field.key}
+                              field={field}
+                              value={config[field.key]}
+                              onChange={(val) => updateConfig(field.key, val)}
+                              builderType={builderType}
+                              config={config}
                             />
                           ))}
                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+
+            {/* Bottom actions */}
+            <div className="flex gap-3 pt-2 pb-6">
+              <Button
+                onClick={() => setShowPreview(true)}
+                className="flex-1 h-11 bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white font-bold gap-2"
+              >
+                <Play className="w-4 h-4" /> Test Your {builderType === 'agent' ? 'Agent' : 'Chatbot'}
+              </Button>
+              <Button
+                onClick={handleExportCode}
+                variant="outline"
+                className="flex-1 h-11 font-bold gap-2 border-[hsl(var(--discord-blurple)/0.4)] text-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.1)]"
+              >
+                <Code className="w-4 h-4" /> Export Code
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Preview Chat */}
+        <AnimatePresence>
+          {showPreview && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '50%', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col border-l border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))] overflow-hidden md:max-w-[50%]"
+              style={{ minWidth: showPreview ? '320px' : 0 }}
+            >
+              {/* Preview Header */}
+              <div className="px-4 py-2.5 border-b border-[hsl(var(--discord-light)/0.12)] flex items-center gap-2">
+                <span className="text-lg">{config.BOT_EMOJI || '🤖'}</span>
+                <span className="font-bold text-white text-sm">{config.BOT_NAME || 'My Bot'}</span>
+                <Badge className="ml-auto text-[9px] px-1.5 py-0 bg-[hsl(var(--discord-green)/0.15)] text-[hsl(var(--discord-green))] border-[hsl(var(--discord-green)/0.3)]">
+                  LIVE
+                </Badge>
+                <Button
+                  variant="ghost" size="sm"
+                  onClick={() => setChatMessages([])}
+                  className="h-7 px-2 text-[hsl(var(--discord-text-muted))] hover:text-white"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-auto p-4 space-y-3">
+                {config.AI_MESSAGE && chatMessages.length === 0 && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+                      {config.BOT_EMOJI || '🤖'}
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-[hsl(var(--discord-text-muted))] font-bold mb-1">{config.BOT_NAME || 'Bot'}</div>
+                      <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[90%]">
+                        <p className="text-sm text-white leading-relaxed">{config.AI_MESSAGE}</p>
                       </div>
                     </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-
-                {/* Conversation Starters */}
-                {chatMessages.length === 0 && config.CONVERSATION_STARTERS?.length > 0 && (
-                  <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-                    {config.CONVERSATION_STARTERS.map((starter: string, i: number) => (
-                      <motion.button
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.05 }}
-                        onClick={() => handleChatSend(starter)}
-                        className="text-[11px] px-3 py-1.5 rounded-full bg-[hsl(var(--discord-light)/0.08)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-blurple)/0.15)] hover:text-[hsl(var(--discord-blurple))] transition-colors border border-[hsl(var(--discord-light)/0.15)]"
-                      >
-                        {starter}
-                      </motion.button>
-                    ))}
-                  </div>
+                  </motion.div>
                 )}
 
-                {/* Chat Input */}
-                <div className="p-3 border-t border-[hsl(var(--discord-light)/0.12)]">
-                  <div className="flex gap-2">
-                    <Input
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
-                      placeholder={`Message ${config.BOT_NAME || 'your bot'}...`}
-                      disabled={isStreaming}
-                      className="flex-1 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] text-white placeholder:text-[hsl(var(--discord-text-muted))] h-9 text-sm rounded-xl"
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => handleChatSend()}
-                      disabled={!chatInput.trim() || isStreaming}
-                      className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] flex-shrink-0 h-9 w-9 rounded-xl"
-                    >
-                      {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    );
-  }
+                {chatMessages.map((msg, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : ''}`}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+                        {config.BOT_EMOJI || '🤖'}
+                      </div>
+                    )}
+                    <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] ${
+                      msg.role === 'user'
+                        ? 'bg-[hsl(var(--discord-blurple))] text-white rounded-tr-md'
+                        : 'bg-[hsl(var(--discord-darker))] text-white rounded-tl-md'
+                    }`}>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </div>
+                  </motion.div>
+                ))}
 
-  return <div ref={ref} />;
+                {isStreaming && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
+                  <div className="flex gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+                      {config.BOT_EMOJI || '🤖'}
+                    </div>
+                    <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map(i => (
+                          <motion.div
+                            key={i}
+                            className="w-2 h-2 rounded-full bg-[hsl(var(--discord-blurple))]"
+                            animate={{ y: [0, -6, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Conversation Starters */}
+              {chatMessages.length === 0 && config.CONVERSATION_STARTERS?.length > 0 && (
+                <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+                  {config.CONVERSATION_STARTERS.map((starter: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => handleChatSend(starter)}
+                      className="text-[11px] px-3 py-1.5 rounded-full bg-[hsl(var(--discord-light)/0.08)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-blurple)/0.15)] hover:text-[hsl(var(--discord-blurple))] transition-colors border border-[hsl(var(--discord-light)/0.15)]"
+                    >
+                      {starter}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Chat Input */}
+              <div className="p-3 border-t border-[hsl(var(--discord-light)/0.12)]">
+                <div className="flex gap-2">
+                  <Input
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
+                    placeholder={`Message ${config.BOT_NAME || 'your bot'}...`}
+                    disabled={isStreaming}
+                    className="flex-1 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] text-white placeholder:text-[hsl(var(--discord-text-muted))] h-9 text-sm rounded-xl"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => handleChatSend()}
+                    disabled={!chatInput.trim() || isStreaming}
+                    className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] flex-shrink-0 h-9 w-9 rounded-xl"
+                  >
+                    {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 });
 
 AIModelsTab.displayName = 'AIModelsTab';
 
 // ─── Field Renderer ───
-function FieldRenderer({ field, value, onChange, builderType, config }: { 
-  field: ConfigField; value: any; onChange: (val: any) => void; builderType: BuilderType; config: Record<string, any> 
+function FieldRenderer({ field, value, onChange, builderType, config }: {
+  field: ConfigField; value: any; onChange: (val: any) => void; builderType: BuilderType; config: Record<string, any>
 }) {
   if (field.type === 'text') {
     return (
@@ -1233,7 +974,6 @@ function FieldRenderer({ field, value, onChange, builderType, config }: {
             );
           })}
         </div>
-        {/* Custom tool adder */}
         <div className="mt-2">
           <ListAdder placeholder="Add custom tool..." onAdd={(item) => onChange([...selectedTools, item])} />
         </div>
