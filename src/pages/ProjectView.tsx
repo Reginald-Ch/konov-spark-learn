@@ -552,6 +552,10 @@ const ProjectView = () => {
           } catch { /* partial JSON */ }
         }
       }
+      // TTS: Speak the response if voice is enabled
+      if (fullText && config?.voiceEnabled && ttsEnabled) {
+        speakText(fullText);
+      }
     } catch (e) {
       console.error('Chat error:', e);
       // Remove the '...' placeholder and replace with error message
