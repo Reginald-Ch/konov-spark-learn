@@ -356,7 +356,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             }}
           />
         </div>
-        {!code && (
+        {!codeToValidate && (
           <p className="text-[10px] text-white mt-2 italic">
             💡 Open the Build tab and start coding to see your progress here in real-time!
           </p>
