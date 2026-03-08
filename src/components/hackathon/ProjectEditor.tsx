@@ -2010,6 +2010,57 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         updateCursorInfo(target);
                       });
                     }
+                    // Auto-bracket/quote closing
+                    const PAIRS: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
+                    if (PAIRS[e.key]) {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const end = target.selectionEnd;
+                      const value = target.value;
+                      const selected = value.substring(start, end);
+                      const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
+                      target.value = newValue;
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        // Place cursor after the opening bracket (or around selection)
+                        target.selectionStart = start + 1;
+                        target.selectionEnd = start + 1 + selected.length;
+                        updateCursorInfo(target);
+                      });
+                      return;
+                    }
+                    // Auto-skip closing bracket if already there
+                    if (')]}'.includes(e.key)) {
+                      const target = e.target as HTMLTextAreaElement;
+                      if (target.value[target.selectionStart] === e.key) {
+                        e.preventDefault();
+                        target.selectionStart = target.selectionEnd = target.selectionStart + 1;
+                        updateCursorInfo(target);
+                        return;
+                      }
+                    }
+                    // Backspace: delete matching pair
+                    if (e.key === 'Backspace') {
+                      const target = e.target as HTMLTextAreaElement;
+                      const pos = target.selectionStart;
+                      if (pos > 0 && target.selectionStart === target.selectionEnd) {
+                        const before = target.value[pos - 1];
+                        const after = target.value[pos];
+                        if (PAIRS[before] === after) {
+                          e.preventDefault();
+                          const value = target.value;
+                          const newValue = value.substring(0, pos - 1) + value.substring(pos + 1);
+                          target.value = newValue;
+                          updateFile(newValue);
+                          requestAnimationFrame(() => {
+                            target.selectionStart = target.selectionEnd = pos - 1;
+                            updateCursorInfo(target);
+                          });
+                          return;
+                        }
+                      }
+                    }
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       const target = e.target as HTMLTextAreaElement;
