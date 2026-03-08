@@ -341,11 +341,11 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 12. BLOCKED_TOPICS — Write a list of refused topics
 # ☐ 13. FEW_SHOT_EXAMPLES — List of {"input":..., "output":...}
 # ☐ 14. SECRET_RESPONSES — Dict {"trigger": "response"}
-# ☐ 15. RESPONSE_STYLE — Pick from options
+# ☐ 15. MOOD_RESPONSES — Dict mapping moods to instructions
 # ☐ 16. MAX_RESPONSE_LENGTH — "short", "medium", or "long"
 # ☐ 17. MAX_TOKENS — Try 50 vs 1024 to see the difference!
 # ☐ 18. MOOD — Pick from options
-# ☐ 19. LANGUAGE_STYLE — Pick from options
+# ☐ 19. RESPONSE_TONE — If/elif conditional logic!
 # ☐ 20. CATCHPHRASES — Write signature phrases
 # ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
