@@ -102,7 +102,6 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
         supabase
           .from('ai_projects')
           .select('id, author_email, author_name, project_name, code, description, is_published, demo_url')
-          .eq('is_published', true)
           .limit(500),
         supabase
           .from('point_events')

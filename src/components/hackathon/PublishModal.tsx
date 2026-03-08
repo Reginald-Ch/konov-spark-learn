@@ -105,7 +105,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       if (currentProjectId) {
         const { data: updateData, error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true })
+          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true, points_earned: 10 })
           .eq('id', currentProjectId)
           .eq('author_email', finalEmail)
           .select('id')
@@ -122,7 +122,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true })
+          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 10 })
           .select('id')
           .single();
         if (error) throw error;
@@ -137,7 +137,19 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
 
-      // Milestone points removed — scoring is now purely project-field-based + judge scores
+      const milestones = [
+        { event_type: 'project_deployed', points: 10, metadata: { project: projectName } },
+        { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
+      ];
+      for (const m of milestones) {
+        const key = `forge-scored-${m.event_type}-${finalEmail}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'true');
+          supabase.from('point_events').insert({ participant_email: finalEmail, ...m }).then(({ error }) => {
+            if (error) console.warn(`point_events ${m.event_type} insert failed:`, error);
+          });
+        }
+      }
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');

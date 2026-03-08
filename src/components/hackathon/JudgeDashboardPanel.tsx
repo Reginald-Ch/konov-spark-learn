@@ -209,19 +209,13 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       return;
     }
     try {
-      // Upsert pattern: delete existing then insert, with rollback on failure
-      const { error: delError } = await supabase
+      // Delete any existing judge score for this specific project first (prevents score inflation)
+      await supabase
         .from('point_events')
         .delete()
         .eq('event_type', 'judge_score')
         .eq('participant_email', project.author_email)
         .filter('metadata->>project_id', 'eq', project.id);
-
-      if (delError) {
-        console.error('Score delete error:', delError);
-        toast.error(`Failed to update score: ${delError.message}`);
-        return;
-      }
 
       const { error } = await supabase.from('point_events').insert({
         participant_email: project.author_email,
