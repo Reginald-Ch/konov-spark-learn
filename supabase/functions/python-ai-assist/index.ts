@@ -280,7 +280,7 @@ FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `Generate a complete FORGE 15-challenge configuration file based on the description.`;
+      sysPrompt = `Generate a complete FORGE 20-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, RESPONSE_STYLE, MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, LANGUAGE_STYLE, CATCHPHRASES.`;
       userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
       sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;

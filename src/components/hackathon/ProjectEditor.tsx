@@ -965,29 +965,37 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // First, do a local config analysis
     const config = extractConfigFromCode(files['main.py']);
     const isAgent = projectType === 'agent';
+    const scaffold = PROJECT_SCAFFOLDS[projectType];
     const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const defaultGreeting = isAgent
+      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
+    const defaultSystemMsg = scaffold.systemPrompt;
+    const defaultKB = isAgent 
+      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+      : "";
     
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
       { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
-      { label: 'AI_MESSAGE', ok: !!config.greeting, val: config.greeting ? '✓ set' : '✗ default' },
+      { label: 'AI_MESSAGE', ok: !!config.greeting && config.greeting !== defaultGreeting, val: config.greeting ? '✓ set' : '✗ default' },
       { label: 'CREATOR_NAME', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
-      { label: 'SYSTEM_MESSAGE', ok: systemPrompt.length > 30, val: `${systemPrompt.length} chars` },
-      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim(), val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
-      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > 0, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaultSystemMsg && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
+      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
+      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
       { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
