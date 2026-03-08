@@ -611,7 +611,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [systemPrompt]);
 
+  // Read system prompt from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
