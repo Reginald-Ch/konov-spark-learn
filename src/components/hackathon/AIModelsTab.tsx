@@ -762,76 +762,90 @@ APP_THEME = "default"
                         className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : ''}`}
                       >
                         {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
-                        {config.BOT_EMOJI || '🤖'}
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 shadow-md"
+                            style={{ background: builderType === 'agent' ? 'linear-gradient(135deg, #8B5CF6, #D946EF)' : 'linear-gradient(135deg, #5865F2, #7C3AED)' }}
+                          >
+                            {config.BOT_EMOJI || '🤖'}
+                          </div>
+                        )}
+                        <div className={`rounded-2xl px-3.5 py-2.5 max-w-[80%] ${
+                          msg.role === 'user'
+                            ? 'bg-[hsl(var(--discord-blurple))] text-white rounded-tr-md'
+                            : 'bg-[hsl(var(--discord-darker))] text-white rounded-tl-md'
+                        }`}>
+                          <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {isStreaming && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
+                      <div className="flex gap-2.5">
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+                          style={{ background: builderType === 'agent' ? 'linear-gradient(135deg, #8B5CF6, #D946EF)' : 'linear-gradient(135deg, #5865F2, #7C3AED)' }}
+                        >
+                          {config.BOT_EMOJI || '🤖'}
+                        </div>
+                        <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-3">
+                          <div className="flex gap-1">
+                            {[0, 1, 2].map(i => (
+                              <motion.div
+                                key={i}
+                                className="w-2 h-2 rounded-full bg-[hsl(var(--discord-blurple))]"
+                                animate={{ y: [0, -6, 0] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
-                    <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] ${
-                      msg.role === 'user'
-                        ? 'bg-[hsl(var(--discord-blurple))] text-white rounded-tr-md'
-                        : 'bg-[hsl(var(--discord-darker))] text-white rounded-tl-md'
-                    }`}>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                    </div>
-                  </motion.div>
-                ))}
+                    <div ref={chatEndRef} />
+                  </div>
 
-                {isStreaming && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
-                  <div className="flex gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center text-sm flex-shrink-0">
-                      {config.BOT_EMOJI || '🤖'}
+                  {/* Conversation Starters */}
+                  {chatMessages.length === 0 && config.CONVERSATION_STARTERS?.length > 0 && (
+                    <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                      {config.CONVERSATION_STARTERS.map((starter: string, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => handleChatSend(starter)}
+                          className="text-[10px] px-2.5 py-1.5 rounded-full bg-[hsl(var(--discord-light)/0.08)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-blurple)/0.15)] hover:text-[hsl(var(--discord-blurple))] transition-colors border border-[hsl(var(--discord-light)/0.15)]"
+                        >
+                          {starter}
+                        </button>
+                      ))}
                     </div>
-                    <div className="bg-[hsl(var(--discord-darker))] rounded-2xl rounded-tl-md px-4 py-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map(i => (
-                          <motion.div
-                            key={i}
-                            className="w-2 h-2 rounded-full bg-[hsl(var(--discord-blurple))]"
-                            animate={{ y: [0, -6, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                          />
-                        ))}
-                      </div>
+                  )}
+
+                  {/* Chat Input */}
+                  <div className="p-2.5 border-t border-[hsl(var(--discord-light)/0.1)]">
+                    <div className="flex gap-1.5">
+                      <Input
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
+                        placeholder={`Message ${config.BOT_NAME || 'bot'}...`}
+                        disabled={isStreaming}
+                        className="flex-1 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] text-white placeholder:text-[hsl(var(--discord-text-muted))] h-9 text-[12px] rounded-xl"
+                      />
+                      <Button
+                        size="icon"
+                        onClick={() => handleChatSend()}
+                        disabled={!chatInput.trim() || isStreaming}
+                        className="flex-shrink-0 h-9 w-9 rounded-xl"
+                        style={{ background: builderType === 'agent' ? 'linear-gradient(135deg, #8B5CF6, #D946EF)' : 'linear-gradient(135deg, #5865F2, #7C3AED)' }}
+                      >
+                        {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
                     </div>
                   </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
 
-              {/* Conversation Starters */}
-              {chatMessages.length === 0 && config.CONVERSATION_STARTERS?.length > 0 && (
-                <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-                  {config.CONVERSATION_STARTERS.map((starter: string, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => handleChatSend(starter)}
-                      className="text-[11px] px-3 py-1.5 rounded-full bg-[hsl(var(--discord-light)/0.08)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-blurple)/0.15)] hover:text-[hsl(var(--discord-blurple))] transition-colors border border-[hsl(var(--discord-light)/0.15)]"
-                    >
-                      {starter}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Chat Input */}
-              <div className="p-3 border-t border-[hsl(var(--discord-light)/0.12)]">
-                <div className="flex gap-2">
-                  <Input
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
-                    placeholder={`Message ${config.BOT_NAME || 'your bot'}...`}
-                    disabled={isStreaming}
-                    className="flex-1 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] text-white placeholder:text-[hsl(var(--discord-text-muted))] h-9 text-sm rounded-xl"
-                  />
-                  <Button
-                    size="icon"
-                    onClick={() => handleChatSend()}
-                    disabled={!chatInput.trim() || isStreaming}
-                    className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] flex-shrink-0 h-9 w-9 rounded-xl"
-                  >
-                    {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
+                  {/* App Footer */}
+                  <div className="px-3 py-1.5 border-t border-[hsl(var(--discord-light)/0.06)] text-center">
+                    <span className="text-[8px] text-[hsl(var(--discord-text-muted)/0.5)]">Powered by FORGE AI Builder</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
