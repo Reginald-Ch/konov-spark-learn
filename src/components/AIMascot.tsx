@@ -314,8 +314,12 @@ export const AIMascot = () => {
         }}
       >
         <div className="relative">
-          {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"primary/40 mood-based animationprimary/40     <img
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-primary/40 rounded-full blur-xl opacity-40 animate-pulse-glow"></div>
+          
+          {/* Mascot image with mood-based animations */}
+          <div className="relative">
+            <img
               src={mascotImage}
               alt="Konovy AI Mascot"
               className={`relative w-20 h-20 rounded-full border-2 border-primary/50 shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:border-secondary ${getMoodAnimation()}`}
@@ -334,10 +338,12 @@ export const AIMascot = () => {
             </div>
           </div>
           
-          {/* Mood indicator with enhanced animation */}
-          <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center secondary border-white animate-bounce">
+          {/* Mood indicator */}
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-secondary rounded-full flex items-center justify-center text-sm shadow-lg border border-white animate-bounce">
             {getMoodEmoji()}
-  secondaryon pulse rings */}
+          </div>
+
+          {/* Interaction pulse rings */}
           {isVisible && (
             <>
               <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
