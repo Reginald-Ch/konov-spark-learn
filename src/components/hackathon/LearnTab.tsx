@@ -248,7 +248,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         </div>
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-white">Challenge Guide</h2>
-          <p className="text-[hsl(var(--discord-text-muted))] text-sm">Complete all 20 challenges to build your AI bot</p>
+          <p className="text-white text-sm">Complete all 20 challenges to build your AI bot</p>
         </div>
       </div>
 
@@ -262,15 +262,15 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/20</span></div>
-              <div className="text-[10px] text-[hsl(var(--discord-text-muted))] uppercase tracking-wider">Challenges</div>
+              <div className="text-3xl font-black text-white">{completedCount}<span className="text-lg text-white/60">/20</span></div>
+              <div className="text-[10px] text-white uppercase tracking-wider">Challenges</div>
             </div>
             <div className="w-px h-10 bg-[hsl(var(--discord-light)/0.2)]" />
             <div className="text-center">
               <div className="text-3xl font-black" style={{ color: earnedPoints >= TOTAL_POINTS ? '#22C55E' : '#F7941D' }}>
-                {earnedPoints}<span className="text-lg text-[hsl(var(--discord-text-muted))]">/{TOTAL_POINTS}</span>
+                {earnedPoints}<span className="text-lg text-white/60">/{TOTAL_POINTS}</span>
               </div>
-              <div className="text-[10px] text-[hsl(var(--discord-text-muted))] uppercase tracking-wider">Points</div>
+              <div className="text-[10px] text-white uppercase tracking-wider">Points</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -299,7 +299,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
           />
         </div>
         {!code && (
-          <p className="text-[10px] text-[hsl(var(--discord-text-muted))] mt-2 italic">
+          <p className="text-[10px] text-white mt-2 italic">
             💡 Open the Build tab and start coding to see your progress here in real-time!
           </p>
         )}
@@ -316,7 +316,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             <span className="text-2xl">🏆</span>
             <div className="text-left">
               <h3 className="text-lg font-bold text-white">All 20 Challenges — Step by Step</h3>
-              <p className="text-xs text-[hsl(var(--discord-text-muted))]">Follow this guide to complete every variable in main.py</p>
+              <p className="text-xs text-white">Follow this guide to complete every variable in main.py</p>
             </div>
           </div>
           <span className={`text-[hsl(var(--discord-text-muted))] transition-transform ${showTutorial ? 'rotate-180' : ''}`}>▼</span>
@@ -327,7 +327,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             {/* Overview */}
             <div className="p-4 border-b border-[hsl(var(--discord-light)/0.1)]">
               <div className="bg-[hsl(var(--discord-dark)/0.6)] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.15)]">
-                <p className="text-[11px] text-[hsl(var(--discord-text-muted))] leading-relaxed">
+                <p className="text-[11px] text-white leading-relaxed">
                   💡 <strong className="text-white">Think of FORGE like a car:</strong> the engine is already built. You just choose the colour, the music, and where to drive it. Edit the 20 variables in <code className="text-[hsl(var(--discord-blurple))]">main.py</code> — no AI or coding knowledge needed!
                 </p>
               </div>
@@ -355,7 +355,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                           <CheckCircle2 className="w-5 h-5 text-green-400" />
                         ) : (
                           <div className="w-5 h-5 rounded-full border-2 border-[hsl(var(--discord-light)/0.3)] flex items-center justify-center">
-                            <span className="text-[9px] font-bold text-[hsl(var(--discord-text-muted))]">{sr.completedInStep}/{sr.total}</span>
+                            <span className="text-[9px] font-bold text-white">{sr.completedInStep}/{sr.total}</span>
                           </div>
                         )}
                       </div>
@@ -370,7 +370,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                           </span>
                           <h4 className="font-semibold text-white text-sm truncate">{step.title}</h4>
                         </div>
-                        <p className="text-[11px] text-[hsl(var(--discord-text-muted))]">{step.subtitle}</p>
+                        <p className="text-[11px] text-white">{step.subtitle}</p>
                       </div>
                       <span className={`text-[hsl(var(--discord-text-muted))] transition-transform text-xs ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </button>
@@ -386,7 +386,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                 <span className={`text-sm font-mono font-bold ${isOverTime ? 'text-red-400' : 'text-green-400'}`}>
                                   {formatTime(timerSeconds)}
                                 </span>
-                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">/ {step.timeLimit}:00 target</span>
+                                <span className="text-[10px] text-white">/ {step.timeLimit}:00 target</span>
                                 <div className="flex-1" />
                                 {sr.allPassed && (
                                   <span className="text-[10px] font-bold text-green-400 flex items-center gap-1">
@@ -400,7 +400,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                               </>
                             ) : (
                               <>
-                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Target: {step.timeLimit} min</span>
+                                <span className="text-[10px] text-white">Target: {step.timeLimit} min</span>
                                 <div className="flex-1" />
                                 {sr.allPassed ? (
                                   <span className="text-[10px] font-bold text-green-400">✅ Done</span>
@@ -433,7 +433,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                   <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
                                     {ch.name}
                                   </code>
-                                  <span className="text-[11px] text-[hsl(var(--discord-text-muted))]">{ch.desc}</span>
+                                  <span className="text-[11px] text-white">{ch.desc}</span>
                                   <div className="flex-1" />
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                                     passed ? 'bg-green-500/20 text-green-400' : 'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-muted))]'
@@ -464,7 +464,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
 
                         <div className="bg-[hsl(var(--discord-blurple)/0.1)] rounded-md p-2.5 border border-[hsl(var(--discord-blurple)/0.2)]">
                           <span className="text-[10px] font-bold" style={{ color: step.color }}>💡 TIP:</span>
-                          <p className="text-[10px] text-[hsl(var(--discord-text))] mt-0.5">{step.tip}</p>
+                          <p className="text-[10px] text-white mt-0.5">{step.tip}</p>
                         </div>
                       </motion.div>
                     )}
@@ -494,7 +494,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         className="rounded-lg p-5 mb-8 border border-[hsl(var(--discord-blurple)/0.3)]"
         style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), transparent)' }}>
         <h3 className="text-lg font-semibold text-white mb-2">📚 Learning Resources</h3>
-        <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-3">Deepen your AI skills with these curated tutorials and guides.</p>
+        <p className="text-sm text-white mb-3">Deepen your AI skills with these curated tutorials and guides.</p>
       </motion.div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -517,7 +517,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                 }}>{resource.level}</span>
               </div>
             </div>
-            <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2">{resource.description}</p>
+            <p className="text-xs text-white line-clamp-2">{resource.description}</p>
           </motion.a>
         ))}
       </div>
