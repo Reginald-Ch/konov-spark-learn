@@ -2024,31 +2024,40 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     }
                     // Auto-bracket/quote closing
                     const PAIRS: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
-                    if (PAIRS[e.key]) {
-                      e.preventDefault();
-                      const target = e.target as HTMLTextAreaElement;
-                      const start = target.selectionStart;
-                      const end = target.selectionEnd;
-                      const value = target.value;
-                      const selected = value.substring(start, end);
-                      const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
-                      target.value = newValue;
-                      updateFile(newValue);
-                      requestAnimationFrame(() => {
-                        // Place cursor after the opening bracket (or around selection)
-                        target.selectionStart = start + 1;
-                        target.selectionEnd = start + 1 + selected.length;
-                        updateCursorInfo(target);
-                      });
-                      return;
-                    }
-                    // Auto-skip closing bracket if already there
-                    if (')]}'.includes(e.key)) {
+                    const CLOSERS = new Set([')', ']', '}']);
+                    
+                    // Auto-skip: if typing a closer that already exists at cursor
+                    if (CLOSERS.has(e.key) || e.key === '"' || e.key === "'") {
                       const target = e.target as HTMLTextAreaElement;
                       if (target.value[target.selectionStart] === e.key) {
                         e.preventDefault();
                         target.selectionStart = target.selectionEnd = target.selectionStart + 1;
                         updateCursorInfo(target);
+                        return;
+                      }
+                    }
+                    
+                    // Auto-insert pair for openers and quotes (only if not already next to the same char)
+                    if (PAIRS[e.key] && !CLOSERS.has(e.key)) {
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const charAfter = target.value[start];
+                      // For quotes: only auto-pair if next char is whitespace, end of line, or a bracket
+                      if ((e.key === '"' || e.key === "'") && charAfter && !/[\s\)\]\},:]/.test(charAfter)) {
+                        // Don't auto-pair — let normal typing happen
+                      } else {
+                        e.preventDefault();
+                        const end = target.selectionEnd;
+                        const value = target.value;
+                        const selected = value.substring(start, end);
+                        const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
+                        target.value = newValue;
+                        updateFile(newValue);
+                        requestAnimationFrame(() => {
+                          target.selectionStart = start + 1;
+                          target.selectionEnd = start + 1 + selected.length;
+                          updateCursorInfo(target);
+                        });
                         return;
                       }
                     }
