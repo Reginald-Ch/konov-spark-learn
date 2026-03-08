@@ -244,7 +244,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
 ];
 
 // These are now computed inside the component based on projectType
-const TOTAL_POINTS = 141; // Fixed: sum of all challenge points (same for both templates)
+const TOTAL_POINTS = 145; // Fixed: sum of all challenge points (same for both templates)
 
 const RESOURCES = [
   { title: 'Python for AI Beginners', description: 'Learn Python basics: variables, loops, functions, and data structures for AI.', icon: Code, color: '#006600', link: 'https://www.learnpython.org/', level: 'Beginner' },
