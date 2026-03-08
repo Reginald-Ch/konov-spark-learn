@@ -7,6 +7,7 @@ interface LearnTabProps {
   onNavigateToBuild: () => void;
   onNavigateToTemplates: () => void;
   currentCode?: string;
+  projectType?: 'chatbot' | 'agent';
 }
 
 // Validation rules for each variable
