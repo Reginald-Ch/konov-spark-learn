@@ -1066,23 +1066,24 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         if (transcript.trim().toLowerCase().includes(wakeWord!.toLowerCase())) {
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
-          // Now listen for the actual message
           setTimeout(() => {
             const r2 = new SpeechRecognition();
             r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
             recognitionRef.current = r2;
-            r2.onresult = (ev: any) => { const t = ev.results[0][0].transcript; if (t.trim()) handleChatSend(t.trim()); };
-            r2.onend = () => setIsListening(false);
+            r2.onresult = (ev: any) => {
+              const t = ev.results[0][0].transcript;
+              if (t.trim()) handleChatSendRef.current(t.trim());
+            };
+            r2.onend = () => { setIsListening(false); };
             r2.onerror = (e: any) => { if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`); setIsListening(false); };
             r2.start();
           }, 200);
         } else {
-          // Didn't hear wake word — restart listening
           setTimeout(() => startListeningOnce(wakeWord), 300);
         }
         return;
       }
-      if (transcript.trim()) handleChatSend(transcript.trim());
+      if (transcript.trim()) handleChatSendRef.current(transcript.trim());
     };
     recognition.onend = () => { if (!isWakeWordMode) setIsListening(false); };
     recognition.onerror = (e: any) => {
