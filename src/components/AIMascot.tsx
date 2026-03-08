@@ -353,7 +353,7 @@ export const AIMascot = () => {
         </div>
 
         {/* Enhanced hover tooltip */}
-        <div className="absolute bottom-0 right-full mr-4 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hoverprim-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
+        <div className="absolute bottom-0 right-full mr-4 bg-primary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
           Click me! ✨
         </div>
       </div>

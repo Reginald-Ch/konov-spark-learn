@@ -310,7 +310,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         <button
           onClick={() => setShowTutorial(!showTutorial)}
           className="w-full flex items-center justify-between p-4 rounded-t-lg border border-[hsl(var(--discord-blurple)/0.3)]"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.2), hsl(var(--discord-blurple) / 0.05))' }}
+          style={{ background: 'hsl(var(--discord-blurple) / 0.15)' }}
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">🏆</span>
