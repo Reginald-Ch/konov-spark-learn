@@ -197,7 +197,7 @@ export const ProgramCard = ({
                     whileHover={{ x: 4 }}
                   >
                     <motion.div 
-                      className={`w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
+                      className={`w-1 h-1 rounded-full ${color}`}
                       animate={{ scale: isHovered ? [1, 1.5, 1] : 1 }}
                       transition={{ duration: 1, repeat: Infinity, delay: idx * 0.2 }}
                     />
