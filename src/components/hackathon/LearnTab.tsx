@@ -370,7 +370,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                           </span>
                           <h4 className="font-semibold text-white text-sm truncate">{step.title}</h4>
                         </div>
-                        <p className="text-[11px] text-[hsl(var(--discord-text-muted))]">{step.subtitle}</p>
+                        <p className="text-[11px] text-white">{step.subtitle}</p>
                       </div>
                       <span className={`text-[hsl(var(--discord-text-muted))] transition-transform text-xs ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </button>
