@@ -228,6 +228,8 @@ const extractConfigFromCode = (code: string) => {
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
+    voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
+    voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
   };
 };
 
@@ -1023,6 +1025,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
+      { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
+      { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1033,12 +1037,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 20 challenges...`,
+      `📋 Scanning 22 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/20 challenges completed (${Math.round(completedCount / 20 * 100)}%)`,
+      `📊 Progress: ${completedCount}/22 challenges completed (${Math.round(completedCount / 22 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
@@ -2269,7 +2273,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 20;
+            const totalChallenges = 22;
             const activeCount = [
               cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
               cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
@@ -2291,6 +2295,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.mood && cfg.mood !== 'neutral',
               cfg.languageStyle && cfg.languageStyle !== 'casual',
               totalCatchphrases > (isAgent ? 3 : 0),
+              cfg.voiceEnabled === true,
+              cfg.voiceMode !== 'push-to-talk',
             ].filter(Boolean).length;
 
             return (

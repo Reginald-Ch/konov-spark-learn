@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 20 Build-Up Challenges
+🤖 FORGE AI Chatbot — 22 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,7 +26,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-  - Complete all 20 challenges to build a unique AI!
+   - Complete all 22 challenges to build a unique AI!
 
 ⏱️ Time: 50-70 minutes
 """
@@ -254,6 +254,27 @@ LANGUAGE_STYLE = "casual"
 CATCHPHRASES = []
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 21: Enable Voice Mode (Boolean)
+# Set to True to make your bot SPEAK its responses!
+# This teaches Feature Flags — a real dev technique.
+#
+#   VOICE_ENABLED = True
+#
+# 🧪 TEST: Set True → send a message → hear your bot talk!
+# ═══════════════════════════════════════════════
+VOICE_ENABLED = False
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 22: Choose Voice Mode (String)
+# How users interact with voice:
+#   "push-to-talk" = click a button to speak
+#   "hands-free"   = always listening (like Alexa!)
+#
+# 🧪 TEST: Switch between modes and feel the difference!
+# ═══════════════════════════════════════════════
+VOICE_MODE = "push-to-talk"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -290,6 +311,8 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 18. MOOD — Pick from options
 # ☐ 19. LANGUAGE_STYLE — Pick from options
 # ☐ 20. CATCHPHRASES — Write signature phrases
+# ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
+# ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
 # ═══════════════════════════════════════════════
 
 
@@ -338,9 +361,9 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "temperature": 0.7,
   "max_tokens": 512,
   "memory_window": 20,
-  "capabilities": ["conversation_memory", "streaming", "knowledge_base"],
+  "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 20,
+  "challenges": 22,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
@@ -357,7 +380,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 20 Build-Up Challenges
+🧠 FORGE AI Agent — 22 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -511,6 +534,20 @@ CATCHPHRASES = [
 ]
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 21: Enable Voice Mode (Boolean)
+# Set to True to make your agent SPEAK its responses!
+# This teaches Feature Flags — a real dev technique.
+# ═══════════════════════════════════════════════
+VOICE_ENABLED = False
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 22: Choose Voice Mode (String)
+# "push-to-talk" = click a button to speak
+# "hands-free"   = always listening (like Alexa!)
+# ═══════════════════════════════════════════════
+VOICE_MODE = "push-to-talk"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -560,6 +597,8 @@ TOOL_INSTRUCTIONS = {
 # ☐ 18. MOOD — Try "serious" or "energetic"
 # ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
 # ☐ 20. CATCHPHRASES — Chat and look for your phrases
+# ☐ 21. VOICE_ENABLED — Set True to hear your agent speak!
+# ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
 # ═══════════════════════════════════════════════
 
 
@@ -615,9 +654,9 @@ TOOL_INSTRUCTIONS = {
   "max_tokens": 512,
   "max_iterations": 5,
   "tools": ["web_search", "calculator", "wikipedia"],
-  "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],
+  "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 20,
+  "challenges": 22,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
