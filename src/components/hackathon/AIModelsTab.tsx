@@ -689,4 +689,6 @@ const TextSampleInput = ({ onAdd }: { onAdd: (text: string) => void }) => {
       </Button>
     </div>
   );
-};
+});
+
+AIModelsTab.displayName = 'AIModelsTab';
