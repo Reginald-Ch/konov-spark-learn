@@ -257,7 +257,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="mb-6 rounded-lg p-4 border border-[hsl(var(--discord-blurple)/0.3)]"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), hsl(var(--discord-blurple) / 0.05))' }}
+        style={{ background: 'hsl(var(--discord-blurple) / 0.1)' }}
       >
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
