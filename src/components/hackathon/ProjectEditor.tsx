@@ -1173,6 +1173,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             fewShotExamples: config.fewShotExamples,
             languageStyle: config.languageStyle,
             signOff: config.signOff,
+            maxTokens: config.maxTokens,
           },
         },
         (text) => {

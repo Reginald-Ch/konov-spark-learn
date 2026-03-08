@@ -232,7 +232,7 @@ const ProjectView = () => {
       responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
       conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
       conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
-      easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
+      secretResponses: extractDict('SECRET_RESPONSES', 'secret_responses', 'EASTER_EGGS', 'easter_eggs'),
       catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
       blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
       followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
