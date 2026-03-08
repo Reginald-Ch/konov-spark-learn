@@ -304,11 +304,26 @@ const ProjectView = () => {
       }
     }
 
-    // 2. Client-side Q&A matching (reliable, no AI needed)
+    // 2. Client-side Q&A matching with tighter fuzzy logic
     for (const pair of config.qaPairs) {
       const qLower = pair.q.toLowerCase().trim();
-      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
-          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+      if (!qLower) continue;
+      // Exact match
+      if (lowerMsg === qLower || lowerMsg.includes(qLower) || qLower.includes(lowerMsg)) {
+        let answer = pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) answer += `\n\n${config.signOff}`;
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
+        return;
+      }
+      // Fuzzy match: require ≥60% bidirectional word overlap
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
+      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
+      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+      if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
         let answer = pair.a;
         if (config.catchphrases.length > 0) {
           answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
