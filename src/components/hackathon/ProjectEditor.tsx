@@ -1526,6 +1526,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       </AnimatePresence>
                       <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
                         className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+                      <p className={`text-[10px] mt-0.5 ${systemPrompt.length < 20 ? 'text-ide-orange' : systemPrompt.length > 500 ? 'text-ide-orange' : 'text-ide-text-muted'}`}>
+                        {systemPrompt.length} chars {systemPrompt.length < 20 ? '— try to be more descriptive!' : systemPrompt.length > 500 ? '— consider being more concise' : ''}
+                      </p>
                     </div>
 
                     <div>
@@ -1606,7 +1609,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               {completed}/{total}
                             </span>
                           </div>
-                          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                          <div className="space-y-0.5 max-h-64 overflow-y-auto">
                             {missions.map((m, i) => (
                               <div key={i} className={`flex items-center gap-1.5 text-[10px] py-0.5 ${m.done ? 'text-ide-green' : 'text-ide-text-muted'}`}>
                                 <span className="w-4 text-center">{m.done ? '✅' : '⬜'}</span>
@@ -2010,6 +2013,57 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         updateCursorInfo(target);
                       });
                     }
+                    // Auto-bracket/quote closing
+                    const PAIRS: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
+                    if (PAIRS[e.key]) {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const end = target.selectionEnd;
+                      const value = target.value;
+                      const selected = value.substring(start, end);
+                      const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
+                      target.value = newValue;
+                      updateFile(newValue);
+                      requestAnimationFrame(() => {
+                        // Place cursor after the opening bracket (or around selection)
+                        target.selectionStart = start + 1;
+                        target.selectionEnd = start + 1 + selected.length;
+                        updateCursorInfo(target);
+                      });
+                      return;
+                    }
+                    // Auto-skip closing bracket if already there
+                    if (')]}'.includes(e.key)) {
+                      const target = e.target as HTMLTextAreaElement;
+                      if (target.value[target.selectionStart] === e.key) {
+                        e.preventDefault();
+                        target.selectionStart = target.selectionEnd = target.selectionStart + 1;
+                        updateCursorInfo(target);
+                        return;
+                      }
+                    }
+                    // Backspace: delete matching pair
+                    if (e.key === 'Backspace') {
+                      const target = e.target as HTMLTextAreaElement;
+                      const pos = target.selectionStart;
+                      if (pos > 0 && target.selectionStart === target.selectionEnd) {
+                        const before = target.value[pos - 1];
+                        const after = target.value[pos];
+                        if (PAIRS[before] === after) {
+                          e.preventDefault();
+                          const value = target.value;
+                          const newValue = value.substring(0, pos - 1) + value.substring(pos + 1);
+                          target.value = newValue;
+                          updateFile(newValue);
+                          requestAnimationFrame(() => {
+                            target.selectionStart = target.selectionEnd = pos - 1;
+                            updateCursorInfo(target);
+                          });
+                          return;
+                        }
+                      }
+                    }
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       const target = e.target as HTMLTextAreaElement;
@@ -2189,20 +2243,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">{cfg.botEmoji}</span>
                   <span className="text-[11px] text-ide-text font-bold truncate">{cfg.botName}</span>
-                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${selectedTheme.accent}33`, color: selectedTheme.accent }}>{activeCount}/{totalChallenges} challenges</span>
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${selectedTheme.accent}33`, color: selectedTheme.accent }}>{activeCount}/{totalChallenges}</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚 Knowledge</span>}
-                  {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬 {mergedQACount} Q&A</span>}
-                  {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏 {totalRules} rules</span>}
-                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚 {totalEggs} eggs</span>}
-                  {totalCatchphrases > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-orange/20 text-ide-orange">💬 phrases</span>}
-                  {totalBlocked > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-red/20 text-ide-red">🚫 blocked</span>}
-                  {cfg.forbiddenWords.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">🚯 words</span>}
-                  {cfg.mood && cfg.mood !== 'neutral' && <span className="text-[8px] px-1 py-0.5 rounded bg-pink-500/20 text-pink-400">🎭 {cfg.mood}</span>}
-                  {cfg.examples.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-teal-500/20 text-teal-400">📝 examples</span>}
-                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️ {cfg.temperature}</span>
-                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">✍️ {cfg.responseStyle}</span>
+                  {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚</span>}
+                  {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬{mergedQACount}</span>}
+                  {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏{totalRules}</span>}
+                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚{totalEggs}</span>}
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️{cfg.temperature} · {cfg.responseStyle}</span>
                 </div>
               </div>
             );
@@ -2273,23 +2321,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <div className="flex gap-2">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
-                placeholder="Type a message..."
+                placeholder={`Ask ${liveConfig.botName} something...`}
                 disabled={isStreaming}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
                 className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
-            </div>
-            <div className="pt-1 border-t border-ide-border">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-ide-text-muted">Submit</span>
-              <div className="flex gap-1.5 mt-1.5">
-                <Button size="sm" variant="ghost"
-                  onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-green/20 text-ide-green hover:text-white hover:bg-ide-green/40 border border-ide-green/30">
-                  <Send className="w-3 h-3 mr-1" /> Submit Project
-                </Button>
-              </div>
             </div>
           </div>
         </div>
@@ -2333,17 +2371,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {showPreview ? <PanelRightClose className="w-3 h-3 mr-1" /> : <PanelRightOpen className="w-3 h-3 mr-1" />}
             Preview
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={isRunning}
+          <Button size="sm" onClick={handleRun} disabled={isRunning} title="Run Tests (Ctrl+Enter)"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-border text-ide-text hover:bg-ide-selection border border-ide-border">
             {isRunning ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <TestTube className="w-3 h-3 mr-1" />}
-            <span className="hidden sm:inline">Run Tests</span>
+            <span className="hidden sm:inline">Run</span>
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving}
+          <Button size="sm" onClick={handleSave} disabled={isSaving} title="Save Checkpoint (Ctrl+S)"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
-            <span className="hidden sm:inline">Save Checkpoint</span>
+            <span className="hidden sm:inline">Save</span>
           </Button>
-          <Button size="sm" onClick={handleGoLive}
+          <Button size="sm" onClick={handleGoLive} title="Publish & get shareable link"
             className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-green text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Go Live</span>
