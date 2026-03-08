@@ -330,7 +330,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               </div>
 
               <Button onClick={handlePublish} disabled={!projectName.trim()}
-                className="w-full h-10 text-sm font-bold te bg-primary hover:bg-primary/90"41D)' }}>
+                className="w-full h-10 text-sm font-bold text-white bg-primary hover:bg-primary/90">
                 <Send className="w-4 h-4 mr-2" />
                 Submit Project 🚀
               </Button>

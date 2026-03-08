@@ -138,7 +138,9 @@ export const Navbar = () => {
                         setShowSignupModal(true);
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] mt-2 bg-gradient-to-r from-primary toprimary                 <Zap className="w-4 h-4 mr-1" />
+                      className="w-full font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] mt-2 bg-primary"
+                    >
+                      <Zap className="w-4 h-4 mr-1" />
                       Join Now!
                     </Button>
                   </motion.div>
