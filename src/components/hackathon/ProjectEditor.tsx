@@ -1108,15 +1108,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     voiceModeRef.current = newMode;
     if (newMode) {
       toast.success('🎙️ Hands-free mode ON');
-      startListeningOnce();
+      const ww = debouncedLiveConfig?.wakeWord || '';
+      startListeningOnce(ww || undefined);
     } else {
       toast.info('Hands-free mode OFF');
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
       setIsListening(false);
       setIsSpeaking(false);
+      setWaitingForWakeWord(false);
     }
-  }, [voiceConversationMode, startListeningOnce]);
+  }, [voiceConversationMode, startListeningOnce, debouncedLiveConfig]);
 
   // Cleanup recognition on unmount
   useEffect(() => {
