@@ -295,15 +295,26 @@ BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE (3+ sentences, tri
 KNOWLEDGE_BASE (detailed, triple-quoted), QA_PAIRS (3+ dicts with "q" and "a" keys),
 TEMPERATURE (float 0.0-1.0), RULES (list of 4+ strings), CONVERSATION_STARTERS (5+ strings),
 FORBIDDEN_WORDS (list), BLOCKED_TOPICS (2+ strings), FEW_SHOT_EXAMPLES (list of {"input":..., "output":...} dicts),
-SECRET_RESPONSES (dict of trigger phrases), RESPONSE_STYLE, MAX_RESPONSE_LENGTH,
-MAX_TOKENS (integer), MOOD, LANGUAGE_STYLE, CATCHPHRASES (4+ strings),
+SECRET_RESPONSES (dict of trigger phrases),
+MOOD_RESPONSES (dict mapping moods like "happy", "frustrated", "curious" to behavior instructions),
+MAX_RESPONSE_LENGTH, MAX_TOKENS (integer), MOOD, CATCHPHRASES (4+ strings),
+TIME_OF_DAY (string: "morning", "afternoon", or "evening"),
+Then an if/elif/else block that sets RESPONSE_TONE based on TIME_OF_DAY:
+  if TIME_OF_DAY == "morning":
+      RESPONSE_TONE = "..."
+  elif TIME_OF_DAY == "afternoon":
+      RESPONSE_TONE = "..."
+  elif TIME_OF_DAY == "evening":
+      RESPONSE_TONE = "..."
+  else:
+      RESPONSE_TONE = "..."
 VOICE_ENABLED (True/False), VOICE_MODE ("push-to-talk" or "hands-free"),
 FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 
 Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `Generate a complete FORGE 22-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, RESPONSE_STYLE, MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, LANGUAGE_STYLE, CATCHPHRASES, VOICE_ENABLED, VOICE_MODE.`;
+      sysPrompt = `Generate a complete FORGE 22-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, MOOD_RESPONSES (dict of mood->instruction), MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, CATCHPHRASES, TIME_OF_DAY + if/elif RESPONSE_TONE block, VOICE_ENABLED, VOICE_MODE.`;
       userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
       sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;
