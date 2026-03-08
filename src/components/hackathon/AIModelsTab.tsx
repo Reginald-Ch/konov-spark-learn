@@ -204,7 +204,6 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<any>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
   const sections = useMemo(() => builderType === 'agent' ? AGENT_SECTIONS : CHATBOT_SECTIONS, [builderType]);
 
