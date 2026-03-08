@@ -311,6 +311,29 @@ VOICE_ENABLED = False
 VOICE_MODE = "push-to-talk"
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 23: Set a Wake Word (String)
+# Like "Hey Siri" or "OK Google" — your bot only
+# starts listening after hearing this phrase!
+# Only works in hands-free mode.
+#
+#   WAKE_WORD = "Hey Spark"
+#
+# 🧪 TEST: Set hands-free + wake word → say the phrase!
+# ═══════════════════════════════════════════════
+WAKE_WORD = ""
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 24: Choose Voice Gender (String)
+# Controls the TTS voice used to speak responses.
+#   "default" = browser default voice
+#   "female"  = picks a female voice
+#   "male"    = picks a male voice
+#
+# 🧪 TEST: Switch between "female" and "male" and listen!
+# ═══════════════════════════════════════════════
+VOICE_GENDER = "default"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
