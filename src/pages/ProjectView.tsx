@@ -612,6 +612,7 @@ const ProjectView = () => {
       setIsStreaming(false);
     }
   };
+  handleChatSendRef.current = handleChatSend;
 
   if (isLoading) {
     return (

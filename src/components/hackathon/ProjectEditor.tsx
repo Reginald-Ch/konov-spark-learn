@@ -1393,6 +1393,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       });
     } finally { setIsStreaming(false); }
   };
+  handleChatSendRef.current = handleChatSend;
 
   const executeSave = async (email: string, name?: string) => {
     setIsSaving(true);
