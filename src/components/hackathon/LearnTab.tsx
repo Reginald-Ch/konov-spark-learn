@@ -228,6 +228,9 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Read code from localStorage if not passed as prop
+  const codeToValidate = currentCode || localStorage.getItem('forge-editor-code') || '';
+
   // Detect project type: use prop, or auto-detect from code
   const isAgent = projectType === 'agent' || (!projectType && /SHOW_REASONING\s*=/.test(codeToValidate));
 
@@ -236,7 +239,6 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   const ALL_CHALLENGES = useMemo(() => CHALLENGE_STEPS.flatMap(s => s.challenges), [CHALLENGE_STEPS]);
 
   // Read code from localStorage if not passed as prop
-  const codeToValidate = currentCode || localStorage.getItem('forge-editor-code') || '';
 
   // Validate all challenges against the current code
   const validationResults = ALL_CHALLENGES.map(ch => ({
