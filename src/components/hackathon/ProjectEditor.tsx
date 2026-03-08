@@ -2557,33 +2557,33 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <span className="text-[10px] text-ide-accent font-medium">Speaking...</span>
               </div>
             )}
-            <div className="flex gap-2">
+            {liveConfig.voiceEnabled && (
+              <div className="flex items-center gap-1 px-1">
+                <Button size="sm" onClick={toggleListening} disabled={isStreaming}
+                  title={isListening ? 'Stop listening' : 'Push to talk'}
+                  className={`h-6 w-6 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                  <Mic className="w-3 h-3" />
+                </Button>
+                <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
+                  title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
+                  className={`h-6 w-6 p-0 flex-shrink-0 ${voiceConversationMode ? 'bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                  <Radio className="w-3 h-3" />
+                </Button>
+                <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
+                  title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                  className="h-6 w-6 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
+                  {ttsEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
+                </Button>
+              </div>
+            )}
+            <div className="flex gap-1.5">
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder={isListening ? '🎤 Listening...' : `Ask ${liveConfig.botName} something...`}
                 disabled={isStreaming || isListening}
-                className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
-              {liveConfig.voiceEnabled && (
-                <>
-                  <Button size="sm" onClick={toggleListening} disabled={isStreaming}
-                    title={isListening ? 'Stop listening' : 'Push to talk'}
-                    className={`h-8 w-8 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
-                    <Mic className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
-                    title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
-                    className={`h-8 w-8 p-0 flex-shrink-0 ${voiceConversationMode ? 'bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
-                    <Radio className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
-                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
-                    className="h-8 w-8 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
-                    {ttsEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                  </Button>
-                </>
-              )}
+                className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1 min-w-0" />
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
-                className="h-8 px-3 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
+                className="h-8 w-8 p-0 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
