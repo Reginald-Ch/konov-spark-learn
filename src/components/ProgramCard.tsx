@@ -103,7 +103,7 @@ export const ProgramCard = ({
             
             {/* Floating icon with 3D effect */}
             <motion.div 
-              className={`absolute top-4 left-4 w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl`}
+              className={`absolute top-4 left-4 w-12 h-12 rounded-xl ${color} flex items-center justify-center shadow-xl`}
               animate={{ 
                 scale: isHovered ? 1.15 : 1,
                 rotate: isHovered ? 12 : 0,
