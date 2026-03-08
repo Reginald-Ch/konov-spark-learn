@@ -12,7 +12,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
-      color: "primary about datasets , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
+      color: "primary , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },
@@ -21,7 +21,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "We know  how AI learns  and can train it with Datasets",
       icon: Award,
-      color: "from-accent to-accent "These saccentrkshop. They learnt about how machines learn with patterns and  AI ethics .",
+      color: "from-accent to-accent "These saccentrkshop. Taccenthines learn with patterns and  AI ethics .",
       project: "AI vrs Robots",
       quote: "We enjoyed the lessons and also we got to play with AI games!"
     },
@@ -31,7 +31,7 @@ export const SuccessStories = () => {
       achievement: "Trained my AI to classify between images and objects",
       icon: Trophy,
       color: "from-secondary to-primary",
-     second a good understand of AI fundamentals starting his journey as a AI young builder.",
+     second a good understand of AI fuseconds journey as a AI young builder.",
       project: "I know how AI can be bias",
       quote: "I trained my AI with Datasets."
     },
@@ -39,7 +39,7 @@ export const SuccessStories = () => {
 
   return (
     <section className="py-24 md:py-32 relative overflow-hidden bg-gradient-to-b from-background to-background/50">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+background4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
