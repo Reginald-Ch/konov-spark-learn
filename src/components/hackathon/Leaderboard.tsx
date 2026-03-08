@@ -191,9 +191,9 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
 
   const getRankBg = (index: number) => {
     switch (index) {
-      case 0: return 'bg-gradient-to-r from-yellow-500/20 to-transparent border-yellow-500/30';
-      case 1: return 'bg-gradient-to-r from-gray-400/15 to-transparent border-gray-400/25';
-      case 2: return 'bg-gradient-to-r from-amber-600/20 to-transparent border-amber-600/30';
+      case 0: return 'bg-yellow-500/20 border-yellow-500/30';
+      case 1: return 'bg-gray-400/15 border-gray-400/25';
+      case 2: return 'bg-amber-600/20 border-amber-600/30';
       default: return 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)]';
     }
   };
