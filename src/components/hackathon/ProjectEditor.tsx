@@ -1508,6 +1508,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
                         : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
                       const defaultSystemMessage = scaffold.systemPrompt;
+                      // Bug 1: Unified thresholds matching Live Preview — check beyond defaults
+                      const defaultKB = isAgent 
+                        ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+                        : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
                       const missions = [
                         { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaultName && config.botName !== 'AI Bot' },
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
@@ -1517,13 +1521,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 0 },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 0 },
-                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > 0 },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 0 },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 0 },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 0 },
-                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode !== '' },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
+                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3) },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
+                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
