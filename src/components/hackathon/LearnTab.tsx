@@ -411,7 +411,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
           <div className="flex items-center gap-3">
             <span className="text-2xl">🏆</span>
             <div className="text-left">
-              <h3 className="text-lg font-bold text-white">All 22 Challenges — Step by Step</h3>
+              <h3 className="text-lg font-bold text-white">All 24 Challenges — Step by Step</h3>
               <p className="text-xs text-white">Follow this guide to complete every variable in main.py</p>
             </div>
           </div>
