@@ -810,17 +810,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const bracketHighlights = useMemo(() => {
     if (!matchedBrackets) return null;
     const code = files[activeFile];
-    const lines = code.split('\n');
+    const codeLines = code.split('\n');
     const posToLineCol = (pos: number) => {
       let remaining = pos;
-      for (let l = 0; l < lines.length; l++) {
-        if (remaining <= lines[l].length) return { line: l, col: remaining };
-        remaining -= lines[l].length + 1;
+      for (let l = 0; l < codeLines.length; l++) {
+        if (remaining <= codeLines[l].length) return { line: l, col: remaining };
+        remaining -= codeLines[l].length + 1;
       }
       return { line: 0, col: 0 };
     };
     return [posToLineCol(matchedBrackets[0]), posToLineCol(matchedBrackets[1])];
-  }, [matchedBrackets, files, activeFile]);
+  }, [matchedBrackets, files[activeFile]]);
 
   const highlightedContent = useMemo(() => {
     if (activeFile !== 'main.py') return null;
