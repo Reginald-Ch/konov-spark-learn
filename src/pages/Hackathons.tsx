@@ -154,7 +154,7 @@ const Hackathons = () => {
     { id: 'build' as MainTab, name: 'Build', icon: Code, color: '#5865F2', desc: 'Python AI IDE' },
     { id: 'templates' as MainTab, name: 'Templates', icon: Rocket, color: '#F7941D', desc: '1-Click Starters' },
     { id: 'hackathons' as MainTab, name: 'Hackathons', icon: Trophy, color: '#C70110', desc: 'Events & Leaderboard' },
-    { id: 'ai-models' as MainTab, name: 'AI Models', icon: Brain, color: '#9B59B6', desc: 'Train & Export' },
+    { id: 'ai-models' as MainTab, name: 'Visual Builder', icon: Brain, color: '#9B59B6', desc: 'Build Visually' },
     { id: 'learn' as MainTab, name: 'Learn', icon: GraduationCap, color: '#006600', desc: 'Tutorials & Guides' },
   ];
 
