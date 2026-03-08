@@ -156,7 +156,7 @@ CRITICAL: Read their code and generate realistic terminal output showing:
 1. Loading each variable (bot name, emoji, temperature, style, rules, mood, language style, etc.)
 2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs, forbidden words, etc.)
 3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
-4. Challenge completion count (how many of 20 challenges are customized)
+4. Challenge completion count (how many of 22 challenges are customized)
 5. Final status: "✅ All systems ready!"
 
 NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
