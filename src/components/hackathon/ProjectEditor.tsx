@@ -1086,7 +1086,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       let assistantReply = '';
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
 
-      const mergedKnowledge = [knowledgeBase, config.knowledgeBaseFromCode].filter(Boolean).join('\n\n');
+      // Bug 7: Use code as source of truth to avoid sending duplicates
+      const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
 
       await streamFromEdgeFunction(
         { 
