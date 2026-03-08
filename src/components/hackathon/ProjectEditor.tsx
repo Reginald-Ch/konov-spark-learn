@@ -696,7 +696,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Mark as typing to suppress read-back effects
     isTypingRef.current = true;
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = setTimeout(() => { isTypingRef.current = false; }, 300);
+    typingTimerRef.current = setTimeout(() => { isTypingRef.current = false; }, 800);
 
     // Snapshot for undo: debounce to avoid storing every keystroke
     if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
