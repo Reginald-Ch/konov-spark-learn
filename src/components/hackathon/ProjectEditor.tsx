@@ -197,6 +197,22 @@ const extractConfigFromCode = (code: string) => {
     while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
     return examples;
   };
+  // Extract if/elif/else conditional blocks that set a target variable
+  const extractConditionalVar = (targetVar: string): Record<string, string> => {
+    const result: Record<string, string> = {};
+    const blockRegex = new RegExp(
+      `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+      'g'
+    );
+    let m;
+    while ((m = blockRegex.exec(code)) !== null) {
+      result[m[1]] = m[2];
+    }
+    const elseRegex = new RegExp(`else\\s*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
+    const elseMatch = code.match(elseRegex);
+    if (elseMatch) result['__else__'] = elseMatch[1];
+    return result;
+  };
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -230,6 +246,10 @@ const extractConfigFromCode = (code: string) => {
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
     voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
     voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+    moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
+    responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
+    timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
+    responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
   };
 };
 
