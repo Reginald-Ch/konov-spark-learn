@@ -477,7 +477,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
 
             <div className="flex gap-2 p-4 justify-center border-t border-[hsl(var(--discord-light)/0.1)]">
               <Button size="sm" onClick={onNavigateToTemplates}
-                style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}>
+                className="bg-primary hover:bg-primary/90">
                 <Rocket className="w-3.5 h-3.5 mr-1" />
                 Start Building Now!
               </Button>

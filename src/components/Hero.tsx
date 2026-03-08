@@ -106,7 +106,7 @@ export const Hero = () => {
           >
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-gradient-to-r from-primary to-accent"
+              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-primary"
               onClick={() => setShowSignupModal(true)}
             >
               <Rocket className="mr-2 w-6 h-6" />

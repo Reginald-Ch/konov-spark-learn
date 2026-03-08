@@ -189,8 +189,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
           <Button
             size="sm"
             onClick={() => setPublishOpen(true)}
-            className="h-7 text-xs font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}
+            className="h-7 text-xs font-bold text-white bg-primary hover:bg-primary/90"
           >
             <Rocket className="w-3 h-3 mr-1" />
             Publish

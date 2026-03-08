@@ -294,7 +294,7 @@ export const AIMascot = () => {
           {showCTA && (
             <Button
               onClick={handleCTAClick}
-              className="w-full mt-2 bg-gradient-to-r from-primary via-secondary to-accent text-white font-semibold hover:scale-105 transition-transform text-xs py-1.5"
+              className="w-full mt-2 bg-primary text-white font-semibold hover:scale-105 transition-transform text-xs py-1.5"
             >
               Join Now! 🚀
             </Button>

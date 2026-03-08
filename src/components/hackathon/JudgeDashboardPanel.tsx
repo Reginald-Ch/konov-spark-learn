@@ -406,7 +406,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             <Input value={accessCode} onChange={e => setAccessCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Access code" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            <Button onClick={handleLogin} className="w-full" style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
+            <Button onClick={handleLogin} className="w-full bg-secondary hover:bg-secondary/90">
               <Lock className="w-4 h-4 mr-2" /> Enter Dashboard
             </Button>
           </div>

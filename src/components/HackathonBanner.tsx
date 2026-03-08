@@ -87,8 +87,7 @@ export const HackathonBanner = () => {
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <Link to="/hackathons">
-              <Button size="lg" className="text-lg px-8 py-6 font-bold rounded-xl text-white"
-                style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+              <Button size="lg" className="text-lg px-8 py-6 font-bold rounded-xl text-white bg-primary hover:bg-primary/90">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Enter FORGE Studio
                 <ArrowRight className="w-5 h-5 ml-2" />

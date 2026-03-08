@@ -91,7 +91,7 @@ export const CTA = () => {
                 <Button 
                   size="lg"
                   onClick={() => setShowSignupModal(true)}
-                  className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-gradient-to-r from-secondary to-accent"
+                  className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-secondary"
                 >
                   <Rocket className="mr-2 w-6 h-6" />
                   Get Started Today!
