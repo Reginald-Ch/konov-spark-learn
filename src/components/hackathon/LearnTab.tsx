@@ -494,7 +494,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         className="rounded-lg p-5 mb-8 border border-[hsl(var(--discord-blurple)/0.3)]"
         style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), transparent)' }}>
         <h3 className="text-lg font-semibold text-white mb-2">📚 Learning Resources</h3>
-        <p className="text-sm text-[hsl(var(--discord-text-muted))] mb-3">Deepen your AI skills with these curated tutorials and guides.</p>
+        <p className="text-sm text-white mb-3">Deepen your AI skills with these curated tutorials and guides.</p>
       </motion.div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
