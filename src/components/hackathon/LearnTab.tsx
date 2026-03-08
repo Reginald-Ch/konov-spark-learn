@@ -207,8 +207,8 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
   },
 ];
 
-const ALL_CHALLENGES = CHALLENGE_STEPS.flatMap(s => s.challenges);
-const TOTAL_POINTS = ALL_CHALLENGES.reduce((sum, c) => sum + c.points, 0);
+// These are now computed inside the component based on projectType
+const TOTAL_POINTS = 131; // Fixed: sum of all challenge points (same for both templates)
 
 const RESOURCES = [
   { title: 'Python for AI Beginners', description: 'Learn Python basics: variables, loops, functions, and data structures for AI.', icon: Code, color: '#006600', link: 'https://www.learnpython.org/', level: 'Beginner' },
