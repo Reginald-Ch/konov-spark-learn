@@ -396,6 +396,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [voiceConversationMode, setVoiceConversationMode] = useState(false);
   const recognitionRef = useRef<any>(null);
   const voiceModeRef = useRef(false);
+  const handleChatSendRef = useRef<(msg?: string) => void>(() => {});
+  const wakeWordRef = useRef<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
   const [lastSaved, setLastSaved] = useState<string | null>(null);

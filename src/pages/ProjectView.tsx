@@ -119,6 +119,8 @@ const ProjectView = () => {
   const [voiceConversationMode, setVoiceConversationMode] = useState(false);
   const recognitionRef = useRef<any>(null);
   const voiceModeRef = useRef(false);
+  const handleChatSendRef = useRef<(msg?: string) => void>(() => {});
+  const wakeWordRef = useRef<string>('');
 
   useEffect(() => {
     if (!id) return;
