@@ -428,18 +428,22 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                   {passed ? (
                                     <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
                                   ) : (
-                                    <Circle className="w-4 h-4 text-white/40     )}
+                                    <Circle className="w-4 h-4 text-white/40 flex-shrink-0" />
+                                  )}
                                   <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
                                     {ch.name}
                                   </code>
                                   <span className="text-[11px] text-white">{ch.desc}</span>
                                   <div className="flex-1" />
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                    passed ? 'bg-green-500/20 text-green-400' : 'bg-[hsl(var(--discord-light)/0.1)] text-[hsl(var(--discord-text-white/60            }`}>white/60     {passed ? `+${ch.points}` : `${ch.points} pts`}
+                                    passed ? 'bg-green-500/20 text-green-400' : 'bg-[hsl(var(--discord-light)/0.1)] text-white/60'
+                                  }`}>
+                                    {passed ? `+${ch.points}` : `${ch.points} pts`}
                                   </span>
                                 </div>
                                 <div className="bg-[hsl(var(--discord-darker))] rounded p-2 mt-1.5 ml-6">
-                                  <code className="text-[10px] text-[hsl(var(--discord-text))] font-mono">{ch.examplwhite                </div>
+                                  <code className="text-[10px] text-white font-mono">{ch.example}</code>
+                                </div>
                               </div>
                             );
                           })}
