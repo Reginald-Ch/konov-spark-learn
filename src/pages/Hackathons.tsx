@@ -513,7 +513,7 @@ const Hackathons = () => {
           {/* LEARN TAB */}
           {activeTab === 'learn' && (
             <div className="flex-1 overflow-auto">
-              <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} />
+              <LearnTab onNavigateToBuild={() => setActiveTab('build')} onNavigateToTemplates={() => setActiveTab('templates')} projectType={buildTemplate} />
             </div>
           )}
 
