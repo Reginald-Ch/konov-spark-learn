@@ -177,7 +177,7 @@ const Hackathons = () => {
             {/* Welcome Banner */}
             <div 
               className="rounded-lg p-6 mb-8 relative overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}
+              style={{ background: '#C70110' }}
             >
               <div className="absolute inset-0 opacity-10">
                 <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
