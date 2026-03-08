@@ -142,7 +142,7 @@ export const ProgramsWithRocket = () => {
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-gradient-to-b from-secondary via-primary to-transparent opacity-60 blur-sm"
+                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-secondary opacity-60 blur-sm"
                 />
                 
                 {/* Rocket Body */}
