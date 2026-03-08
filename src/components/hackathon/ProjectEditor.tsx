@@ -2240,20 +2240,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">{cfg.botEmoji}</span>
                   <span className="text-[11px] text-ide-text font-bold truncate">{cfg.botName}</span>
-                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${selectedTheme.accent}33`, color: selectedTheme.accent }}>{activeCount}/{totalChallenges} challenges</span>
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${selectedTheme.accent}33`, color: selectedTheme.accent }}>{activeCount}/{totalChallenges}</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚 Knowledge</span>}
-                  {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬 {mergedQACount} Q&A</span>}
-                  {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏 {totalRules} rules</span>}
-                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚 {totalEggs} eggs</span>}
-                  {totalCatchphrases > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-orange/20 text-ide-orange">💬 phrases</span>}
-                  {totalBlocked > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-red/20 text-ide-red">🚫 blocked</span>}
-                  {cfg.forbiddenWords.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">🚯 words</span>}
-                  {cfg.mood && cfg.mood !== 'neutral' && <span className="text-[8px] px-1 py-0.5 rounded bg-pink-500/20 text-pink-400">🎭 {cfg.mood}</span>}
-                  {cfg.examples.length > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-teal-500/20 text-teal-400">📝 examples</span>}
-                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️ {cfg.temperature}</span>
-                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">✍️ {cfg.responseStyle}</span>
+                  {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚</span>}
+                  {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬{mergedQACount}</span>}
+                  {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏{totalRules}</span>}
+                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚{totalEggs}</span>}
+                  <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️{cfg.temperature} · {cfg.responseStyle}</span>
                 </div>
               </div>
             );
