@@ -65,8 +65,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
       >
         <div className="flex items-center gap-3 mb-4">
           <div 
-            className="w-14 h-14 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}
+            className="w-14 h-14 rounded-xl flex items-center justify-center bg-primary"
           >
             <Rocket className="w-7 h-7 text-white" />
           </div>
