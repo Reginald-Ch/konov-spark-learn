@@ -573,6 +573,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, []);
 
   useEffect(() => {
+    if (isTypingRef.current) return; // Skip during active typing — textarea is already correct
     if (activeFile === 'main.py') {
       syncTextareaIfNotFocused(files['main.py']);
     }
