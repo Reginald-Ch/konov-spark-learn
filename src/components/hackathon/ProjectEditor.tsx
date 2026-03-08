@@ -1070,9 +1070,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const config = liveConfig;
     const lowerMsg = userMsg.toLowerCase();
 
-    // 1. Check for easter eggs FIRST (client-side, instant)
-    for (const [trigger, response] of Object.entries(config.easterEggs)) {
-      if (lowerMsg.includes(trigger.toLowerCase())) {
+    // 1. Check for secret responses FIRST (client-side, EXACT match only)
+    for (const [trigger, response] of Object.entries(config.secretResponses)) {
+      if (lowerMsg === trigger.toLowerCase()) {
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
