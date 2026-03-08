@@ -304,7 +304,7 @@ print("✅ Audio Classifier ready! Call classify('audio.wav')")
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #5865F2, #9B59B6)' }}>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-[#5865F2]">
             <Brain className="w-7 h-7 text-white" />
           </div>
           <div>
