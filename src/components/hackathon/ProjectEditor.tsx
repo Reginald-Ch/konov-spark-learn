@@ -1283,8 +1283,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          // Trigger auto-save
-          if (isDirty) {
+          // Bug 4: Only auto-save if project was explicitly saved before
+          if (isDirty && currentProjectId) {
             handleSaveRef.current();
           }
           return 120;
@@ -1293,7 +1293,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       });
     }, 1000);
     return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
-  }, [isDirty]);
+  }, [isDirty, currentProjectId]);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = files[activeFile].split('\n');
