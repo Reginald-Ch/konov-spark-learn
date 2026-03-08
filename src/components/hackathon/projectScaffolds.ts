@@ -254,6 +254,27 @@ LANGUAGE_STYLE = "casual"
 CATCHPHRASES = []
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 21: Enable Voice Mode (Boolean)
+# Set to True to make your bot SPEAK its responses!
+# This teaches Feature Flags — a real dev technique.
+#
+#   VOICE_ENABLED = True
+#
+# 🧪 TEST: Set True → send a message → hear your bot talk!
+# ═══════════════════════════════════════════════
+VOICE_ENABLED = False
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 22: Choose Voice Mode (String)
+# How users interact with voice:
+#   "push-to-talk" = click a button to speak
+#   "hands-free"   = always listening (like Alexa!)
+#
+# 🧪 TEST: Switch between modes and feel the difference!
+# ═══════════════════════════════════════════════
+VOICE_MODE = "push-to-talk"
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -290,6 +311,8 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 18. MOOD — Pick from options
 # ☐ 19. LANGUAGE_STYLE — Pick from options
 # ☐ 20. CATCHPHRASES — Write signature phrases
+# ☐ 21. VOICE_ENABLED — Set True to hear your bot speak!
+# ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
 # ═══════════════════════════════════════════════
 
 
