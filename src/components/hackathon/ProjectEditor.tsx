@@ -993,7 +993,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const completedCount = localChecks.filter(c => c.ok).length;
     
     setTerminalOutput(prev => [
-      ...prev,
+      ...prev.slice(-150),
       `$ python main.py  [${projectType}]`,
       ``,
       `🔍 FORGE Config Scanner v2.0`,
