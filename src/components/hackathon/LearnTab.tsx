@@ -428,7 +428,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                                   {passed ? (
                                     <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
                                   ) : (
-                                    <Circle className="w-4 h-4 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
+                                    <Circle className="w-4 h-4 text-white/40 flex-shrink-0" />
                                   )}
                                   <code className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: step.color, backgroundColor: `${step.color}15` }}>
                                     {ch.name}
