@@ -318,6 +318,84 @@ const ProjectView = () => {
     toast.success('Code copied!');
   };
 
+  // ── Voice Helpers ──
+  const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
+
+  const speakText = useCallback((text: string) => {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const cleaned = stripMarkdown(text);
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (voiceModeRef.current) {
+        setTimeout(() => startListeningOnce(), 300);
+      }
+    };
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  }, [ttsEnabled]);
+
+  const startListeningOnce = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
+    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript.trim()) handleChatSend(transcript.trim());
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
+      setIsListening(false);
+    };
+    recognition.start();
+  }, []);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      setIsListening(false);
+    } else {
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+      startListeningOnce();
+    }
+  }, [isListening, startListeningOnce]);
+
+  const toggleVoiceConversation = useCallback(() => {
+    const newMode = !voiceConversationMode;
+    setVoiceConversationMode(newMode);
+    voiceModeRef.current = newMode;
+    if (newMode) {
+      toast.success('🎙️ Hands-free mode ON');
+      startListeningOnce();
+    } else {
+      toast.info('Hands-free mode OFF');
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      window.speechSynthesis?.cancel();
+      setIsListening(false);
+      setIsSpeaking(false);
+    }
+  }, [voiceConversationMode, startListeningOnce]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
   const handleShareUrl = () => {
     const url = window.location.href;
     if (navigator.share) {
