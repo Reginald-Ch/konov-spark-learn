@@ -1042,9 +1042,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const mergedQA = [...sidebarPairs, ...codePairs];
     for (const pair of mergedQA) {
       const qLower = pair.q.toLowerCase().trim();
-      // Match if user message contains the question keywords or is very similar
-      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || 
-          lowerMsg.split(/\s+/).filter(w => w.length > 2).every(word => qLower.includes(word)))) {
+      // Bug 2: Tighter fuzzy matching — require bidirectional overlap ≥60%
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
+      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
+      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+      const fuzzyMatch = userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6;
+      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || fuzzyMatch)) {
         // Build the answer with bot personality
         let answer = pair.a;
         if (config.catchphrases.length > 0) {
