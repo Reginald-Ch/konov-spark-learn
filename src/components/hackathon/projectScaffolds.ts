@@ -424,7 +424,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 22,
+  "challenges": 24,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
