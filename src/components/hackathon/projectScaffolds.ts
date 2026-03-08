@@ -441,7 +441,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 22 Build-Up Challenges
+🧠 FORGE AI Agent — 24 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
