@@ -407,11 +407,20 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
               const utterance = new SpeechSynthesisUtterance(cleaned);
               utterance.rate = 1.05;
               utterance.pitch = 1.1;
+              // Auto-restart listening after TTS finishes in voice conversation mode
+              utterance.onend = () => {
+                if (voiceModeRef.current) {
+                  setTimeout(() => startListeningOnce(), 300);
+                }
+              };
               window.speechSynthesis.speak(utterance);
             }
             return prev;
           });
         }, 100);
+      } else if (voiceModeRef.current) {
+        // No TTS but voice mode on — auto-listen anyway
+        setTimeout(() => startListeningOnce(), 300);
       }
     }
   };
