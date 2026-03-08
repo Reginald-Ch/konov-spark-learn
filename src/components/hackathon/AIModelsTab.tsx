@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Brain, Upload, Sparkles, Zap, Loader2, CheckCircle2, Code, 
@@ -41,7 +41,7 @@ const MODEL_OPTIONS = [
   { id: 'audio' as ModelType, name: 'Audio Classifier', emoji: '🎵', description: 'Classify audio files by sound', color: '#9B59B6', dataHint: 'MP3, WAV files' },
 ];
 
-export const AIModelsTab = ({ onViewCode }: AIModelsTabProps) => {
+export const AIModelsTab = forwardRef(function AIModelsTab({ onViewCode }: AIModelsTabProps, ref: React.Ref<HTMLDivElement>) {
   const [selectedType, setSelectedType] = useState<ModelType | null>(null);
   const [step, setStep] = useState<Step>('upload');
   const [classes, setClasses] = useState<ClassData[]>([
@@ -669,7 +669,9 @@ print("✅ Audio Classifier ready! Call classify('audio.wav')")
       )}
     </div>
   );
-};
+});
+
+AIModelsTab.displayName = 'AIModelsTab';
 
 /* Small helper component for text sample input */
 const TextSampleInput = ({ onAdd }: { onAdd: (text: string) => void }) => {
