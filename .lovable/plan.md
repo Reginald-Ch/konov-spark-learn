@@ -1,102 +1,46 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
-
-## Current State Assessment
-
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
-
-## Critical Fixes
-
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
-
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
-
-**File:** `supabase/config.toml`
-Add:
-
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-
-### 2. Fix Save Flow — Update Requires `author_email` Match
-
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
-
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
-
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
-**File:** `src/pages/Hackathons.tsx`
-
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
-
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
-
-**File:** `supabase/functions/python-ai-assist/index.ts`
-
-- Add support for `messages` array in `test-agent` action to maintain conversation context
 
 
+# Plan: Add WAKE_WORD and VOICE_GENDER Variables
 
-### 8. Polish ProjectView Page — Add Live Demo Chat
+## What We're Adding
 
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
+Two new voice configuration variables that make the voice assistant feel more like Siri/Alexa:
+- **`WAKE_WORD`** — A trigger phrase (e.g., "Hey Bot") that activates listening in hands-free mode
+- **`VOICE_GENDER`** — Controls TTS voice selection (`"female"`, `"male"`, or `"default"`)
 
-**File:** `src/pages/ProjectView.tsx`
+## Changes
 
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
+### 1. Scaffold Templates (`projectScaffolds.ts`)
+Add Challenge 23 (`WAKE_WORD`) and Challenge 24 (`VOICE_GENDER`) after the existing VOICE_MODE block in both chatbot and agent templates. Update the checklist to include them.
 
-## Implementation Order
+### 2. Parser (`ProjectEditor.tsx` + `ProjectView.tsx`)
+Add two new fields to `extractConfigFromCode`:
+- `wakeWord: extract('', 'WAKE_WORD', 'wake_word')`
+- `voiceGender: extract('default', 'VOICE_GENDER', 'voice_gender')`
 
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+### 3. Voice Logic — Wake Word (`ProjectEditor.tsx` + `ProjectView.tsx`)
+In `startListeningOnce`, when `wakeWord` is set and voice is in hands-free mode:
+- First listen for the wake word phrase
+- Only after detecting it, start actual message capture
+- Show "Say '{wakeWord}' to start..." as the listening indicator
+
+### 4. Voice Logic — Gender (`ProjectEditor.tsx` + `ProjectView.tsx`)
+In `speakText`, before speaking:
+- Get available voices via `speechSynthesis.getVoices()`
+- Filter by voice name containing "female"/"male" keywords or by `voice.name` patterns
+- Set `utterance.voice` to the best match
+
+### 5. Challenge Tracker (`ProjectEditor.tsx`)
+Add scanner entries:
+- `WAKE_WORD` — ok if non-empty
+- `VOICE_GENDER` — ok if not `"default"`
+
+### 6. LearnTab (`LearnTab.tsx`)
+Add descriptions for Challenge 23 and 24.
 
 ## Files Modified
-
-- `supabase/config.toml`
+- `src/components/hackathon/projectScaffolds.ts`
 - `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
 - `src/pages/ProjectView.tsx`
+- `src/components/hackathon/LearnTab.tsx`
+
