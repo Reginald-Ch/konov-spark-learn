@@ -266,7 +266,7 @@ ${code}
       sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;
     } else if (action === "idea-to-code") {
-      sysPrompt = `You are the FORGE AI project generator. Generate a complete 20-challenge config file.
+      sysPrompt = `You are the FORGE AI project generator. Generate a complete 22-challenge config file.
 
 Include ALL variables with creative, topic-specific values:
 BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE (3+ sentences, triple-quoted),
@@ -275,6 +275,7 @@ TEMPERATURE (float 0.0-1.0), RULES (list of 4+ strings), CONVERSATION_STARTERS (
 FORBIDDEN_WORDS (list), BLOCKED_TOPICS (2+ strings), FEW_SHOT_EXAMPLES (list of {"input":..., "output":...} dicts),
 SECRET_RESPONSES (dict of trigger phrases), RESPONSE_STYLE, MAX_RESPONSE_LENGTH,
 MAX_TOKENS (integer), MOOD, LANGUAGE_STYLE, CATCHPHRASES (4+ strings),
+VOICE_ENABLED (True/False), VOICE_MODE ("push-to-talk" or "hands-free"),
 FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 
 Return in a \`\`\`python code block. Make it creative and complete!`;
