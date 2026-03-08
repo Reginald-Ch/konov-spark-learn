@@ -1036,8 +1036,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     } finally { setIsRunning(false); }
   };
 
-  // Memoized config extraction — single source of truth for the Live Preview
-  const liveConfig = useMemo(() => extractConfigFromCode(files['main.py']), [files['main.py']]);
+  // Debounced config extraction — avoids 30+ regex runs on every keystroke
+  useEffect(() => {
+    if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current);
+    liveConfigTimerRef.current = setTimeout(() => {
+      setDebouncedLiveConfig(extractConfigFromCode(files['main.py']));
+    }, 250);
+    return () => { if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current); };
+  }, [files['main.py']]);
+  const liveConfig = debouncedLiveConfig;
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
