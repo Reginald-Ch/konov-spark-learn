@@ -648,6 +648,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       'config.json': scaffold.config,
       'requirements.txt': scaffold.requirements,
     });
+    setSavedFiles({
+      'main.py': scaffold.main,
+      'config.json': scaffold.config,
+      'requirements.txt': scaffold.requirements,
+    });
     setChatMessages([
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
@@ -660,8 +665,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
     setQaData([]);
+    // Reset Design tab state to avoid leaking across templates
+    setSelectedTheme(THEMES[0]);
+    setWelcomeMessage('Hi! Ask me anything.');
+    setLogoUrl('');
+    setQuickReplies(['Hello!', 'What can you do?', 'Help me with something']);
+    setEnabledWidgets(['welcome', 'branding', 'codeview']);
+    // Reset refs
     prevSystemPromptRef.current = scaffold.systemPrompt;
-    // Bug 8: Imperatively reset textarea to match new scaffold
+    prevKnowledgeRef.current = '';
+    prevQARef.current = '[]';
+    themeSyncRef.current = 'default';
+    // Reset undo/redo stacks
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    lastSnapshotRef.current = scaffold.main;
+    // Imperatively reset textarea to match new scaffold
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
