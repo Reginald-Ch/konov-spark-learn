@@ -105,7 +105,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       if (currentProjectId) {
         const { data: updateData, error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true, points_earned: 10, points_earned: 10 })
+          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true, points_earned: 10 })
           .eq('id', currentProjectId)
           .eq('author_email', finalEmail)
           .select('id')
