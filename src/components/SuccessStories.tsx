@@ -12,7 +12,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
-      color: "primary , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
+      color: "primaryorithms and prediction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },
@@ -21,7 +21,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "We know  how AI learns  and can train it with Datasets",
       icon: Award,
-      color: "from-accent to-accent "These saccentrkshop. Taccenthines learn with patterns and  AI ethics .",
+      color: "from-accent to-accent "These saccentrkshop. Taccenthines leaaccent ethics .",
       project: "AI vrs Robots",
       quote: "We enjoyed the lessons and also we got to play with AI games!"
     },
@@ -31,16 +31,14 @@ export const SuccessStories = () => {
       achievement: "Trained my AI to classify between images and objects",
       icon: Trophy,
       color: "from-secondary to-primary",
-     second a good understand of AI fuseconds journey as a AI young builder.",
-      project: "I know how AI can be bias",
+     second a good understand of AI fuseconds journey as a AI young buisecond "I know how AI can be bias",
       quote: "I trained my AI with Datasets."
     },
   ];
 
   return (
     <section className="py-24 md:py-32 relative overflow-hidden bg-gradient-to-b from-background to-background/50">
-background4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
+background4 w-96 h-96 bg-primary/10 rounded-full backgroundttom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
@@ -68,7 +66,7 @@ background4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
                   }`}
                 >
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${story.color} flex items-center justify-center mb-4 shadow-lg`}>
-                    <Icon className="w-7 h-7 text-foreground" />
+ ${story.color === 'primary' ? 'bg-primary' : story.color === 'accent' ? 'bg-accent' : 'bg-secondary'ame="w-7 h-7 text-foreground" />
                   </div>
                   <h3 className="text-xl font-orbitron font-bold mb-2 text-foreground">
                     {story.name}
