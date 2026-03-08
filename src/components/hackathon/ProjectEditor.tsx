@@ -984,7 +984,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'FEW_SHOT_EXAMPLES', ok: config.examples.length > 0, val: `${config.examples.length} examples` },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
       { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
     ];
