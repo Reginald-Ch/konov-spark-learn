@@ -213,6 +213,7 @@ const extractConfigFromCode = (code: string) => {
     catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
     blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
     maxTokens: extractNumber(512, 'MAX_TOKENS', 'max_tokens'),
+    followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
     rememberName: extractBool(true, 'MEMORY_ENABLED', 'memory_enabled', 'REMEMBER_NAME'),
     errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
     knowledgeBaseFromCode: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
