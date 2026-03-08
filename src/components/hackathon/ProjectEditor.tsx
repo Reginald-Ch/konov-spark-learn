@@ -1156,6 +1156,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setSavedFiles({ ...files });
       setLastSaved(new Date().toLocaleTimeString());
+      setAutoSaveCountdown(120);
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
       // No points for saves — scoring is milestone-based only
