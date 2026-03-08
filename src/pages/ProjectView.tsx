@@ -210,6 +210,15 @@ const ProjectView = () => {
       while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
       return pairs;
     };
+    const extractFewShotExamples = (): Array<{input: string; output: string}> => {
+      const match = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*\[([\s\S]*?)\]/);
+      if (!match) return [];
+      const examples: Array<{input: string; output: string}> = [];
+      const regex = /\{\s*["']input["']\s*:\s*["']([^"']+)["']\s*,\s*["']output["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
+      return examples;
+    };
     // Extract if/elif/else conditional blocks that set a target variable
     const extractConditionalVar = (targetVar: string): Record<string, string> => {
       const result: Record<string, string> = {};
