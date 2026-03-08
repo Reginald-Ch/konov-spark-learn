@@ -475,7 +475,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
 
                         <div className="space-y-2 mb-3">
                           {step.challenges.map(ch => {
-                            const passed = code ? ch.validate(code) : false;
+                            const passed = codeToValidate ? ch.validate(codeToValidate) : false;
                             return (
                               <div key={ch.name} className={`rounded-md p-3 border transition-all ${
                                 passed 
