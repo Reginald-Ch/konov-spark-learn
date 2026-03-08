@@ -1531,10 +1531,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                                 style={{
                                   width: `${pct}%`,
                                   background: pct === 100
-                                    ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                                    ? '#22C55E'
                                     : pct >= 50
-                                    ? 'linear-gradient(90deg, #F7941D, #FFD700)'
-                                    : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+                                    ? '#F7941D'
+                                    : '#5865F2',
                                 }}
                               />
                             </div>
