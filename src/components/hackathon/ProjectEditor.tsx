@@ -436,7 +436,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (initialCode) return; // Fresh template selected — don't overwrite with old project
     const savedId = localStorage.getItem('forge-current-project-id');
     if (!savedId) return;
-    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).single().then(({ data, error }) => {
+    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).maybeSingle().then(({ data, error }) => {
       if (error || !data) {
         localStorage.removeItem('forge-current-project-id');
         return;
@@ -978,16 +978,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
       { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
-      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
-      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
-      { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1576,22 +1576,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
                         { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaultGreeting },
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
+                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
-                        { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
+                        { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
+                        { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > 0 },
+                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3) },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
-                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3) },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
-                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
+                        { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
-                        { emoji: '👋', name: 'Sign-off', done: config.signOff !== '' },
-                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
@@ -2246,16 +2246,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.temperature !== defaultTemp,
               cfg.responseStyle !== defaultStyle,
               cfg.maxResponseLength !== 'medium',
+              cfg.forbiddenWords.length > 0,
+              totalBlocked > 2,
+              cfg.fewShotExamples.length > 0,
+              totalEggs > (isAgent ? 2 : 3),
               totalRules > 3,
               totalStarters > 4,
-              totalEggs > (isAgent ? 2 : 3),
-              totalCatchphrases > 3,
-              totalBlocked > 2,
-              cfg.forbiddenWords.length > 0,
+              cfg.maxTokens !== 512,
               cfg.mood && cfg.mood !== 'neutral',
-              cfg.fewShotExamples.length > 0,
               cfg.languageStyle && cfg.languageStyle !== 'casual',
-              cfg.signOff && cfg.signOff !== '',
+              totalCatchphrases > 3,
             ].filter(Boolean).length;
 
             return (
