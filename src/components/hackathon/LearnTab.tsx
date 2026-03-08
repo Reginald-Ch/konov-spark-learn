@@ -243,9 +243,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
-          background: 'linear-gradient(135deg, #006600 0%, #F7941D 100%)'
-        }}>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-accent">
           <BookOpen className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
