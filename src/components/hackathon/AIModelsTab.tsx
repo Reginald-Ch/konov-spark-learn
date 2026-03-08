@@ -389,14 +389,23 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     } finally {
       setIsStreaming(false);
       abortRef.current = null;
-      // Speak the last assistant message
-      setChatMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === 'assistant' && voiceEnabled) {
-          speakText(last.content);
-        }
-        return prev;
-      });
+      // Speak the final assistant response via TTS
+      if (voiceEnabled && 'speechSynthesis' in window) {
+        setTimeout(() => {
+          setChatMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === 'assistant') {
+              window.speechSynthesis.cancel();
+              const cleaned = last.content.replace(/[*#_`~]/g, '').replace(/\[.*?\]/g, '');
+              const utterance = new SpeechSynthesisUtterance(cleaned);
+              utterance.rate = 1.05;
+              utterance.pitch = 1.1;
+              window.speechSynthesis.speak(utterance);
+            }
+            return prev;
+          });
+        }, 100);
+      }
     }
   };
 
