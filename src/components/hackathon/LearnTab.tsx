@@ -400,7 +400,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
                               </>
                             ) : (
                               <>
-                                <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">Target: {step.timeLimit} min</span>
+                                <span className="text-[10px] text-white">Target: {step.timeLimit} min</span>
                                 <div className="flex-1" />
                                 {sr.allPassed ? (
                                   <span className="text-[10px] font-bold text-green-400">✅ Done</span>
