@@ -112,6 +112,14 @@ const ProjectView = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Voice state
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [voiceConversationMode, setVoiceConversationMode] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceModeRef = useRef(false);
+
   useEffect(() => {
     if (!id) return;
     const fetchProject = async () => {
