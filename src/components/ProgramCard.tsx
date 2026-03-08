@@ -63,7 +63,7 @@ export const ProgramCard = ({
               {[...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className={`absolute w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
+                  className={`absolute w-1 h-1 rounded-full ${color}`}
                   initial={{ 
                     x: Math.random() * 100 + '%', 
                     y: '100%',
