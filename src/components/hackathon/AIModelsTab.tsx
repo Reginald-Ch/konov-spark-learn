@@ -833,12 +833,39 @@ APP_THEME = "default"
 
               {/* Chat Input */}
               <div className="p-3 border-t border-[hsl(var(--discord-light)/0.12)]">
-                <div className="flex gap-2">
+                <div className="flex items-center gap-1.5">
+                  {/* Voice toggle */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => { setVoiceEnabled(!voiceEnabled); if (voiceEnabled) window.speechSynthesis?.cancel(); }}
+                    className={`flex-shrink-0 h-9 w-9 rounded-xl ${voiceEnabled ? 'text-[hsl(var(--discord-green))]' : 'text-[hsl(var(--discord-text-muted))]'}`}
+                    title={voiceEnabled ? 'Mute voice replies' : 'Enable voice replies'}
+                  >
+                    {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </Button>
+
+                  {/* Mic button */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={toggleListening}
+                    disabled={isStreaming}
+                    className={`flex-shrink-0 h-9 w-9 rounded-xl transition-all ${
+                      isListening 
+                        ? 'bg-red-500/20 text-red-400 animate-pulse ring-2 ring-red-500/30' 
+                        : 'text-[hsl(var(--discord-text-muted))] hover:text-white'
+                    }`}
+                    title={isListening ? 'Stop listening' : 'Voice input'}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
+
                   <Input
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
-                    placeholder={`Message ${config.BOT_NAME || 'your bot'}...`}
+                    placeholder={isListening ? '🎤 Listening...' : `Message ${config.BOT_NAME || 'your bot'}...`}
                     disabled={isStreaming}
                     className="flex-1 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] text-white placeholder:text-[hsl(var(--discord-text-muted))] h-9 text-sm rounded-xl"
                   />
@@ -851,6 +878,26 @@ APP_THEME = "default"
                     {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
+                {isListening && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2 flex items-center gap-2 text-[10px] text-red-400 font-bold"
+                  >
+                    <div className="flex gap-0.5">
+                      {[0,1,2,3,4].map(i => (
+                        <motion.div
+                          key={i}
+                          className="w-1 bg-red-400 rounded-full"
+                          animate={{ height: [4, 12, 4] }}
+                          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                        />
+                      ))}
+                    </div>
+                    Speak now — your message will be sent automatically
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}
