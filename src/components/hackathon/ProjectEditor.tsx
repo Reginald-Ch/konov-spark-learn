@@ -2257,7 +2257,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.forbiddenWords.length > 0,
               totalBlocked > 2,
               cfg.fewShotExamples.length > 0,
-              totalEggs > (isAgent ? 2 : 3),
+              totalEggs > (isAgent ? 2 : 0),
               totalRules > 3,
               totalStarters > 4,
               cfg.maxTokens !== 512,
