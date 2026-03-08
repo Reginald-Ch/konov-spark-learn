@@ -26,7 +26,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-  - Complete all 20 challenges to build a unique AI!
+   - Complete all 22 challenges to build a unique AI!
 
 ⏱️ Time: 50-70 minutes
 """
