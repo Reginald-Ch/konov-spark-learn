@@ -503,18 +503,9 @@ APP_THEME = "default"
   };
 
 
-  const toggleListening = useCallback(() => {
+  const startListeningOnce = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error('Speech recognition not supported in this browser');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -538,7 +529,44 @@ APP_THEME = "default"
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
     recognition.start();
-  }, [isListening, handleChatSend]);
+  }, [handleChatSend]);
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    startListeningOnce();
+  }, [isListening, startListeningOnce]);
+
+  const toggleVoiceConversation = useCallback(() => {
+    if (voiceConversationMode) {
+      setVoiceConversationMode(false);
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      window.speechSynthesis?.cancel();
+      toast.info('Voice conversation ended');
+    } else {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast.error('Speech recognition not supported in this browser');
+        return;
+      }
+      setVoiceConversationMode(true);
+      setVoiceEnabled(true);
+      setShowPreview(true);
+      toast.success('🎙️ Voice conversation mode ON — speak freely!');
+      setTimeout(() => startListeningOnce(), 300);
+    }
+  }, [voiceConversationMode, startListeningOnce]);
 
   const { completed, total } = builderType ? getCompletionCount() : { completed: 0, total: 0 };
 
