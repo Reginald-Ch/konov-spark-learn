@@ -2329,7 +2329,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>
             </div>
-            </div>
           </div>
         </div>
       </div>
