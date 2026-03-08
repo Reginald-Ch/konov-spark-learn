@@ -66,7 +66,7 @@ CREATOR_NAME = "A FORGE Builder"
 #     mention local ingredients and keep things simple.
 #   """
 #
-# TIP: Use triple quotes \"\"\" for multi-line strings!
+# TIP: Use triple quotes \\"\\"\\" for multi-line strings!
 # ═══════════════════════════════════════════════
 SYSTEM_MESSAGE = "You are a helpful AI assistant that answers questions clearly and concisely."
 
@@ -75,12 +75,12 @@ SYSTEM_MESSAGE = "You are a helpful AI assistant that answers questions clearly 
 # Write a multi-line string with facts your bot should know.
 # Use triple quotes and format with line breaks:
 #
-#   KNOWLEDGE_BASE = \"\"\"
+#   KNOWLEDGE_BASE = \\"\\"\\"
 #   TOPIC: Python Programming
 #   - Created by Guido van Rossum in 1991
 #   - Used for AI, web development, data science
 #   - Key libraries: TensorFlow, Django, Pandas
-#   \"\"\"
+#   \\"\\"\\"
 # ═══════════════════════════════════════════════
 KNOWLEDGE_BASE = """"""
 
@@ -139,42 +139,29 @@ RULES = []
 CONVERSATION_STARTERS = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 11: Build Easter Eggs (Python Dictionary)
-# Write a dict where keys are trigger words and
-# values are instant responses. Use curly braces {}:
-#
-#   EASTER_EGGS = {
-#       "secret": "🎉 You found a hidden feature!",
-#       "hello world": "👨‍💻 Every great programmer starts here.",
-#       "magic": "✨ Abracadabra!",
-#   }
-#
-# 🧪 TEST: Type a trigger word → instant response!
-# ═══════════════════════════════════════════════
-EASTER_EGGS = {}
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 12: Add Catchphrases (Python List)
-# Your bot naturally weaves these into responses.
-# Type a list of signature phrases:
-# ═══════════════════════════════════════════════
-CATCHPHRASES = []
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 13: Set Blocked Topics (Python List)
-# Topics your bot will REFUSE to discuss.
-# Write the list from scratch:
-# ═══════════════════════════════════════════════
-BLOCKED_TOPICS = []
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 14: Set Forbidden Words (Python List)
+# 🏆 CHALLENGE 11: Set Forbidden Words (Python List)
 # Words your bot must NEVER use. The AI finds alternatives.
+# This teaches CONTENT FILTERING — a real AI safety skill!
+#
+#   FORBIDDEN_WORDS = ["stupid", "dumb", "boring", "hate"]
+#
+# 🧪 TEST: Ask something that would normally use these
+#          words — your bot will find smart alternatives!
 # ═══════════════════════════════════════════════
 FORBIDDEN_WORDS = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Write Few-Shot Examples (List of Dicts)
+# 🏆 CHALLENGE 12: Set Blocked Topics (Python List)
+# Topics your bot will REFUSE to discuss entirely.
+# Unlike FORBIDDEN_WORDS (which finds alternatives),
+# blocked topics make the bot say "I can't discuss that."
+#
+#   BLOCKED_TOPICS = ["homework answers", "violence"]
+# ═══════════════════════════════════════════════
+BLOCKED_TOPICS = []
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 13: Write Few-Shot Examples (List of Dicts)
 # Teach your bot HOW to answer by showing examples.
 # Each example is a dict with "input" and "output" keys:
 #
@@ -194,19 +181,54 @@ FORBIDDEN_WORDS = []
 FEW_SHOT_EXAMPLES = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 16: Choose Response Style (String)
+# 🏆 CHALLENGE 14: Add Secret Responses (Python Dictionary)
+# Hidden surprises! When a user types an EXACT trigger
+# phrase, your bot instantly replies with your response.
+#
+# 💡 Different from Q&A Pairs:
+#   - Q&A Pairs = educational answers (keyword matching)
+#   - SECRET_RESPONSES = fun easter eggs (EXACT phrase only)
+#
+#   SECRET_RESPONSES = {
+#       "secret": "🎉 You found a hidden feature!",
+#       "hello world": "👨‍💻 Every great programmer starts here.",
+#       "magic": "✨ Abracadabra!",
+#   }
+#
+# 🧪 TEST: Type your exact trigger phrase → instant reply!
+# ═══════════════════════════════════════════════
+SECRET_RESPONSES = {}
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 15: Choose Response Style (String)
 # Options: "Concise", "Detailed", "Friendly",
 #          "Professional", "Balanced"
 # ═══════════════════════════════════════════════
 RESPONSE_STYLE = "Friendly"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 17: Set Response Length (String)
+# 🏆 CHALLENGE 16: Set Response Length (String)
 # "short"  = 1-2 sentences
 # "medium" = 1 paragraph
 # "long"   = detailed multi-paragraph
 # ═══════════════════════════════════════════════
 MAX_RESPONSE_LENGTH = "medium"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 17: Set Token Limit (Integer)
+# Tokens ≈ words. AI models have a "context window" —
+# a max number of tokens they can read + write.
+#
+# Try different values and see what happens:
+#   50   = very short (1-2 sentences, may cut off!)
+#   200  = short paragraph
+#   512  = default, good balance
+#   1024 = long, detailed responses
+#
+# 🧪 TEST: Set to 50, ask a complex question — see how
+#          the AI has to compress its answer!
+# ═══════════════════════════════════════════════
+MAX_TOKENS = 512
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 18: Set the Mood (String)
@@ -223,11 +245,13 @@ MOOD = "neutral"
 LANGUAGE_STYLE = "casual"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 20: Add a Sign-Off (String)
-# A closing phrase your bot adds to every response.
-# Example: "Stay curious! 🌟" or "— Chef Kofi 👨‍🍳"
+# 🏆 CHALLENGE 20: Add Catchphrases (Python List)
+# Your bot naturally weaves these signature phrases
+# into every response. Make them memorable!
+#
+#   CATCHPHRASES = ["Fun fact!", "Here's the thing...", "Pro tip:"]
 # ═══════════════════════════════════════════════
-SIGN_OFF = ""
+CATCHPHRASES = []
 
 # ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
@@ -238,6 +262,7 @@ APP_THEME = "default"
 # ═══════════════════════════════════════════════
 # BONUS SETTINGS (already configured!)
 # ═══════════════════════════════════════════════
+SIGN_OFF = ""
 FOLLOW_UP_QUESTIONS = True
 MEMORY_ENABLED = True
 ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
@@ -255,16 +280,16 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 8.  TEMPERATURE — Type a float between 0.0 and 1.0
 # ☐ 9.  RULES — Write a list of rule strings
 # ☐ 10. CONVERSATION_STARTERS — Write a list of strings
-# ☐ 11. EASTER_EGGS — Write a dict {"trigger": "response"}
-# ☐ 12. CATCHPHRASES — Write a list of phrase strings
-# ☐ 13. BLOCKED_TOPICS — Write a list of topic strings
-# ☐ 14. FORBIDDEN_WORDS — Write a list of words
-# ☐ 15. FEW_SHOT_EXAMPLES — List of {"input":..., "output":...}
-# ☐ 16. RESPONSE_STYLE — Pick from options
-# ☐ 17. MAX_RESPONSE_LENGTH — "short", "medium", or "long"
+# ☐ 11. FORBIDDEN_WORDS — Write a list of words to ban
+# ☐ 12. BLOCKED_TOPICS — Write a list of refused topics
+# ☐ 13. FEW_SHOT_EXAMPLES — List of {"input":..., "output":...}
+# ☐ 14. SECRET_RESPONSES — Dict {"trigger": "response"}
+# ☐ 15. RESPONSE_STYLE — Pick from options
+# ☐ 16. MAX_RESPONSE_LENGTH — "short", "medium", or "long"
+# ☐ 17. MAX_TOKENS — Try 50 vs 1024 to see the difference!
 # ☐ 18. MOOD — Pick from options
 # ☐ 19. LANGUAGE_STYLE — Pick from options
-# ☐ 20. SIGN_OFF — Write a closing phrase
+# ☐ 20. CATCHPHRASES — Write signature phrases
 # ═══════════════════════════════════════════════
 
 
@@ -290,17 +315,18 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 #   → MEMORY_ENABLED controls whether this is active
 #
 # Step 4: Create the chain
-#   → prompt | llm(temperature=TEMPERATURE) | output_parser
+#   → prompt | llm(temperature=TEMPERATURE, max_tokens=MAX_TOKENS)
 #
 # Step 5: Enforce your config at runtime
-#   → EASTER_EGGS are checked FIRST (instant match)
-#   → QA_PAIRS are checked SECOND (exact match)
+#   → SECRET_RESPONSES checked FIRST (exact phrase match)
+#   → QA_PAIRS checked SECOND (keyword match)
 #   → BLOCKED_TOPICS trigger a polite refusal
 #   → FORBIDDEN_WORDS are filtered from output
 #   → CATCHPHRASES are injected into responses
 #   → SIGN_OFF is appended to every response
 #   → MOOD + LANGUAGE_STYLE shape the tone
 #   → FEW_SHOT_EXAMPLES teach the model your preferred format
+#   → MAX_TOKENS limits how long the AI can respond
 #
 # FORGE handles the LLM connection, API keys, and streaming.
 # Your bot is now LIVE — test it in the preview panel! →
@@ -310,7 +336,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "project_type": "chatbot",
   "model": "gemini-flash",
   "temperature": 0.7,
-  "max_tokens": 1024,
+  "max_tokens": 512,
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base"],
   "forge_version": "3.0",
@@ -389,17 +415,7 @@ QA_PAIRS = [
 TEMPERATURE = 0.3
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 9: Choose Response Style
-# ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Professional"
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 10: Set Response Length
-# ═══════════════════════════════════════════════
-MAX_RESPONSE_LENGTH = "medium"
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 11: Add Agent Rules
+# 🏆 CHALLENGE 9: Add Agent Rules
 # ═══════════════════════════════════════════════
 RULES = [
     "Always show your reasoning step by step",
@@ -408,7 +424,7 @@ RULES = [
 ]
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 12: Set Task Starters
+# 🏆 CHALLENGE 10: Set Task Starters
 # ═══════════════════════════════════════════════
 CONVERSATION_STARTERS = [
     "What's the latest news about AI?",
@@ -418,24 +434,15 @@ CONVERSATION_STARTERS = [
 ]
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 13: Add Easter Eggs
+# 🏆 CHALLENGE 11: Set Forbidden Words
+# Words your agent must NEVER use in responses.
+# Teaches CONTENT FILTERING — a real AI safety skill!
 # ═══════════════════════════════════════════════
-EASTER_EGGS = {
-    "secret mission": "🕵️ Agent mode activated! Scanning all databases...",
-    "42": "🌌 The answer to life, the universe, and everything!"
-}
+FORBIDDEN_WORDS = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 14: Add Catchphrases
-# ═══════════════════════════════════════════════
-CATCHPHRASES = [
-    "Let me investigate that...",
-    "Based on my research...",
-    "The data suggests..."
-]
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Set Blocked Topics
+# 🏆 CHALLENGE 12: Set Blocked Topics
+# Topics your agent will REFUSE to discuss.
 # ═══════════════════════════════════════════════
 BLOCKED_TOPICS = [
     "homework answers",
@@ -443,23 +450,48 @@ BLOCKED_TOPICS = [
 ]
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 16: Set Forbidden Words
-# Words your agent must NEVER use in responses.
+# 🏆 CHALLENGE 13: Add Few-Shot Examples
+# Show your agent HOW you want it to answer.
+# Write a list of {"input": ..., "output": ...} dicts.
 # ═══════════════════════════════════════════════
-FORBIDDEN_WORDS = []
+FEW_SHOT_EXAMPLES = []
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 17: Set the Mood
+# 🏆 CHALLENGE 14: Add Secret Responses (Dictionary)
+# Hidden surprises triggered by EXACT phrases only!
+#
+# 💡 Different from Q&A Pairs:
+#   - Q&A Pairs = knowledge answers (keyword matching)
+#   - SECRET_RESPONSES = fun easter eggs (EXACT match)
+# ═══════════════════════════════════════════════
+SECRET_RESPONSES = {
+    "secret mission": "🕵️ Agent mode activated! Scanning all databases...",
+    "42": "🌌 The answer to life, the universe, and everything!"
+}
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 15: Choose Response Style
+# ═══════════════════════════════════════════════
+RESPONSE_STYLE = "Professional"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 16: Set Response Length
+# ═══════════════════════════════════════════════
+MAX_RESPONSE_LENGTH = "medium"
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 17: Set Token Limit (Integer)
+# Tokens ≈ words. Controls max response size.
+# Try 50 for compressed answers, 1024 for detailed!
+# ═══════════════════════════════════════════════
+MAX_TOKENS = 512
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 18: Set the Mood
 # Options: "cheerful", "serious", "sarcastic",
 #          "mysterious", "energetic", "calm", "neutral"
 # ═══════════════════════════════════════════════
 MOOD = "neutral"
-
-# ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 18: Add Few-Shot Examples
-# Show your agent HOW you want it to answer.
-# ═══════════════════════════════════════════════
-FEW_SHOT_EXAMPLES = []
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 19: Set Language Style
@@ -469,10 +501,14 @@ FEW_SHOT_EXAMPLES = []
 LANGUAGE_STYLE = "casual"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 20: Add a Sign-Off
-# A closing phrase for every response.
+# 🏆 CHALLENGE 20: Add Catchphrases (Python List)
+# Signature phrases your agent weaves into responses.
 # ═══════════════════════════════════════════════
-SIGN_OFF = ""
+CATCHPHRASES = [
+    "Let me investigate that...",
+    "Based on my research...",
+    "The data suggests..."
+]
 
 # ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
@@ -481,6 +517,7 @@ SIGN_OFF = ""
 APP_THEME = "default"
 
 # BONUS SETTINGS
+SIGN_OFF = ""
 FOLLOW_UP_QUESTIONS = True
 MEMORY_ENABLED = True
 RESPONSE_FORMAT = "structured"
@@ -511,18 +548,18 @@ TOOL_INSTRUCTIONS = {
 # ☐ 6.  KNOWLEDGE_BASE — Ask about facts you added
 # ☐ 7.  QA_PAIRS — Ask exact questions to test
 # ☐ 8.  TEMPERATURE — 0.1 vs 1.0 — see the difference
-# ☐ 9.  RESPONSE_STYLE — Try "Concise" vs "Detailed"
-# ☐ 10. MAX_RESPONSE_LENGTH — "short" vs "long"
-# ☐ 11. RULES — Test rule enforcement
-# ☐ 12. CONVERSATION_STARTERS — See buttons update
-# ☐ 13. EASTER_EGGS — Type "secret mission" to test
-# ☐ 14. CATCHPHRASES — Chat and look for your phrases
-# ☐ 15. BLOCKED_TOPICS — Ask about a blocked topic
-# ☐ 16. FORBIDDEN_WORDS — Add words, verify avoidance
-# ☐ 17. MOOD — Try "serious" or "energetic"
-# ☐ 18. FEW_SHOT_EXAMPLES — Add examples to teach format
+# ☐ 9.  RULES — Test rule enforcement
+# ☐ 10. CONVERSATION_STARTERS — See buttons update
+# ☐ 11. FORBIDDEN_WORDS — Add words, verify avoidance
+# ☐ 12. BLOCKED_TOPICS — Ask about a blocked topic
+# ☐ 13. FEW_SHOT_EXAMPLES — Add examples to teach format
+# ☐ 14. SECRET_RESPONSES — Type exact trigger to test
+# ☐ 15. RESPONSE_STYLE — Try "Concise" vs "Detailed"
+# ☐ 16. MAX_RESPONSE_LENGTH — "short" vs "long"
+# ☐ 17. MAX_TOKENS — Try 50 vs 1024!
+# ☐ 18. MOOD — Try "serious" or "energetic"
 # ☐ 19. LANGUAGE_STYLE — Try "academic" or "formal"
-# ☐ 20. SIGN_OFF — Add a closing phrase
+# ☐ 20. CATCHPHRASES — Chat and look for your phrases
 # ═══════════════════════════════════════════════
 
 
@@ -557,14 +594,15 @@ TOOL_INSTRUCTIONS = {
 #   → SHOW_REASONING controls whether "thoughts" are visible
 #
 # Step 5: Enforce your config at runtime
-#   → EASTER_EGGS → instant match, no tool use needed
-#   → QA_PAIRS → exact match, overrides everything
+#   → SECRET_RESPONSES → exact phrase match, instant reply
+#   → QA_PAIRS → keyword match, overrides everything
 #   → BLOCKED_TOPICS → polite refusal
 #   → FORBIDDEN_WORDS → filtered from output
 #   → CATCHPHRASES → injected into responses
 #   → SIGN_OFF → appended to every response
 #   → MOOD + LANGUAGE_STYLE → shape the tone
 #   → FEW_SHOT_EXAMPLES → teach preferred format
+#   → MAX_TOKENS → limits response length
 #
 # FORGE handles the LLM, API keys, and streaming.
 # Your agent is now LIVE — test it in the preview panel! →
@@ -574,6 +612,7 @@ TOOL_INSTRUCTIONS = {
   "project_type": "agent",
   "model": "gemini-flash",
   "temperature": 0.3,
+  "max_tokens": 512,
   "max_iterations": 5,
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search"],

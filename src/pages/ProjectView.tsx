@@ -232,7 +232,7 @@ const ProjectView = () => {
       responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
       conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
       conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
-      easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
+      secretResponses: extractDict('SECRET_RESPONSES', 'secret_responses', 'EASTER_EGGS', 'easter_eggs'),
       catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
       blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
       followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
@@ -247,6 +247,7 @@ const ProjectView = () => {
       fewShotExamples: extractFewShotExamples(),
       languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
       signOff: extract('', 'SIGN_OFF', 'sign_off'),
+      maxTokens: extractNumber(512, 'MAX_TOKENS', 'max_tokens'),
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
     };
   };
@@ -305,10 +306,10 @@ const ProjectView = () => {
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
 
-    // 1. Check for easter eggs (client-side, instant)
-    for (const [trigger, response] of Object.entries(config.easterEggs)) {
-      if (lowerMsg.includes(trigger.toLowerCase())) {
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: response }]);
+    // 1. Check for secret responses (client-side, EXACT match only)
+    for (const [trigger, response] of Object.entries(config.secretResponses)) {
+      if (lowerMsg === trigger.toLowerCase()) {
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: String(response) }]);
         return;
       }
     }
@@ -402,6 +403,7 @@ const ProjectView = () => {
               fewShotExamples: config.fewShotExamples,
               languageStyle: config.languageStyle,
               signOff: config.signOff,
+              maxTokens: config.maxTokens,
             },
           }),
         }

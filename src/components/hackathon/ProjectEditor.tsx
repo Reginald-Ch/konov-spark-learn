@@ -209,9 +209,10 @@ const extractConfigFromCode = (code: string) => {
     responseFormat: extract('', 'RESPONSE_FORMAT', 'response_format'),
     conversationRules: extractList('RULES', 'rules', 'CONVERSATION_RULES'),
     conversationStarters: extractList('CONVERSATION_STARTERS', 'conversation_starters'),
-    easterEggs: extractDict('EASTER_EGGS', 'easter_eggs'),
+    secretResponses: extractDict('SECRET_RESPONSES', 'secret_responses', 'EASTER_EGGS', 'easter_eggs'),
     catchphrases: extractList('CATCHPHRASES', 'catchphrases'),
     blockedTopics: extractList('BLOCKED_TOPICS', 'blocked_topics'),
+    maxTokens: extractNumber(512, 'MAX_TOKENS', 'max_tokens'),
     followUpQuestions: extractBool(true, 'FOLLOW_UP_QUESTIONS', 'follow_up_questions'),
     rememberName: extractBool(true, 'MEMORY_ENABLED', 'memory_enabled', 'REMEMBER_NAME'),
     errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
@@ -979,7 +980,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
-      { label: 'EASTER_EGGS', ok: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3), val: `${Object.keys(config.easterEggs).length} eggs` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
@@ -1069,9 +1070,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const config = liveConfig;
     const lowerMsg = userMsg.toLowerCase();
 
-    // 1. Check for easter eggs FIRST (client-side, instant)
-    for (const [trigger, response] of Object.entries(config.easterEggs)) {
-      if (lowerMsg.includes(trigger.toLowerCase())) {
+    // 1. Check for secret responses FIRST (client-side, EXACT match only)
+    for (const [trigger, response] of Object.entries(config.secretResponses)) {
+      if (lowerMsg === trigger.toLowerCase()) {
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
@@ -1172,6 +1173,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             fewShotExamples: config.fewShotExamples,
             languageStyle: config.languageStyle,
             signOff: config.signOff,
+            maxTokens: config.maxTokens,
           },
         },
         (text) => {
@@ -1580,7 +1582,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📋', name: 'Response Format', done: config.responseFormat !== '' },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
-                        { emoji: '🥚', name: 'Easter Eggs', done: Object.keys(config.easterEggs).length > (isAgent ? 2 : 3) },
+                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3) },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > 3 },
                         { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > 3 },
@@ -2215,7 +2217,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const codeKB = cfg.knowledgeBaseFromCode;
             const codeQA = cfg.qaPairsFromCode;
             const totalRules = cfg.conversationRules.length;
-            const totalEggs = Object.keys(cfg.easterEggs).length;
+            const totalEggs = Object.keys(cfg.secretResponses).length;
             const totalStarters = cfg.conversationStarters.length;
             const totalCatchphrases = cfg.catchphrases.length;
             const totalBlocked = cfg.blockedTopics.length;
