@@ -297,7 +297,7 @@ const Hackathons = () => {
                   ))}
                 </div>
 
-                <Button onClick={() => { setShowOnboarding(false); setActiveTab('templates'); }} className="w-full"
+                <Button onClick={() => { setShowOnboarding(false); setActiveTab('templates'); }}
                   className="w-full bg-primary hover:bg-primary/90">
                   <Rocket className="w-4 h-4 mr-2" />
                   Get Started — Pick a Template
