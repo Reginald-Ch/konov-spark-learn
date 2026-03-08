@@ -136,7 +136,7 @@ export const ProgramCard = ({
 
             {/* Shine effect on hover */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0"
+              className="absolute inset-0 bg-white/20 opacity-0"
               animate={{ 
                 x: isHovered ? ['0%', '200%'] : '0%',
                 opacity: isHovered ? [0, 0.3, 0] : 0
