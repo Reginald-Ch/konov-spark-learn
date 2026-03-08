@@ -69,7 +69,7 @@ export const Timeline = () => {
             <div className="absolute inset-0 bg-foreground/20" />
             <motion.div
               style={{ height: lineHeight }}
-              className="absolute top-0 left-0 right-0 bg-gradient-to-b from-primary via-secondary to-accent"
+              className="absolute top-0 left-0 right-0 bg-primary"
             />
           </div>
 
