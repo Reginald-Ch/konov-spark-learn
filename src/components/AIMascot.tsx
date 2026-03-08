@@ -288,7 +288,7 @@ export const AIMascot = () => {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-gradient-to-br from-card to-card/80 border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
+        <div className="bg-card border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
           <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
