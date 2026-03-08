@@ -327,7 +327,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             {/* Overview */}
             <div className="p-4 border-b border-[hsl(var(--discord-light)/0.1)]">
               <div className="bg-[hsl(var(--discord-dark)/0.6)] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.15)]">
-                <p className="text-[11px] text-[hsl(var(--discord-text-muted))] leading-relaxed">
+                <p className="text-[11px] text-white leading-relaxed">
                   💡 <strong className="text-white">Think of FORGE like a car:</strong> the engine is already built. You just choose the colour, the music, and where to drive it. Edit the 20 variables in <code className="text-[hsl(var(--discord-blurple))]">main.py</code> — no AI or coding knowledge needed!
                 </p>
               </div>
