@@ -120,7 +120,7 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
           className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
         <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined}
           className="w-full h-8 text-xs font-bold"
-          style={{ background: score !== undefined ? 'linear-gradient(135deg, #FFD700, #F7941D)' : undefined }}>
+          style={{ background: score !== undefined ? 'hsl(var(--secondary))' : undefined }}>
           <Send className="w-3 h-3 mr-1" /> {isScored ? 'Update Score' : 'Submit Score'}
         </Button>
       </div>
