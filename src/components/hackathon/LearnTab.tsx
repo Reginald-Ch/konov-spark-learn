@@ -248,7 +248,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         </div>
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-white">Challenge Guide</h2>
-          <p className="text-[hsl(var(--discord-text-muted))] text-sm">Complete all 20 challenges to build your AI bot</p>
+          <p className="text-white text-sm">Complete all 20 challenges to build your AI bot</p>
         </div>
       </div>
 
