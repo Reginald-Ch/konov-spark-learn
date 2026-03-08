@@ -1586,7 +1586,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
                         { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0)isAgent ? 3 : 0) },
+                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
