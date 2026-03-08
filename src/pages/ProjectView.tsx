@@ -249,6 +249,8 @@ const ProjectView = () => {
       signOff: extract('', 'SIGN_OFF', 'sign_off'),
       maxTokens: extractNumber(512, 'MAX_TOKENS', 'max_tokens'),
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
+      voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
+      voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
     };
   };
 
