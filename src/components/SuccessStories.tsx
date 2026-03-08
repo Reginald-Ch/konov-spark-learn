@@ -12,7 +12,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
-      color: "from-primary to-accent",
+      color: "primary",
       story: "Damien learnt about datasets , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
