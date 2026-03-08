@@ -2273,7 +2273,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 20;
+            const totalChallenges = 22;
             const activeCount = [
               cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
               cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
@@ -2295,6 +2295,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.mood && cfg.mood !== 'neutral',
               cfg.languageStyle && cfg.languageStyle !== 'casual',
               totalCatchphrases > (isAgent ? 3 : 0),
+              cfg.voiceEnabled === true,
+              cfg.voiceMode !== 'push-to-talk',
             ].filter(Boolean).length;
 
             return (
