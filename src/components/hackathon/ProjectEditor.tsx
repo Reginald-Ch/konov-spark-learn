@@ -223,7 +223,7 @@ const extractConfigFromCode = (code: string) => {
     toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
     forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
     mood: extract('neutral', 'MOOD', 'mood'),
-    examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
+    fewShotExamples: extractFewShotExamples(),
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
