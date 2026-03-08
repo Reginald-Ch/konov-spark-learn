@@ -4,7 +4,7 @@ import {
   Brain, Bot, Cpu, Sparkles, Zap, Send, Loader2, CheckCircle2, Code, 
   ChevronRight, ChevronDown, Plus, X, Play, MessageSquare,
   User, Shield, BookOpen, Palette, Settings, Wand2, ArrowRight, RotateCcw, Mic, MicOff, Volume2, VolumeX,
-  Eye, EyeOff, Copy, Check, Search, Calculator, Globe
+  Eye, EyeOff, Copy, Check, Search, Calculator, Globe, Phone, PhoneOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -201,15 +201,22 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
   const [showPreview, setShowPreview] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceConversationMode, setVoiceConversationMode] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<any>(null);
+  const voiceModeRef = useRef(false);
 
   const sections = useMemo(() => builderType === 'agent' ? AGENT_SECTIONS : CHATBOT_SECTIONS, [builderType]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // Keep ref in sync for use in callbacks
+  useEffect(() => {
+    voiceModeRef.current = voiceConversationMode;
+  }, [voiceConversationMode]);
 
   const selectType = (type: BuilderType) => {
     setBuilderType(type);
@@ -400,11 +407,20 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
               const utterance = new SpeechSynthesisUtterance(cleaned);
               utterance.rate = 1.05;
               utterance.pitch = 1.1;
+              // Auto-restart listening after TTS finishes in voice conversation mode
+              utterance.onend = () => {
+                if (voiceModeRef.current) {
+                  setTimeout(() => startListeningOnce(), 300);
+                }
+              };
               window.speechSynthesis.speak(utterance);
             }
             return prev;
           });
         }, 100);
+      } else if (voiceModeRef.current) {
+        // No TTS but voice mode on — auto-listen anyway
+        setTimeout(() => startListeningOnce(), 300);
       }
     }
   };
@@ -487,18 +503,9 @@ APP_THEME = "default"
   };
 
 
-  const toggleListening = useCallback(() => {
+  const startListeningOnce = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error('Speech recognition not supported in this browser');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -522,7 +529,44 @@ APP_THEME = "default"
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
     recognition.start();
-  }, [isListening, handleChatSend]);
+  }, [handleChatSend]);
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    startListeningOnce();
+  }, [isListening, startListeningOnce]);
+
+  const toggleVoiceConversation = useCallback(() => {
+    if (voiceConversationMode) {
+      setVoiceConversationMode(false);
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      window.speechSynthesis?.cancel();
+      toast.info('Voice conversation ended');
+    } else {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast.error('Speech recognition not supported in this browser');
+        return;
+      }
+      setVoiceConversationMode(true);
+      setVoiceEnabled(true);
+      setShowPreview(true);
+      toast.success('🎙️ Voice conversation mode ON — speak freely!');
+      setTimeout(() => startListeningOnce(), 300);
+    }
+  }, [voiceConversationMode, startListeningOnce]);
 
   const { completed, total } = builderType ? getCompletionCount() : { completed: 0, total: 0 };
 
@@ -748,6 +792,20 @@ APP_THEME = "default"
                   LIVE
                 </Badge>
                 <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={toggleVoiceConversation}
+                  className={`h-7 px-2 gap-1 text-xs font-bold transition-all ${
+                    voiceConversationMode
+                      ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                      : 'text-[hsl(var(--discord-text-muted))] hover:text-white'
+                  }`}
+                  title={voiceConversationMode ? 'End voice conversation' : 'Start voice conversation'}
+                >
+                  {voiceConversationMode ? <PhoneOff className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
+                  {voiceConversationMode ? 'End' : 'Voice'}
+                </Button>
+                <Button
                   variant="ghost" size="sm"
                   onClick={() => setChatMessages([])}
                   className="h-7 px-2 text-[hsl(var(--discord-text-muted))] hover:text-white"
@@ -755,6 +813,86 @@ APP_THEME = "default"
                   <RotateCcw className="w-3 h-3" />
                 </Button>
               </div>
+
+              {/* Voice Conversation Mode Overlay */}
+              <AnimatePresence>
+                {voiceConversationMode && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="border-b border-[hsl(var(--discord-light)/0.12)] bg-gradient-to-r from-purple-500/5 via-[hsl(var(--discord-blurple)/0.08)] to-purple-500/5"
+                  >
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      {/* Animated voice orb */}
+                      <div className="relative">
+                        <motion.div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            isListening
+                              ? 'bg-red-500/20'
+                              : isStreaming
+                              ? 'bg-[hsl(var(--discord-blurple)/0.2)]'
+                              : 'bg-[hsl(var(--discord-green)/0.2)]'
+                          }`}
+                          animate={isListening ? { scale: [1, 1.15, 1] } : isStreaming ? { scale: [1, 1.05, 1] } : {}}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                        >
+                          {isListening ? (
+                            <Mic className="w-5 h-5 text-red-400" />
+                          ) : isStreaming ? (
+                            <Loader2 className="w-5 h-5 text-[hsl(var(--discord-blurple))] animate-spin" />
+                          ) : (
+                            <Volume2 className="w-5 h-5 text-[hsl(var(--discord-green))]" />
+                          )}
+                        </motion.div>
+                        {isListening && (
+                          <>
+                            <motion.div
+                              className="absolute inset-0 rounded-full border-2 border-red-400/30"
+                              animate={{ scale: [1, 1.6], opacity: [0.6, 0] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                            />
+                            <motion.div
+                              className="absolute inset-0 rounded-full border-2 border-red-400/20"
+                              animate={{ scale: [1, 2], opacity: [0.4, 0] }}
+                              transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                            />
+                          </>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs font-bold text-white">
+                          {isListening ? '🎤 Listening...' : isStreaming ? '🤔 Thinking...' : '🔊 Speaking...'}
+                        </div>
+                        <div className="text-[10px] text-[hsl(var(--discord-text-muted))]">
+                          {isListening ? 'Say something — your message sends automatically' : isStreaming ? 'Generating response...' : 'Hands-free mode active'}
+                        </div>
+                        {/* Audio waveform */}
+                        {isListening && (
+                          <div className="flex gap-0.5 mt-1.5">
+                            {[0,1,2,3,4,5,6,7].map(i => (
+                              <motion.div
+                                key={i}
+                                className="w-1 bg-red-400 rounded-full"
+                                animate={{ height: [3, Math.random() * 14 + 4, 3] }}
+                                transition={{ duration: 0.4, repeat: Infinity, delay: i * 0.06 }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={toggleVoiceConversation}
+                        className="h-8 px-3 text-xs font-bold text-red-400 hover:bg-red-500/10 gap-1"
+                      >
+                        <PhoneOff className="w-3.5 h-3.5" /> End
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Chat Messages */}
               <div className="flex-1 overflow-auto p-4 space-y-3">
