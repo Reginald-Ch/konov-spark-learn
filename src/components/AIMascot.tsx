@@ -288,7 +288,7 @@ export const AIMascot = () => {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-carded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
+        <div className="bg-cardx] backdrop-blur-lg">
           <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
@@ -315,9 +315,7 @@ export const AIMascot = () => {
       >
         <div className="relative">
           {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"></div>
-          
-          {/* Mascot image with mood-based animations */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/400 animate-pulse-glow"primary/40 mood-based animations */}
           <div className="relative">
             <img
               src={mascotImage}
@@ -339,7 +337,7 @@ export const AIMascot = () => {
           </div>
           
           {/* Mood indicator with enhanced animation */}
-          <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center text-sm shadow-lg border border-white animate-bounce">
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center secondary border-white animate-bounce">
             {getMoodEmoji()}
           </div>
 
