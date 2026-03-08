@@ -637,6 +637,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setKnowledgeBase('');
     setQaData([]);
     prevSystemPromptRef.current = scaffold.systemPrompt;
+    // Bug 8: Imperatively reset textarea to match new scaffold
+    if (textareaRef.current) textareaRef.current.value = scaffold.main;
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
