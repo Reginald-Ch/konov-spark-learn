@@ -19,12 +19,6 @@ const FloatingCode = ({ delay, x, y, children }: { delay: number; x: string; y: 
 export const HackathonBanner = () => {
   return (
     <section className="py-20 md:py-28 relative overflow-hidden bg-[hsl(var(--discord-darker))]">
-      {/* Gradient orbs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full blur-[140px] bg-primary/15" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full blur-[120px] bg-secondary/10" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-[100px] bg-accent/8" />
-      </div>
 
       {/* Floating code snippets for atmosphere */}
       <FloatingCode delay={0.5} x="5%" y="15%">{"SYSTEM_PROMPT = \"You are a helpful AI\""}</FloatingCode>
