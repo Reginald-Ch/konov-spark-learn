@@ -18,7 +18,7 @@ const FloatingCode = ({ delay, x, y, children }: { delay: number; x: string; y: 
 
 export const HackathonBanner = () => {
   return (
-    <section className="py-20 md:py-28 relative overflow-hidden bg-[hsl(var(--discord-darker))]">
+    <section className="py-20 md:py-28 relative overflow-hidden bg-[hsl(220,25%,12%)]">
 
       {/* Floating code snippets for atmosphere */}
       <FloatingCode delay={0.5} x="5%" y="15%">{"SYSTEM_PROMPT = \"You are a helpful AI\""}</FloatingCode>
