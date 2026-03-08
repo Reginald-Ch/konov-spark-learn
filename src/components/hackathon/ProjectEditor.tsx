@@ -1075,7 +1075,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/20 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/22 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
