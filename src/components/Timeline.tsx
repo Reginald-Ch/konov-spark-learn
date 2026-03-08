@@ -69,7 +69,7 @@ export const Timeline = () => {
             <div className="absolute inset-0 bg-foreground/20" />
             <motion.div
               style={{ height: lineHeight }}
-              className="absolute top-0 left-0 right-0 bg-gradient-to-b from-primary via-secondary to-accent"
+              className="absolute top-0 left-0 right-0 bg-primary"
             />
           </div>
 
@@ -96,10 +96,10 @@ export const Timeline = () => {
                       <div className="p-6">
                         <div className={`flex items-start gap-4 ${isLeft ? "" : "md:flex-row-reverse"}`}>
                           <motion.div 
-                            className={`p-3 rounded-xl bg-gradient-to-br ${
-                              event.color === 'primary' ? 'from-primary to-primary/70' :
-                              event.color === 'secondary' ? 'from-secondary to-secondary/70' :
-                              'from-accent to-accent/70'
+                            className={`p-3 rounded-xl ${
+                              event.color === 'primary' ? 'bg-primary' :
+                              event.color === 'secondary' ? 'bg-secondary' :
+                              'bg-accent'
                             }`}
                             whileHover={{ rotate: 360 }}
                             transition={{ duration: 0.5 }}
@@ -113,10 +113,10 @@ export const Timeline = () => {
                             <p className="text-muted-foreground font-space mb-3">
                               {event.description}
                             </p>
-                            <span className={`inline-block px-4 py-1 rounded-full text-sm font-fredoka font-bold bg-gradient-to-r ${
-                              event.color === 'primary' ? 'from-primary/20 to-primary/10 text-primary border-2 border-primary/30' :
-                              event.color === 'secondary' ? 'from-secondary/20 to-secondary/10 text-secondary border-2 border-secondary/30' :
-                              'from-accent/20 to-accent/10 text-accent border-2 border-accent/30'
+                            <span className={`inline-block px-4 py-1 rounded-full text-sm font-fredoka font-bold ${
+                              event.color === 'primary' ? 'bg-primary/20 text-primary border-2 border-primary/30' :
+                              event.color === 'secondary' ? 'bg-secondary/20 text-secondary border-2 border-secondary/30' :
+                              'bg-accent/20 text-accent border-2 border-accent/30'
                             }`}>
                               {event.age}
                             </span>

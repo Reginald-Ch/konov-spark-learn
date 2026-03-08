@@ -243,9 +243,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
-          background: 'linear-gradient(135deg, #006600 0%, #F7941D 100%)'
-        }}>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-accent">
           <BookOpen className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
@@ -259,7 +257,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="mb-6 rounded-lg p-4 border border-[hsl(var(--discord-blurple)/0.3)]"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), hsl(var(--discord-blurple) / 0.05))' }}
+        style={{ background: 'hsl(var(--discord-blurple) / 0.1)' }}
       >
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
@@ -293,10 +291,10 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             transition={{ duration: 0.5 }}
             style={{
               background: completedCount === 20
-                ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                ? '#22C55E'
                 : completedCount >= 10
-                ? 'linear-gradient(90deg, #F7941D, #FFD700)'
-                : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+                ? '#F7941D'
+                : '#5865F2',
             }}
           />
         </div>
@@ -312,7 +310,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         <button
           onClick={() => setShowTutorial(!showTutorial)}
           className="w-full flex items-center justify-between p-4 rounded-t-lg border border-[hsl(var(--discord-blurple)/0.3)]"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.2), hsl(var(--discord-blurple) / 0.05))' }}
+          style={{ background: 'hsl(var(--discord-blurple) / 0.15)' }}
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">🏆</span>

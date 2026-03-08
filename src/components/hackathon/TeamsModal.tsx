@@ -303,7 +303,7 @@ const TeamCard = ({ team, onJoin }: { team: Team; onJoin: (email: string) => voi
     <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)] hover:border-[hsl(var(--discord-blurple)/0.5)] transition-colors">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-[hsl(var(--discord-blurple))] flex items-center justify-center">
             <Crown className="w-4 h-4 text-white" />
           </div>
           <h4 className="font-semibold text-white">{team.team_name}</h4>

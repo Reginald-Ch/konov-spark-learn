@@ -83,14 +83,12 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
     >
       {/* Live indicator pulse */}
       {hackathon.status === 'live' && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#C70110] via-[#F7941D] to-[#C70110] animate-pulse" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary animate-pulse" />
       )}
       
       {/* Upcoming indicator with Konov colors */}
       {hackathon.status === 'upcoming' && (
-        <div className="absolute top-0 left-0 right-0 h-1" style={{
-          background: 'linear-gradient(90deg, #C70110 0%, #F7941D 50%, #006600 100%)'
-        }} />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
       )}
 
       {/* Header */}
@@ -186,10 +184,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
         {hackathon.status === 'upcoming' && isRegistrationOpen && (
           <Button 
             onClick={() => onRegister(hackathon.id)} 
-            className="flex-1 text-white font-medium"
-            style={{
-              background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)'
-            }}
+            className="flex-1 text-white font-medium bg-primary hover:bg-primary/90"
             size="sm"
           >
             Register Now

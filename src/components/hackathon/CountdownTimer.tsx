@@ -68,7 +68,7 @@ export const CountdownTimer = forwardRef<HTMLDivElement, CountdownTimerProps>(({
                 className="rounded px-2 py-1.5 min-w-[40px] border"
                 style={{
                   background: isUrgent 
-                    ? 'linear-gradient(135deg, rgba(199, 1, 16, 0.2) 0%, rgba(247, 148, 29, 0.2) 100%)'
+                    ? 'rgba(199, 1, 16, 0.2)'
                     : 'hsl(var(--discord-light))',
                   borderColor: isUrgent ? '#F7941D' : 'hsl(var(--discord-lighter))'
                 }}

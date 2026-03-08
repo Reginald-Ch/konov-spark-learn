@@ -50,9 +50,9 @@ export const ProgramCard = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <Card className="group relative overflow-hidden bg-card/50 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/60 transition-all duration-500 h-full flex flex-col">
-          {/* Animated gradient overlay */}
+          {/* Color overlay */}
           <motion.div 
-            className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0`}
+            className={`absolute inset-0 ${color} opacity-0`}
             animate={{ opacity: isHovered ? 0.15 : 0 }}
             transition={{ duration: 0.4 }}
           />
@@ -63,7 +63,7 @@ export const ProgramCard = ({
               {[...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className={`absolute w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
+                  className={`absolute w-1 h-1 rounded-full ${color}`}
                   initial={{ 
                     x: Math.random() * 100 + '%', 
                     y: '100%',
@@ -96,14 +96,14 @@ export const ProgramCard = ({
               transition={{ duration: 0.7, ease: "easeOut" }}
             />
             <motion.div 
-              className={`absolute inset-0 bg-gradient-to-t ${color}`}
+              className={`absolute inset-0 ${color}`}
               animate={{ opacity: isHovered ? 0.2 : 0.4 }}
               transition={{ duration: 0.5 }}
             />
             
             {/* Floating icon with 3D effect */}
             <motion.div 
-              className={`absolute top-4 left-4 w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-xl`}
+              className={`absolute top-4 left-4 w-12 h-12 rounded-xl ${color} flex items-center justify-center shadow-xl`}
               animate={{ 
                 scale: isHovered ? 1.15 : 1,
                 rotate: isHovered ? 12 : 0,
@@ -136,7 +136,7 @@ export const ProgramCard = ({
 
             {/* Shine effect on hover */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0"
+              className="absolute inset-0 bg-white/20 opacity-0"
               animate={{ 
                 x: isHovered ? ['0%', '200%'] : '0%',
                 opacity: isHovered ? [0, 0.3, 0] : 0
@@ -197,7 +197,7 @@ export const ProgramCard = ({
                     whileHover={{ x: 4 }}
                   >
                     <motion.div 
-                      className={`w-1 h-1 rounded-full bg-gradient-to-r ${color}`}
+                      className={`w-1 h-1 rounded-full ${color}`}
                       animate={{ scale: isHovered ? [1, 1.5, 1] : 1 }}
                       transition={{ duration: 1, repeat: Infinity, delay: idx * 0.2 }}
                     />
@@ -218,7 +218,7 @@ export const ProgramCard = ({
                 className="w-full group/btn border hover:border-primary/80 relative overflow-hidden text-sm py-2"
               >
                 <motion.span 
-                  className={`absolute inset-0 bg-gradient-to-r ${color}`}
+                  className={`absolute inset-0 ${color}`}
                   initial={{ x: '-100%' }}
                   whileHover={{ x: 0 }}
                   transition={{ duration: 0.4 }}
@@ -240,7 +240,7 @@ export const ProgramCard = ({
 
           {/* Corner glow effect */}
           <motion.div 
-            className={`absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br ${color} rounded-full blur-3xl`}
+            className={`absolute -bottom-20 -right-20 w-40 h-40 ${color} rounded-full blur-3xl`}
             animate={{ 
               opacity: isHovered ? 0.4 : 0,
               scale: isHovered ? 1.2 : 1

@@ -1531,10 +1531,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                                 style={{
                                   width: `${pct}%`,
                                   background: pct === 100
-                                    ? 'linear-gradient(90deg, #22C55E, #10B981)'
+                                    ? '#22C55E'
                                     : pct >= 50
-                                    ? 'linear-gradient(90deg, #F7941D, #FFD700)'
-                                    : 'linear-gradient(90deg, #5865F2, #7C8AFF)',
+                                    ? '#F7941D'
+                                    : '#5865F2',
                                 }}
                               />
                             </div>
@@ -1681,7 +1681,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               selectedTheme.id === theme.id ? 'border-ide-accent' : 'border-ide-border hover:border-ide-text-muted'
                             }`}
                           >
-                            <div className="w-full h-6 rounded-md mb-1" style={{ background: `linear-gradient(135deg, ${theme.bg}, ${theme.accent}40)` }} />
+                            <div className="w-full h-6 rounded-md mb-1" style={{ background: theme.bg }} />
                             <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
                             <span className="text-[9px] text-ide-text-muted mt-1 block">{theme.name}</span>
                           </button>
@@ -2216,7 +2216,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               <div className="flex gap-1.5 mt-1.5">
                 <Button size="sm" variant="ghost"
                   onClick={handleGoLive}
-                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-gradient-to-r from-ide-green/20 to-ide-accent/20 text-ide-green hover:text-white hover:from-ide-green/40 hover:to-ide-accent/40 border border-ide-green/30">
+                  className="h-6 flex-1 text-[10px] font-bold uppercase bg-ide-green/20 text-ide-green hover:text-white hover:bg-ide-green/40 border border-ide-green/30">
                   <Send className="w-3 h-3 mr-1" /> Submit Project
                 </Button>
               </div>
@@ -2274,7 +2274,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <span className="hidden sm:inline">Save Checkpoint</span>
           </Button>
           <Button size="sm" onClick={handleGoLive}
-            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-ide-green to-ide-accent text-ide-bg-deep hover:opacity-90">
+            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-green text-ide-bg-deep hover:opacity-90">
             <Rocket className="w-3 h-3 mr-1" />
             <span className="hidden sm:inline">Go Live</span>
           </Button>

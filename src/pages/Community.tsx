@@ -116,10 +116,10 @@ const Community = () => {
                     <div className="flex justify-between items-start mb-4">
                       <motion.div
                         whileHover={{ rotate: 360 }}
-                        className={`w-14 h-14 rounded-xl bg-gradient-to-br ${
-                          category.color === 'primary' ? 'from-primary to-primary/70' :
-                          category.color === 'secondary' ? 'from-secondary to-secondary/70' :
-                          'from-accent to-accent/70'
+                        className={`w-14 h-14 rounded-xl ${
+                          category.color === 'primary' ? 'bg-primary' :
+                          category.color === 'secondary' ? 'bg-secondary' :
+                          'bg-accent'
                         } flex items-center justify-center`}
                       >
                         <category.icon className="w-7 h-7 text-foreground" />

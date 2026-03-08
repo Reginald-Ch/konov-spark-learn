@@ -78,8 +78,7 @@ export const HackathonFAQ = () => {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div 
-            className="w-14 h-14 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #5865F2 0%, #7289DA 100%)' }}
+            className="w-14 h-14 rounded-xl flex items-center justify-center bg-[#5865F2]"
           >
             <HelpCircle className="w-7 h-7 text-white" />
           </div>

@@ -191,9 +191,9 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
 
   const getRankBg = (index: number) => {
     switch (index) {
-      case 0: return 'bg-gradient-to-r from-yellow-500/20 to-transparent border-yellow-500/30';
-      case 1: return 'bg-gradient-to-r from-gray-400/15 to-transparent border-gray-400/25';
-      case 2: return 'bg-gradient-to-r from-amber-600/20 to-transparent border-amber-600/30';
+      case 0: return 'bg-yellow-500/20 border-yellow-500/30';
+      case 1: return 'bg-gray-400/15 border-gray-400/25';
+      case 2: return 'bg-amber-600/20 border-amber-600/30';
       default: return 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)]';
     }
   };
@@ -256,9 +256,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
     <div ref={ref} className="h-full">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
-            background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)'
-          }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary">
             <Trophy className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -323,7 +321,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{
-                    background: `linear-gradient(135deg, ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#4752C4'} 0%, ${index === 0 ? '#F7941D' : index === 1 ? '#A9A9A9' : index === 2 ? '#8B4513' : '#5865F2'} 100%)`
+                    background: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#5865F2'
                   }}>
                     {p.name.charAt(0).toUpperCase()}
                   </div>

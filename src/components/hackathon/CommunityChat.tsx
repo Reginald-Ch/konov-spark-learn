@@ -359,7 +359,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
         <DialogContent className="sm:max-w-[420px] bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-white text-xl">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-[hsl(var(--discord-green))] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[hsl(var(--discord-blurple))] flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-white" />
               </div>
               Join Hackathon Community

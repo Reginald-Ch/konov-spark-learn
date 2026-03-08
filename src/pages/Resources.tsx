@@ -252,7 +252,7 @@ const Resources = () => {
                 <ComicPanel key={idx} color="primary" delay={idx * 0.1}>
                   <div className="p-6 text-center">
                     <motion.div 
-                      className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center"
+                      className="w-16 h-16 mx-auto mb-4 bg-primary rounded-2xl flex items-center justify-center"
                       whileHover={{ rotate: 360 }}
                       transition={{ duration: 0.5 }}
                     >

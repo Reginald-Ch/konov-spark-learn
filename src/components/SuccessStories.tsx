@@ -12,7 +12,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
-      color: "from-primary to-accent",
+      color: "primary" as const,
       story: "Damien learnt about datasets , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
@@ -22,7 +22,7 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "We know  how AI learns  and can train it with Datasets",
       icon: Award,
-      color: "from-accent to-secondary",
+      color: "accent" as const,
       story: "These siblings attended our Sworkshop. They learnt about how machines learn with patterns and  AI ethics .",
       project: "AI vrs Robots",
       quote: "We enjoyed the lessons and also we got to play with AI games!"
@@ -32,22 +32,40 @@ export const SuccessStories = () => {
       location: "Accra, Ghana",
       achievement: "Trained my AI to classify between images and objects",
       icon: Trophy,
-      color: "from-secondary to-primary",
+      color: "secondary" as const,
       story: "Jayden now as a good understand of AI fundamentals starting his journey as a AI young builder.",
       project: "I know how AI can be bias",
       quote: "I trained my AI with Datasets."
     },
   ];
 
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case 'primary': return 'bg-primary';
+      case 'accent': return 'bg-accent';
+      case 'secondary': return 'bg-secondary';
+      default: return 'bg-primary';
+    }
+  };
+
+  const getBadgeClass = (color: string) => {
+    switch (color) {
+      case 'primary': return 'bg-primary/20 text-primary';
+      case 'accent': return 'bg-accent/20 text-accent';
+      case 'secondary': return 'bg-secondary/20 text-secondary';
+      default: return 'bg-primary/20 text-primary';
+    }
+  };
+
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden bg-gradient-to-b from-background to-background/50">
+    <section className="py-24 md:py-32 relative overflow-hidden bg-background">
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-6xl font-orbitron font-bold mb-6">
-            Student <span className="gradient-text">Success Stories</span>
+            Student <span className="text-primary">Success Stories</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-space leading-relaxed">
             Real kids building real solutions with the skills they learned
@@ -69,7 +87,7 @@ export const SuccessStories = () => {
                       : "bg-card/40 border-primary/20 hover:border-primary/50"
                   }`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${story.color} flex items-center justify-center mb-4 shadow-lg`}>
+                  <div className={`w-14 h-14 rounded-2xl ${getColorClass(story.color)} flex items-center justify-center mb-4 shadow-lg`}>
                     <Icon className="w-7 h-7 text-foreground" />
                   </div>
                   <h3 className="text-xl font-orbitron font-bold mb-2 text-foreground">
@@ -78,7 +96,7 @@ export const SuccessStories = () => {
                   <p className="text-sm text-muted-foreground font-space mb-1">
                     {story.location}
                   </p>
-                  <p className="text-sm font-space font-semibold gradient-text">
+                  <p className="text-sm font-space font-semibold text-primary">
                     {story.achievement}
                   </p>
                 </Card>
@@ -98,7 +116,7 @@ export const SuccessStories = () => {
                     {stories[activeStory].name} • {stories[activeStory].location}
                   </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full text-sm font-space font-semibold bg-gradient-to-r ${stories[activeStory].color} text-foreground`}>
+                <span className={`px-4 py-2 rounded-full text-sm font-space font-semibold ${getBadgeClass(stories[activeStory].color)}`}>
                   {stories[activeStory].project}
                 </span>
               </div>

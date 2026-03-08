@@ -288,8 +288,8 @@ export const AIMascot = () => {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
-        <div className="bg-gradient-to-br from-card to-card/80 border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
-          <div className="text-xs font-semibold gradient-text mb-1.5 leading-snug">{message}</div>
+        <div className="bg-card border border-primary/40 rounded-xl p-3 shadow-xl max-w-[240px] backdrop-blur-lg">
+          <div className="text-xs font-semibold text-primary mb-1.5 leading-snug">{message}</div>
           
           {showCTA && (
             <Button
@@ -314,8 +314,8 @@ export const AIMascot = () => {
         }}
       >
         <div className="relative">
-          {/* Enhanced glow with pulsing effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-full blur-xl opacity-40 animate-pulse-glow"></div>
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-primary/40 rounded-full blur-xl opacity-40 animate-pulse-glow"></div>
           
           {/* Mascot image with mood-based animations */}
           <div className="relative">
@@ -338,8 +338,8 @@ export const AIMascot = () => {
             </div>
           </div>
           
-          {/* Mood indicator with enhanced animation */}
-          <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center text-sm shadow-lg border border-white animate-bounce">
+          {/* Mood indicator */}
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-secondary rounded-full flex items-center justify-center text-sm shadow-lg border border-white animate-bounce">
             {getMoodEmoji()}
           </div>
 
@@ -353,7 +353,7 @@ export const AIMascot = () => {
         </div>
 
         {/* Enhanced hover tooltip */}
-        <div className="absolute bottom-0 right-full mr-4 bg-gradient-to-r from-primary to-secondary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
+        <div className="absolute bottom-0 right-full mr-4 bg-primary backdrop-blur-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-xs font-semibold text-white shadow-lg border border-white/20">
           Click me! ✨
         </div>
       </div>
