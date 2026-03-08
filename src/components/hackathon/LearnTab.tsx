@@ -316,7 +316,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
             <span className="text-2xl">🏆</span>
             <div className="text-left">
               <h3 className="text-lg font-bold text-white">All 20 Challenges — Step by Step</h3>
-              <p className="text-xs text-[hsl(var(--discord-text-muted))]">Follow this guide to complete every variable in main.py</p>
+              <p className="text-xs text-white">Follow this guide to complete every variable in main.py</p>
             </div>
           </div>
           <span className={`text-[hsl(var(--discord-text-muted))] transition-transform ${showTutorial ? 'rotate-180' : ''}`}>▼</span>
