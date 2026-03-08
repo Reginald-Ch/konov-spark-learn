@@ -32,7 +32,9 @@ export const HackathonBanner = () => {
             className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight"
           >
             Build Your First{" "}
-            <span className="bg-gradient-to-r from-[#F7941D] via-[#C70110] ttext-secondary
+            <span className="text-secondary">
+              AI Project
+            </span>
           </motion.h2>
 
           <motion.p

@@ -214,12 +214,15 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               exit={{ opacity: 0 }}
             >
               {/* Success header — compact */}
-              <div className="px-5 pt-5 pb-4 text-center" style={{ background: 'rgba(16,185,129,0.15       initial={{ scale: 0 }}
+              <div className="px-5 pt-5 pb-4 text-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
+                <motion.div
+                  initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 12 }}
                   className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #059669, #10B981)' }}
-#059669kCircle2 className="w-7 h-7 text-white" />
+                  style={{ background: '#059669' }}
+                >
+                  <CheckCircle2 className="w-7 h-7 text-white" />
                 </motion.div>
                 <h3 className="text-lg font-bold text-white">You're Live! 🎉</h3>
                 <p className="text-xs text-white/50 mt-0.5">Your AI app is deployed and visible to judges</p>

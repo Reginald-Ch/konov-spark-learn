@@ -259,7 +259,6 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary">
             <Trophy className="w-6 h-6 text-white" />
           </div>
-          </div>
           <div>
             <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
             <p className="text-[hsl(var(--discord-text-muted))] text-sm">Automated scoring · {MAX_SCORE} pts max</p>

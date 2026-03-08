@@ -142,7 +142,8 @@ export const ProgramsWithRocket = () => {
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-secondary          
+                  className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-8 h-24 bg-secondary opacity-60 blur-sm"
+                />
                 {/* Rocket Body */}
                 <svg width="80" height="120" viewBox="0 0 80 120" className="drop-shadow-2xl">
                   {/* Main rocket body */}
