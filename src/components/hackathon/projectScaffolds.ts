@@ -777,7 +777,7 @@ TOOL_INSTRUCTIONS = {
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 22,
+  "challenges": 24,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
