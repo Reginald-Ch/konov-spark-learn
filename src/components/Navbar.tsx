@@ -76,7 +76,7 @@ export const Navbar = () => {
             <div className="hidden md:block">
               <Button 
                 onClick={() => setShowSignupModal(true)}
-                className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all bg-gradient-to-r from-primary to-accent"
+                className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all bg-primary"
               >
                 <Zap className="w-4 h-4 mr-1" />
                 Join Now!
