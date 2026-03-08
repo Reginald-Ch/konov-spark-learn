@@ -1372,7 +1372,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
-        speakText(assistantReply);
+        speakText(assistantReply, liveConfig.voiceGender);
       }
     } catch (e: any) {
       // Bug 6: Remove the trailing '...' placeholder before adding error
