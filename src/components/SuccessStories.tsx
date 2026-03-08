@@ -121,7 +121,7 @@ export const SuccessStories = () => {
             </p>
             <Button 
               size="lg"
-              className="font-space font-semibold bg-gradient-to-r from-primary to-accent hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] transition-all duration-300"
+              className="font-space font-semibold bg-primary hover:bg-primary/90 transition-all duration-300"
             >
               Enroll Now
             </Button>

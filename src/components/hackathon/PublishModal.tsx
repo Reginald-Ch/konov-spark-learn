@@ -256,7 +256,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
                 {/* Actions */}
                 <div className="space-y-2 pt-1">
                   <a href={projectUrl} target="_blank" rel="noopener noreferrer" className="block">
-                    <Button className="w-full h-10 text-sm font-bold text-white rounded-lg" style={{ background: 'linear-gradient(135deg, #5865F2, #7289DA)' }}>
+                    <Button className="w-full h-10 text-sm font-bold text-white rounded-lg bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.9)]">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Open My App
                     </Button>
@@ -330,7 +330,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
               </div>
 
               <Button onClick={handlePublish} disabled={!projectName.trim()}
-                className="w-full h-10 text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+                className="w-full h-10 text-sm font-bold text-white bg-primary hover:bg-primary/90">
                 <Send className="w-4 h-4 mr-2" />
                 Submit Project 🚀
               </Button>

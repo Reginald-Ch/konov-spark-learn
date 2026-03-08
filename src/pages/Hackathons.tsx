@@ -219,7 +219,7 @@ const Hackathons = () => {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">No hackathons found</h3>
                 <p className="text-[hsl(var(--discord-text-muted))] mb-4">Check back soon for new events!</p>
-                <Button onClick={() => setActiveTab('templates')} style={{ background: 'linear-gradient(135deg, #C70110, #F7941D)' }}>
+                <Button onClick={() => setActiveTab('templates')} className="bg-primary hover:bg-primary/90">
                   <Rocket className="w-4 h-4 mr-2" />
                   Start Building Instead
                 </Button>

@@ -156,8 +156,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
       >
         <Button 
           onClick={() => onNavigate('all-events')}
-          className="px-8 py-3 text-lg"
-          style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 100%)' }}
+          className="px-8 py-3 text-lg bg-primary hover:bg-primary/90"
         >
           <Rocket className="w-5 h-5 mr-2" />
           Forge Your Way UP

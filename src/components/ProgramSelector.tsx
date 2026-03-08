@@ -151,7 +151,7 @@ export const ProgramSelector = ({ onComplete }: ProgramSelectorProps) => {
         </div>
         <div className="h-2 bg-primary/20 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+            className="h-full bg-primary transition-all duration-500"
             style={{ width: `${((currentQuestion + 1) / quizQuestions.length) * 100}%` }}
           />
         </div>
