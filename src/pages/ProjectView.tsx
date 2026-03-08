@@ -587,7 +587,7 @@ const ProjectView = () => {
       }
       // TTS: Speak the response if voice is enabled
       if (fullText && config?.voiceEnabled && ttsEnabled) {
-        speakText(fullText);
+        speakText(fullText, config?.voiceGender);
       }
     } catch (e) {
       console.error('Chat error:', e);
