@@ -210,6 +210,15 @@ const ProjectView = () => {
       while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
       return pairs;
     };
+    const extractFewShotExamples = (): Array<{input: string; output: string}> => {
+      const match = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*\[([\s\S]*?)\]/);
+      if (!match) return [];
+      const examples: Array<{input: string; output: string}> = [];
+      const regex = /\{\s*["']input["']\s*:\s*["']([^"']+)["']\s*,\s*["']output["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      let m;
+      while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
+      return examples;
+    };
 
     return {
       botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -235,7 +244,7 @@ const ProjectView = () => {
       toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
       forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
       mood: extract('neutral', 'MOOD', 'mood'),
-      examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
+      fewShotExamples: extractFewShotExamples(),
       languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
       signOff: extract('', 'SIGN_OFF', 'sign_off'),
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
@@ -390,7 +399,7 @@ const ProjectView = () => {
               toolInstructions: config.toolInstructions,
               forbiddenWords: config.forbiddenWords,
               mood: config.mood,
-              examples: config.examples,
+              fewShotExamples: config.fewShotExamples,
               languageStyle: config.languageStyle,
               signOff: config.signOff,
             },

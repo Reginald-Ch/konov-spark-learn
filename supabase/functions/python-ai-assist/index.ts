@@ -107,12 +107,19 @@ serve(async (req) => {
         botConfigContext += `\nIf the user shares their name, remember it and use it in future responses.`;
       }
 
-      // Agent-specific
+      // Agent-specific: ReAct reasoning
       if (cfg.showReasoning) {
-        botConfigContext += `\n\nShow your reasoning process step by step when answering complex questions.`;
+        botConfigContext += `\n\n🧠 REASONING MODE — You are an AGENT, not a simple chatbot. For EVERY response, you MUST show your thinking process using this EXACT format:
+
+**🤔 Thought:** [What you're thinking about the question — analyze what the user needs]
+**🔧 Action:** [Which tool you would use: 🔍 Web Search, 🧮 Calculator, or 📚 Wikipedia — and why]
+**👁️ Observation:** [What you found or calculated — present the key findings]
+**💡 Answer:** [Your final synthesized response to the user]
+
+IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis for EVERY response. This shows the user your "reasoning chain" — the core concept of AI agents. Even for simple questions, show at least a brief Thought and Answer. For complex questions, show all 4 steps. You may repeat Thought → Action → Observation multiple times for multi-step problems before giving the final Answer.`;
       }
       if (cfg.toolInstructions && Object.keys(cfg.toolInstructions).length > 0) {
-        botConfigContext += `\n\nTOOL USAGE:\n`;
+        botConfigContext += `\n\nTOOL USAGE INSTRUCTIONS:\n`;
         for (const [tool, instruction] of Object.entries(cfg.toolInstructions)) {
           botConfigContext += `  - ${tool}: ${instruction}\n`;
         }
@@ -127,9 +134,11 @@ serve(async (req) => {
         const moodDesc: Record<string, string> = { "cheerful": "Be upbeat and positive!", "serious": "Be formal, no jokes.", "sarcastic": "Use dry wit.", "mysterious": "Be cryptic...", "energetic": "HIGH ENERGY!", "calm": "Speak softly." };
         botConfigContext += `\n\n🎭 MOOD: ${cfg.mood.toUpperCase()} — ${moodDesc[cfg.mood] || 'Match this mood.'}`;
       }
-      if (cfg.examples && cfg.examples.length > 0) {
-        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers like these:\n`;
-        cfg.examples.forEach((ex: string, i: number) => { botConfigContext += `  ${i + 1}. "${ex}"\n`; });
+      if (cfg.fewShotExamples && cfg.fewShotExamples.length > 0) {
+        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers following these input/output patterns:\n`;
+        cfg.fewShotExamples.forEach((ex: { input: string; output: string }, i: number) => {
+          botConfigContext += `  Example ${i + 1}:\n    User: "${ex.input}"\n    You: "${ex.output}"\n`;
+        });
       }
       if (cfg.languageStyle && cfg.languageStyle !== 'casual') {
         const langDesc: Record<string, string> = { "formal": "Proper grammar, sophisticated vocabulary.", "academic": "Write like a professor.", "slang": "Modern internet slang.", "poetic": "Metaphors and imagery.", "storyteller": "Frame as narrative." };

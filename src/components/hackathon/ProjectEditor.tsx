@@ -188,6 +188,15 @@ const extractConfigFromCode = (code: string) => {
     while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
     return pairs;
   };
+  const extractFewShotExamples = (): Array<{input: string; output: string}> => {
+    const match = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*\[([\s\S]*?)\]/);
+    if (!match) return [];
+    const examples: Array<{input: string; output: string}> = [];
+    const regex = /\{\s*["']input["']\s*:\s*["']([^"']+)["']\s*,\s*["']output["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    let m;
+    while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
+    return examples;
+  };
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -214,7 +223,7 @@ const extractConfigFromCode = (code: string) => {
     toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
     forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
     mood: extract('neutral', 'MOOD', 'mood'),
-    examples: extractList('FEW_SHOT_EXAMPLES', 'few_shot_examples', 'EXAMPLES'),
+    fewShotExamples: extractFewShotExamples(),
     languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
     signOff: extract('', 'SIGN_OFF', 'sign_off'),
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
@@ -975,7 +984,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'FEW_SHOT_EXAMPLES', ok: config.examples.length > 0, val: `${config.examples.length} examples` },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
       { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
     ];
@@ -1160,7 +1169,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             toolInstructions: config.toolInstructions,
             forbiddenWords: config.forbiddenWords,
             mood: config.mood,
-            examples: config.examples,
+            fewShotExamples: config.fewShotExamples,
             languageStyle: config.languageStyle,
             signOff: config.signOff,
           },
@@ -2233,7 +2242,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               totalBlocked > 2,
               cfg.forbiddenWords.length > 0,
               cfg.mood && cfg.mood !== 'neutral',
-              cfg.examples.length > 0,
+              cfg.fewShotExamples.length > 0,
               cfg.languageStyle && cfg.languageStyle !== 'casual',
               cfg.signOff && cfg.signOff !== '',
             ].filter(Boolean).length;
@@ -2296,7 +2305,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
+                    <div className={`prose prose-invert prose-xs max-w-none [&_p]:m-0 ${
+                      projectType === 'agent' && msg.content.includes('**🤔 Thought:**')
+                        ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
+                        : ''
+                    }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
