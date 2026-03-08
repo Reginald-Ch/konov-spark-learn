@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, Lightbulb, Trophy } from "lucide-react";
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 
-export const SuccessStories = () => {
+export const SuccessStories = forwardRef<HTMLElement>((_, ref) => {
   const [activeStory, setActiveStory] = useState(0);
 
   const stories = [
