@@ -200,11 +200,24 @@ FEW_SHOT_EXAMPLES = []
 SECRET_RESPONSES = {}
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 15: Choose Response Style (String)
-# Options: "Concise", "Detailed", "Friendly",
-#          "Professional", "Balanced"
+# 🏆 CHALLENGE 15: Mood-Based Responses (Dictionary Routing!)
+# Your bot changes HOW it responds based on detected mood!
+# This teaches DICTIONARY LOOKUP — a key Python pattern.
+#
+# Each key is a mood the bot detects, and the value is
+# the instruction for how to respond in that mood:
+#
+#   MOOD_RESPONSES = {
+#       "happy": "Be enthusiastic and use lots of emojis! 🎉",
+#       "confused": "Break things down step by step simply",
+#       "frustrated": "Be extra patient and empathetic",
+#       "curious": "Go deeper with fascinating details",
+#   }
+#
+# 🧪 TEST: Say "I'm frustrated" → bot should be empathetic!
+#          Say "I'm curious about space" → bot goes deep!
 # ═══════════════════════════════════════════════
-RESPONSE_STYLE = "Friendly"
+MOOD_RESPONSES = {}
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 16: Set Response Length (String)
@@ -238,11 +251,34 @@ MAX_TOKENS = 512
 MOOD = "neutral"
 
 # ═══════════════════════════════════════════════
-# 🏆 CHALLENGE 19: Set Language Style (String)
-# Options: "casual", "formal", "academic",
-#          "slang", "poetic", "storyteller"
+# 🏆 CHALLENGE 19: Smart Tone Routing (If/Elif Conditional!)
+# Your bot picks a RESPONSE_TONE based on TIME_OF_DAY!
+# This teaches IF/ELIF/ELSE — Python's conditional logic.
+#
+# Edit the values to customize how your bot greets users
+# at different times:
+#
+#   if TIME_OF_DAY == "morning":
+#       RESPONSE_TONE = "energetic and cheerful, use morning greetings"
+#   elif TIME_OF_DAY == "afternoon":
+#       RESPONSE_TONE = "warm and productive"
+#   elif TIME_OF_DAY == "evening":
+#       RESPONSE_TONE = "relaxed and reflective"
+#   else:
+#       RESPONSE_TONE = "friendly"
+#
+# 🧪 TEST: Change TIME_OF_DAY and chat — notice the tone shift!
 # ═══════════════════════════════════════════════
-LANGUAGE_STYLE = "casual"
+TIME_OF_DAY = "morning"
+
+if TIME_OF_DAY == "morning":
+    RESPONSE_TONE = "energetic and cheerful"
+elif TIME_OF_DAY == "afternoon":
+    RESPONSE_TONE = "warm and productive"
+elif TIME_OF_DAY == "evening":
+    RESPONSE_TONE = "relaxed and reflective"
+else:
+    RESPONSE_TONE = "friendly"
 
 # ═══════════════════════════════════════════════
 # 🏆 CHALLENGE 20: Add Catchphrases (Python List)
