@@ -271,7 +271,7 @@ const Hackathons = () => {
                 </button>
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #C70110 0%, #F7941D 50%, #006600 100%)' }}>
+                    style={{ background: '#C70110' }}>
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-1">Welcome to FORGE! 🎉</h2>
