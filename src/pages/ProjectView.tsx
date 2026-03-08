@@ -247,6 +247,7 @@ const ProjectView = () => {
       fewShotExamples: extractFewShotExamples(),
       languageStyle: extract('casual', 'LANGUAGE_STYLE', 'language_style'),
       signOff: extract('', 'SIGN_OFF', 'sign_off'),
+      maxTokens: extractNumber(512, 'MAX_TOKENS', 'max_tokens'),
       appTheme: extract('default', 'APP_THEME', 'app_theme'),
     };
   };
