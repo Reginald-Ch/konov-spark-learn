@@ -1526,6 +1526,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       </AnimatePresence>
                       <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
                         className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
+                      <p className={`text-[10px] mt-0.5 ${systemPrompt.length < 20 ? 'text-ide-orange' : systemPrompt.length > 500 ? 'text-ide-orange' : 'text-ide-text-muted'}`}>
+                        {systemPrompt.length} chars {systemPrompt.length < 20 ? '— try to be more descriptive!' : systemPrompt.length > 500 ? '— consider being more concise' : ''}
+                      </p>
                     </div>
 
                     <div>
