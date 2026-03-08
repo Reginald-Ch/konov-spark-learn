@@ -137,19 +137,7 @@ export const PublishModal = ({ isOpen, onClose, code, templateId, projectName: p
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
 
-      const milestones = [
-        { event_type: 'project_deployed', points: 10, metadata: { project: projectName } },
-        { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
-      ];
-      for (const m of milestones) {
-        const key = `forge-scored-${m.event_type}-${finalEmail}`;
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, 'true');
-          supabase.from('point_events').insert({ participant_email: finalEmail, ...m }).then(({ error }) => {
-            if (error) console.warn(`point_events ${m.event_type} insert failed:`, error);
-          });
-        }
-      }
+      // Milestone points removed — scoring is now purely project-field-based + judge scores
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');
