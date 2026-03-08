@@ -303,6 +303,13 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
     if (modelTemperature !== undefined) {
       requestBody.temperature = modelTemperature;
     }
+    // Max tokens from bot config
+    const maxTokens = (action === "test-agent" && botConfig?.maxTokens !== undefined)
+      ? Math.min(Math.max(botConfig.maxTokens, 50), 4096)
+      : undefined;
+    if (maxTokens !== undefined) {
+      requestBody.max_tokens = maxTokens;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
