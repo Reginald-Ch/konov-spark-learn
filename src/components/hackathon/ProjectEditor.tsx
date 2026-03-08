@@ -2246,16 +2246,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               cfg.temperature !== defaultTemp,
               cfg.responseStyle !== defaultStyle,
               cfg.maxResponseLength !== 'medium',
+              cfg.forbiddenWords.length > 0,
+              totalBlocked > 2,
+              cfg.fewShotExamples.length > 0,
+              totalEggs > (isAgent ? 2 : 3),
               totalRules > 3,
               totalStarters > 4,
-              totalEggs > (isAgent ? 2 : 3),
-              totalCatchphrases > 3,
-              totalBlocked > 2,
-              cfg.forbiddenWords.length > 0,
+              cfg.maxTokens !== 512,
               cfg.mood && cfg.mood !== 'neutral',
-              cfg.fewShotExamples.length > 0,
               cfg.languageStyle && cfg.languageStyle !== 'casual',
-              cfg.signOff && cfg.signOff !== '',
+              totalCatchphrases > 3,
             ].filter(Boolean).length;
 
             return (
