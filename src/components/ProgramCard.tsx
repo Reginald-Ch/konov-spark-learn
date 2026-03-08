@@ -96,7 +96,7 @@ export const ProgramCard = ({
               transition={{ duration: 0.7, ease: "easeOut" }}
             />
             <motion.div 
-              className={`absolute inset-0 bg-gradient-to-t ${color}`}
+              className={`absolute inset-0 ${color}`}
               animate={{ opacity: isHovered ? 0.2 : 0.4 }}
               transition={{ duration: 0.5 }}
             />
