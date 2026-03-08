@@ -19,7 +19,7 @@ interface ChallengeValidation {
   points: number;
 }
 
-const createValidator = (varName: string, type: 'string' | 'number' | 'list' | 'dict' | 'triple-string', defaults: string[] = []): ((code: string) => boolean) => {
+const createValidator = (varName: string, type: 'string' | 'number' | 'list' | 'dict' | 'triple-string', defaults: string[] = [], minCount?: number): ((code: string) => boolean) => {
   return (code: string) => {
     if (type === 'triple-string') {
       const match = code.match(new RegExp(`${varName}\\s*=\\s*"""([\\s\\S]*?)"""`)) ||
@@ -42,12 +42,30 @@ const createValidator = (varName: string, type: 'string' | 'number' | 'list' | '
     if (type === 'list') {
       const match = code.match(new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
       if (!match) return false;
-      return /["'][^"']+["']/.test(match[1]);
+      if (!/["'][^"']+["']/.test(match[1])) return false;
+      // If minCount specified, count items and require MORE than that threshold
+      if (minCount !== undefined) {
+        const items: string[] = [];
+        const regex = /["']([^"']+)["']/g;
+        let m;
+        while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+        return items.length > minCount;
+      }
+      return true;
     }
     if (type === 'dict') {
       const match = code.match(new RegExp(`${varName}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
       if (!match) return false;
-      return /["'][^"']+["']\s*:\s*["'][^"']+["']/.test(match[1]);
+      if (!/["'][^"']+["']\s*:\s*["'][^"']+["']/.test(match[1])) return false;
+      // If minCount specified, count entries and require MORE than that threshold
+      if (minCount !== undefined) {
+        const entries: string[] = [];
+        const regex = /["'][^"']+["']\s*:\s*["'][^"']+["']/g;
+        let m;
+        while ((m = regex.exec(match[1])) !== null) entries.push(m[0]);
+        return entries.length > minCount;
+      }
+      return true;
     }
     return false;
   };
