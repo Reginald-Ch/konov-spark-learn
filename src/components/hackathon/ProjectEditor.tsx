@@ -544,8 +544,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [selectedTheme.id]);
 
-  // Read theme from code when code changes
+  // Read theme from code when code changes (skip during typing)
   useEffect(() => {
+    if (isTypingRef.current) return;
     const code = files['main.py'];
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
