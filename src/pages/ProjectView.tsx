@@ -403,6 +403,7 @@ const ProjectView = () => {
               fewShotExamples: config.fewShotExamples,
               languageStyle: config.languageStyle,
               signOff: config.signOff,
+              maxTokens: config.maxTokens,
             },
           }),
         }
