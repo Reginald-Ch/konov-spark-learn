@@ -12,7 +12,7 @@ import {
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
-  Download, Upload, Undo2, Redo2
+  Download, Upload, Undo2, Redo2, RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
