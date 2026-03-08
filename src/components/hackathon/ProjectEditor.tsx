@@ -993,7 +993,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const completedCount = localChecks.filter(c => c.ok).length;
     
     setTerminalOutput(prev => [
-      ...prev,
+      ...prev.slice(-150),
       `$ python main.py  [${projectType}]`,
       ``,
       `🔍 FORGE Config Scanner v2.0`,
@@ -2269,7 +2269,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   {codeKB.trim() && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-green/20 text-ide-green">📚</span>}
                   {mergedQACount > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-cyan/20 text-ide-cyan">💬{mergedQACount}</span>}
                   {totalRules > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-yellow/20 text-ide-yellow">📏{totalRules}</span>}
-                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🥚{totalEggs}</span>}
+                  {totalEggs > 0 && <span className="text-[8px] px-1 py-0.5 rounded bg-ide-purple/20 text-ide-purple">🔐{totalEggs}</span>}
                   <span className="text-[8px] px-1 py-0.5 rounded bg-ide-border text-ide-text-muted">🌡️{cfg.temperature} · {cfg.responseStyle}</span>
                 </div>
               </div>

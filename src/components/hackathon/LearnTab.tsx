@@ -145,7 +145,11 @@ const CHALLENGE_STEPS: Array<{
     color: "#3498DB",
     timeLimit: 10,
     challenges: [
-      { name: 'FEW_SHOT_EXAMPLES', desc: 'Write a list of {"input": ..., "output": ...} dicts', example: 'FEW_SHOT_EXAMPLES = [{"input": "Tell me about 1957", "output": "On March 6, 1957..."}]', points: 8, validate: createValidator('FEW_SHOT_EXAMPLES', 'list') },
+      { name: 'FEW_SHOT_EXAMPLES', desc: 'Write a list of {"input": ..., "output": ...} dicts', example: 'FEW_SHOT_EXAMPLES = [{"input": "Tell me about 1957", "output": "On March 6, 1957..."}]', points: 8, validate: (code: string) => {
+        const match = code.match(/FEW_SHOT_EXAMPLES\s*=\s*\[([\s\S]*?)\]/);
+        if (!match) return false;
+        return /["']input["']\s*:\s*["'][^"']+["']/.test(match[1]) && /["']output["']\s*:\s*["'][^"']+["']/.test(match[1]);
+      } },
       { name: 'SECRET_RESPONSES', desc: 'Dict of EXACT trigger phrases → instant fun replies', example: 'SECRET_RESPONSES = {"secret": "🎉 Found it!", "magic": "✨"}', points: 8, validate: createValidator('SECRET_RESPONSES', 'dict') },
     ],
     tip: 'FEW_SHOT teaches HOW to answer. SECRET_RESPONSES are fun easter eggs — EXACT phrase triggers only (unlike Q&A keyword matching).',
