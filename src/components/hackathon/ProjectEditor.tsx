@@ -246,6 +246,8 @@ const extractConfigFromCode = (code: string) => {
     systemMessage: extract('', 'SYSTEM_MESSAGE', 'SYSTEM_PROMPT', 'system_prompt', 'system_message'),
     voiceEnabled: extractBool(false, 'VOICE_ENABLED', 'voice_enabled'),
     voiceMode: extract('push-to-talk', 'VOICE_MODE', 'voice_mode'),
+    wakeWord: extract('', 'WAKE_WORD', 'wake_word'),
+    voiceGender: extract('default', 'VOICE_GENDER', 'voice_gender'),
     moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
     responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
     timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
