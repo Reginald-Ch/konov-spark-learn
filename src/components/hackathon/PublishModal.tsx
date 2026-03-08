@@ -340,4 +340,5 @@ export const PubforwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose
       </DialogContent>
     </Dialog>
   );
-};
+});
+PublishModal.displayName = 'PublishModal';
