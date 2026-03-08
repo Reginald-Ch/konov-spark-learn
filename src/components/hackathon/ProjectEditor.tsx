@@ -1128,7 +1128,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         }
       );
     } catch (e: any) {
-      setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
+      // Bug 6: Remove the trailing '...' placeholder before adding error
+      setChatMessages(prev => {
+        const updated = [...prev];
+        if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
+          updated.pop();
+        }
+        updated.push({ role: 'system', content: `❌ ${e.message}` });
+        return updated;
+      });
     } finally { setIsStreaming(false); }
   };
 
