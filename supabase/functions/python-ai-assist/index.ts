@@ -134,9 +134,11 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
         const moodDesc: Record<string, string> = { "cheerful": "Be upbeat and positive!", "serious": "Be formal, no jokes.", "sarcastic": "Use dry wit.", "mysterious": "Be cryptic...", "energetic": "HIGH ENERGY!", "calm": "Speak softly." };
         botConfigContext += `\n\n🎭 MOOD: ${cfg.mood.toUpperCase()} — ${moodDesc[cfg.mood] || 'Match this mood.'}`;
       }
-      if (cfg.examples && cfg.examples.length > 0) {
-        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers like these:\n`;
-        cfg.examples.forEach((ex: string, i: number) => { botConfigContext += `  ${i + 1}. "${ex}"\n`; });
+      if (cfg.fewShotExamples && cfg.fewShotExamples.length > 0) {
+        botConfigContext += `\n\n📝 FEW-SHOT EXAMPLES — Format your answers following these input/output patterns:\n`;
+        cfg.fewShotExamples.forEach((ex: { input: string; output: string }, i: number) => {
+          botConfigContext += `  Example ${i + 1}:\n    User: "${ex.input}"\n    You: "${ex.output}"\n`;
+        });
       }
       if (cfg.languageStyle && cfg.languageStyle !== 'casual') {
         const langDesc: Record<string, string> = { "formal": "Proper grammar, sophisticated vocabulary.", "academic": "Write like a professor.", "slang": "Modern internet slang.", "poetic": "Metaphors and imagery.", "storyteller": "Frame as narrative." };
