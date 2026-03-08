@@ -90,7 +90,7 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
 export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedParticipant, setSelectedParticipant] = useState<ParticipantScore | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
