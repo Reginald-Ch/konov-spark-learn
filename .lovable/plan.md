@@ -1,102 +1,75 @@
-# Plan: Complete FORGE Platform for Training Tomorrow
 
-## Current State Assessment
 
-The platform has a solid foundation: 6-tab Discord-style UI, 3-panel Build Studio IDE, AI streaming via `python-ai-assist` edge function, project saving/publishing, leaderboard, and community chat. However, several critical issues need fixing and polish is needed for a training session.
+# Plan: Add Voice Assistant to Live Preview (Siri/Alexa/Google-style)
 
-## Critical Fixes
+## What We're Building
 
-### 1. Fix `supabase/config.toml` — Edge Function JWT Config
+A voice assistant experience in the **Live Preview chat panel** of ProjectEditor. When students set `VOICE_ENABLED = True` in their code, the chat panel gains a mic button, voice-to-text input, and text-to-speech output — making their bot feel like Siri/Alexa/Google Assistant. Two modes: push-to-talk and hands-free continuous conversation.
 
-The config only has `project_id`. Missing `verify_jwt = false` for `python-ai-assist`, which may cause 401 errors on AI calls.
+The AIModelsTab already has this pattern working. We'll port and enhance it for the main Build Studio.
 
-**File:** `supabase/config.toml`
-Add:
+## Implementation
 
-```toml
-[functions.python-ai-assist]
-verify_jwt = false
-```
-
-### 2. Fix Save Flow — Update Requires `author_email` Match
-
-The `executeSave` update call uses `.eq('id', currentProjectId)` but RLS restricts updates to matching `author_email`. The update call doesn't include the email filter, which could silently fail.
-
+### 1. Add Voice Controls to ProjectEditor Live Preview
 **File:** `src/components/hackathon/ProjectEditor.tsx`
 
-- Add `.eq('author_email', authorEmail)` to the update query for save checkpoint
+- Add state: `isListening`, `voiceConversationMode`, refs for `SpeechRecognition` and `voiceModeRef`
+- Add `startListeningOnce()` — uses Web Speech API STT, on final transcript calls `handleChatSend(transcript)`
+- Add `toggleListening()` — start/stop mic
+- Add `toggleVoiceConversation()` — enables hands-free loop mode
+- After streaming completes in `handleChatSend`, if `liveConfig.voiceEnabled`, speak the response via `speechSynthesis` (clean markdown first). In hands-free mode, auto-restart listening after TTS finishes
+- Add to the chat input bar (next to Send button):
+  - **Mic button** — pulses when listening, colored by theme accent
+  - **Hands-free toggle button** — enables continuous conversation mode
+  - **Volume toggle** — mute/unmute TTS
+- Show visual feedback: pulsing ring animation when listening, waveform indicator when speaking
+- Conditionally show voice controls only when `liveConfig.voiceEnabled === true`
 
-### 3. Fix Publish (Go Live) — Duplicate Insert Issue
-
-When a user saves first then publishes, two separate records are created. The Go Live flow should update the existing saved project to `is_published = true` instead of inserting a new one.
-
-**File:** `src/components/hackathon/PublishModal.tsx`
-
-- Accept `currentProjectId` as a prop
-- If `currentProjectId` exists, update that record with `is_published: true` instead of inserting new
-- Otherwise insert as before
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- Pass `currentProjectId` to `PublishModal`
-
-### 4. Rename Platform to "FORGE"
-
-Update visible branding across the UI.
-
-**Files affected:**
-
-- `src/pages/Hackathons.tsx` — Welcome banner title, SEO title, onboarding modal
-- `src/components/hackathon/TemplatesTab.tsx` — Header text
-
-### 5. Streamline the Student Entry Flow
-
-For training: when a student arrives, the flow should be Templates → pick type → Build tab auto-opens with code and Live Preview working immediately. This already works but the default tab is `hackathons`. For training, default to `templates`.
-
-**File:** `src/pages/Hackathons.tsx`
-
-- Change `useState<MainTab>('hackathons')` to `useState<MainTab>('templates')`
-
-### 6. Add Live Preview Interactive Demo Chat
-
-The Live Preview chat works via `test-agent` action. Currently sends only the latest message without conversation history. For a real chatbot feel, send conversation history.
-
-**File:** `src/components/hackathon/ProjectEditor.tsx`
-
-- In `handleChatSend`, collect previous user/assistant messages and send them as context in the `code` field or add a `messages` field to the edge function
-
-**File:** `supabase/functions/python-ai-assist/index.ts`
-
-- Add support for `messages` array in `test-agent` action to maintain conversation context
-
-
-
-### 8. Polish ProjectView Page — Add Live Demo Chat
-
-The `/projects/:id` page shows code but has no interactive demo. Add a chat panel so visitors can interact with the published AI.
-
+### 2. Add Voice Controls to ProjectView (Published Projects)
 **File:** `src/pages/ProjectView.tsx`
 
-- Add a chat panel using the same streaming logic as the IDE preview
-- Extract system prompt from the code's `SYSTEM_PROMPT` variable
-- Show chat alongside code view
+- Same voice logic: STT via Web Speech API, TTS via `speechSynthesis`
+- Mic button in chat input area when `voiceEnabled` detected from code
+- Hands-free mode support
 
-## Implementation Order
+### 3. Update Scaffold Templates with Voice Challenge
+**File:** `src/components/hackathon/projectScaffolds.ts`
 
-1. Fix config.toml (critical — prevents 401s)
-2. Fix Save/Publish flow (critical — reported broken)
-3. Rename to FORGE + default to templates tab
-4. Add conversation history to Live Preview
-5. Polish ProjectView with interactive demo
-6. Add "Try It" to gallery
+- Ensure Challenge 21 (`VOICE_ENABLED`) and Challenge 22 (`VOICE_MODE`) are well-documented in both chatbot and agent scaffolds with clear instructions
+
+### 4. Visual Design (No New Component Needed)
+
+The voice UI lives inline in the existing chat panel:
+
+```text
+┌─────────────────────────┐
+│ Live Preview            │
+│                         │
+│  Chat messages...       │
+│                         │
+│  🔵 ← pulsing when     │
+│       listening         │
+│                         │
+├─────────────────────────┤
+│ [input] [🎤] [🔊] [▶]  │
+│         [🎙️ Hands-free] │
+└─────────────────────────┘
+```
+
+- Mic button: theme accent color, pulses with `animate-pulse` when active
+- Listening indicator: "🎤 Listening..." replaces input placeholder
+- Speaking indicator: small speaker icon animates while TTS plays
+
+## Technical Details
+
+- **STT**: `window.SpeechRecognition` / `webkitSpeechRecognition` (browser-native, free, no API key)
+- **TTS**: `window.speechSynthesis` (browser-native, free). Strips markdown before speaking
+- **Hands-free loop**: TTS `onend` callback triggers `startListeningOnce()` after 300ms delay
+- **Cancellation**: New user input cancels ongoing TTS via `speechSynthesis.cancel()`
+- No external dependencies or API keys needed
 
 ## Files Modified
+- `src/components/hackathon/ProjectEditor.tsx` — voice state, STT/TTS logic, mic/speaker buttons in chat panel
+- `src/pages/ProjectView.tsx` — same voice support for published projects
+- `src/components/hackathon/projectScaffolds.ts` — verify voice challenges are clear
 
-- `supabase/config.toml`
-- `src/components/hackathon/ProjectEditor.tsx`
-- `src/components/hackathon/PublishModal.tsx`
-- `src/pages/Hackathons.tsx`
-- `src/components/hackathon/TemplatesTab.tsx`
-- `supabase/functions/python-ai-assist/index.ts`
-- `src/components/hackathon/ProjectGallery.tsx`
-- `src/pages/ProjectView.tsx`
