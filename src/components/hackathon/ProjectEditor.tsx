@@ -978,16 +978,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
       { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly'), val: config.responseStyle },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
       { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 3), val: `${Object.keys(config.secretResponses).length} secrets` },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
-      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
-      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
+      { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle },
-      { label: 'SIGN_OFF', ok: !!config.signOff, val: config.signOff || '✗ none' },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > 3, val: `${config.catchphrases.length} phrases` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
