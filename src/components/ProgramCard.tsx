@@ -50,9 +50,9 @@ export const ProgramCard = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <Card className="group relative overflow-hidden bg-card/50 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/60 transition-all duration-500 h-full flex flex-col">
-          {/* Animated gradient overlay */}
+          {/* Color overlay */}
           <motion.div 
-            className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0`}
+            className={`absolute inset-0 ${color} opacity-0`}
             animate={{ opacity: isHovered ? 0.15 : 0 }}
             transition={{ duration: 0.4 }}
           />
