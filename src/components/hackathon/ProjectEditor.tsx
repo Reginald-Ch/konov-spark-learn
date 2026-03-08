@@ -655,6 +655,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const updateFile = (content: string) => {
+    // Mark as typing to suppress read-back effects
+    isTypingRef.current = true;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => { isTypingRef.current = false; }, 300);
+
     // Snapshot for undo: debounce to avoid storing every keystroke
     if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
     snapshotTimerRef.current = setTimeout(() => {
@@ -665,8 +670,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         lastSnapshotRef.current = content;
       }
     }, 500);
-    setFiles(prev => ({ ...prev, [activeFile]: content }));
-    // Sync to localStorage so LearnTab can read it for validation
+
+    // Debounce the React state update to avoid re-renders on every keystroke
+    if (fileUpdateTimerRef.current) clearTimeout(fileUpdateTimerRef.current);
+    fileUpdateTimerRef.current = setTimeout(() => {
+      setFiles(prev => ({ ...prev, [activeFile]: content }));
+    }, 150);
+
+    // Sync to localStorage immediately (lightweight)
     if (activeFile === 'main.py') {
       localStorage.setItem('forge-editor-code', content);
     }
