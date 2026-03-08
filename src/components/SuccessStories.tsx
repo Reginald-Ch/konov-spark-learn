@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, Lightbulb, Trophy } from "lucide-react";
-import { useState, forwardRef } from "react";
+import { useState } from "react";
 
-export const SuccessStories = forwardRef<HTMLElement>((_, ref) => {
+export const SuccessStories = () => {
   const [activeStory, setActiveStory] = useState(0);
 
   const stories = [
@@ -58,7 +58,7 @@ export const SuccessStories = forwardRef<HTMLElement>((_, ref) => {
   };
 
   return (
-    <section ref={ref} className="py-24 md:py-32 relative overflow-hidden bg-background">
+    <section className="py-24 md:py-32 relative overflow-hidden bg-background">
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       
@@ -148,5 +148,4 @@ export const SuccessStories = forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-});
-SuccessStories.displayName = "SuccessStories";
+};
