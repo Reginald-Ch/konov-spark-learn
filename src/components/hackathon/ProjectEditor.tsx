@@ -25,6 +25,7 @@ interface ProjectEditorProps {
   initialCode?: string;
   hackathonStartDate?: string | null;
   hackathonStatus?: 'upcoming' | 'live' | 'ended' | null;
+  hasLiveEvent?: boolean;
 }
 
 interface ChatMessage {
