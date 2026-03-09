@@ -450,6 +450,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done'));
+  const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
+  const prevLevelRef = useRef<string>('beginner');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
