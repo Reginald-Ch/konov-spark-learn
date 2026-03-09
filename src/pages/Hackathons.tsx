@@ -406,6 +406,7 @@ const Hackathons = () => {
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
                 { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
                 { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
+                { id: 'battle-arena' as HackathonSubView, name: 'Bot Battle', icon: Swords, count: 0 },
               ].map(ch => (
                 <button
                   key={ch.id}
