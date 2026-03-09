@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bot, Brain, ArrowRight, Sparkles, MessageSquare, Search, Calculator, Code, Globe, Cpu, Zap } from 'lucide-react';
+import { Bot, Brain, ArrowRight, Rocket, MessageSquare, Search, Calculator, Code, Globe, Cpu, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ProjectType } from './ProjectEditor';
 
