@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Rocket, Trophy, ArrowRight, Code, Zap, Terminal, Sparkles } from "lucide-react";
+import { Rocket, Trophy, ArrowRight, Code, Zap, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const FloatingCode = ({ delay, x, y, children }: { delay: number; x: string; y: string; children: string }) => (

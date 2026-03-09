@@ -2673,10 +2673,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {isSaving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
             <span className="hidden sm:inline">Save</span>
           </Button>
-          <Button size="sm" onClick={handleGoLive} title="Publish & get shareable link"
-            className="h-6 text-[10px] font-bold uppercase tracking-wide bg-ide-green text-ide-bg-deep hover:opacity-90">
-            <Rocket className="w-3 h-3 mr-1" />
-            <span className="hidden sm:inline">Go Live</span>
+          <Button size="sm" onClick={handleGoLive} title={hasLiveEvent ? "Publish & get shareable link" : "Submissions open during live events only"} disabled={!hasLiveEvent}
+            className={`h-6 text-[10px] font-bold uppercase tracking-wide ${hasLiveEvent ? 'bg-ide-green text-ide-bg-deep hover:opacity-90' : 'bg-ide-border text-ide-text-muted cursor-not-allowed opacity-60'}`}>
+            {hasLiveEvent ? <Rocket className="w-3 h-3 mr-1" /> : <Lock className="w-3 h-3 mr-1" />}
+            <span className="hidden sm:inline">{hasLiveEvent ? 'Go Live' : 'Locked'}</span>
           </Button>
         </div>
       </div>

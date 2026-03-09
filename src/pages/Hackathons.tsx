@@ -492,7 +492,7 @@ const Hackathons = () => {
           {/* BUILD TAB */}
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} />
+              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} hasLiveEvent={hasLiveEvent} />
             </div>
           )}
 

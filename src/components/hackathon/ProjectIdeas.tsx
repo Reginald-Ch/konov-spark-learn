@@ -25,7 +25,7 @@ export const ProjectIdeas = () => {
   const [expandedIdea, setExpandedIdea] = useState<string | null>(null);
 
   const categories = [
-    { id: 'all', name: 'All Ideas', icon: Sparkles },
+    { id: 'all', name: 'All Ideas', icon: Rocket },
     { id: 'nlp', name: 'NLP / Chatbots', icon: Bot },
     { id: 'vision', name: 'Computer Vision', icon: Eye },
     { id: 'datascience', name: 'Data Science', icon: BarChart3 },
