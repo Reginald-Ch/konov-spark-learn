@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Eye, User, Sparkles, Search, Trash2, AlertTriangle } from 'lucide-react';
+import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,7 +95,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
         <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
           background: 'linear-gradient(135deg, #5865F2 0%, #9B59B6 100%)'
         }}>
-          <Sparkles className="w-6 h-6 text-white" />
+          <Rocket className="w-6 h-6 text-white" />
         </div>
         <div>
           <h2 className="text-2xl font-bold text-white">Project Showcase</h2>
