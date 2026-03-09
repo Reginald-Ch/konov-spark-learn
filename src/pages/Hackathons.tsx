@@ -15,11 +15,13 @@ import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
 import { ProjectGallery } from '@/components/hackathon/ProjectGallery';
 import { LearnTab } from '@/components/hackathon/LearnTab';
 import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel';
+import { BotBattleArena } from '@/components/hackathon/BotBattleArena';
+import { LiveReactionFeed } from '@/components/hackathon/LiveReactionFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield
+  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -43,7 +45,7 @@ interface Hackathon {
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq' | 'judge';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
 
 const Hackathons = () => {
   const navigate = useNavigate();
@@ -163,6 +165,8 @@ const Hackathons = () => {
     switch (hackathonSubView) {
       case 'showcase':
         return <ProjectGallery onViewCode={handleViewCode} />;
+      case 'battle-arena':
+        return <BotBattleArena />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'getting-started':
@@ -244,6 +248,7 @@ const Hackathons = () => {
   return (
     <TooltipProvider>
       <div className="h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row overflow-hidden">
+        <LiveReactionFeed />
         <SEO 
           title="FORGE — Build AI Projects"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
@@ -402,6 +407,7 @@ const Hackathons = () => {
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
                 { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
                 { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
+                { id: 'battle-arena' as HackathonSubView, name: 'Bot Battle', icon: Swords, count: 0 },
               ].map(ch => (
                 <button
                   key={ch.id}

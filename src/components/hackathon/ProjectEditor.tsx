@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PublishModal } from './PublishModal';
+import { LevelBadge, AchievementGrid, getForgeLevel } from './AchievementBadges';
+import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Code, Play, Send, X, Copy, Check, Trash2,
@@ -448,6 +450,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done'));
+  const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
+  const prevLevelRef = useRef<string>('beginner');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1285,6 +1290,34 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => { if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current); };
   }, [files['main.py']]);
   const liveConfig = debouncedLiveConfig;
+
+  // Track level changes for milestone celebrations (practice mode only)
+  useEffect(() => {
+    if (hasLiveEvent) return;
+    const cfg = liveConfig;
+    const isAgent = projectType === 'agent';
+    const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const count = [
+      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+      cfg.greeting,
+      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+      cfg.knowledgeBaseFromCode.trim(),
+      cfg.qaPairsFromCode.length > 0,
+      cfg.temperature !== (isAgent ? 0.3 : 0.7),
+      cfg.conversationRules.length > 3,
+      cfg.conversationStarters.length > 4,
+      cfg.catchphrases.length > 0,
+    ].filter(Boolean).length;
+    const newLevel = getForgeLevel(count);
+    if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
+      const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
+      if (['hacker', 'architect', 'ai-lord'].includes(newLevel)) {
+        setMilestoneMsg(`Level Up! You're now ${levelNames[newLevel]}!`);
+      }
+    }
+    prevLevelRef.current = newLevel;
+  }, [liveConfig, hasLiveEvent, projectType]);
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
@@ -2641,6 +2674,37 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
+          {!hasLiveEvent && (
+            <LevelBadge challengeCount={(() => {
+              const cfg = liveConfig;
+              const isAgent = projectType === 'agent';
+              const defaultName = isAgent ? 'Research Agent' : 'Spark';
+              return [
+                cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+                cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+                cfg.greeting,
+                cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+                systemPrompt !== (isAgent ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.' : 'You are a helpful AI assistant that answers questions clearly and concisely.'),
+                cfg.knowledgeBaseFromCode.trim(),
+                cfg.qaPairsFromCode.length > 0,
+                cfg.temperature !== (isAgent ? 0.3 : 0.7),
+                cfg.responseStyle !== (isAgent ? 'Professional' : 'Friendly'),
+                cfg.maxResponseLength !== 'medium',
+                cfg.forbiddenWords.length > 0,
+                cfg.blockedTopics.length > 2,
+                cfg.fewShotExamples.length > 0,
+                Object.keys(cfg.secretResponses).length > 0,
+                cfg.conversationRules.length > 3,
+                cfg.conversationStarters.length > 4,
+                cfg.maxTokens !== 512,
+                cfg.mood && cfg.mood !== 'neutral',
+                cfg.languageStyle && cfg.languageStyle !== 'casual',
+                cfg.catchphrases.length > 0,
+                cfg.voiceEnabled === true,
+                cfg.voiceMode !== 'push-to-talk',
+              ].filter(Boolean).length;
+            })()} compact />
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <Button size="sm" onClick={() => { setShowBottomPanel(v => !v); setBottomTab('terminal'); }}
@@ -2692,6 +2756,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         prefillAuthorName={authorName}
         currentProjectId={currentProjectId}
         onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
+      />
+
+      {/* Walkthrough guide for new users */}
+      {showWalkthrough && !hasLiveEvent && (
+        <ForgeWalkthrough onComplete={() => {
+          setShowWalkthrough(false);
+          localStorage.setItem('forge-walkthrough-done', 'true');
+        }} />
+      )}
+
+      {/* Milestone celebration */}
+      <MilestoneCelebration
+        show={!!milestoneMsg}
+        message={milestoneMsg || ''}
+        onComplete={() => setMilestoneMsg(null)}
       />
     </div>
   );
