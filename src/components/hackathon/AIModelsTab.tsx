@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, forwardRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Brain, Bot, Cpu, RocketZap, Send, Loader2, CheckCircle2, Code, 
+  Brain, Bot, Cpu, Rocket, Zap, Send, Loader2, CheckCircle2, Code, 
   ChevronRight, ChevronDown, Plus, X, Play, MessageSquare,
   User, Shield, BookOpen, Palette, Settings, Wand2, ArrowRight, RotateCcw, Mic, MicOff, Volume2, VolumeX,
   Eye, EyeOff, Copy, Check, Search, Calculator, Globe, Phone, PhoneOff

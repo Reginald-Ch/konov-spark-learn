@@ -1653,7 +1653,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         </div>
         <div className="flex items-center gap-1">
           {[
-            { action: 'review', icon: Sparkles, label: 'Review', primary: true },
+            { action: 'review', icon: Rocket, label: 'Review', primary: true },
             { action: 'explain', icon: MessageSquare, label: 'Explain', primary: false },
             { action: 'suggest', icon: Lightbulb, label: 'Suggest', primary: false },
           ].map(({ action, icon: Icon, label, primary }) => (
