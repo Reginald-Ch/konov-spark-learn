@@ -1291,6 +1291,34 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py']]);
   const liveConfig = debouncedLiveConfig;
 
+  // Track level changes for milestone celebrations (practice mode only)
+  useEffect(() => {
+    if (hasLiveEvent) return;
+    const cfg = liveConfig;
+    const isAgent = projectType === 'agent';
+    const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const count = [
+      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+      cfg.greeting,
+      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+      cfg.knowledgeBaseFromCode.trim(),
+      cfg.qaPairsFromCode.length > 0,
+      cfg.temperature !== (isAgent ? 0.3 : 0.7),
+      cfg.conversationRules.length > 3,
+      cfg.conversationStarters.length > 4,
+      cfg.catchphrases.length > 0,
+    ].filter(Boolean).length;
+    const newLevel = getForgeLevel(count);
+    if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
+      const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
+      if (['hacker', 'architect', 'ai-lord'].includes(newLevel)) {
+        setMilestoneMsg(`Level Up! You're now ${levelNames[newLevel]}!`);
+      }
+    }
+    prevLevelRef.current = newLevel;
+  }, [liveConfig, hasLiveEvent, projectType]);
+
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
     if (!msg || isStreaming) return;
