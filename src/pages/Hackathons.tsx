@@ -180,12 +180,12 @@ const Hackathons = () => {
               style={{ background: '#C70110' }}
             >
               <div className="absolute inset-0 opacity-10">
-                <Sparkles className="w-32 h-32 text-white absolute top-4 right-4" />
+                <Rocket className="w-32 h-32 text-white absolute top-4 right-4" />
                 <Zap className="w-24 h-24 text-white absolute bottom-4 left-4" />
               </div>
               <div className="relative z-10">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                  <Sparkles className="w-8 h-8" />
+                  <Rocket className="w-8 h-8" />
                   Forge Your Way Up!
                 </h1>
                 <p className="text-white/90 text-lg max-w-2xl">
