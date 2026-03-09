@@ -87,7 +87,7 @@ const CHATBOT_SECTIONS: ConfigSection[] = [
     ]
   },
   {
-    id: 'personality', title: 'Personality', subtitle: 'How your bot thinks & talks', icon: <SpRocketlassName="w-4 h-4" />, color: '#F59E0B',
+    id: 'personality', title: 'Personality', subtitle: 'How your bot thinks & talks', icon: <Rocket className="w-4 h-4" />, color: '#F59E0B',
     fields: [
       { key: 'SYSTEM_MESSAGE', label: 'System Prompt', type: 'textarea', placeholder: 'You are a helpful AI that...', hint: "This is your bot's brain — describe who it is and how it behaves" },
       { key: 'MOOD', label: 'Mood', type: 'select', options: ['cheerful', 'serious', 'sarcastic', 'mysterious', 'energetic', 'calm', 'neutral'] },
