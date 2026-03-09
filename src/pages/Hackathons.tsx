@@ -15,6 +15,8 @@ import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
 import { ProjectGallery } from '@/components/hackathon/ProjectGallery';
 import { LearnTab } from '@/components/hackathon/LearnTab';
 import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel';
+import { BotBattleArena } from '@/components/hackathon/BotBattleArena';
+import { LiveReactionFeed } from '@/components/hackathon/LiveReactionFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, ArrowLeft, Brain,
