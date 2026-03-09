@@ -424,11 +424,13 @@ const ProjectView = () => {
 
   const toggleListening = useCallback(() => {
     if (isListening) {
+      voiceModeRef.current = false;
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       setIsListening(false);
     } else {
       window.speechSynthesis?.cancel();
       setIsSpeaking(false);
+      voiceModeRef.current = true;
       startListeningOnce();
     }
   }, [isListening, startListeningOnce]);
