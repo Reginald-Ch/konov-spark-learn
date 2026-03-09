@@ -248,6 +248,7 @@ const Hackathons = () => {
   return (
     <TooltipProvider>
       <div className="h-screen bg-[hsl(var(--discord-darker))] flex flex-col md:flex-row overflow-hidden">
+        <LiveReactionFeed />
         <SEO 
           title="FORGE — Build AI Projects"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
