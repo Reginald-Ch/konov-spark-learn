@@ -45,7 +45,7 @@ interface Hackathon {
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'getting-started' | 'faq' | 'judge';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
 
 const Hackathons = () => {
   const navigate = useNavigate();
