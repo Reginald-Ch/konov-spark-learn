@@ -507,6 +507,8 @@ APP_THEME = "default"
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
+    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -522,13 +524,26 @@ APP_THEME = "default"
       if (event.results[event.results.length - 1]?.isFinal) {
         setIsListening(false);
         if (transcript.trim()) {
-          setTimeout(() => handleChatSend(transcript.trim()), 100);
+          handleChatSend(transcript.trim());
         }
       }
     };
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      setIsListening(false);
+      if (e.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please allow mic access in browser settings.');
+        setVoiceConversationMode(false);
+        voiceModeRef.current = false;
+      }
+    };
     recognition.onend = () => setIsListening(false);
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch {
+      toast.error('Could not start microphone. Check browser permissions.');
+      setIsListening(false);
+    }
   }, [handleChatSend]);
 
   const toggleListening = useCallback(() => {
@@ -550,6 +565,7 @@ APP_THEME = "default"
   const toggleVoiceConversation = useCallback(() => {
     if (voiceConversationMode) {
       setVoiceConversationMode(false);
+      voiceModeRef.current = false;
       recognitionRef.current?.stop();
       setIsListening(false);
       window.speechSynthesis?.cancel();
@@ -561,10 +577,11 @@ APP_THEME = "default"
         return;
       }
       setVoiceConversationMode(true);
+      voiceModeRef.current = true;
       setVoiceEnabled(true);
       setShowPreview(true);
       toast.success('🎙️ Voice conversation mode ON — speak freely!');
-      setTimeout(() => startListeningOnce(), 300);
+      startListeningOnce();
     }
   }, [voiceConversationMode, startListeningOnce]);
 

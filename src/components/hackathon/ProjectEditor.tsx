@@ -1047,75 +1047,87 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [ttsEnabled]);
 
   const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
   const startListeningOnce = useCallback((wakeWord?: string) => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { toast.error('Speech recognition not supported in this browser'); return; }
-    if (!voiceModeRef.current) return; // don't start if mode is off
+    if (!voiceModeRef.current) return;
     if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
+    recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
     const isWakeWordMode = !!wakeWord;
     if (isWakeWordMode) setWaitingForWakeWord(true);
     setIsListening(true);
-    let gotResult = false;
+    retryCountRef.current = 0;
+
     recognition.onresult = (event: any) => {
-      gotResult = true;
-      const transcript = event.results[0][0].transcript.trim();
-      if (isWakeWordMode) {
+      const last = event.results[event.results.length - 1];
+      if (!last.isFinal) return;
+      const transcript = last[0].transcript.trim();
+      if (!transcript) return;
+
+      if (isWakeWordMode && waitingForWakeWord) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
-          setTimeout(() => {
-            const r2 = new SpeechRecognition();
-            r2.lang = 'en-US'; r2.interimResults = false; r2.maxAlternatives = 1;
-            recognitionRef.current = r2;
-            r2.onresult = (ev: any) => {
-              const t = ev.results[0][0].transcript.trim();
-              if (t) handleChatSendRef.current(t);
-            };
-            r2.onend = () => { setIsListening(false); };
-            r2.onerror = (e: any) => {
-              setIsListening(false);
-              if (e.error === 'no-speech' && voiceModeRef.current) {
-                toast.info('No speech detected, waiting for wake word...');
-                setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
-                return;
-              }
-              if (e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
-            };
-            r2.start();
-          }, 200);
-        } else {
-          // Didn't hear wake word — restart
-          setTimeout(() => { if (voiceModeRef.current) startListeningOnce(wakeWord); }, 300);
+          // Keep listening on same recognition instance — next result will be the command
         }
+        // If wake word not detected, just keep listening (continuous mode)
         return;
       }
-      // No wake word mode - send message
-      if (transcript) handleChatSendRef.current(transcript);
+      // Either no wake word mode, or wake word already detected — send message
+      handleChatSendRef.current(transcript);
+      // After sending, if wake word mode, go back to waiting
+      if (isWakeWordMode) {
+        setWaitingForWakeWord(true);
+      }
     };
+
     recognition.onend = () => {
-      if (!gotResult && voiceModeRef.current) {
-        // Timed out / no speech - restart
-        setTimeout(() => startListeningOnce(wakeWord), 300);
+      // continuous mode ended unexpectedly — restart if still in voice mode
+      if (voiceModeRef.current && retryCountRef.current < MAX_RETRIES) {
+        retryCountRef.current++;
+        try { recognition.start(); } catch { setIsListening(false); }
         return;
       }
-      if (!isWakeWordMode) setIsListening(false);
-    };
-    recognition.onerror = (e: any) => {
-      if (e.error === 'no-speech' && voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(wakeWord), 300);
-        return;
-      }
-      if (e.error !== 'aborted') toast.error(`Mic error: ${e.error}`);
       setIsListening(false);
       setWaitingForWakeWord(false);
     };
-    recognition.start();
+
+    recognition.onerror = (e: any) => {
+      if (e.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please allow mic access in browser settings and try again.');
+        voiceModeRef.current = false;
+        setIsListening(false);
+        setWaitingForWakeWord(false);
+        return;
+      }
+      if (e.error === 'no-speech') {
+        // In continuous mode this is normal — just keep going
+        return;
+      }
+      if (e.error === 'aborted') return;
+      if (retryCountRef.current >= MAX_RETRIES) {
+        toast.error(`Mic error: ${e.error}`);
+        setIsListening(false);
+        setWaitingForWakeWord(false);
+        return;
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      toast.error('Could not start microphone. Check browser permissions.');
+      setIsListening(false);
+      setWaitingForWakeWord(false);
+    }
   }, []);
 
   const toggleListening = useCallback(() => {
