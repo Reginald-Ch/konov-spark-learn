@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PublishModal } from './PublishModal';
+import { LevelBadge, AchievementGrid, getForgeLevel } from './AchievementBadges';
+import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Code, Play, Send, X, Copy, Check, Trash2,
