@@ -620,7 +620,7 @@ const ProjectView = () => {
       if (fullText && config?.voiceEnabled && ttsEnabled) {
         speakText(fullText, config?.voiceGender);
       } else if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
+        // Recognition is in continuous mode — already listening
       }
     } catch (e) {
       console.error('Chat error:', e);
