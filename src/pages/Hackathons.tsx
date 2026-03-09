@@ -165,6 +165,8 @@ const Hackathons = () => {
     switch (hackathonSubView) {
       case 'showcase':
         return <ProjectGallery onViewCode={handleViewCode} />;
+      case 'battle-arena':
+        return <BotBattleArena />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'getting-started':
