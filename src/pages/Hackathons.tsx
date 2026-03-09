@@ -272,7 +272,7 @@ const Hackathons = () => {
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center"
                     style={{ background: '#C70110' }}>
-                    <Sparkles className="w-8 h-8 text-white" />
+                    <Rocket className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-1">Welcome to FORGE! 🎉</h2>
                   <p className="text-[hsl(var(--discord-text-muted))] text-sm">Build AI projects with Python in 3 easy steps</p>
