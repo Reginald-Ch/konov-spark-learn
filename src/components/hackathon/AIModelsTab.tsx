@@ -811,18 +811,17 @@ APP_THEME = "default"
                   LIVE
                 </Badge>
                 <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={toggleVoiceConversation}
+                  variant="ghost" size="sm"
+                  onClick={toggleListening}
                   className={`h-7 px-2 gap-1 text-xs font-bold transition-all ${
-                    voiceConversationMode
+                    isListening
                       ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
                       : 'text-[hsl(var(--discord-text-muted))] hover:text-white'
                   }`}
-                  title={voiceConversationMode ? 'End voice conversation' : 'Start voice conversation'}
+                  title={isListening ? 'Stop listening' : 'Push to talk'}
                 >
-                  {voiceConversationMode ? <PhoneOff className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
-                  {voiceConversationMode ? 'End' : 'Voice'}
+                  <Mic className="w-3.5 h-3.5" />
+                  {isListening ? 'Stop' : 'Mic'}
                 </Button>
                 <Button
                   variant="ghost" size="sm"
