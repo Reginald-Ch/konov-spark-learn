@@ -308,7 +308,7 @@ const Hackathons = () => {
         </AnimatePresence>
 
         {/* Left Icon Rail */}
-        <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0">
+        <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0 relative tech-scanline">
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.div 
