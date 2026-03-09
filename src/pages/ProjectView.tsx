@@ -342,9 +342,7 @@ const ProjectView = () => {
     setIsSpeaking(true);
     utterance.onend = () => {
       setIsSpeaking(false);
-      if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 300);
-      }
+      // Recognition is in continuous mode — no need to restart
     };
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
@@ -622,7 +620,7 @@ const ProjectView = () => {
       if (fullText && config?.voiceEnabled && ttsEnabled) {
         speakText(fullText, config?.voiceGender);
       } else if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
+        // Recognition is in continuous mode — already listening
       }
     } catch (e) {
       console.error('Chat error:', e);

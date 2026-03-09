@@ -409,8 +409,10 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
               utterance.pitch = 1.1;
               // Auto-restart listening after TTS finishes in voice conversation mode
               utterance.onend = () => {
-                if (voiceModeRef.current) {
-                  setTimeout(() => startListeningOnce(), 300);
+                if (voiceModeRef.current && !isListening) {
+                  // Cannot call recognition.start() here (no gesture context)
+                  // Instead, just update state so user knows to click mic again
+                  toast.info('🎤 Tap mic to continue speaking');
                 }
               };
               window.speechSynthesis.speak(utterance);
@@ -419,8 +421,8 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
           });
         }, 100);
       } else if (voiceModeRef.current) {
-        // No TTS but voice mode on — auto-listen anyway
-        setTimeout(() => startListeningOnce(), 300);
+        // No TTS but voice mode on — prompt user to tap mic
+        toast.info('🎤 Tap mic to continue speaking');
       }
     }
   };

@@ -1038,9 +1038,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setIsSpeaking(true);
     utterance.onend = () => {
       setIsSpeaking(false);
-      if (voiceModeRef.current) {
-        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 300);
-      }
+      // Recognition is in continuous mode — no need to restart
     };
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
@@ -1417,8 +1415,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
         speakText(assistantReply, liveConfig.voiceGender);
       } else if (voiceModeRef.current) {
-        // TTS is disabled but hands-free is on — restart listening after AI responds
-        setTimeout(() => startListeningOnce(wakeWordRef.current || undefined), 500);
+        // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
       // Bug 6: Remove the trailing '...' placeholder before adding error
