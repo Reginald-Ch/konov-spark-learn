@@ -2729,6 +2729,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         currentProjectId={currentProjectId}
         onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
       />
+
+      {/* Walkthrough guide for new users */}
+      {showWalkthrough && !hasLiveEvent && (
+        <ForgeWalkthrough onComplete={() => {
+          setShowWalkthrough(false);
+          localStorage.setItem('forge-walkthrough-done', 'true');
+        }} />
+      )}
+
+      {/* Milestone celebration */}
+      <MilestoneCelebration
+        show={!!milestoneMsg}
+        message={milestoneMsg || ''}
+        onComplete={() => setMilestoneMsg(null)}
+      />
     </div>
   );
 };
