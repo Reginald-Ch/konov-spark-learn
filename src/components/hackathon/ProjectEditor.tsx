@@ -2708,35 +2708,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
           {!hasLiveEvent && (
-            <LevelBadge challengeCount={(() => {
-              const cfg = liveConfig;
-              const isAgent = projectType === 'agent';
-              const defaultName = isAgent ? 'Research Agent' : 'Spark';
-              return [
-                cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-                cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-                cfg.greeting,
-                cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-                systemPrompt !== (isAgent ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.' : 'You are a helpful AI assistant that answers questions clearly and concisely.'),
-                cfg.knowledgeBaseFromCode.trim(),
-                cfg.qaPairsFromCode.length > 0,
-                cfg.temperature !== (isAgent ? 0.3 : 0.7),
-                cfg.responseStyle !== (isAgent ? 'Professional' : 'Friendly'),
-                cfg.maxResponseLength !== 'medium',
-                cfg.forbiddenWords.length > 0,
-                cfg.blockedTopics.length > 2,
-                cfg.fewShotExamples.length > 0,
-                Object.keys(cfg.secretResponses).length > 0,
-                cfg.conversationRules.length > 3,
-                cfg.conversationStarters.length > 4,
-                cfg.maxTokens !== 512,
-                cfg.mood && cfg.mood !== 'neutral',
-                cfg.languageStyle && cfg.languageStyle !== 'casual',
-                cfg.catchphrases.length > 0,
-                cfg.voiceEnabled === true,
-                cfg.voiceMode !== 'push-to-talk',
-              ].filter(Boolean).length;
-            })()} compact />
+            <LevelBadge challengeCount={getChallengeCount(liveConfig, projectType)} compact />
           )}
         </div>
         <div className="flex items-center gap-1.5">
