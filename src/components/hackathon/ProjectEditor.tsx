@@ -1293,24 +1293,51 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py']]);
   const liveConfig = debouncedLiveConfig;
 
+  // Unified challenge count helper — shared between level badge, milestone tracker, and status bar
+  const getChallengeCount = useCallback((cfg: ReturnType<typeof extractConfigFromCode>, type: ProjectType) => {
+    const isAgent = type === 'agent';
+    const scaffold = PROJECT_SCAFFOLDS[type];
+    const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const defaultTemp = isAgent ? 0.3 : 0.7;
+    const defaultStyle = isAgent ? 'Professional' : 'Friendly';
+    const defaultGreeting = isAgent
+      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
+    const defaultKB = isAgent 
+      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+      : "";
+    return [
+      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+      cfg.greeting && cfg.greeting !== defaultGreeting,
+      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+      cfg.systemMessage !== scaffold.systemPrompt && cfg.systemMessage.length > 30,
+      cfg.knowledgeBaseFromCode.trim() && cfg.knowledgeBaseFromCode !== defaultKB,
+      cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
+      cfg.temperature !== defaultTemp,
+      cfg.responseStyle !== defaultStyle && cfg.responseStyle !== 'Balanced',
+      cfg.maxResponseLength !== 'medium',
+      cfg.forbiddenWords.length > 0,
+      cfg.blockedTopics.length > 2,
+      cfg.fewShotExamples.length > 0,
+      Object.keys(cfg.secretResponses).length > (isAgent ? 2 : 0),
+      cfg.conversationRules.length > 3,
+      cfg.conversationStarters.length > 4,
+      cfg.maxTokens !== 512,
+      cfg.mood && cfg.mood !== 'neutral',
+      Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
+      cfg.catchphrases.length > (isAgent ? 3 : 0),
+      cfg.voiceEnabled === true,
+      cfg.voiceMode !== 'push-to-talk',
+      cfg.wakeWord,
+      cfg.voiceGender !== 'default',
+    ].filter(Boolean).length;
+  }, []);
+
   // Track level changes for milestone celebrations (practice mode only)
   useEffect(() => {
     if (hasLiveEvent) return;
-    const cfg = liveConfig;
-    const isAgent = projectType === 'agent';
-    const defaultName = isAgent ? 'Research Agent' : 'Spark';
-    const count = [
-      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-      cfg.greeting,
-      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-      cfg.knowledgeBaseFromCode.trim(),
-      cfg.qaPairsFromCode.length > 0,
-      cfg.temperature !== (isAgent ? 0.3 : 0.7),
-      cfg.conversationRules.length > 3,
-      cfg.conversationStarters.length > 4,
-      cfg.catchphrases.length > 0,
-    ].filter(Boolean).length;
+    const count = getChallengeCount(liveConfig, projectType);
     const newLevel = getForgeLevel(count);
     if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
       const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
@@ -1319,7 +1346,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }
     prevLevelRef.current = newLevel;
-  }, [liveConfig, hasLiveEvent, projectType]);
+  }, [liveConfig, hasLiveEvent, projectType, getChallengeCount]);
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
