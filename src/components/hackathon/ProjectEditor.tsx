@@ -1231,7 +1231,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 24 challenges...`,
+      `📋 Scanning 25 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
