@@ -1194,7 +1194,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultSystemMsg = scaffold.systemPrompt;
     const defaultKB = isAgent 
       ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-      : "";
+      : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
     
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
