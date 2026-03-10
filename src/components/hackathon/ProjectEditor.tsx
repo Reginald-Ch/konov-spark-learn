@@ -2537,30 +2537,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
             const totalChallenges = 24;
-            const activeCount = [
-              cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-              cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-              cfg.greeting && cfg.greeting !== (isAgent ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!" : "Hey there! I'm Spark, your AI buddy. Ask me anything!"),
-              cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-              systemPrompt !== defaultPrompt,
-              codeKB.trim() && codeKB !== (isAgent ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts." : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects."),
-              codeQA.length > (isAgent ? 3 : 0),
-              cfg.temperature !== defaultTemp,
-              cfg.responseStyle !== defaultStyle,
-              cfg.maxResponseLength !== 'medium',
-              cfg.forbiddenWords.length > 0,
-              totalBlocked > 2,
-              cfg.fewShotExamples.length > 0,
-              totalEggs > (isAgent ? 2 : 0),
-              totalRules > 3,
-              totalStarters > 4,
-              cfg.maxTokens !== 512,
-              cfg.mood && cfg.mood !== 'neutral',
-              cfg.languageStyle && cfg.languageStyle !== 'casual',
-              totalCatchphrases > (isAgent ? 3 : 0),
-              cfg.voiceEnabled === true,
-              cfg.voiceMode !== 'push-to-talk',
-            ].filter(Boolean).length;
+            const activeCount = getChallengeCount(cfg, projectType);
 
             return (
               <div className="px-3 py-1.5 border-b border-ide-border/50 space-y-1" style={{ backgroundColor: selectedTheme.chat }}>
