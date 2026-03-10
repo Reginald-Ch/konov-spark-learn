@@ -450,7 +450,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
-  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done'));
+  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
   const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
   const prevLevelRef = useRef<string>('beginner');
 
@@ -1051,6 +1051,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [ttsEnabled]);
 
   const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+  const waitingForWakeWordRef = useRef(false);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
 
@@ -1066,7 +1067,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
     const isWakeWordMode = !!wakeWord;
-    if (isWakeWordMode) setWaitingForWakeWord(true);
+    if (isWakeWordMode) { setWaitingForWakeWord(true); waitingForWakeWordRef.current = true; }
     setIsListening(true);
     retryCountRef.current = 0;
 
@@ -1076,19 +1077,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
 
-      if (isWakeWordMode && waitingForWakeWord) {
+      if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
+          waitingForWakeWordRef.current = false;
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
-          // Keep listening on same recognition instance — next result will be the command
         }
-        // If wake word not detected, just keep listening (continuous mode)
         return;
       }
-      // Either no wake word mode, or wake word already detected — send message
       handleChatSendRef.current(transcript);
-      // After sending, if wake word mode, go back to waiting
       if (isWakeWordMode) {
+        waitingForWakeWordRef.current = true;
         setWaitingForWakeWord(true);
       }
     };
@@ -1102,6 +1101,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     };
 
     recognition.onerror = (e: any) => {
@@ -1110,10 +1110,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         voiceModeRef.current = false;
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
       if (e.error === 'no-speech') {
-        // In continuous mode this is normal — just keep going
         return;
       }
       if (e.error === 'aborted') return;
@@ -1121,6 +1121,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         toast.error(`Mic error: ${e.error}`);
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
     };
@@ -1164,6 +1165,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       setIsListening(false);
       setIsSpeaking(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     }
   }, [voiceConversationMode, startListeningOnce, debouncedLiveConfig]);
 
@@ -1291,24 +1293,51 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py']]);
   const liveConfig = debouncedLiveConfig;
 
+  // Unified challenge count helper — shared between level badge, milestone tracker, and status bar
+  const getChallengeCount = useCallback((cfg: ReturnType<typeof extractConfigFromCode>, type: ProjectType) => {
+    const isAgent = type === 'agent';
+    const scaffold = PROJECT_SCAFFOLDS[type];
+    const defaultName = isAgent ? 'Research Agent' : 'Spark';
+    const defaultTemp = isAgent ? 0.3 : 0.7;
+    const defaultStyle = isAgent ? 'Professional' : 'Friendly';
+    const defaultGreeting = isAgent
+      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
+      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
+    const defaultKB = isAgent 
+      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
+      : "";
+    return [
+      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
+      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
+      cfg.greeting && cfg.greeting !== defaultGreeting,
+      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
+      cfg.systemMessage !== scaffold.systemPrompt && cfg.systemMessage.length > 30,
+      cfg.knowledgeBaseFromCode.trim() && cfg.knowledgeBaseFromCode !== defaultKB,
+      cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
+      cfg.temperature !== defaultTemp,
+      cfg.responseStyle !== defaultStyle && cfg.responseStyle !== 'Balanced',
+      cfg.maxResponseLength !== 'medium',
+      cfg.forbiddenWords.length > 0,
+      cfg.blockedTopics.length > 2,
+      cfg.fewShotExamples.length > 0,
+      Object.keys(cfg.secretResponses).length > (isAgent ? 2 : 0),
+      cfg.conversationRules.length > 3,
+      cfg.conversationStarters.length > 4,
+      cfg.maxTokens !== 512,
+      cfg.mood && cfg.mood !== 'neutral',
+      Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
+      cfg.catchphrases.length > (isAgent ? 3 : 0),
+      cfg.voiceEnabled === true,
+      cfg.voiceMode !== 'push-to-talk',
+      cfg.wakeWord,
+      cfg.voiceGender !== 'default',
+    ].filter(Boolean).length;
+  }, []);
+
   // Track level changes for milestone celebrations (practice mode only)
   useEffect(() => {
     if (hasLiveEvent) return;
-    const cfg = liveConfig;
-    const isAgent = projectType === 'agent';
-    const defaultName = isAgent ? 'Research Agent' : 'Spark';
-    const count = [
-      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-      cfg.greeting,
-      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-      cfg.knowledgeBaseFromCode.trim(),
-      cfg.qaPairsFromCode.length > 0,
-      cfg.temperature !== (isAgent ? 0.3 : 0.7),
-      cfg.conversationRules.length > 3,
-      cfg.conversationStarters.length > 4,
-      cfg.catchphrases.length > 0,
-    ].filter(Boolean).length;
+    const count = getChallengeCount(liveConfig, projectType);
     const newLevel = getForgeLevel(count);
     if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
       const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
@@ -1317,7 +1346,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }
     prevLevelRef.current = newLevel;
-  }, [liveConfig, hasLiveEvent, projectType]);
+  }, [liveConfig, hasLiveEvent, projectType, getChallengeCount]);
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
@@ -1573,6 +1602,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const dismissOnboarding = () => {
     setOnboardingStep(null);
     localStorage.setItem('buildstudio-onboarded', 'true');
+    // Now show the walkthrough if it hasn't been done
+    if (!localStorage.getItem('forge-walkthrough-done')) {
+      setShowWalkthrough(true);
+    }
   };
   const nextOnboardingStep = () => {
     if (onboardingStep !== null && onboardingStep < ONBOARDING_STEPS.length - 1) {
@@ -1603,13 +1636,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Auto-save every 2 minutes
+  // Auto-save every 2 minutes — use refs to avoid recreating interval
+  const isDirtyRef = useRef(isDirty);
+  const currentProjectIdRef = useRef(currentProjectId);
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+  useEffect(() => { currentProjectIdRef.current = currentProjectId; }, [currentProjectId]);
+
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          // Bug 4: Only auto-save if project was explicitly saved before
-          if (isDirty && currentProjectId) {
+          if (isDirtyRef.current && currentProjectIdRef.current) {
             handleSaveRef.current();
           }
           return 120;
@@ -1618,7 +1655,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       });
     }, 1000);
     return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
-  }, [isDirty, currentProjectId]);
+  }, []);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = useMemo(() => files[activeFile].split('\n'), [files[activeFile]]);
@@ -2504,30 +2541,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
             const totalChallenges = 24;
-            const activeCount = [
-              cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-              cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-              cfg.greeting && cfg.greeting !== (isAgent ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!" : "Hey there! I'm Spark, your AI buddy. Ask me anything!"),
-              cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-              systemPrompt !== defaultPrompt,
-              codeKB.trim() && codeKB !== (isAgent ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts." : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects."),
-              codeQA.length > (isAgent ? 3 : 0),
-              cfg.temperature !== defaultTemp,
-              cfg.responseStyle !== defaultStyle,
-              cfg.maxResponseLength !== 'medium',
-              cfg.forbiddenWords.length > 0,
-              totalBlocked > 2,
-              cfg.fewShotExamples.length > 0,
-              totalEggs > (isAgent ? 2 : 0),
-              totalRules > 3,
-              totalStarters > 4,
-              cfg.maxTokens !== 512,
-              cfg.mood && cfg.mood !== 'neutral',
-              cfg.languageStyle && cfg.languageStyle !== 'casual',
-              totalCatchphrases > (isAgent ? 3 : 0),
-              cfg.voiceEnabled === true,
-              cfg.voiceMode !== 'push-to-talk',
-            ].filter(Boolean).length;
+            const activeCount = getChallengeCount(cfg, projectType);
 
             return (
               <div className="px-3 py-1.5 border-b border-ide-border/50 space-y-1" style={{ backgroundColor: selectedTheme.chat }}>
@@ -2675,35 +2689,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
           {!hasLiveEvent && (
-            <LevelBadge challengeCount={(() => {
-              const cfg = liveConfig;
-              const isAgent = projectType === 'agent';
-              const defaultName = isAgent ? 'Research Agent' : 'Spark';
-              return [
-                cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-                cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-                cfg.greeting,
-                cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-                systemPrompt !== (isAgent ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.' : 'You are a helpful AI assistant that answers questions clearly and concisely.'),
-                cfg.knowledgeBaseFromCode.trim(),
-                cfg.qaPairsFromCode.length > 0,
-                cfg.temperature !== (isAgent ? 0.3 : 0.7),
-                cfg.responseStyle !== (isAgent ? 'Professional' : 'Friendly'),
-                cfg.maxResponseLength !== 'medium',
-                cfg.forbiddenWords.length > 0,
-                cfg.blockedTopics.length > 2,
-                cfg.fewShotExamples.length > 0,
-                Object.keys(cfg.secretResponses).length > 0,
-                cfg.conversationRules.length > 3,
-                cfg.conversationStarters.length > 4,
-                cfg.maxTokens !== 512,
-                cfg.mood && cfg.mood !== 'neutral',
-                cfg.languageStyle && cfg.languageStyle !== 'casual',
-                cfg.catchphrases.length > 0,
-                cfg.voiceEnabled === true,
-                cfg.voiceMode !== 'push-to-talk',
-              ].filter(Boolean).length;
-            })()} compact />
+            <LevelBadge challengeCount={getChallengeCount(liveConfig, projectType)} compact />
           )}
         </div>
         <div className="flex items-center gap-1.5">
