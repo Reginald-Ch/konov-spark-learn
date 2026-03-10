@@ -1306,13 +1306,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultKB = isAgent 
       ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
       : "";
+    const defaultKBAgent = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
+    const defaultKBChatbot = "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
+    const defaultKB = isAgent ? defaultKBAgent : defaultKBChatbot;
     return [
       cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
       cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
       cfg.greeting && cfg.greeting !== defaultGreeting,
       cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
       cfg.systemMessage !== scaffold.systemPrompt && cfg.systemMessage.length > 30,
-      cfg.knowledgeBaseFromCode.trim() && cfg.knowledgeBaseFromCode !== defaultKB,
+      cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaultKB,
       cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
       cfg.temperature !== defaultTemp,
       cfg.responseStyle !== defaultStyle && cfg.responseStyle !== 'Balanced',
@@ -1327,6 +1330,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.mood && cfg.mood !== 'neutral',
       Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
       cfg.catchphrases.length > (isAgent ? 3 : 0),
+      cfg.languageStyle !== 'casual',
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
       cfg.wakeWord,
