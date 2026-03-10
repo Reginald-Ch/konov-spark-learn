@@ -1303,9 +1303,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultGreeting = isAgent
       ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
       : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
-    const defaultKB = isAgent 
-      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-      : "";
     const defaultKBAgent = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
     const defaultKBChatbot = "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
     const defaultKB = isAgent ? defaultKBAgent : defaultKBChatbot;
