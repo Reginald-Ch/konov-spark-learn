@@ -1605,13 +1605,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Auto-save every 2 minutes
+  // Auto-save every 2 minutes — use refs to avoid recreating interval
+  const isDirtyRef = useRef(isDirty);
+  const currentProjectIdRef = useRef(currentProjectId);
+  useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+  useEffect(() => { currentProjectIdRef.current = currentProjectId; }, [currentProjectId]);
+
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          // Bug 4: Only auto-save if project was explicitly saved before
-          if (isDirty && currentProjectId) {
+          if (isDirtyRef.current && currentProjectIdRef.current) {
             handleSaveRef.current();
           }
           return 120;
@@ -1620,7 +1624,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       });
     }, 1000);
     return () => { if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current); };
-  }, [isDirty, currentProjectId]);
+  }, []);
 
   const scaffold = PROJECT_SCAFFOLDS[projectType];
   const lines = useMemo(() => files[activeFile].split('\n'), [files[activeFile]]);
