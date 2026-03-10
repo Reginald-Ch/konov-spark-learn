@@ -1886,7 +1886,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
                         { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaultGreeting },
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
-                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaultSystemMessage && config.systemMessage.length > 30 },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
@@ -1900,8 +1900,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
-                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
+                        { emoji: '🎵', name: 'Response Tone', done: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical' },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
+                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
+                        { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
+                        { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },
+                        { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },
+                        { emoji: '🗣️', name: 'Voice Gender', done: config.voiceGender !== 'default' },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
