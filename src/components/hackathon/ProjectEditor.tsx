@@ -450,7 +450,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   });
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
-  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done'));
+  const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
   const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
   const prevLevelRef = useRef<string>('beginner');
 
