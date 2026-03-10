@@ -1077,19 +1077,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
 
-      if (isWakeWordMode && waitingForWakeWord) {
+      if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
+          waitingForWakeWordRef.current = false;
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
-          // Keep listening on same recognition instance — next result will be the command
         }
-        // If wake word not detected, just keep listening (continuous mode)
         return;
       }
-      // Either no wake word mode, or wake word already detected — send message
       handleChatSendRef.current(transcript);
-      // After sending, if wake word mode, go back to waiting
       if (isWakeWordMode) {
+        waitingForWakeWordRef.current = true;
         setWaitingForWakeWord(true);
       }
     };
