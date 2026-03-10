@@ -1101,6 +1101,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     };
 
     recognition.onerror = (e: any) => {
@@ -1109,10 +1110,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         voiceModeRef.current = false;
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
       if (e.error === 'no-speech') {
-        // In continuous mode this is normal — just keep going
         return;
       }
       if (e.error === 'aborted') return;
@@ -1120,6 +1121,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         toast.error(`Mic error: ${e.error}`);
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
     };
