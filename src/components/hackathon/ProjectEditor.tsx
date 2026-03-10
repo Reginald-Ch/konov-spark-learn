@@ -1165,6 +1165,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       setIsListening(false);
       setIsSpeaking(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     }
   }, [voiceConversationMode, startListeningOnce, debouncedLiveConfig]);
 
