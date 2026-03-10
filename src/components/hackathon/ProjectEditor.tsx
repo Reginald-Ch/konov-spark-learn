@@ -1194,7 +1194,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultSystemMsg = scaffold.systemPrompt;
     const defaultKB = isAgent 
       ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-      : "";
+      : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
     
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
@@ -1221,6 +1221,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
+      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle || 'casual' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1231,12 +1232,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 24 challenges...`,
+      `📋 Scanning 25 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
+      `📊 Progress: ${completedCount}/25 challenges completed (${Math.round(completedCount / 25 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
@@ -1269,7 +1270,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/24 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/25 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
@@ -1303,16 +1304,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultGreeting = isAgent
       ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
       : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
-    const defaultKB = isAgent 
-      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-      : "";
+    const defaultKBAgent = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
+    const defaultKBChatbot = "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
+    const defaultKB = isAgent ? defaultKBAgent : defaultKBChatbot;
     return [
       cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
       cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
       cfg.greeting && cfg.greeting !== defaultGreeting,
       cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
       cfg.systemMessage !== scaffold.systemPrompt && cfg.systemMessage.length > 30,
-      cfg.knowledgeBaseFromCode.trim() && cfg.knowledgeBaseFromCode !== defaultKB,
+      cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaultKB,
       cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
       cfg.temperature !== defaultTemp,
       cfg.responseStyle !== defaultStyle && cfg.responseStyle !== 'Balanced',
@@ -1327,6 +1328,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.mood && cfg.mood !== 'neutral',
       Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
       cfg.catchphrases.length > (isAgent ? 3 : 0),
+      cfg.languageStyle !== 'casual',
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
       cfg.wakeWord,
@@ -1882,7 +1884,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
                         { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaultGreeting },
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
-                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== '' && config.systemMessage !== defaultSystemMessage },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaultSystemMessage && config.systemMessage.length > 30 },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
@@ -1896,8 +1898,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
-                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
+                        { emoji: '🎵', name: 'Response Tone', done: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical' },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
+                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
+                        { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
+                        { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },
+                        { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },
+                        { emoji: '🗣️', name: 'Voice Gender', done: config.voiceGender !== 'default' },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
@@ -2540,7 +2547,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 24;
+            const totalChallenges = 25;
             const activeCount = getChallengeCount(cfg, projectType);
 
             return (
