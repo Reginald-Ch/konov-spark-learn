@@ -1602,6 +1602,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const dismissOnboarding = () => {
     setOnboardingStep(null);
     localStorage.setItem('buildstudio-onboarded', 'true');
+    // Now show the walkthrough if it hasn't been done
+    if (!localStorage.getItem('forge-walkthrough-done')) {
+      setShowWalkthrough(true);
+    }
   };
   const nextOnboardingStep = () => {
     if (onboardingStep !== null && onboardingStep < ONBOARDING_STEPS.length - 1) {
