@@ -1221,6 +1221,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
+      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle || 'casual' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
