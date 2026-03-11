@@ -1,5 +1,5 @@
-import "framer-motion";
-
 declare module "framer-motion" {
-  interface MotionStyle extends React.CSSProperties {}
+  export interface MotionStyle extends React.CSSProperties {
+    [key: string]: any;
+  }
 }
