@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Code, Zap, MessageSquare, Trophy, ChevronRight, X, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
