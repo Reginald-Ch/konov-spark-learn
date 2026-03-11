@@ -1341,7 +1341,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (hasLiveEvent) return;
     const count = getChallengeCount(liveConfig, projectType);
     const newLevel = getForgeLevel(count);
-    if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
+    // On first run, just record the initial level without celebrating
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = newLevel;
+      return;
+    }
+    if (newLevel !== prevLevelRef.current) {
       const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
       if (['hacker', 'architect', 'ai-lord'].includes(newLevel)) {
         setMilestoneMsg(`Level Up! You're now ${levelNames[newLevel]}!`);
