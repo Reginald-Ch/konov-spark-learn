@@ -452,7 +452,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [showPromptHelp, setShowPromptHelp] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
   const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
-  const prevLevelRef = useRef<string>('beginner');
+  const prevLevelRef = useRef<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1341,7 +1341,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (hasLiveEvent) return;
     const count = getChallengeCount(liveConfig, projectType);
     const newLevel = getForgeLevel(count);
-    if (newLevel !== prevLevelRef.current && prevLevelRef.current !== newLevel) {
+    // On first run, just record the initial level without celebrating
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = newLevel;
+      return;
+    }
+    if (newLevel !== prevLevelRef.current) {
       const levelNames: Record<string, string> = { beginner: '🌱 Beginner', hacker: '⚡ Hacker', architect: '🧠 Architect', 'ai-lord': '👑 AI Lord' };
       if (['hacker', 'architect', 'ai-lord'].includes(newLevel)) {
         setMilestoneMsg(`Level Up! You're now ${levelNames[newLevel]}!`);

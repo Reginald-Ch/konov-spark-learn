@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Code, Zap, MessageSquare, Trophy, ChevronRight, X, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -137,12 +137,15 @@ export const MilestoneCelebration = ({
   message: string; 
   onComplete: () => void 
 }) => {
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
     if (show) {
-      const timer = setTimeout(onComplete, 4000);
+      const timer = setTimeout(() => onCompleteRef.current(), 4000);
       return () => clearTimeout(timer);
     }
-  }, [show, onComplete]);
+  }, [show]);
 
   if (!show) return null;
 
