@@ -137,12 +137,15 @@ export const MilestoneCelebration = ({
   message: string; 
   onComplete: () => void 
 }) => {
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
     if (show) {
-      const timer = setTimeout(onComplete, 4000);
+      const timer = setTimeout(() => onCompleteRef.current(), 4000);
       return () => clearTimeout(timer);
     }
-  }, [show, onComplete]);
+  }, [show]);
 
   if (!show) return null;
 
