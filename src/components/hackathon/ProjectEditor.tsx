@@ -59,7 +59,15 @@ interface Token {
   value: string;
 }
 
-const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
+const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min', 'bool', 'bytes', 'object', 'property', 'staticmethod', 'classmethod', 'hasattr', 'getattr', 'setattr', 'round', 'sum', 'repr', 'hash', 'id', 'iter', 'next', 'reversed', 'slice', 'format', 'chr', 'ord', 'hex', 'oct', 'bin', 'pow', 'divmod', 'callable', 'vars', 'dir', 'help', 'breakpoint', 'compile', 'eval', 'exec']);
+
+// Detect SCREAMING_CASE constants (e.g., BOT_NAME, SYSTEM_MESSAGE)
+const isConstant = (word: string) => /^[A-Z][A-Z0-9_]{2,}$/.test(word);
+
+// Detect f-string prefix
+const isFStringPrefix = (line: string, i: number) => {
+  return (line[i] === 'f' || line[i] === 'F') && i + 1 < line.length && (line[i + 1] === '"' || line[i + 1] === "'");
+};
 
 const tokenizeLine = (line: string): Token[] => {
   const tokens: Token[] = [];
