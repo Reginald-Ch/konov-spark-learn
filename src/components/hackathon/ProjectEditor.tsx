@@ -133,6 +133,9 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   module: 'text-ide-yellow',
   function_name: 'text-ide-accent',
   class_name: 'text-ide-yellow',
+  constant: 'text-ide-cyan font-semibold',
+  fstring_prefix: 'text-ide-red',
+  type_hint: 'text-ide-yellow italic',
   text: 'text-ide-text',
 };
 
