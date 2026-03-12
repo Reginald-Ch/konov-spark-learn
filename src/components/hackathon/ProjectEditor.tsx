@@ -113,10 +113,21 @@ const tokenizeLine = (line: string): Token[] => {
       } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
       else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
+      else if (isConstant(word)) tokens.push({ type: 'constant', value: word });
+      else if (isFStringPrefix(line, i) && word === 'f' || word === 'F') {
+        // f-string prefix — don't consume it as a word, let string handler get the quote
+        tokens.push({ type: 'fstring_prefix', value: word });
+      }
       else tokens.push({ type: 'text', value: word });
       i = end; continue;
     }
-    if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
+    if ('=+-*/<>!&|%^~:'.includes(line[i])) {
+      // Arrow annotation ->
+      if (line[i] === '-' && i + 1 < line.length && line[i + 1] === '>') {
+        tokens.push({ type: 'operator', value: '->' }); i += 2; continue;
+      }
+      tokens.push({ type: 'operator', value: line[i] }); i++; continue;
+    }
     tokens.push({ type: 'text', value: line[i] }); i++;
   }
   return tokens;
