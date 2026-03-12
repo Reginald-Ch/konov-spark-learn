@@ -55,11 +55,19 @@ const THEMES = [
 const KEYWORDS = new Set(['import', 'from', 'as', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'global', 'nonlocal', 'assert', 'del', 'True', 'False', 'None', 'async', 'await']);
 
 interface Token {
-  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'class_name' | 'text';
+  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'class_name' | 'constant' | 'fstring_prefix' | 'type_hint' | 'text';
   value: string;
 }
 
-const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min']);
+const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min', 'bool', 'bytes', 'object', 'property', 'staticmethod', 'classmethod', 'hasattr', 'getattr', 'setattr', 'round', 'sum', 'repr', 'hash', 'id', 'iter', 'next', 'reversed', 'slice', 'format', 'chr', 'ord', 'hex', 'oct', 'bin', 'pow', 'divmod', 'callable', 'vars', 'dir', 'help', 'breakpoint', 'compile', 'eval', 'exec']);
+
+// Detect SCREAMING_CASE constants (e.g., BOT_NAME, SYSTEM_MESSAGE)
+const isConstant = (word: string) => /^[A-Z][A-Z0-9_]{2,}$/.test(word);
+
+// Detect f-string prefix
+const isFStringPrefix = (line: string, i: number) => {
+  return (line[i] === 'f' || line[i] === 'F') && i + 1 < line.length && (line[i + 1] === '"' || line[i + 1] === "'");
+};
 
 const tokenizeLine = (line: string): Token[] => {
   const tokens: Token[] = [];
@@ -105,10 +113,21 @@ const tokenizeLine = (line: string): Token[] => {
       } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
       else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
+      else if (isConstant(word)) tokens.push({ type: 'constant', value: word });
+      else if (isFStringPrefix(line, i) && word === 'f' || word === 'F') {
+        // f-string prefix — don't consume it as a word, let string handler get the quote
+        tokens.push({ type: 'fstring_prefix', value: word });
+      }
       else tokens.push({ type: 'text', value: word });
       i = end; continue;
     }
-    if ('=+-*/<>!&|%^~:'.includes(line[i])) { tokens.push({ type: 'operator', value: line[i] }); i++; continue; }
+    if ('=+-*/<>!&|%^~:'.includes(line[i])) {
+      // Arrow annotation ->
+      if (line[i] === '-' && i + 1 < line.length && line[i + 1] === '>') {
+        tokens.push({ type: 'operator', value: '->' }); i += 2; continue;
+      }
+      tokens.push({ type: 'operator', value: line[i] }); i++; continue;
+    }
     tokens.push({ type: 'text', value: line[i] }); i++;
   }
   return tokens;
@@ -125,6 +144,9 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
   module: 'text-ide-yellow',
   function_name: 'text-ide-accent',
   class_name: 'text-ide-yellow',
+  constant: 'text-ide-cyan font-semibold',
+  fstring_prefix: 'text-ide-red',
+  type_hint: 'text-ide-yellow italic',
   text: 'text-ide-text',
 };
 
@@ -1205,8 +1227,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
       { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0), val: `${Object.keys(config.moodResponses).length} moods` },
-      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+        { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly') && config.responseStyle !== 'Balanced', val: config.responseStyle },
+        { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
