@@ -2351,6 +2351,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-orange hover:bg-ide-border/50">
                 <RotateCcw className="w-3 h-3" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={() => { setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }} title="Find & Replace (Ctrl+F)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Search className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => { setTutorialActive(v => !v); setTutorialStep(0); }} title="Interactive Tutorial"
+                className={`h-6 w-6 hover:bg-ide-border/50 ${tutorialActive ? 'text-ide-accent' : 'text-ide-text-muted hover:text-ide-text'}`}>
+                <GraduationCap className="w-3 h-3" />
+              </Button>
               <input ref={fileInputRef} type="file" accept=".py" onChange={handleFileChange} className="hidden" />
               <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (
