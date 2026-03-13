@@ -160,8 +160,8 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     timeLimit: 10,
     challenges: [
       { name: 'TEMPERATURE', desc: 'Type a float: 0.0 (strict) to 1.0 (creative)', example: 'TEMPERATURE = 0.6', points: 5, validate: createValidator('TEMPERATURE', 'number', ['0.7', '0.3']) },
-      { name: 'RULES', desc: 'Write a Python list of rule strings from scratch', example: 'RULES = ["Use emojis", "Ask follow-up questions", "Stay on topic"]', points: 8, validate: createValidator('RULES', 'list', [], isAgent ? 3 : undefined) },
-      { name: 'CONVERSATION_STARTERS', desc: 'Write a list of button strings from scratch', example: 'CONVERSATION_STARTERS = ["Tell me about yourself"]', points: 5, validate: createValidator('CONVERSATION_STARTERS', 'list', [], isAgent ? 4 : undefined) },
+      { name: 'RULES', desc: 'Write a Python list of rule strings from scratch', example: 'RULES = ["Use emojis", "Ask follow-up questions", "Stay on topic"]', points: 8, validate: createValidator('RULES', 'list', [], 3) },
+      { name: 'CONVERSATION_STARTERS', desc: 'Write a list of button strings from scratch', example: 'CONVERSATION_STARTERS = ["Tell me about yourself"]', points: 5, validate: createValidator('CONVERSATION_STARTERS', 'list', [], 4) },
     ],
     tip: isAgent
       ? 'The agent template includes starter values — add MORE items to complete these challenges!'
@@ -176,7 +176,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     timeLimit: 6,
     challenges: [
       { name: 'FORBIDDEN_WORDS', desc: 'Words your bot must NEVER use — AI finds alternatives', example: 'FORBIDDEN_WORDS = ["stupid", "dumb", "boring"]', points: 5, validate: createValidator('FORBIDDEN_WORDS', 'list') },
-      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list', [], isAgent ? 2 : undefined) },
+      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list', [], 2) },
     ],
     tip: 'FORBIDDEN_WORDS = bot finds alternatives. BLOCKED_TOPICS = bot refuses completely. Different safety levels!',
   },
