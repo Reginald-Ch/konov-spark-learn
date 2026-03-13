@@ -1716,10 +1716,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
       if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndoRef.current(); }
       if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedoRef.current(); }
+      if (mod && e.key === 'f') { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
+      if (e.key === 'Escape' && showSearch) { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [showSearch]);
 
   // Auto-save every 2 minutes — use refs to avoid recreating interval
   const isDirtyRef = useRef(isDirty);
