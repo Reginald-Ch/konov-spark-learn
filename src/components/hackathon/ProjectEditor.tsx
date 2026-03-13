@@ -3007,6 +3007,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
+          {lintErrors.length > 0 && (
+            <>
+              <span className="text-[10px] font-mono text-ide-text-muted">•</span>
+              <span className="text-[10px] font-mono text-red-400">⚠ {lintErrors.filter(e => e.severity === 'error').length} errors</span>
+              {lintErrors.some(e => e.severity === 'warning') && (
+                <span className="text-[10px] font-mono text-ide-orange">{lintErrors.filter(e => e.severity === 'warning').length} warnings</span>
+              )}
+            </>
+          )}
+          {changedLines.size > 0 && (
+            <>
+              <span className="text-[10px] font-mono text-ide-text-muted">•</span>
+              <span className="text-[10px] font-mono text-ide-green">{changedLines.size} changed</span>
+            </>
+          )}
           {!hasLiveEvent && (
             <LevelBadge challengeCount={getChallengeCount(liveConfig, projectType)} compact />
           )}
