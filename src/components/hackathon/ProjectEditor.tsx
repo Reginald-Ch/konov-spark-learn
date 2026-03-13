@@ -14,12 +14,14 @@ import {
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
-  Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock
+  Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock,
+  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Wand2, GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, type LintError, type AutocompleteItem, type SearchMatch } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
