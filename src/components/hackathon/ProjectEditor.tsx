@@ -14,12 +14,14 @@ import {
   MessageSquare, Lightbulb, Settings, FileCode, FileJson, FileText,
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
-  Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock
+  Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock,
+  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Wand2, GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, type LintError, type AutocompleteItem, type SearchMatch } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -465,6 +467,24 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [publishOpen, setPublishOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+
+  // ── Find & Replace state ──
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [replaceTerm, setReplaceTerm] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [showReplace, setShowReplace] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Autocomplete state ──
+  const [autocompleteItems, setAutocompleteItems] = useState<AutocompleteItem[]>([]);
+  const [autocompletePos, setAutocompletePos] = useState<{ top: number; left: number } | null>(null);
+  const [selectedAutocomplete, setSelectedAutocomplete] = useState(0);
+  const autocompleteWordRef = useRef('');
+
+  // ── Tutorial mode state ──
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
     const seen = localStorage.getItem('buildstudio-onboarded');
@@ -984,7 +1004,41 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [files['main.py'], activeFile]);
 
-  // Q&A helpers
+  // ── Diff highlighting: lines changed from template ──
+  const changedLines = useMemo(() => {
+    if (activeFile !== 'main.py') return new Set<number>();
+    const templateCode = PROJECT_SCAFFOLDS[projectType].main;
+    return computeLineDiffs(files['main.py'], templateCode);
+  }, [files['main.py'], activeFile, projectType]);
+
+  // ── Python linting ──
+  const lintErrors = useMemo(() => {
+    if (activeFile !== 'main.py') return [] as LintError[];
+    return lintPython(files['main.py']);
+  }, [files['main.py'], activeFile]);
+
+  const lintErrorsByLine = useMemo(() => {
+    const map = new Map<number, LintError>();
+    for (const err of lintErrors) {
+      if (!map.has(err.line)) map.set(err.line, err);
+    }
+    return map;
+  }, [lintErrors]);
+
+  // ── Search matches ──
+  const searchMatches = useMemo(() => {
+    if (!showSearch || !searchTerm) return [] as SearchMatch[];
+    return findAllMatches(files[activeFile], searchTerm);
+  }, [files[activeFile], searchTerm, showSearch, activeFile]);
+
+  // ── Tutorial target line ──
+  const tutorialTargetLine = useMemo(() => {
+    if (!tutorialActive || tutorialStep >= CHATBOT_TUTORIAL_STEPS.length) return -1;
+    const step = CHATBOT_TUTORIAL_STEPS[tutorialStep];
+    return findLineForVariable(files['main.py'], step.linePattern);
+  }, [tutorialActive, tutorialStep, files['main.py']]);
+
+
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
   const removeQA = (idx: number) => setQaData(prev => prev.filter((_, i) => i !== idx));
   const updateQA = (idx: number, field: 'q' | 'a', value: string) => {
@@ -1662,10 +1716,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
       if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndoRef.current(); }
       if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedoRef.current(); }
+      if (mod && e.key === 'f') { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
+      if (e.key === 'Escape' && showSearch) { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [showSearch]);
 
   // Auto-save every 2 minutes — use refs to avoid recreating interval
   const isDirtyRef = useRef(isDirty);
@@ -2295,6 +2351,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-orange hover:bg-ide-border/50">
                 <RotateCcw className="w-3 h-3" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={() => { setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }} title="Find & Replace (Ctrl+F)"
+                className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Search className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => { setTutorialActive(v => !v); setTutorialStep(0); }} title="Interactive Tutorial"
+                className={`h-6 w-6 hover:bg-ide-border/50 ${tutorialActive ? 'text-ide-accent' : 'text-ide-text-muted hover:text-ide-text'}`}>
+                <GraduationCap className="w-3 h-3" />
+              </Button>
               <input ref={fileInputRef} type="file" accept=".py" onChange={handleFileChange} className="hidden" />
               <div className="h-4 w-px mx-0.5 bg-ide-border" />
               {isDirty ? (
@@ -2316,146 +2380,365 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           </div>
 
           {/* Editor Area */}
-          <div className="flex-1 flex min-h-0 bg-ide-editor">
-            <div ref={lineNumberRef} className="w-12 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
-              {lines.map((_, i) => (
-                <div key={i} className={`text-right pr-2 font-mono leading-6 text-[12px] transition-colors ${
-                  i === cursorLine ? 'text-ide-text bg-ide-line-highlight' : 'text-ide-text-muted'
-                }`}>{i + 1}</div>
-              ))}
-            </div>
-
-            <div
-              className="flex-1 min-w-0 overflow-auto"
-              onScroll={(e) => {
-                const scrollTop = (e.target as HTMLElement).scrollTop;
-                if (lineNumberRef.current) {
-                  lineNumberRef.current.style.transform = `translateY(-${scrollTop}px)`;
-                }
-              }}
-            >
-              <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content' }}>
-                {activeFile === 'main.py' && highlightedContent && (
-                  <div
-                    className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre text-ide-text"
-                    style={{ gridArea: 'stack' }}
-                    aria-hidden="true"
-                  >
-                    {highlightedContent.map((line, i) => (
-                      <div key={i} className={i === cursorLine ? 'bg-ide-line-highlight' : ''} dangerouslySetInnerHTML={{ __html: line }} />
-                    ))}
+          <div className="flex-1 flex flex-col min-h-0 bg-ide-editor relative">
+            {/* ── Find & Replace Bar ── */}
+            <AnimatePresence>
+              {showSearch && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="flex-shrink-0 overflow-hidden border-b border-ide-border bg-ide-sidebar"
+                >
+                  <div className="flex items-center gap-1.5 px-3 py-1.5">
+                    <Search className="w-3.5 h-3.5 text-ide-text-muted flex-shrink-0" />
+                    <input
+                      ref={searchInputRef}
+                      value={searchTerm}
+                      onChange={e => { setSearchTerm(e.target.value); setCurrentMatchIndex(0); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev + 1) % searchMatches.length : 0);
+                        }
+                        if (e.key === 'Escape') { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
+                      }}
+                      placeholder="Find... (Ctrl+F)"
+                      className="h-6 flex-1 min-w-0 text-xs bg-ide-editor text-ide-text border border-ide-border rounded px-2 focus:outline-none focus:border-ide-accent"
+                    />
+                    <span className="text-[10px] text-ide-text-muted font-mono whitespace-nowrap">
+                      {searchMatches.length > 0 ? `${currentMatchIndex + 1}/${searchMatches.length}` : searchTerm ? 'No results' : ''}
+                    </span>
+                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev - 1 + searchMatches.length) % searchMatches.length : 0)}
+                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
+                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev + 1) % searchMatches.length : 0)}
+                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
+                    <button onClick={() => setShowReplace(v => !v)} title="Toggle Replace"
+                      className="text-ide-text-muted hover:text-ide-text p-0.5"><Replace className="w-3 h-3" /></button>
+                    <button onClick={() => { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }}
+                      className="text-ide-text-muted hover:text-ide-text p-0.5"><X className="w-3 h-3" /></button>
                   </div>
-                )}
+                  {showReplace && (
+                    <div className="flex items-center gap-1.5 px-3 pb-1.5">
+                      <Replace className="w-3.5 h-3.5 text-ide-text-muted flex-shrink-0" />
+                      <input
+                        value={replaceTerm}
+                        onChange={e => setReplaceTerm(e.target.value)}
+                        placeholder="Replace with..."
+                        className="h-6 flex-1 min-w-0 text-xs bg-ide-editor text-ide-text border border-ide-border rounded px-2 focus:outline-none focus:border-ide-accent"
+                      />
+                      <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
+                        onClick={() => {
+                          if (searchMatches.length === 0) return;
+                          const match = searchMatches[currentMatchIndex];
+                          if (!match) return;
+                          const codeLines = files[activeFile].split('\n');
+                          codeLines[match.line] = codeLines[match.line].substring(0, match.startCol) + replaceTerm + codeLines[match.line].substring(match.endCol);
+                          const newCode = codeLines.join('\n');
+                          setFiles(prev => ({ ...prev, [activeFile]: newCode }));
+                          if (textareaRef.current) textareaRef.current.value = newCode;
+                        }}>Replace</Button>
+                      <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
+                        onClick={() => {
+                          if (!searchTerm) return;
+                          const newCode = files[activeFile].split(searchTerm).join(replaceTerm);
+                          setFiles(prev => ({ ...prev, [activeFile]: newCode }));
+                          if (textareaRef.current) textareaRef.current.value = newCode;
+                          setSearchTerm('');
+                          toast.success(`Replaced all occurrences`);
+                        }}>All</Button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                <textarea
-                  ref={textareaRef}
-                  defaultValue={files[activeFile]}
-                  onChange={e => { updateFile(e.target.value); updateCursorInfo(e.target); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Tab') {
-                      e.preventDefault();
-                      const target = e.target as HTMLTextAreaElement;
-                      const start = target.selectionStart;
-                      const end = target.selectionEnd;
-                      const value = target.value;
-                      const newValue = value.substring(0, start) + '    ' + value.substring(end);
-                      target.value = newValue;
-                      updateFile(newValue);
-                      requestAnimationFrame(() => {
-                        target.selectionStart = target.selectionEnd = start + 4;
-                        updateCursorInfo(target);
-                      });
-                    }
-                    // Auto-bracket/quote closing
-                    const PAIRS: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
-                    const CLOSERS = new Set([')', ']', '}']);
-                    
-                    // Auto-skip: if typing a closer that already exists at cursor
-                    if (CLOSERS.has(e.key) || e.key === '"' || e.key === "'") {
-                      const target = e.target as HTMLTextAreaElement;
-                      if (target.value[target.selectionStart] === e.key) {
-                        e.preventDefault();
-                        target.selectionStart = target.selectionEnd = target.selectionStart + 1;
-                        updateCursorInfo(target);
-                        return;
-                      }
-                    }
-                    
-                    // Auto-insert pair for openers and quotes (only if not already next to the same char)
-                    if (PAIRS[e.key] && !CLOSERS.has(e.key)) {
-                      const target = e.target as HTMLTextAreaElement;
-                      const start = target.selectionStart;
-                      const charAfter = target.value[start];
-                      // For quotes: only auto-pair if next char is whitespace, end of line, or a bracket
-                      if ((e.key === '"' || e.key === "'") && charAfter && !/[\s\)\]\},:]/.test(charAfter)) {
-                        // Don't auto-pair — let normal typing happen
+            {/* ── Tutorial Mode Banner ── */}
+            <AnimatePresence>
+              {tutorialActive && tutorialStep < CHATBOT_TUTORIAL_STEPS.length && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="flex-shrink-0 overflow-hidden bg-ide-accent/10 border-b border-ide-accent/30"
+                >
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <GraduationCap className="w-4 h-4 text-ide-accent flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-ide-accent">
+                        Step {tutorialStep + 1}/{CHATBOT_TUTORIAL_STEPS.length}: {CHATBOT_TUTORIAL_STEPS[tutorialStep].variableName}
+                      </p>
+                      <p className="text-[10px] text-ide-text truncate">{CHATBOT_TUTORIAL_STEPS[tutorialStep].instruction}</p>
+                    </div>
+                    <span className="text-[9px] font-mono text-ide-text-muted bg-ide-border rounded px-1.5 py-0.5 flex-shrink-0">
+                      {CHATBOT_TUTORIAL_STEPS[tutorialStep].example}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => setTutorialStep(s => Math.min(s + 1, CHATBOT_TUTORIAL_STEPS.length))}
+                      className="h-5 text-[10px] text-ide-accent hover:bg-ide-accent/20 px-1.5">Next →</Button>
+                    <button onClick={() => setTutorialActive(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-3 h-3" /></button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Error Summary Bar ── */}
+            {lintErrors.length > 0 && activeFile === 'main.py' && (
+              <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border-b border-red-500/20">
+                <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                <span className="text-[10px] text-red-300">{lintErrors.length} issue{lintErrors.length !== 1 ? 's' : ''} found</span>
+                <span className="text-[10px] text-ide-text-muted">— Line{lintErrors.length > 1 ? 's' : ''} {lintErrors.slice(0, 5).map(e => e.line + 1).join(', ')}{lintErrors.length > 5 ? '...' : ''}</span>
+              </div>
+            )}
+
+            <div className="flex-1 flex min-h-0">
+              {/* Gutter with diff/error markers */}
+              <div ref={lineNumberRef} className="w-14 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
+                {lines.map((_, i) => {
+                  const hasError = lintErrorsByLine.has(i);
+                  const errInfo = lintErrorsByLine.get(i);
+                  const isDiff = changedLines.has(i);
+                  const isTutorialLine = tutorialActive && i === tutorialTargetLine;
+                  return (
+                    <div key={i} className={`flex items-center font-mono leading-6 text-[12px] transition-colors relative group ${
+                      isTutorialLine ? 'bg-ide-accent/20' : i === cursorLine ? 'text-ide-text bg-ide-line-highlight' : 'text-ide-text-muted'
+                    }`}>
+                      {/* Diff marker */}
+                      <div className={`w-[3px] h-full flex-shrink-0 ${isDiff ? 'bg-ide-green' : hasError ? (errInfo?.severity === 'error' ? 'bg-red-400' : 'bg-ide-orange') : ''}`} />
+                      {/* Tutorial glow */}
+                      {isTutorialLine && <div className="absolute inset-0 bg-ide-accent/10 animate-pulse pointer-events-none" />}
+                      <span className="flex-1 text-right pr-2">{i + 1}</span>
+                      {/* Error tooltip on hover */}
+                      {hasError && (
+                        <div className="absolute left-14 top-0 hidden group-hover:block z-50">
+                          <div className={`px-2 py-1 rounded text-[10px] whitespace-nowrap shadow-lg ${errInfo?.severity === 'error' ? 'bg-red-500/90 text-white' : 'bg-ide-orange/90 text-white'}`}>
+                            {errInfo?.message}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                className="flex-1 min-w-0 overflow-auto relative"
+                onScroll={(e) => {
+                  const scrollTop = (e.target as HTMLElement).scrollTop;
+                  if (lineNumberRef.current) {
+                    lineNumberRef.current.style.transform = `translateY(-${scrollTop}px)`;
+                  }
+                  // Hide autocomplete on scroll
+                  if (autocompleteItems.length > 0) setAutocompleteItems([]);
+                }}
+              >
+                <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content' }}>
+                  {activeFile === 'main.py' && highlightedContent && (
+                    <div
+                      className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre text-ide-text"
+                      style={{ gridArea: 'stack' }}
+                      aria-hidden="true"
+                    >
+                      {highlightedContent.map((line, i) => {
+                        const isMatchLine = searchMatches.some(m => m.line === i);
+                        const isTutLine = tutorialActive && i === tutorialTargetLine;
+                        return (
+                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isMatchLine ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <textarea
+                    ref={textareaRef}
+                    defaultValue={files[activeFile]}
+                    onChange={e => {
+                      updateFile(e.target.value);
+                      updateCursorInfo(e.target);
+                      // Autocomplete: extract word at cursor
+                      const ta = e.target;
+                      const pos = ta.selectionStart;
+                      const textBefore = ta.value.substring(0, pos);
+                      const wordMatch = textBefore.match(/[A-Za-z_]\w*$/);
+                      if (wordMatch && wordMatch[0].length >= 2) {
+                        const word = wordMatch[0];
+                        autocompleteWordRef.current = word;
+                        const items = getAutocompleteItems(ta.value, word);
+                        setAutocompleteItems(items);
+                        setSelectedAutocomplete(0);
+                        // Position popup near cursor
+                        const lines = textBefore.split('\n');
+                        const lineIdx = lines.length - 1;
+                        const colIdx = lines[lineIdx].length;
+                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 56 });
                       } else {
+                        setAutocompleteItems([]);
+                        autocompleteWordRef.current = '';
+                      }
+                    }}
+                    onKeyDown={e => {
+                      // Autocomplete navigation
+                      if (autocompleteItems.length > 0) {
+                        if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedAutocomplete(s => (s + 1) % autocompleteItems.length); return; }
+                        if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedAutocomplete(s => (s - 1 + autocompleteItems.length) % autocompleteItems.length); return; }
+                        if (e.key === 'Tab' || e.key === 'Enter') {
+                          if (autocompleteItems[selectedAutocomplete]) {
+                            e.preventDefault();
+                            const target = e.target as HTMLTextAreaElement;
+                            const pos = target.selectionStart;
+                            const word = autocompleteWordRef.current;
+                            const completion = autocompleteItems[selectedAutocomplete].label;
+                            const value = target.value;
+                            const newValue = value.substring(0, pos - word.length) + completion + value.substring(pos);
+                            target.value = newValue;
+                            const newPos = pos - word.length + completion.length;
+                            requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = newPos; updateCursorInfo(target); });
+                            updateFile(newValue);
+                            setAutocompleteItems([]);
+                            return;
+                          }
+                        }
+                        if (e.key === 'Escape') { setAutocompleteItems([]); return; }
+                      }
+
+                      if (e.key === 'Tab' && autocompleteItems.length === 0) {
                         e.preventDefault();
+                        const target = e.target as HTMLTextAreaElement;
+                        const start = target.selectionStart;
                         const end = target.selectionEnd;
                         const value = target.value;
-                        const selected = value.substring(start, end);
-                        const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
+                        const newValue = value.substring(0, start) + '    ' + value.substring(end);
                         target.value = newValue;
                         updateFile(newValue);
                         requestAnimationFrame(() => {
-                          target.selectionStart = start + 1;
-                          target.selectionEnd = start + 1 + selected.length;
+                          target.selectionStart = target.selectionEnd = start + 4;
                           updateCursorInfo(target);
                         });
-                        return;
                       }
-                    }
-                    // Backspace: delete matching pair
-                    if (e.key === 'Backspace') {
-                      const target = e.target as HTMLTextAreaElement;
-                      const pos = target.selectionStart;
-                      if (pos > 0 && target.selectionStart === target.selectionEnd) {
-                        const before = target.value[pos - 1];
-                        const after = target.value[pos];
-                        if (PAIRS[before] === after) {
+                      // Auto-bracket/quote closing
+                      const PAIRS: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
+                      const CLOSERS = new Set([')', ']', '}']);
+                      
+                      if (CLOSERS.has(e.key) || e.key === '"' || e.key === "'") {
+                        const target = e.target as HTMLTextAreaElement;
+                        if (target.value[target.selectionStart] === e.key) {
                           e.preventDefault();
+                          target.selectionStart = target.selectionEnd = target.selectionStart + 1;
+                          updateCursorInfo(target);
+                          return;
+                        }
+                      }
+                      
+                      if (PAIRS[e.key] && !CLOSERS.has(e.key)) {
+                        const target = e.target as HTMLTextAreaElement;
+                        const start = target.selectionStart;
+                        const charAfter = target.value[start];
+                        if ((e.key === '"' || e.key === "'") && charAfter && !/[\s\)\]\},:]/.test(charAfter)) {
+                          // Don't auto-pair
+                        } else {
+                          e.preventDefault();
+                          const end = target.selectionEnd;
                           const value = target.value;
-                          const newValue = value.substring(0, pos - 1) + value.substring(pos + 1);
+                          const selected = value.substring(start, end);
+                          const newValue = value.substring(0, start) + e.key + selected + PAIRS[e.key] + value.substring(end);
                           target.value = newValue;
                           updateFile(newValue);
                           requestAnimationFrame(() => {
-                            target.selectionStart = target.selectionEnd = pos - 1;
+                            target.selectionStart = start + 1;
+                            target.selectionEnd = start + 1 + selected.length;
                             updateCursorInfo(target);
                           });
                           return;
                         }
                       }
-                    }
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const target = e.target as HTMLTextAreaElement;
-                      const pos = target.selectionStart;
-                      const value = target.value;
-                      const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
-                      const currentLine = value.slice(lineStart, pos);
-                      const indent = currentLine.match(/^(\s*)/)?.[1] || '';
-                      const trimmedLine = currentLine.trimEnd();
-                      const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
-                      const insertion = '\n' + indent + extraIndent;
-                      const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
-                      target.value = newValue;
-                      updateFile(newValue);
-                      requestAnimationFrame(() => {
-                        const newPos = pos + insertion.length;
-                        target.selectionStart = target.selectionEnd = newPos;
-                        updateCursorInfo(target);
-                      });
-                    }
-                  }}
-                  onClick={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
-                  onSelect={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
-                  spellCheck={false}
-                  className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
-                    activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
-                  }`}
-                  style={{ gridArea: 'stack', minHeight: '100%' }}
-                  placeholder="# Start coding..."
-                />
+                      if (e.key === 'Backspace') {
+                        const PAIRS_LOCAL: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
+                        const target = e.target as HTMLTextAreaElement;
+                        const pos = target.selectionStart;
+                        if (pos > 0 && target.selectionStart === target.selectionEnd) {
+                          const before = target.value[pos - 1];
+                          const after = target.value[pos];
+                          if (PAIRS_LOCAL[before] === after) {
+                            e.preventDefault();
+                            const value = target.value;
+                            const newValue = value.substring(0, pos - 1) + value.substring(pos + 1);
+                            target.value = newValue;
+                            updateFile(newValue);
+                            requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = pos - 1; updateCursorInfo(target); });
+                            return;
+                          }
+                        }
+                      }
+                      if (e.key === 'Enter' && autocompleteItems.length === 0) {
+                        e.preventDefault();
+                        const target = e.target as HTMLTextAreaElement;
+                        const pos = target.selectionStart;
+                        const value = target.value;
+                        const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
+                        const currentLine = value.slice(lineStart, pos);
+                        const indent = currentLine.match(/^(\s*)/)?.[1] || '';
+                        const trimmedLine = currentLine.trimEnd();
+                        const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
+                        const insertion = '\n' + indent + extraIndent;
+                        const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
+                        target.value = newValue;
+                        updateFile(newValue);
+                        requestAnimationFrame(() => {
+                          const newPos = pos + insertion.length;
+                          target.selectionStart = target.selectionEnd = newPos;
+                          updateCursorInfo(target);
+                        });
+                      }
+                    }}
+                    onClick={e => { updateCursorInfo(e.target as HTMLTextAreaElement); setAutocompleteItems([]); }}
+                    onSelect={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
+                    onBlur={() => setTimeout(() => setAutocompleteItems([]), 150)}
+                    spellCheck={false}
+                    className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
+                      activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
+                    }`}
+                    style={{ gridArea: 'stack', minHeight: '100%' }}
+                    placeholder="# Start coding..."
+                  />
+                </div>
+
+                {/* ── Autocomplete Popup ── */}
+                {autocompleteItems.length > 0 && autocompletePos && (
+                  <div
+                    className="absolute z-50 bg-ide-sidebar border border-ide-border rounded-md shadow-xl overflow-hidden"
+                    style={{ top: autocompletePos.top, left: Math.min(autocompletePos.left, 300) }}
+                  >
+                    {autocompleteItems.map((item, i) => (
+                      <button
+                        key={item.label}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          const target = textareaRef.current;
+                          if (!target) return;
+                          const pos = target.selectionStart;
+                          const word = autocompleteWordRef.current;
+                          const value = target.value;
+                          const newValue = value.substring(0, pos - word.length) + item.label + value.substring(pos);
+                          target.value = newValue;
+                          const newPos = pos - word.length + item.label.length;
+                          target.selectionStart = target.selectionEnd = newPos;
+                          updateFile(newValue);
+                          updateCursorInfo(target);
+                          setAutocompleteItems([]);
+                        }}
+                        className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${
+                          i === selectedAutocomplete ? 'bg-ide-accent/20 text-ide-text' : 'text-ide-text-muted hover:bg-ide-border/50'
+                        }`}
+                      >
+                        <span className={`w-4 text-center text-[10px] font-bold ${
+                          item.type === 'variable' ? 'text-ide-cyan' : item.type === 'keyword' ? 'text-ide-purple' : 'text-ide-yellow'
+                        }`}>
+                          {item.type === 'variable' ? 'V' : item.type === 'keyword' ? 'K' : 'B'}
+                        </span>
+                        <span className={item.type === 'variable' ? 'font-semibold text-ide-cyan' : ''}>{item.label}</span>
+                        {item.detail && <span className="text-[9px] text-ide-text-muted ml-auto">{item.detail}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2724,6 +3007,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <span className="text-[10px] font-mono text-ide-text-muted">{lines.length} lines</span>
           <span className="text-[10px] font-mono text-ide-text-muted">•</span>
           <span className="text-[10px] font-mono text-ide-text-muted">{activeFile}</span>
+          {lintErrors.length > 0 && (
+            <>
+              <span className="text-[10px] font-mono text-ide-text-muted">•</span>
+              <span className="text-[10px] font-mono text-red-400">⚠ {lintErrors.filter(e => e.severity === 'error').length} errors</span>
+              {lintErrors.some(e => e.severity === 'warning') && (
+                <span className="text-[10px] font-mono text-ide-orange">{lintErrors.filter(e => e.severity === 'warning').length} warnings</span>
+              )}
+            </>
+          )}
+          {changedLines.size > 0 && (
+            <>
+              <span className="text-[10px] font-mono text-ide-text-muted">•</span>
+              <span className="text-[10px] font-mono text-ide-green">{changedLines.size} changed</span>
+            </>
+          )}
           {!hasLiveEvent && (
             <LevelBadge challengeCount={getChallengeCount(liveConfig, projectType)} compact />
           )}
