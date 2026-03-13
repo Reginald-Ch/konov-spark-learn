@@ -1004,7 +1004,41 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     });
   }, [files['main.py'], activeFile]);
 
-  // Q&A helpers
+  // ── Diff highlighting: lines changed from template ──
+  const changedLines = useMemo(() => {
+    if (activeFile !== 'main.py') return new Set<number>();
+    const templateCode = PROJECT_SCAFFOLDS[projectType].main;
+    return computeLineDiffs(files['main.py'], templateCode);
+  }, [files['main.py'], activeFile, projectType]);
+
+  // ── Python linting ──
+  const lintErrors = useMemo(() => {
+    if (activeFile !== 'main.py') return [] as LintError[];
+    return lintPython(files['main.py']);
+  }, [files['main.py'], activeFile]);
+
+  const lintErrorsByLine = useMemo(() => {
+    const map = new Map<number, LintError>();
+    for (const err of lintErrors) {
+      if (!map.has(err.line)) map.set(err.line, err);
+    }
+    return map;
+  }, [lintErrors]);
+
+  // ── Search matches ──
+  const searchMatches = useMemo(() => {
+    if (!showSearch || !searchTerm) return [] as SearchMatch[];
+    return findAllMatches(files[activeFile], searchTerm);
+  }, [files[activeFile], searchTerm, showSearch, activeFile]);
+
+  // ── Tutorial target line ──
+  const tutorialTargetLine = useMemo(() => {
+    if (!tutorialActive || tutorialStep >= CHATBOT_TUTORIAL_STEPS.length) return -1;
+    const step = CHATBOT_TUTORIAL_STEPS[tutorialStep];
+    return findLineForVariable(files['main.py'], step.linePattern);
+  }, [tutorialActive, tutorialStep, files['main.py']]);
+
+
   const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
   const removeQA = (idx: number) => setQaData(prev => prev.filter((_, i) => i !== idx));
   const updateQA = (idx: number, field: 'q' | 'a', value: string) => {
