@@ -468,6 +468,24 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [copied, setCopied] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
+  // ── Find & Replace state ──
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [replaceTerm, setReplaceTerm] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [showReplace, setShowReplace] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Autocomplete state ──
+  const [autocompleteItems, setAutocompleteItems] = useState<AutocompleteItem[]>([]);
+  const [autocompletePos, setAutocompletePos] = useState<{ top: number; left: number } | null>(null);
+  const [selectedAutocomplete, setSelectedAutocomplete] = useState(0);
+  const autocompleteWordRef = useRef('');
+
+  // ── Tutorial mode state ──
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
     const seen = localStorage.getItem('buildstudio-onboarded');
     return seen ? null : 0;
