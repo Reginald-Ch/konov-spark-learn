@@ -1162,6 +1162,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       voiceModeRef.current = false;
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       setIsListening(false);
+      setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     } else {
       window.speechSynthesis?.cancel();
       setIsSpeaking(false);

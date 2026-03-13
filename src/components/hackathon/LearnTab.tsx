@@ -176,7 +176,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     timeLimit: 6,
     challenges: [
       { name: 'FORBIDDEN_WORDS', desc: 'Words your bot must NEVER use — AI finds alternatives', example: 'FORBIDDEN_WORDS = ["stupid", "dumb", "boring"]', points: 5, validate: createValidator('FORBIDDEN_WORDS', 'list') },
-      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list', [], isAgent ? 2 : undefined) },
+      { name: 'BLOCKED_TOPICS', desc: 'Topics your bot refuses to discuss entirely', example: 'BLOCKED_TOPICS = ["homework answers", "violence"]', points: 5, validate: createValidator('BLOCKED_TOPICS', 'list', [], 2) },
     ],
     tip: 'FORBIDDEN_WORDS = bot finds alternatives. BLOCKED_TOPICS = bot refuses completely. Different safety levels!',
   },
