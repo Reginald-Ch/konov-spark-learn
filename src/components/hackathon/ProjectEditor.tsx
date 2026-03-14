@@ -2586,7 +2586,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const lines = textBefore.split('\n');
                         const lineIdx = lines.length - 1;
                         const colIdx = lines[lineIdx].length;
-                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 56 });
+                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 16 });
                       } else {
                         setAutocompleteItems([]);
                         autocompleteWordRef.current = '';
