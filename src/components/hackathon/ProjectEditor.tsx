@@ -2414,10 +2414,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <span className="text-[10px] text-ide-text-muted font-mono whitespace-nowrap">
                       {searchMatches.length > 0 ? `${currentMatchIndex + 1}/${searchMatches.length}` : searchTerm ? 'No results' : ''}
                     </span>
-                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev - 1 + searchMatches.length) % searchMatches.length : 0)}
-                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
-                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev + 1) % searchMatches.length : 0)}
-                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
+                    <button onClick={() => {
+                      const nextIdx = searchMatches.length > 0 ? (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length : 0;
+                      setCurrentMatchIndex(nextIdx);
+                      if (searchMatches[nextIdx] && textareaRef.current) {
+                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                      }
+                    }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
+                    <button onClick={() => {
+                      const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
+                      setCurrentMatchIndex(nextIdx);
+                      if (searchMatches[nextIdx] && textareaRef.current) {
+                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                      }
+                    }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
                     <button onClick={() => setShowReplace(v => !v)} title="Toggle Replace"
                       className="text-ide-text-muted hover:text-ide-text p-0.5"><Replace className="w-3 h-3" /></button>
                     <button onClick={() => { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }}
