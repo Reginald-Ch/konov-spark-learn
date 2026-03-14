@@ -33,25 +33,46 @@ export const lintPython = (code: string): LintError[] => {
   const OPENERS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
   const CLOSERS: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
 
+  let inMultiLineString = false;
+  let multiLineDelim = '"""';
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trimEnd();
+
+    // Track multi-line strings to avoid false positives inside them
+    if (inMultiLineString) {
+      if (trimmed.includes(multiLineDelim)) {
+        inMultiLineString = false;
+      }
+      continue;
+    }
+
+    // Check for opening multi-line strings
+    const tripleDoubleCount = (trimmed.match(/"""/g) || []).length;
+    const tripleSingleCount = (trimmed.match(/'''/g) || []).length;
+    
     const stripped = trimmed.replace(/#.*$/, '').trimEnd(); // Remove comments
 
     // Skip empty/comment-only lines
-    if (!stripped) continue;
+    if (!stripped) {
+      // Still check for unclosed triple-quotes
+      if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+      else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+      continue;
+    }
 
     // Check: def/class/if/elif/else/for/while/try/except/finally/with missing colon
     const blockKeywords = /^(\s*)(def|class|if|elif|else|for|while|try|except|finally|with)\b/;
     const match = stripped.match(blockKeywords);
     if (match) {
       const keyword = match[2];
-      // 'else', 'try', 'finally' only need a colon after them
-      // Others need colon at end of line (possibly after parenthesized expression)
       // Check if it's inside a multi-line expression (has open bracket)
       const isInMultiLine = bracketStack.length > 0;
-      if (!isInMultiLine && !stripped.endsWith(':') && !stripped.endsWith(':\\')) {
-        // Don't flag if it's a continuation line or inside brackets
+      // Don't flag continuation lines or lines inside brackets
+      // Also don't flag if line contains a triple-quote (likely part of a docstring context)
+      const hasTripleQuote = stripped.includes('"""') || stripped.includes("'''");
+      if (!isInMultiLine && !hasTripleQuote && !stripped.endsWith(':') && !stripped.endsWith(':\\')) {
         errors.push({
           line: i,
           message: `Missing ':' after '${keyword}' statement`,
@@ -118,6 +139,10 @@ export const lintPython = (code: string): LintError[] => {
         errors.push({ line: i, message: `Did you mean '==' instead of '='?`, severity: 'warning' });
       }
     }
+
+    // Track multi-line string openings at end of processing
+    if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+    else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
   }
 
   // Report unclosed brackets
