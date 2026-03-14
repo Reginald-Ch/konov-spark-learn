@@ -116,7 +116,7 @@ const tokenizeLine = (line: string): Token[] => {
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
       else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
       else if (isConstant(word)) tokens.push({ type: 'constant', value: word });
-      else if (isFStringPrefix(line, i) && word === 'f' || word === 'F') {
+      else if ((word === 'f' || word === 'F') && isFStringPrefix(line, i)) {
         // f-string prefix — don't consume it as a word, let string handler get the quote
         tokens.push({ type: 'fstring_prefix', value: word });
       }
@@ -2398,7 +2398,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       onChange={e => { setSearchTerm(e.target.value); setCurrentMatchIndex(0); }}
                       onKeyDown={e => {
                         if (e.key === 'Enter') {
-                          setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev + 1) % searchMatches.length : 0);
+                          const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
+                          setCurrentMatchIndex(nextIdx);
+                          // Scroll textarea to matched line
+                          if (searchMatches[nextIdx] && textareaRef.current) {
+                            const lineHeight = 24;
+                            textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * lineHeight - 80);
+                          }
                         }
                         if (e.key === 'Escape') { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
                       }}
@@ -2408,10 +2414,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <span className="text-[10px] text-ide-text-muted font-mono whitespace-nowrap">
                       {searchMatches.length > 0 ? `${currentMatchIndex + 1}/${searchMatches.length}` : searchTerm ? 'No results' : ''}
                     </span>
-                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev - 1 + searchMatches.length) % searchMatches.length : 0)}
-                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
-                    <button onClick={() => setCurrentMatchIndex(prev => searchMatches.length > 0 ? (prev + 1) % searchMatches.length : 0)}
-                      className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
+                    <button onClick={() => {
+                      const nextIdx = searchMatches.length > 0 ? (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length : 0;
+                      setCurrentMatchIndex(nextIdx);
+                      if (searchMatches[nextIdx] && textareaRef.current) {
+                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                      }
+                    }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
+                    <button onClick={() => {
+                      const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
+                      setCurrentMatchIndex(nextIdx);
+                      if (searchMatches[nextIdx] && textareaRef.current) {
+                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                      }
+                    }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
                     <button onClick={() => setShowReplace(v => !v)} title="Toggle Replace"
                       className="text-ide-text-muted hover:text-ide-text p-0.5"><Replace className="w-3 h-3" /></button>
                     <button onClick={() => { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }}
@@ -2436,6 +2452,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           const newCode = codeLines.join('\n');
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
+                          // Clamp index after replacement reduces match count
+                          setCurrentMatchIndex(prev => Math.max(0, Math.min(prev, searchMatches.length - 2)));
                         }}>Replace</Button>
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
@@ -2568,7 +2586,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const lines = textBefore.split('\n');
                         const lineIdx = lines.length - 1;
                         const colIdx = lines[lineIdx].length;
-                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 56 });
+                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 16 });
                       } else {
                         setAutocompleteItems([]);
                         autocompleteWordRef.current = '';
