@@ -116,7 +116,7 @@ const tokenizeLine = (line: string): Token[] => {
       else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
       else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
       else if (isConstant(word)) tokens.push({ type: 'constant', value: word });
-      else if (isFStringPrefix(line, i) && word === 'f' || word === 'F') {
+      else if ((word === 'f' || word === 'F') && isFStringPrefix(line, i)) {
         // f-string prefix — don't consume it as a word, let string handler get the quote
         tokens.push({ type: 'fstring_prefix', value: word });
       }
