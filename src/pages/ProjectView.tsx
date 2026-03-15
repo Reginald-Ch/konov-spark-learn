@@ -349,6 +349,7 @@ const ProjectView = () => {
   }, [ttsEnabled]);
 
   const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+  const waitingForWakeWordRef = useRef(false);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
 
