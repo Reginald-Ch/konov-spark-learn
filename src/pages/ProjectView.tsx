@@ -407,6 +407,7 @@ const ProjectView = () => {
         voiceModeRef.current = false;
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
       if (e.error === 'no-speech' || e.error === 'aborted') return;
