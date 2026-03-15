@@ -157,6 +157,10 @@ const ProjectView = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Cap chat messages to prevent memory bloat in long sessions
+    if (chatMessages.length > 100) {
+      setChatMessages(prev => prev.slice(-80));
+    }
   }, [chatMessages]);
 
   // Extract all config variables from the student's Python code
@@ -349,6 +353,7 @@ const ProjectView = () => {
   }, [ttsEnabled]);
 
   const [waitingForWakeWord, setWaitingForWakeWord] = useState(false);
+  const waitingForWakeWordRef = useRef(false);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
 
@@ -364,7 +369,7 @@ const ProjectView = () => {
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
     const isWakeWordMode = !!wakeWord;
-    if (isWakeWordMode) setWaitingForWakeWord(true);
+    if (isWakeWordMode) { setWaitingForWakeWord(true); waitingForWakeWordRef.current = true; }
     setIsListening(true);
     retryCountRef.current = 0;
 
@@ -374,8 +379,9 @@ const ProjectView = () => {
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
 
-      if (isWakeWordMode && waitingForWakeWord) {
+      if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
+          waitingForWakeWordRef.current = false;
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
         }
@@ -383,6 +389,7 @@ const ProjectView = () => {
       }
       handleChatSendRef.current(transcript);
       if (isWakeWordMode) {
+        waitingForWakeWordRef.current = true;
         setWaitingForWakeWord(true);
       }
     };
@@ -395,6 +402,7 @@ const ProjectView = () => {
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     };
 
     recognition.onerror = (e: any) => {
@@ -403,6 +411,7 @@ const ProjectView = () => {
         voiceModeRef.current = false;
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
         return;
       }
       if (e.error === 'no-speech' || e.error === 'aborted') return;
@@ -410,6 +419,7 @@ const ProjectView = () => {
         toast.error(`Mic error: ${e.error}`);
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
       }
     };
 
@@ -419,6 +429,7 @@ const ProjectView = () => {
       toast.error('Could not start microphone. Check browser permissions.');
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     }
   }, []);
 
@@ -427,6 +438,8 @@ const ProjectView = () => {
       voiceModeRef.current = false;
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       setIsListening(false);
+      setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     } else {
       window.speechSynthesis?.cancel();
       setIsSpeaking(false);
@@ -551,6 +564,7 @@ const ProjectView = () => {
           },
           body: JSON.stringify({
             code: userMsg,
+            model: project.template_id || 'chatbot',
             action: 'test-agent',
             systemPrompt,
             messages: history.slice(0, -1),
