@@ -2509,7 +2509,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
             <div className="flex-1 flex min-h-0">
               {/* Gutter with diff/error markers */}
-              <div ref={lineNumberRef} className="w-14 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
+              <div ref={lineNumberRef} className="w-14 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'hidden' }}>
                 {lines.map((_, i) => {
                   const hasError = lintErrorsByLine.has(i);
                   const errInfo = lintErrorsByLine.get(i);
