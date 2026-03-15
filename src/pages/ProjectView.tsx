@@ -560,6 +560,7 @@ const ProjectView = () => {
           },
           body: JSON.stringify({
             code: userMsg,
+            model: project.template_id || 'chatbot',
             action: 'test-agent',
             systemPrompt,
             messages: history.slice(0, -1),
