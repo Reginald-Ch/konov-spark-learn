@@ -2458,11 +2458,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
                           if (!searchTerm) return;
-                          const newCode = files[activeFile].split(searchTerm).join(replaceTerm);
+                          const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                          const regex = new RegExp(escaped, 'gi');
+                          const newCode = files[activeFile].replace(regex, replaceTerm);
+                          const count = (files[activeFile].match(regex) || []).length;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          setSearchTerm('');
-                          toast.success(`Replaced all occurrences`);
+                          setCurrentMatchIndex(0);
+                          toast.success(`Replaced ${count} occurrence${count !== 1 ? 's' : ''}`);
                         }}>All</Button>
                     </div>
                   )}
