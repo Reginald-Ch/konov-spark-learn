@@ -2493,7 +2493,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <span className="text-[9px] font-mono text-ide-text-muted bg-ide-border rounded px-1.5 py-0.5 flex-shrink-0">
                       {CHATBOT_TUTORIAL_STEPS[tutorialStep].example}
                     </span>
-                    <Button size="sm" variant="ghost" onClick={() => setTutorialStep(s => Math.min(s + 1, CHATBOT_TUTORIAL_STEPS.length))}
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      // Auto-scroll to next tutorial variable
+                      setTutorialStep(s => {
+                        const next = Math.min(s + 1, CHATBOT_TUTORIAL_STEPS.length);
+                        if (next < CHATBOT_TUTORIAL_STEPS.length) {
+                          const targetLine = findLineForVariable(files['main.py'], CHATBOT_TUTORIAL_STEPS[next].linePattern);
+                          if (targetLine >= 0 && textareaRef.current) {
+                            const scrollContainer = textareaRef.current.closest('.overflow-auto');
+                            if (scrollContainer) {
+                              scrollContainer.scrollTop = Math.max(0, targetLine * 24 - 80);
+                            }
+                          }
+                        }
+                        return next;
+                      });
+                    }}
                       className="h-5 text-[10px] text-ide-accent hover:bg-ide-accent/20 px-1.5">Next →</Button>
                     <button onClick={() => setTutorialActive(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-3 h-3" /></button>
                   </div>

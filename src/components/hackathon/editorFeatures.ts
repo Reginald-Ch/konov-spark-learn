@@ -72,12 +72,19 @@ export const lintPython = (code: string): LintError[] => {
       // Don't flag continuation lines or lines inside brackets
       // Also don't flag if line contains a triple-quote (likely part of a docstring context)
       const hasTripleQuote = stripped.includes('"""') || stripped.includes("'''");
-      if (!isInMultiLine && !hasTripleQuote && !stripped.endsWith(':') && !stripped.endsWith(':\\')) {
-        errors.push({
-          line: i,
-          message: `Missing ':' after '${keyword}' statement`,
-          severity: 'error',
-        });
+      // Don't flag decorated functions/classes (line above starts with @)
+      const prevLine = i > 0 ? lines[i - 1].trim() : '';
+      const isDecorated = prevLine.startsWith('@');
+      // 'else', 'try', 'finally' only need the colon — don't flag if followed by comment
+      const justNeedsColon = ['else', 'try', 'finally'].includes(keyword);
+      const endsWithColonOrComment = stripped.endsWith(':') || stripped.endsWith(':\\') || /:\s*#/.test(stripped);
+      if (!isInMultiLine && !hasTripleQuote && !endsWithColonOrComment) {
+        // For 'else:', 'try:', 'finally:' — they are standalone keywords, only flag if not just the keyword
+        if (justNeedsColon && stripped.trim() === keyword) {
+          errors.push({ line: i, message: `Missing ':' after '${keyword}'`, severity: 'error' });
+        } else if (!justNeedsColon) {
+          errors.push({ line: i, message: `Missing ':' after '${keyword}' statement`, severity: 'error' });
+        }
       }
     }
 
