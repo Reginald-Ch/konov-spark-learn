@@ -365,7 +365,7 @@ const ProjectView = () => {
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
     const isWakeWordMode = !!wakeWord;
-    if (isWakeWordMode) setWaitingForWakeWord(true);
+    if (isWakeWordMode) { setWaitingForWakeWord(true); waitingForWakeWordRef.current = true; }
     setIsListening(true);
     retryCountRef.current = 0;
 
