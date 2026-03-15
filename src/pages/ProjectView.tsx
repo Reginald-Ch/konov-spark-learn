@@ -425,6 +425,7 @@ const ProjectView = () => {
       toast.error('Could not start microphone. Check browser permissions.');
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     }
   }, []);
 
