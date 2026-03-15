@@ -415,6 +415,7 @@ const ProjectView = () => {
         toast.error(`Mic error: ${e.error}`);
         setIsListening(false);
         setWaitingForWakeWord(false);
+        waitingForWakeWordRef.current = false;
       }
     };
 
