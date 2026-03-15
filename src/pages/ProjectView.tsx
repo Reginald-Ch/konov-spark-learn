@@ -375,8 +375,9 @@ const ProjectView = () => {
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
 
-      if (isWakeWordMode && waitingForWakeWord) {
+      if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
+          waitingForWakeWordRef.current = false;
           setWaitingForWakeWord(false);
           toast.success(`🎤 "${wakeWord}" detected! Listening...`);
         }
@@ -384,6 +385,7 @@ const ProjectView = () => {
       }
       handleChatSendRef.current(transcript);
       if (isWakeWordMode) {
+        waitingForWakeWordRef.current = true;
         setWaitingForWakeWord(true);
       }
     };
