@@ -2458,11 +2458,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
                           if (!searchTerm) return;
-                          const newCode = files[activeFile].split(searchTerm).join(replaceTerm);
+                          const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                          const regex = new RegExp(escaped, 'gi');
+                          const newCode = files[activeFile].replace(regex, replaceTerm);
+                          const count = (files[activeFile].match(regex) || []).length;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          setSearchTerm('');
-                          toast.success(`Replaced all occurrences`);
+                          setCurrentMatchIndex(0);
+                          toast.success(`Replaced ${count} occurrence${count !== 1 ? 's' : ''}`);
                         }}>All</Button>
                     </div>
                   )}
@@ -2490,7 +2493,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <span className="text-[9px] font-mono text-ide-text-muted bg-ide-border rounded px-1.5 py-0.5 flex-shrink-0">
                       {CHATBOT_TUTORIAL_STEPS[tutorialStep].example}
                     </span>
-                    <Button size="sm" variant="ghost" onClick={() => setTutorialStep(s => Math.min(s + 1, CHATBOT_TUTORIAL_STEPS.length))}
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      // Auto-scroll to next tutorial variable
+                      setTutorialStep(s => {
+                        const next = Math.min(s + 1, CHATBOT_TUTORIAL_STEPS.length);
+                        if (next < CHATBOT_TUTORIAL_STEPS.length) {
+                          const targetLine = findLineForVariable(files['main.py'], CHATBOT_TUTORIAL_STEPS[next].linePattern);
+                          if (targetLine >= 0 && textareaRef.current) {
+                            const scrollContainer = textareaRef.current.closest('.overflow-auto');
+                            if (scrollContainer) {
+                              scrollContainer.scrollTop = Math.max(0, targetLine * 24 - 80);
+                            }
+                          }
+                        }
+                        return next;
+                      });
+                    }}
                       className="h-5 text-[10px] text-ide-accent hover:bg-ide-accent/20 px-1.5">Next →</Button>
                     <button onClick={() => setTutorialActive(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-3 h-3" /></button>
                   </div>
@@ -2509,7 +2527,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
             <div className="flex-1 flex min-h-0">
               {/* Gutter with diff/error markers */}
-              <div ref={lineNumberRef} className="w-14 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'clip' }}>
+              <div ref={lineNumberRef} className="w-14 flex-shrink-0 select-none bg-ide-gutter border-r border-ide-border pt-4" style={{ overflow: 'hidden' }}>
                 {lines.map((_, i) => {
                   const hasError = lintErrorsByLine.has(i);
                   const errInfo = lintErrorsByLine.get(i);
@@ -2586,7 +2604,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const lines = textBefore.split('\n');
                         const lineIdx = lines.length - 1;
                         const colIdx = lines[lineIdx].length;
-                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 16 });
+                        const scrollContainer = ta.closest('.overflow-auto');
+                        const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16 - scrollTop, left: Math.min(colIdx * 7.8 + 16, 300) });
                       } else {
                         setAutocompleteItems([]);
                         autocompleteWordRef.current = '';
