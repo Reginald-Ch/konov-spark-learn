@@ -398,6 +398,7 @@ const ProjectView = () => {
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     };
 
     recognition.onerror = (e: any) => {
