@@ -2589,7 +2589,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const lines = textBefore.split('\n');
                         const lineIdx = lines.length - 1;
                         const colIdx = lines[lineIdx].length;
-                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16, left: colIdx * 7.8 + 16 });
+                        const scrollContainer = ta.closest('.overflow-auto');
+                        const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+                        setAutocompletePos({ top: (lineIdx + 1) * 24 + 16 - scrollTop, left: Math.min(colIdx * 7.8 + 16, 300) });
                       } else {
                         setAutocompleteItems([]);
                         autocompleteWordRef.current = '';
