@@ -157,6 +157,10 @@ const ProjectView = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Cap chat messages to prevent memory bloat in long sessions
+    if (chatMessages.length > 100) {
+      setChatMessages(prev => prev.slice(-80));
+    }
   }, [chatMessages]);
 
   // Extract all config variables from the student's Python code
