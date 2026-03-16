@@ -890,6 +890,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => window.removeEventListener('keydown', handler);
   }, [handleUndo, handleRedo]);
 
+  const handleDownload = useCallback(() => {
     const blob = new Blob([files['main.py']], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
