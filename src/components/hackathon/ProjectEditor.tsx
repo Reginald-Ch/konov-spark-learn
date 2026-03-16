@@ -903,6 +903,36 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [cursorLine, setCursorLine] = useState(0);
   const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
 
+  // Helper: check if a position is inside a string or comment
+  const isInsideStringOrComment = useCallback((code: string, pos: number): boolean => {
+    let inString = false;
+    let stringChar = '';
+    let inTriple = false;
+    let tripleChar = '';
+    for (let i = 0; i < pos && i < code.length; i++) {
+      const ch = code[i];
+      if (!inString && !inTriple && ch === '#') {
+        // Comment — find end of line
+        const nl = code.indexOf('\n', i);
+        if (nl === -1) return true; // rest of code is comment
+        if (pos <= nl) return true;
+        i = nl; continue;
+      }
+      if (!inString && !inTriple) {
+        if ((ch === '"' || ch === "'") && code.slice(i, i + 3) === ch.repeat(3)) {
+          inTriple = true; tripleChar = ch; i += 2; continue;
+        }
+        if (ch === '"' || ch === "'") { inString = true; stringChar = ch; continue; }
+      } else if (inTriple) {
+        if (ch === tripleChar && code.slice(i, i + 3) === tripleChar.repeat(3)) { inTriple = false; i += 2; continue; }
+      } else if (inString) {
+        if (ch === '\\') { i++; continue; }
+        if (ch === stringChar) { inString = false; continue; }
+      }
+    }
+    return inString || inTriple;
+  }, []);
+
   const updateCursorInfo = useCallback((target: HTMLTextAreaElement) => {
     // Throttle via requestAnimationFrame to avoid per-keystroke CPU load
     if (cursorRafRef.current) cancelAnimationFrame(cursorRafRef.current);
@@ -912,7 +942,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const line = textBefore.split('\n').length - 1;
       setCursorLine(line);
 
-      // Bracket matching
+      // Bracket matching — skip brackets inside strings/comments
       const code = target.value;
       const OPEN = '([{';
       const CLOSE = ')]}';
@@ -925,18 +955,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
       else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
 
-      if (bracketPos >= 0) {
+      if (bracketPos >= 0 && !isInsideStringOrComment(code, bracketPos)) {
         const bracket = code[bracketPos];
         const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
         const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
         let depth = 0;
         if (isOpen) {
           for (let j = bracketPos; j < code.length; j++) {
+            if (isInsideStringOrComment(code, j) && j !== bracketPos) continue;
             if (code[j] === bracket) depth++;
             else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
           }
         } else {
           for (let j = bracketPos; j >= 0; j--) {
+            if (isInsideStringOrComment(code, j) && j !== bracketPos) continue;
             if (code[j] === bracket) depth++;
             else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
           }
@@ -944,7 +976,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setMatchedBrackets(null);
     });
-  }, []);
+  }, [isInsideStringOrComment]);
 
   // Convert matched bracket positions to line/col
   const bracketHighlights = useMemo(() => {
