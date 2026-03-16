@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio } from 'lucide-react';
+import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Project {
@@ -157,11 +157,14 @@ const ProjectView = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    // Cap chat messages to prevent memory bloat in long sessions
-    if (chatMessages.length > 100) {
-      setChatMessages(prev => prev.slice(-80));
-    }
   }, [chatMessages]);
+
+  // Cap chat messages separately to avoid re-render loop
+  useEffect(() => {
+    if (chatMessages.length > 100) {
+      setChatMessages(prev => prev.length > 100 ? prev.slice(-80) : prev);
+    }
+  }, [chatMessages.length]);
 
   // Extract all config variables from the student's Python code
   // Supports both SCREAMING_CASE and snake_case variable names
@@ -293,6 +296,13 @@ const ProjectView = () => {
     if (!project) return null;
     return extractConfigFromCode(project.code);
   }, [project]);
+
+  // Send greeting as first message when config loads
+  useEffect(() => {
+    if (!config || chatMessages.length > 0) return;
+    const greeting = config.greeting || `Hi! I'm ${config.botName}. How can I help you?`;
+    setChatMessages([{ role: 'assistant', content: greeting }]);
+  }, [config]);
 
   const theme = useMemo(() => {
     if (!config) return THEMES[0];
@@ -755,6 +765,12 @@ const ProjectView = () => {
           <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ borderColor: `${theme.accent}15` }}>
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
             <span className="text-xs font-bold text-white uppercase tracking-wider">Live AI Demo</span>
+            {chatMessages.length > 0 && (
+              <button onClick={() => setChatMessages([])} title="Reset conversation"
+                className="text-ide-text-muted hover:text-white transition-colors ml-1">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
             <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto"
               style={{ backgroundColor: `${theme.accent}15`, color: theme.accent, border: `1px solid ${theme.accent}30` }}>
               Online
