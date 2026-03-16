@@ -1725,8 +1725,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
   };
+  handleSaveRef.current = handleSave;
+  handleRunRef.current = handleRun;
 
-  const handleAiAssist = async (action: string) => {
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
     setIsAiLoading(true);
     setActiveAiAction(action);
