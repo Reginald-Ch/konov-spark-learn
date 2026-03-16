@@ -683,6 +683,43 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [chatMessages.length]);
 
+  // ── Auto-save countdown timer ──
+  useEffect(() => {
+    if (!isDirty) {
+      setAutoSaveCountdown(120);
+      if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; }
+      autoSaveTriggeredRef.current = false;
+      return;
+    }
+    if (autoSaveIntervalRef.current) return;
+    autoSaveTriggeredRef.current = false;
+    autoSaveIntervalRef.current = setInterval(() => {
+      setAutoSaveCountdown(prev => {
+        if (prev <= 1 && !autoSaveTriggeredRef.current) {
+          autoSaveTriggeredRef.current = true;
+          handleSaveRef.current();
+          return 120;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; } };
+  }, [isDirty]);
+
+  // ── Global keyboard shortcuts ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key === 's') { e.preventDefault(); handleSaveRef.current(); }
+      if (isMod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current(); }
+      if (isMod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+      if (isMod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedo(); }
+      if (isMod && e.key === 'f') { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
+
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
     if (prevSystemPromptRef.current !== systemPrompt) {
