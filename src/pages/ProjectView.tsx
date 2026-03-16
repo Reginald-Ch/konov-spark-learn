@@ -297,6 +297,13 @@ const ProjectView = () => {
     return extractConfigFromCode(project.code);
   }, [project]);
 
+  // Send greeting as first message when config loads
+  useEffect(() => {
+    if (!config || chatMessages.length > 0) return;
+    const greeting = config.greeting || `Hi! I'm ${config.botName}. How can I help you?`;
+    setChatMessages([{ role: 'assistant', content: greeting }]);
+  }, [config]);
+
   const theme = useMemo(() => {
     if (!config) return THEMES[0];
     return THEMES.find(t => t.id === config.appTheme) || THEMES[0];
