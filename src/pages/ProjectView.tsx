@@ -297,12 +297,15 @@ const ProjectView = () => {
     return extractConfigFromCode(project.code);
   }, [project]);
 
-  // Send greeting as first message when config loads
+  // Send greeting as first message when config loads or after reset
+  const greetingFiredRef = useRef(false);
   useEffect(() => {
-    if (!config || chatMessages.length > 0) return;
+    if (!config) return;
+    if (chatMessages.length > 0) { greetingFiredRef.current = true; return; }
+    // Fire greeting on first load OR after a reset (chatMessages became empty)
     const greeting = config.greeting || `Hi! I'm ${config.botName}. How can I help you?`;
     setChatMessages([{ role: 'assistant', content: greeting }]);
-  }, [config]);
+  }, [config, chatMessages.length]);
 
   const theme = useMemo(() => {
     if (!config) return THEMES[0];
