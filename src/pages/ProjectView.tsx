@@ -758,6 +758,12 @@ const ProjectView = () => {
           <div className="px-4 py-2.5 border-b flex items-center gap-2" style={{ borderColor: `${theme.accent}15` }}>
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
             <span className="text-xs font-bold text-white uppercase tracking-wider">Live AI Demo</span>
+            {chatMessages.length > 0 && (
+              <button onClick={() => setChatMessages([])} title="Reset conversation"
+                className="text-ide-text-muted hover:text-white transition-colors ml-1">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
             <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto"
               style={{ backgroundColor: `${theme.accent}15`, color: theme.accent, border: `1px solid ${theme.accent}30` }}>
               Online
