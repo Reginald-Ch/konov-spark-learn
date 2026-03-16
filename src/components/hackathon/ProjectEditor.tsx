@@ -453,6 +453,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Auto-save timer
   const [autoSaveCountdown, setAutoSaveCountdown] = useState(120);
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSaveTriggeredRef = useRef(false);
 
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [showBottomPanel, setShowBottomPanel] = useState(false);
