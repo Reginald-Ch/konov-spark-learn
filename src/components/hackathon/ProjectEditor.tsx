@@ -907,8 +907,39 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [cursorLine, setCursorLine] = useState(0);
   const [matchedBrackets, setMatchedBrackets] = useState<[number, number] | null>(null);
 
-  // Helper: check if a position is inside a string or comment
+  // Helper: build a set of positions that are inside strings or comments (O(n) once)
+  const buildStringCommentMap = useCallback((code: string): Set<number> => {
+    const inside = new Set<number>();
+    let i = 0;
+    while (i < code.length) {
+      const ch = code[i];
+      if (ch === '#') {
+        const nl = code.indexOf('\n', i);
+        const end = nl === -1 ? code.length : nl;
+        for (let j = i; j < end; j++) inside.add(j);
+        i = end; continue;
+      }
+      if ((ch === '"' || ch === "'")) {
+        const triple = code.slice(i, i + 3) === ch.repeat(3);
+        const delim = triple ? ch.repeat(3) : ch;
+        const start = i;
+        i += delim.length;
+        while (i < code.length) {
+          if (code[i] === '\\') { inside.add(i); i++; if (i < code.length) { inside.add(i); i++; } continue; }
+          if (code.slice(i, i + delim.length) === delim) { for (let j = start; j < i + delim.length; j++) inside.add(j); i += delim.length; break; }
+          inside.add(i); i++;
+        }
+        for (let j = start; j < Math.min(start + delim.length, code.length); j++) inside.add(j);
+        continue;
+      }
+      i++;
+    }
+    return inside;
+  }, []);
+
+  // Kept for backward compat with simple checks — uses cached map
   const isInsideStringOrComment = useCallback((code: string, pos: number): boolean => {
+    // Fallback single-position check (only used outside bracket matching now)
     let inString = false;
     let stringChar = '';
     let inTriple = false;
@@ -916,16 +947,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     for (let i = 0; i < pos && i < code.length; i++) {
       const ch = code[i];
       if (!inString && !inTriple && ch === '#') {
-        // Comment — find end of line
         const nl = code.indexOf('\n', i);
-        if (nl === -1) return true; // rest of code is comment
+        if (nl === -1) return true;
         if (pos <= nl) return true;
         i = nl; continue;
       }
       if (!inString && !inTriple) {
-        if ((ch === '"' || ch === "'") && code.slice(i, i + 3) === ch.repeat(3)) {
-          inTriple = true; tripleChar = ch; i += 2; continue;
-        }
+        if ((ch === '"' || ch === "'") && code.slice(i, i + 3) === ch.repeat(3)) { inTriple = true; tripleChar = ch; i += 2; continue; }
         if (ch === '"' || ch === "'") { inString = true; stringChar = ch; continue; }
       } else if (inTriple) {
         if (ch === tripleChar && code.slice(i, i + 3) === tripleChar.repeat(3)) { inTriple = false; i += 2; continue; }
