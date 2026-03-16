@@ -974,7 +974,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const line = textBefore.split('\n').length - 1;
       setCursorLine(line);
 
-      // Bracket matching — skip brackets inside strings/comments
+      // Bracket matching — build string/comment map once (O(n)), then lookup O(1)
       const code = target.value;
       const OPEN = '([{';
       const CLOSE = ')]}';
@@ -987,28 +987,31 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       else if (OPEN.includes(chBefore)) { bracketPos = pos - 1; isOpen = true; }
       else if (CLOSE.includes(chBefore)) { bracketPos = pos - 1; isOpen = false; }
 
-      if (bracketPos >= 0 && !isInsideStringOrComment(code, bracketPos)) {
-        const bracket = code[bracketPos];
-        const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
-        const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
-        let depth = 0;
-        if (isOpen) {
-          for (let j = bracketPos; j < code.length; j++) {
-            if (isInsideStringOrComment(code, j) && j !== bracketPos) continue;
-            if (code[j] === bracket) depth++;
-            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
-          }
-        } else {
-          for (let j = bracketPos; j >= 0; j--) {
-            if (isInsideStringOrComment(code, j) && j !== bracketPos) continue;
-            if (code[j] === bracket) depth++;
-            else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+      if (bracketPos >= 0) {
+        const scMap = buildStringCommentMap(code);
+        if (!scMap.has(bracketPos)) {
+          const bracket = code[bracketPos];
+          const pairIdx = isOpen ? OPEN.indexOf(bracket) : CLOSE.indexOf(bracket);
+          const target2 = isOpen ? CLOSE[pairIdx] : OPEN[pairIdx];
+          let depth = 0;
+          if (isOpen) {
+            for (let j = bracketPos; j < code.length; j++) {
+              if (scMap.has(j) && j !== bracketPos) continue;
+              if (code[j] === bracket) depth++;
+              else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([bracketPos, j]); return; } }
+            }
+          } else {
+            for (let j = bracketPos; j >= 0; j--) {
+              if (scMap.has(j) && j !== bracketPos) continue;
+              if (code[j] === bracket) depth++;
+              else if (code[j] === target2) { depth--; if (depth === 0) { setMatchedBrackets([j, bracketPos]); return; } }
+            }
           }
         }
       }
       setMatchedBrackets(null);
     });
-  }, [isInsideStringOrComment]);
+  }, [buildStringCommentMap]);
 
   // Convert matched bracket positions to line/col
   const bracketHighlights = useMemo(() => {
