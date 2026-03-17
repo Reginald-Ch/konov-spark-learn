@@ -683,27 +683,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [chatMessages.length]);
 
-  // ── Auto-save countdown timer ──
+  // ── Auto-save countdown timer (handled by mount-based interval at line ~1839) ──
+  // Reset countdown when file becomes clean
   useEffect(() => {
     if (!isDirty) {
       setAutoSaveCountdown(120);
-      if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; }
-      autoSaveTriggeredRef.current = false;
-      return;
     }
-    if (autoSaveIntervalRef.current) return;
-    autoSaveTriggeredRef.current = false;
-    autoSaveIntervalRef.current = setInterval(() => {
-      setAutoSaveCountdown(prev => {
-        if (prev <= 1 && !autoSaveTriggeredRef.current) {
-          autoSaveTriggeredRef.current = true;
-          handleSaveRef.current();
-          return 120;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; } };
   }, [isDirty]);
 
 

@@ -885,6 +885,14 @@ const ProjectView = () => {
                     style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
                     <Mic className="w-4 h-4" />
                   </Button>
+                  {config.voiceMode === 'hands-free' && (
+                    <Button onClick={toggleVoiceConversation} disabled={isStreaming}
+                      title={voiceConversationMode ? 'Stop hands-free' : 'Start hands-free mode'}
+                      className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${voiceConversationMode ? 'text-white' : 'text-white hover:opacity-90'}`}
+                      style={{ backgroundColor: voiceConversationMode ? theme.accent : `${theme.accent}30` }}>
+                      <Radio className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
                     title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                     className="h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90"
