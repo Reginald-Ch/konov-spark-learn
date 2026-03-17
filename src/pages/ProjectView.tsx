@@ -782,8 +782,8 @@ const ProjectView = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
-            {chatMessages.length === 0 && config && (
-              <div className="text-center py-16 space-y-4">
+            {chatMessages.length <= 1 && config && (
+              <div className="text-center py-12 space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
