@@ -1729,7 +1729,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Add user message to mentor display
     const newHistory = [...mentorHistory, { role: 'user', content: question }];
     setMentorHistory(newHistory);
-    setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
+    setAiOutput(prev => prev + '\n\n──────\n\n**You:** ' + question + '\n\n');
     
     try {
       let assistantReply = '';
@@ -1745,10 +1745,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         },
         (text) => {
           assistantReply = text;
+          // Use a unique separator that won't appear in AI output
+          const SEP = '\n\n──────\n\n';
           setAiOutput(prev => {
-            const parts = prev.split('---');
-            const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
-            return lastSection + text;
+            const sepIdx = prev.lastIndexOf(SEP);
+            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + SEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+            return prefix + text;
           });
         }
       );
@@ -2532,8 +2534,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           const newCode = codeLines.join('\n');
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          // Clamp index after replacement reduces match count
-                          setCurrentMatchIndex(prev => Math.max(0, Math.min(prev, searchMatches.length - 2)));
+                          // Reset index to 0 — match array will recompute on next render
+                          setCurrentMatchIndex(0);
                         }}>Replace</Button>
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
@@ -3089,6 +3091,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   className={`h-6 w-6 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
                   <Mic className="w-3 h-3" />
                 </Button>
+                <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
+                  title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
+                  className={`h-6 px-1.5 text-[9px] font-bold flex-shrink-0 ${voiceConversationMode ? 'bg-ide-green text-ide-bg-deep hover:bg-ide-green/80' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                  <Radio className="w-3 h-3" />
+                </Button>
                 <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
                   title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                   className="h-6 w-6 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
@@ -3118,7 +3125,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <Circle className={`w-1.5 h-1.5 ${isDirty ? 'fill-ide-orange text-ide-orange' : 'fill-ide-green text-ide-green'}`} />
             <span className="text-[10px] font-mono text-ide-text-muted">{isDirty ? 'Unsaved changes' : 'All changes saved'}</span>
           </div>
-          {isDirty && (
+          {isDirty && currentProjectId && (
             <div className="flex items-center gap-1 text-[10px] font-mono text-ide-text-muted">
               <Save className="w-3 h-3" />
               <span>Auto-save in {Math.floor(autoSaveCountdown / 60)}:{String(autoSaveCountdown % 60).padStart(2, '0')}</span>
