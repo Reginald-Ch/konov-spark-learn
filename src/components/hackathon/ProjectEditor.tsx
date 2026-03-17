@@ -1729,7 +1729,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Add user message to mentor display
     const newHistory = [...mentorHistory, { role: 'user', content: question }];
     setMentorHistory(newHistory);
-    setAiOutput(prev => prev + '\n\n---\n\n**You:** ' + question + '\n\n');
+    setAiOutput(prev => prev + '\n\n──────\n\n**You:** ' + question + '\n\n');
     
     try {
       let assistantReply = '';
