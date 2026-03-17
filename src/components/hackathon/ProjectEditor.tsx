@@ -2534,8 +2534,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           const newCode = codeLines.join('\n');
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          // Clamp index after replacement reduces match count
-                          setCurrentMatchIndex(prev => Math.max(0, Math.min(prev, searchMatches.length - 2)));
+                          // Reset index to 0 — match array will recompute on next render
+                          setCurrentMatchIndex(0);
                         }}>Replace</Button>
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
