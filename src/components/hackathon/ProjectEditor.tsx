@@ -683,27 +683,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [chatMessages.length]);
 
-  // ── Auto-save countdown timer ──
+  // ── Auto-save countdown timer (handled by mount-based interval at line ~1839) ──
+  // Reset countdown when file becomes clean
   useEffect(() => {
     if (!isDirty) {
       setAutoSaveCountdown(120);
-      if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; }
-      autoSaveTriggeredRef.current = false;
-      return;
     }
-    if (autoSaveIntervalRef.current) return;
-    autoSaveTriggeredRef.current = false;
-    autoSaveIntervalRef.current = setInterval(() => {
-      setAutoSaveCountdown(prev => {
-        if (prev <= 1 && !autoSaveTriggeredRef.current) {
-          autoSaveTriggeredRef.current = true;
-          handleSaveRef.current();
-          return 120;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (autoSaveIntervalRef.current) { clearInterval(autoSaveIntervalRef.current); autoSaveIntervalRef.current = null; } };
   }, [isDirty]);
 
 
@@ -876,19 +861,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     toast.success('Redo');
   }, [files]);
 
-  // ── Global keyboard shortcuts ──
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const isMod = e.ctrlKey || e.metaKey;
-      if (isMod && e.key === 's') { e.preventDefault(); handleSaveRef.current(); }
-      if (isMod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current(); }
-      if (isMod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
-      if (isMod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedo(); }
-      if (isMod && e.key === 'f') { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [handleUndo, handleRedo]);
+  // ── Global keyboard shortcuts (handled by ref-based handler at line ~1818) ──
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([files['main.py']], { type: 'text/plain' });
@@ -3098,7 +3071,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   <Mic className="w-4 h-4 text-red-400" />
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
                 </div>
-                <span className="text-[10px] text-red-400 font-medium animate-pulse">Listening...</span>
+                <span className="text-[10px] text-red-400 font-medium animate-pulse">
+                  {waitingForWakeWord && liveConfig.wakeWord ? `Say "${liveConfig.wakeWord}"...` : 'Listening...'}
+                </span>
               </div>
             )}
             {isSpeaking && (

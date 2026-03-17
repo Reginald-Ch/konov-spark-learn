@@ -782,8 +782,8 @@ const ProjectView = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
-            {chatMessages.length === 0 && config && (
-              <div className="text-center py-16 space-y-4">
+            {chatMessages.length <= 1 && config && (
+              <div className="text-center py-12 space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -856,7 +856,9 @@ const ProjectView = () => {
                   <Mic className="w-4 h-4 text-red-400" />
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
                 </div>
-                <span className="text-xs text-red-400 font-medium animate-pulse">Listening...</span>
+                <span className="text-xs text-red-400 font-medium animate-pulse">
+                  {waitingForWakeWord && config?.wakeWord ? `Say "${config.wakeWord}"...` : 'Listening...'}
+                </span>
               </div>
             )}
             {isSpeaking && (
@@ -883,6 +885,14 @@ const ProjectView = () => {
                     style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
                     <Mic className="w-4 h-4" />
                   </Button>
+                  {config.voiceMode === 'hands-free' && (
+                    <Button onClick={toggleVoiceConversation} disabled={isStreaming}
+                      title={voiceConversationMode ? 'Stop hands-free' : 'Start hands-free mode'}
+                      className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${voiceConversationMode ? 'text-white' : 'text-white hover:opacity-90'}`}
+                      style={{ backgroundColor: voiceConversationMode ? theme.accent : `${theme.accent}30` }}>
+                      <Radio className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
                     title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                     className="h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90"
