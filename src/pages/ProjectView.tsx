@@ -856,7 +856,9 @@ const ProjectView = () => {
                   <Mic className="w-4 h-4 text-red-400" />
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
                 </div>
-                <span className="text-xs text-red-400 font-medium animate-pulse">Listening...</span>
+                <span className="text-xs text-red-400 font-medium animate-pulse">
+                  {waitingForWakeWord && config?.wakeWord ? `Say "${config.wakeWord}"...` : 'Listening...'}
+                </span>
               </div>
             )}
             {isSpeaking && (
