@@ -1745,10 +1745,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         },
         (text) => {
           assistantReply = text;
+          // Use a unique separator that won't appear in AI output
+          const SEP = '\n\n──────\n\n';
           setAiOutput(prev => {
-            const parts = prev.split('---');
-            const lastSection = parts.length > 1 ? parts.slice(0, -1).join('---') + '---\n\n**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
-            return lastSection + text;
+            const sepIdx = prev.lastIndexOf(SEP);
+            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + SEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+            return prefix + text;
           });
         }
       );
