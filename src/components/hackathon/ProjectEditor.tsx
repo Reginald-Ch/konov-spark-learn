@@ -3089,6 +3089,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   className={`h-6 w-6 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
                   <Mic className="w-3 h-3" />
                 </Button>
+                <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
+                  title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
+                  className={`h-6 px-1.5 text-[9px] font-bold flex-shrink-0 ${voiceConversationMode ? 'bg-ide-green text-ide-bg-deep hover:bg-ide-green/80' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                  <Radio className="w-3 h-3" />
+                </Button>
                 <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
                   title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                   className="h-6 w-6 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
