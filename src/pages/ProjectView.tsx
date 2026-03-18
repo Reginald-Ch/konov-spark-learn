@@ -498,9 +498,9 @@ const ProjectView = () => {
     }
   };
 
-  const handleChatSend = async (directMessage?: string) => {
+    const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
-    if (!msg || isStreaming || !config) return;
+    if (!msg || isStreaming || !config || !project) return;
     const userMsg = msg;
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
