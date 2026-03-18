@@ -760,6 +760,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setBottomTab('terminal');
     setAiOutput('');
     setMentorHistory([]);
+    // Clear project ID to prevent cross-template overwrites on save
+    setCurrentProjectId(null);
+    localStorage.removeItem('forge-current-project-id');
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
