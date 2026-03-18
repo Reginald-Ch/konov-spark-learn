@@ -478,6 +478,7 @@ const ProjectView = () => {
       setIsListening(false);
       setIsSpeaking(false);
       setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
     }
   }, [voiceConversationMode, startListeningOnce, config]);
 

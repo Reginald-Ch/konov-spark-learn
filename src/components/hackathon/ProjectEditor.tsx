@@ -760,6 +760,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setBottomTab('terminal');
     setAiOutput('');
     setMentorHistory([]);
+    // Clear project ID to prevent cross-template overwrites on save
+    setCurrentProjectId(null);
+    localStorage.removeItem('forge-current-project-id');
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
@@ -808,6 +811,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setSelectedTheme(THEMES[0]);
     themeSyncRef.current = 'default';
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
+    // Clear project ID and undo/redo stacks on reset
+    setCurrentProjectId(null);
+    localStorage.removeItem('forge-current-project-id');
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    lastSnapshotRef.current = scaffold.main;
     toast.success('🔄 Code reset to original template');
   }, [projectType, files]);
 
