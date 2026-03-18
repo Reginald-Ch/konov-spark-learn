@@ -1325,6 +1325,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [voiceConversationMode, startListeningOnce, debouncedLiveConfig]);
 
+  // Stop voice recognition when VOICE_ENABLED is toggled off in code
+  useEffect(() => {
+    if (!debouncedLiveConfig.voiceEnabled && (isListening || voiceConversationMode)) {
+      voiceModeRef.current = false;
+      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      window.speechSynthesis?.cancel();
+      setIsListening(false);
+      setIsSpeaking(false);
+      setVoiceConversationMode(false);
+      setWaitingForWakeWord(false);
+      waitingForWakeWordRef.current = false;
+    }
+  }, [debouncedLiveConfig.voiceEnabled]);
+
   // Cleanup recognition on unmount
   useEffect(() => {
     return () => {

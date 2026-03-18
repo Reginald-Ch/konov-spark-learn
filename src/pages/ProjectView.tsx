@@ -498,9 +498,9 @@ const ProjectView = () => {
     }
   };
 
-  const handleChatSend = async (directMessage?: string) => {
+    const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
-    if (!msg || isStreaming || !config) return;
+    if (!msg || isStreaming || !config || !project) return;
     const userMsg = msg;
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
@@ -567,6 +567,9 @@ const ProjectView = () => {
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
         {
@@ -609,9 +612,11 @@ const ProjectView = () => {
               responseToneConditional: config.responseToneConditional,
             },
           }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeout);
       if (!resp.ok || !resp.body) throw new Error('AI service error');
 
       const reader = resp.body.getReader();
