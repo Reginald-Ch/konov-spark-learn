@@ -1610,7 +1610,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setIsStreaming(true);
     try {
       let assistantReply = '';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+      const placeholderId = Date.now();
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
       const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
