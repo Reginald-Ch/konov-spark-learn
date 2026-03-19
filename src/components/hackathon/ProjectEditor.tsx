@@ -1667,10 +1667,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
-      // Bug 6: Remove the trailing '...' placeholder before adding error
+      // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
+        const idx = updated.findIndex((m: any) => m._id === placeholderId);
+        if (idx !== -1) {
+          updated.splice(idx, 1);
+        } else if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
           updated.pop();
         }
         updated.push({ role: 'system', content: `❌ ${e.message}` });

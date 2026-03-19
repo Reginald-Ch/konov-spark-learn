@@ -663,10 +663,13 @@ const ProjectView = () => {
       const errorMsg = isTimeout
         ? '⏱️ Response timed out. Please try again.'
         : (config?.errorMessage || '❌ Failed to get a response. Please try again.');
-      // Remove the '...' placeholder and replace with error message
+      // Remove placeholder and replace with error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].content === '...') {
+        const idx = updated.findIndex((m: any) => m._id === placeholderId);
+        if (idx !== -1) {
+          updated[idx] = { role: 'assistant', content: errorMsg };
+        } else if (updated.length > 0 && updated[updated.length - 1].content === '...') {
           updated[updated.length - 1] = { role: 'assistant', content: errorMsg };
         } else {
           updated.push({ role: 'assistant', content: errorMsg });
