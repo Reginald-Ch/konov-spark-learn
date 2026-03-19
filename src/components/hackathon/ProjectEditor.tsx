@@ -788,11 +788,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Reset current file to original template code
   const handleResetToTemplate = useCallback(() => {
     const scaffold = PROJECT_SCAFFOLDS[projectType];
-    const confirmMsg = 'Reset to original template? Your current edits will be lost (you can Undo after).';
+    const confirmMsg = 'Reset to original template? Your current edits will be lost.';
     if (!window.confirm(confirmMsg)) return;
-    // Push current state to undo stack first
-    undoStackRef.current.push(files['main.py']);
-    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    // Clear undo/redo stacks — reset is not undoable (prevents stale state restoration)
+    undoStackRef.current = [];
     redoStackRef.current = [];
     lastSnapshotRef.current = scaffold.main;
     setFiles({
@@ -809,12 +808,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setSelectedTheme(THEMES[0]);
     themeSyncRef.current = 'default';
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
-    // Clear project ID and undo/redo stacks on reset
+    // Clear project ID on reset so next save creates a fresh project
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    lastSnapshotRef.current = scaffold.main;
     toast.success('🔄 Code reset to original template');
   }, [projectType, files]);
 

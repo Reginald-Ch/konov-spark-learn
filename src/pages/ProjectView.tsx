@@ -559,6 +559,9 @@ const ProjectView = () => {
     setChatMessages(newMessages);
     setIsStreaming(true);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     try {
       const history = newMessages
         .filter(m => m.content !== '...')
@@ -567,9 +570,6 @@ const ProjectView = () => {
 
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -617,7 +617,6 @@ const ProjectView = () => {
         }
       );
 
-      clearTimeout(timeout);
       if (!resp.ok || !resp.body) throw new Error('AI service error');
 
       const reader = resp.body.getReader();
@@ -654,22 +653,25 @@ const ProjectView = () => {
       // TTS: Speak the response if voice is enabled
       if (fullText && config?.voiceEnabled && ttsEnabled) {
         speakText(fullText, config?.voiceGender);
-      } else if (voiceModeRef.current) {
-        // Recognition is in continuous mode — already listening
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Chat error:', e);
+      const isTimeout = e?.name === 'AbortError';
+      const errorMsg = isTimeout
+        ? '⏱️ Response timed out. Please try again.'
+        : (config?.errorMessage || '❌ Failed to get a response. Please try again.');
       // Remove the '...' placeholder and replace with error message
       setChatMessages(prev => {
         const updated = [...prev];
         if (updated.length > 0 && updated[updated.length - 1].content === '...') {
-          updated[updated.length - 1] = { role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' };
+          updated[updated.length - 1] = { role: 'assistant', content: errorMsg };
         } else {
-          updated.push({ role: 'assistant', content: config.errorMessage || '❌ Failed to get a response. Please try again.' });
+          updated.push({ role: 'assistant', content: errorMsg });
         }
         return updated;
       });
     } finally {
+      clearTimeout(timeout);
       setIsStreaming(false);
     }
   };
