@@ -1177,6 +1177,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       setAiCallCount(prev => prev + 1);
       return fullText;
+    } catch (e: any) {
+      if (e?.name === 'AbortError') throw new Error('⏱️ Response timed out. Please try again.');
+      throw e;
     } finally { clearTimeout(timeout); }
   };
 
