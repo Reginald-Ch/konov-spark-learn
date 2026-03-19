@@ -1714,12 +1714,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const handleSave = async () => {
+    if (isSaving) return; // Prevent concurrent saves (auto-save race)
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
   };
-  handleSaveRef.current = handleSave;
-  handleRunRef.current = handleRun;
 
   const handleAiAssist = async (action: string) => {
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
