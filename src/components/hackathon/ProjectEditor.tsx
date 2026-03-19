@@ -1608,9 +1608,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
+    const placeholderId = Date.now();
     try {
       let assistantReply = '';
-      const placeholderId = Date.now();
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
