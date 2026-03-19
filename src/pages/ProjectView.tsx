@@ -644,7 +644,9 @@ const ProjectView = () => {
               fullText += content;
               setChatMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: fullText };
+                const idx = updated.findIndex((m: any) => m._id === placeholderId);
+                const targetIdx = idx !== -1 ? idx : updated.length - 1;
+                updated[targetIdx] = { role: 'assistant', content: fullText };
                 return updated;
               });
             }
