@@ -763,8 +763,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Clear project ID to prevent cross-template overwrites on save
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
-    setCurrentProjectId(null);
-    localStorage.removeItem('forge-current-project-id');
     setKnowledgeBase('');
     setQaData([]);
     // Reset Design tab state to avoid leaking across templates
