@@ -561,12 +561,13 @@ const ProjectView = () => {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
+    const placeholderId = Date.now();
 
     try {
       const history = newMessages
         .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
 
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
@@ -643,7 +644,9 @@ const ProjectView = () => {
               fullText += content;
               setChatMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: fullText };
+                const idx = updated.findIndex((m: any) => m._id === placeholderId);
+                const targetIdx = idx !== -1 ? idx : updated.length - 1;
+                updated[targetIdx] = { role: 'assistant', content: fullText };
                 return updated;
               });
             }
@@ -660,10 +663,13 @@ const ProjectView = () => {
       const errorMsg = isTimeout
         ? '⏱️ Response timed out. Please try again.'
         : (config?.errorMessage || '❌ Failed to get a response. Please try again.');
-      // Remove the '...' placeholder and replace with error message
+      // Remove placeholder and replace with error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].content === '...') {
+        const idx = updated.findIndex((m: any) => m._id === placeholderId);
+        if (idx !== -1) {
+          updated[idx] = { role: 'assistant', content: errorMsg };
+        } else if (updated.length > 0 && updated[updated.length - 1].content === '...') {
           updated[updated.length - 1] = { role: 'assistant', content: errorMsg };
         } else {
           updated.push({ role: 'assistant', content: errorMsg });

@@ -1608,9 +1608,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
+    const placeholderId = Date.now();
     try {
       let assistantReply = '';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
       const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
@@ -1654,7 +1655,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           assistantReply = text;
           setChatMessages(prev => {
             const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: assistantReply };
+            const idx = updated.findIndex((m: any) => m._id === placeholderId);
+            const targetIdx = idx !== -1 ? idx : updated.length - 1;
+            updated[targetIdx] = { role: 'assistant', content: text };
             return updated;
           });
         }
@@ -1666,10 +1669,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
-      // Bug 6: Remove the trailing '...' placeholder before adding error
+      // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
+        const idx = updated.findIndex((m: any) => m._id === placeholderId);
+        if (idx !== -1) {
+          updated.splice(idx, 1);
+        } else if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
           updated.pop();
         }
         updated.push({ role: 'system', content: `❌ ${e.message}` });
@@ -1714,12 +1720,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const handleSave = async () => {
+    if (isSaving) return; // Prevent concurrent saves (auto-save race)
     localStorage.setItem('forge-student-email', authorEmail);
     localStorage.setItem('forge-student-name', authorName);
     await executeSave(authorEmail);
   };
-  handleSaveRef.current = handleSave;
-  handleRunRef.current = handleRun;
 
   const handleAiAssist = async (action: string) => {
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
@@ -1831,11 +1836,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
   useEffect(() => { currentProjectIdRef.current = currentProjectId; }, [currentProjectId]);
 
+  const isSavingRef = useRef(false);
+  useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
+
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          if (isDirtyRef.current && currentProjectIdRef.current) {
+          if (isDirtyRef.current && currentProjectIdRef.current && !isSavingRef.current) {
             handleSaveRef.current();
           }
           return 120;
