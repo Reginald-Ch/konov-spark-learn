@@ -1830,11 +1830,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
   useEffect(() => { currentProjectIdRef.current = currentProjectId; }, [currentProjectId]);
 
+  const isSavingRef = useRef(false);
+  useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
+
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
         if (prev <= 1) {
-          if (isDirtyRef.current && currentProjectIdRef.current) {
+          if (isDirtyRef.current && currentProjectIdRef.current && !isSavingRef.current) {
             handleSaveRef.current();
           }
           return 120;
