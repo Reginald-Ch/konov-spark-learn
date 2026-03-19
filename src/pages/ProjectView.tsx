@@ -561,12 +561,13 @@ const ProjectView = () => {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
+    const placeholderId = Date.now();
 
     try {
       const history = newMessages
         .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...' }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
 
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
