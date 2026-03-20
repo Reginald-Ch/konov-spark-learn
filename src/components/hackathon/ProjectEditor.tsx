@@ -851,7 +851,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = prev;
     setFiles(f => ({ ...f, 'main.py': prev }));
     if (textareaRef.current) textareaRef.current.value = prev;
-    toast.success('Undo');
   }, [files]);
 
   const handleRedo = useCallback(() => {
@@ -861,7 +860,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = next;
     setFiles(f => ({ ...f, 'main.py': next }));
     if (textareaRef.current) textareaRef.current.value = next;
-    toast.success('Redo');
   }, [files]);
 
   // ── Global keyboard shortcuts (handled by ref-based handler at line ~1818) ──
