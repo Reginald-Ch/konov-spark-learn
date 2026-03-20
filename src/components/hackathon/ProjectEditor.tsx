@@ -2508,10 +2508,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         if (e.key === 'Enter') {
                           const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
                           setCurrentMatchIndex(nextIdx);
-                          // Scroll textarea to matched line
+                          // Scroll to matched line via the scroll container (not textarea)
                           if (searchMatches[nextIdx] && textareaRef.current) {
                             const lineHeight = 24;
-                            textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * lineHeight - 80);
+                            const scrollContainer = textareaRef.current.closest('.overflow-auto');
+                            if (scrollContainer) scrollContainer.scrollTop = Math.max(0, searchMatches[nextIdx].line * lineHeight - 80);
                           }
                         }
                         if (e.key === 'Escape') { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
