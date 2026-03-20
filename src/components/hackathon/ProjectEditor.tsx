@@ -2508,10 +2508,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         if (e.key === 'Enter') {
                           const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
                           setCurrentMatchIndex(nextIdx);
-                          // Scroll textarea to matched line
+                          // Scroll to matched line via the scroll container (not textarea)
                           if (searchMatches[nextIdx] && textareaRef.current) {
                             const lineHeight = 24;
-                            textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * lineHeight - 80);
+                            const scrollContainer = textareaRef.current.closest('.overflow-auto');
+                            if (scrollContainer) scrollContainer.scrollTop = Math.max(0, searchMatches[nextIdx].line * lineHeight - 80);
                           }
                         }
                         if (e.key === 'Escape') { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
@@ -2526,14 +2527,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const nextIdx = searchMatches.length > 0 ? (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length : 0;
                       setCurrentMatchIndex(nextIdx);
                       if (searchMatches[nextIdx] && textareaRef.current) {
-                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                        const sc = textareaRef.current.closest('.overflow-auto');
+                        if (sc) sc.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
                       }
                     }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
                     <button onClick={() => {
                       const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
                       setCurrentMatchIndex(nextIdx);
                       if (searchMatches[nextIdx] && textareaRef.current) {
-                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                        const sc = textareaRef.current.closest('.overflow-auto');
+                        if (sc) sc.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
                       }
                     }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
                     <button onClick={() => setShowReplace(v => !v)} title="Toggle Replace"
@@ -2693,10 +2696,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       aria-hidden="true"
                     >
                       {highlightedContent.map((line, i) => {
-                        const isMatchLine = searchMatches.some(m => m.line === i);
+                        const isCurrentMatch = searchMatches.length > 0 && searchMatches[currentMatchIndex]?.line === i;
+                        const isOtherMatch = !isCurrentMatch && searchMatches.some(m => m.line === i);
                         const isTutLine = tutorialActive && i === tutorialTargetLine;
+                        const hasBracket = bracketHighlights && (bracketHighlights[0].line === i || bracketHighlights[1].line === i);
                         return (
-                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isMatchLine ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
+                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isCurrentMatch ? 'bg-ide-accent/25 ring-1 ring-ide-accent/40' : isOtherMatch ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''} ${hasBracket ? 'bg-ide-yellow/8' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
                         );
                       })}
                     </div>
