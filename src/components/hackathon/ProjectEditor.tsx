@@ -2779,8 +2779,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const target = e.target as HTMLTextAreaElement;
                         const start = target.selectionStart;
                         const charAfter = target.value[start];
+                        // Detect triple-quote: if user just typed two quotes and is now typing the third,
+                        // don't auto-pair — let the raw character through for """ or '''
+                        if ((e.key === '"' || e.key === "'") && start >= 2) {
+                          const prev2 = target.value.slice(start - 2, start);
+                          if (prev2 === e.key.repeat(2)) {
+                            // Typing third quote to form triple-quote — don't auto-pair
+                            return; // let default behavior insert the raw character
+                          }
+                        }
                         if ((e.key === '"' || e.key === "'") && charAfter && !/[\s\)\]\},:]/.test(charAfter)) {
-                          // Don't auto-pair
+                          // Don't auto-pair when next char is a word character
                         } else {
                           e.preventDefault();
                           const end = target.selectionEnd;
