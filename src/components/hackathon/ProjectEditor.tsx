@@ -851,7 +851,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = prev;
     setFiles(f => ({ ...f, 'main.py': prev }));
     if (textareaRef.current) textareaRef.current.value = prev;
-    toast.success('Undo');
   }, [files]);
 
   const handleRedo = useCallback(() => {
@@ -861,7 +860,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = next;
     setFiles(f => ({ ...f, 'main.py': next }));
     if (textareaRef.current) textareaRef.current.value = next;
-    toast.success('Redo');
   }, [files]);
 
   // ── Global keyboard shortcuts (handled by ref-based handler at line ~1818) ──
@@ -2557,21 +2555,32 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           if (searchMatches.length === 0) return;
                           const match = searchMatches[currentMatchIndex];
                           if (!match) return;
-                          const codeLines = files[activeFile].split('\n');
+                          // Create undo snapshot before replace
+                          const oldCode = files[activeFile];
+                          undoStackRef.current.push(oldCode);
+                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                          redoStackRef.current = [];
+                          const codeLines = oldCode.split('\n');
                           codeLines[match.line] = codeLines[match.line].substring(0, match.startCol) + replaceTerm + codeLines[match.line].substring(match.endCol);
                           const newCode = codeLines.join('\n');
+                          lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          // Reset index to 0 — match array will recompute on next render
                           setCurrentMatchIndex(0);
                         }}>Replace</Button>
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
                           if (!searchTerm) return;
+                          // Create undo snapshot before replace all
+                          const oldCode = files[activeFile];
+                          undoStackRef.current.push(oldCode);
+                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                          redoStackRef.current = [];
                           const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                           const regex = new RegExp(escaped, 'gi');
-                          const newCode = files[activeFile].replace(regex, replaceTerm);
-                          const count = (files[activeFile].match(regex) || []).length;
+                          const newCode = oldCode.replace(regex, replaceTerm);
+                          const count = (oldCode.match(regex) || []).length;
+                          lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
@@ -2779,8 +2788,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const target = e.target as HTMLTextAreaElement;
                         const start = target.selectionStart;
                         const charAfter = target.value[start];
+                        // Detect triple-quote: if user just typed two quotes and is now typing the third,
+                        // don't auto-pair — let the raw character through for """ or '''
+                        if ((e.key === '"' || e.key === "'") && start >= 2) {
+                          const prev2 = target.value.slice(start - 2, start);
+                          if (prev2 === e.key.repeat(2)) {
+                            // Typing third quote to form triple-quote — don't auto-pair
+                            return; // let default behavior insert the raw character
+                          }
+                        }
                         if ((e.key === '"' || e.key === "'") && charAfter && !/[\s\)\]\},:]/.test(charAfter)) {
-                          // Don't auto-pair
+                          // Don't auto-pair when next char is a word character
                         } else {
                           e.preventDefault();
                           const end = target.selectionEnd;
