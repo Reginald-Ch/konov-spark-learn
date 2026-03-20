@@ -2573,10 +2573,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
                           if (!searchTerm) return;
+                          // Create undo snapshot before replace all
+                          const oldCode = files[activeFile];
+                          undoStackRef.current.push(oldCode);
+                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                          redoStackRef.current = [];
                           const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                           const regex = new RegExp(escaped, 'gi');
-                          const newCode = files[activeFile].replace(regex, replaceTerm);
-                          const count = (files[activeFile].match(regex) || []).length;
+                          const newCode = oldCode.replace(regex, replaceTerm);
+                          const count = (oldCode.match(regex) || []).length;
+                          lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
