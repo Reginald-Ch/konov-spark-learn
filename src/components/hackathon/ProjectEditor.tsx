@@ -2527,14 +2527,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const nextIdx = searchMatches.length > 0 ? (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length : 0;
                       setCurrentMatchIndex(nextIdx);
                       if (searchMatches[nextIdx] && textareaRef.current) {
-                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                        const sc = textareaRef.current.closest('.overflow-auto');
+                        if (sc) sc.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
                       }
                     }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowUp className="w-3 h-3" /></button>
                     <button onClick={() => {
                       const nextIdx = searchMatches.length > 0 ? (currentMatchIndex + 1) % searchMatches.length : 0;
                       setCurrentMatchIndex(nextIdx);
                       if (searchMatches[nextIdx] && textareaRef.current) {
-                        textareaRef.current.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
+                        const sc = textareaRef.current.closest('.overflow-auto');
+                        if (sc) sc.scrollTop = Math.max(0, searchMatches[nextIdx].line * 24 - 80);
                       }
                     }} className="text-ide-text-muted hover:text-ide-text p-0.5"><ArrowDown className="w-3 h-3" /></button>
                     <button onClick={() => setShowReplace(v => !v)} title="Toggle Replace"
