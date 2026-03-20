@@ -2696,10 +2696,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       aria-hidden="true"
                     >
                       {highlightedContent.map((line, i) => {
-                        const isMatchLine = searchMatches.some(m => m.line === i);
+                        const isCurrentMatch = searchMatches.length > 0 && searchMatches[currentMatchIndex]?.line === i;
+                        const isOtherMatch = !isCurrentMatch && searchMatches.some(m => m.line === i);
                         const isTutLine = tutorialActive && i === tutorialTargetLine;
+                        const hasBracket = bracketHighlights && (bracketHighlights[0].line === i || bracketHighlights[1].line === i);
                         return (
-                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isMatchLine ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
+                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isCurrentMatch ? 'bg-ide-accent/25 ring-1 ring-ide-accent/40' : isOtherMatch ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''} ${hasBracket ? 'bg-ide-yellow/8' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
                         );
                       })}
                     </div>
