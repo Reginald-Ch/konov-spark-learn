@@ -2557,12 +2557,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           if (searchMatches.length === 0) return;
                           const match = searchMatches[currentMatchIndex];
                           if (!match) return;
-                          const codeLines = files[activeFile].split('\n');
+                          // Create undo snapshot before replace
+                          const oldCode = files[activeFile];
+                          undoStackRef.current.push(oldCode);
+                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                          redoStackRef.current = [];
+                          const codeLines = oldCode.split('\n');
                           codeLines[match.line] = codeLines[match.line].substring(0, match.startCol) + replaceTerm + codeLines[match.line].substring(match.endCol);
                           const newCode = codeLines.join('\n');
+                          lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
-                          // Reset index to 0 — match array will recompute on next render
                           setCurrentMatchIndex(0);
                         }}>Replace</Button>
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
