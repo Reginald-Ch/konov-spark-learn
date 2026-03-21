@@ -1379,14 +1379,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
       { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-        { label: 'RESPONSE_STYLE', ok: config.responseStyle !== (isAgent ? 'Professional' : 'Friendly') && config.responseStyle !== 'Balanced', val: config.responseStyle },
-        { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
+      { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
       { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0), val: `${Object.keys(config.secretResponses).length} secrets` },
-      { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
-      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
+      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0), val: `${Object.keys(config.moodResponses).length} moods` },
+      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
       { label: 'RESPONSE_TONE', ok: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical', val: config.responseTone || 'default' },
@@ -1395,7 +1395,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
-      { label: 'LANGUAGE_STYLE', ok: config.languageStyle !== 'casual', val: config.languageStyle || 'casual' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1406,15 +1405,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 25 challenges...`,
+      `📋 Scanning 24 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/25 challenges completed (${Math.round(completedCount / 25 * 100)}%)`,
+      `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
-      `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
+      `✍️ Mood: ${config.mood} | Length: ${config.maxResponseLength}`,
       completedCount >= 15 ? `🏆 AMAZING! Your bot is highly customized!` : completedCount >= 10 ? `🔥 Great progress! Keep customizing!` : `💡 Tip: Edit more variables in main.py to unlock challenges!`,
       ``,
       `⏳ Running AI simulation...`,
@@ -1474,7 +1473,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const scaffold = PROJECT_SCAFFOLDS[type];
     const defaultName = isAgent ? 'Research Agent' : 'Spark';
     const defaultTemp = isAgent ? 0.3 : 0.7;
-    const defaultStyle = isAgent ? 'Professional' : 'Friendly';
     const defaultGreeting = isAgent
       ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
       : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
@@ -1490,19 +1488,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaultKB,
       cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
       cfg.temperature !== defaultTemp,
-      cfg.responseStyle !== defaultStyle && cfg.responseStyle !== 'Balanced',
-      cfg.maxResponseLength !== 'medium',
+      cfg.conversationRules.length > 3,
+      cfg.conversationStarters.length > 4,
       cfg.forbiddenWords.length > 0,
       cfg.blockedTopics.length > 2,
       cfg.fewShotExamples.length > 0,
       Object.keys(cfg.secretResponses).length > (isAgent ? 2 : 0),
-      cfg.conversationRules.length > 3,
-      cfg.conversationStarters.length > 4,
+      Object.keys(cfg.moodResponses).length > (isAgent ? 3 : 0),
+      cfg.maxResponseLength !== 'medium',
       cfg.maxTokens !== 512,
       cfg.mood && cfg.mood !== 'neutral',
       Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
       cfg.catchphrases.length > (isAgent ? 3 : 0),
-      cfg.languageStyle !== 'casual',
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
       cfg.wakeWord,
@@ -2063,7 +2060,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       const scaffold = PROJECT_SCAFFOLDS[projectType];
                       const defaultName = isAgent ? 'Research Agent' : 'Spark';
                       const defaultTemp = isAgent ? 0.3 : 0.7;
-                      const defaultStyle = isAgent ? 'Professional' : 'Friendly';
                       const defaultGreeting = isAgent
                         ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
                         : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
@@ -2081,19 +2077,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
-                        { emoji: '📝', name: 'Response Style', done: config.responseStyle !== defaultStyle && config.responseStyle !== 'Balanced' },
-                        { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
                         { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
                         { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > 0 },
                         { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0) },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
+                        { emoji: '🎯', name: 'Mood Responses', done: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0) },
+                        { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
                         { emoji: '🎵', name: 'Response Tone', done: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical' },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
-                        { emoji: '🎨', name: 'Language Style', done: config.languageStyle !== 'casual' },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
                         { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },
                         { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },
@@ -3033,7 +3028,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 25;
+            const totalChallenges = 24;
             const activeCount = getChallengeCount(cfg, projectType);
 
             return (
