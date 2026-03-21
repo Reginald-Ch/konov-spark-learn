@@ -172,11 +172,11 @@ export const MilestoneCelebration = ({
     }
   }, [show]);
 
-  if (!show) return null;
-
   return (
     <AnimatePresence>
-      <CelebrationOverlay key="celebration" message={message} />
+      {show && (
+        <CelebrationOverlay key="celebration" message={message} onDismiss={() => onCompleteRef.current()} />
+      )}
     </AnimatePresence>
   );
 };
