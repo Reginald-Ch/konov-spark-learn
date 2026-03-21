@@ -1413,7 +1413,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
-      `✍️ Style: ${config.responseStyle} | Length: ${config.maxResponseLength}`,
+      `✍️ Mood: ${config.mood} | Length: ${config.maxResponseLength}`,
       completedCount >= 15 ? `🏆 AMAZING! Your bot is highly customized!` : completedCount >= 10 ? `🔥 Great progress! Keep customizing!` : `💡 Tip: Edit more variables in main.py to unlock challenges!`,
       ``,
       `⏳ Running AI simulation...`,
