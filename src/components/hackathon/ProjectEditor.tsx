@@ -1473,7 +1473,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const scaffold = PROJECT_SCAFFOLDS[type];
     const defaultName = isAgent ? 'Research Agent' : 'Spark';
     const defaultTemp = isAgent ? 0.3 : 0.7;
-    const defaultStyle = isAgent ? 'Professional' : 'Friendly';
     const defaultGreeting = isAgent
       ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
       : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
