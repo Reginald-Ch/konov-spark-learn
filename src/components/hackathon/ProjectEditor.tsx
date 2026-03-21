@@ -2700,8 +2700,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const isOtherMatch = !isCurrentMatch && searchMatches.some(m => m.line === i);
                         const isTutLine = tutorialActive && i === tutorialTargetLine;
                         const hasBracket = bracketHighlights && (bracketHighlights[0].line === i || bracketHighlights[1].line === i);
+                        const isDiffLine = changedLines.has(i);
+                        const hasLintError = lintErrorsByLine.has(i);
+                        const lintInfo = lintErrorsByLine.get(i);
                         return (
-                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isCurrentMatch ? 'bg-ide-accent/25 ring-1 ring-ide-accent/40' : isOtherMatch ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''} ${hasBracket ? 'bg-ide-yellow/8' : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
+                          <div key={i} className={`${i === cursorLine ? 'bg-ide-line-highlight' : ''} ${isCurrentMatch ? 'bg-ide-accent/25 ring-1 ring-ide-accent/40' : isOtherMatch ? 'bg-ide-accent/10' : ''} ${isTutLine ? 'bg-ide-accent/15 border-l-2 border-ide-accent' : ''} ${hasBracket ? 'bg-ide-yellow/8' : ''} ${isDiffLine ? 'bg-ide-green/8 border-l-2 border-ide-green/40' : ''} ${hasLintError ? (lintInfo?.severity === 'error' ? 'bg-red-500/8 decoration-wavy underline decoration-red-400/60 underline-offset-2' : 'bg-ide-orange/8 decoration-wavy underline decoration-ide-orange/60 underline-offset-2') : ''}`} dangerouslySetInnerHTML={{ __html: line }} />
                         );
                       })}
                     </div>

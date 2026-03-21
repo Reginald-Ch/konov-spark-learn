@@ -181,14 +181,15 @@ export const MilestoneCelebration = ({
   );
 };
 
-const CelebrationOverlay = forwardRef<HTMLDivElement, { message: string }>(
-  ({ message }, ref) => (
+const CelebrationOverlay = forwardRef<HTMLDivElement, { message: string; onDismiss: () => void }>(
+  ({ message, onDismiss }, ref) => (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, scale: 0.5, y: 50 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.5, y: -50 }}
-      className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none"
+      className="fixed inset-0 z-[200] flex items-center justify-center cursor-pointer"
+      onClick={onDismiss}
     >
       {/* Confetti particles */}
       {Array.from({ length: 30 }).map((_, i) => (
@@ -210,7 +211,7 @@ const CelebrationOverlay = forwardRef<HTMLDivElement, { message: string }>(
             duration: 2 + Math.random(),
             ease: 'easeOut',
           }}
-          className="absolute w-3 h-3 rounded-sm"
+          className="absolute w-3 h-3 rounded-sm pointer-events-none"
           style={{
             backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#5865F2', '#FFD700'][i % 8],
           }}
@@ -223,6 +224,7 @@ const CelebrationOverlay = forwardRef<HTMLDivElement, { message: string }>(
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
         className="bg-[hsl(var(--discord-dark))] border-2 border-[hsl(var(--discord-yellow))] rounded-2xl px-8 py-5 shadow-2xl text-center"
+        onClick={e => e.stopPropagation()}
       >
         <motion.div
           animate={{ rotate: [0, -10, 10, -10, 0] }}
@@ -232,6 +234,9 @@ const CelebrationOverlay = forwardRef<HTMLDivElement, { message: string }>(
         </motion.div>
         <p className="text-lg font-bold text-white">{message}</p>
         <p className="text-xs text-[hsl(var(--discord-text-muted))] mt-1">Keep going! 🔥</p>
+        <button onClick={onDismiss} className="mt-3 text-[10px] text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors">
+          Click anywhere to dismiss
+        </button>
       </motion.div>
     </motion.div>
   )
