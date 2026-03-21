@@ -47,6 +47,8 @@ interface Hackathon {
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
 
+const ACCESS_CODE = 'Forge2039';
+
 const Hackathons = () => {
   const navigate = useNavigate();
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
@@ -60,6 +62,11 @@ const Hackathons = () => {
   const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Access code gate
+  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('forge-access-unlocked') === 'true');
+  const [accessCodeInput, setAccessCodeInput] = useState('');
+  const [accessCodeError, setAccessCodeError] = useState(false);
+
   // Tab state
   const [activeTab, setActiveTab] = useState<MainTab>('templates');
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
@@ -71,13 +78,14 @@ const Hackathons = () => {
 
   // First-time onboarding
   useEffect(() => {
+    if (!isUnlocked) return;
     const visited = localStorage.getItem('hackathons_visited');
     if (!visited) {
       setShowOnboarding(true);
       setActiveTab('templates');
       localStorage.setItem('hackathons_visited', 'true');
     }
-  }, []);
+  }, [isUnlocked]);
 
   useEffect(() => {
     fetchHackathons();
