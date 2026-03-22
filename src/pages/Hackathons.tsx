@@ -256,7 +256,7 @@ const Hackathons = () => {
   const handleAccessCodeSubmit = () => {
     if (accessCodeInput.trim() === ACCESS_CODE) {
       setIsUnlocked(true);
-      localStorage.setItem('forge-access-unlocked', 'true');
+      sessionStorage.setItem('forge-access-unlocked', 'true');
       setAccessCodeError(false);
       toast.success('🔓 Access granted! Welcome to FORGE Studio.');
     } else {
