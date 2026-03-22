@@ -3023,8 +3023,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const isAgent = projectType === 'agent';
             const defaultName = isAgent ? 'Research Agent' : 'Spark';
             const defaultTemp = isAgent ? 0.3 : 0.7;
-            const defaultStyle = isAgent ? 'Professional' : 'Friendly';
-            const defaultPrompt = isAgent 
+            const _defaultPrompt = isAgent 
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             

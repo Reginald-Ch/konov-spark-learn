@@ -63,7 +63,7 @@ const Hackathons = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Access code gate
-  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('forge-access-unlocked') === 'true');
+  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('forge-access-unlocked') === 'true');
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [accessCodeError, setAccessCodeError] = useState(false);
 
