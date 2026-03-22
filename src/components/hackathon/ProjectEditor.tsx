@@ -1498,7 +1498,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.maxResponseLength !== 'medium',
       cfg.maxTokens !== 512,
       cfg.mood && cfg.mood !== 'neutral',
-      Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
+      (Object.keys(cfg.responseToneConditional).length > 0) || (cfg.responseTone !== '' && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical'),
       cfg.catchphrases.length > (isAgent ? 3 : 0),
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
