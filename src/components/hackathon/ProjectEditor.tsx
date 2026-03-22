@@ -1389,7 +1389,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'RESPONSE_TONE', ok: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical', val: config.responseTone || 'default' },
+      { label: 'RESPONSE_TONE', ok: (Object.keys(config.responseToneConditional).length > 0) || (config.responseTone !== '' && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical'), val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
