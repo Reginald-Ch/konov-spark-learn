@@ -2087,7 +2087,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
-                        { emoji: '🎵', name: 'Response Tone', done: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical' },
+                        { emoji: '🎵', name: 'Response Tone', done: (Object.keys(config.responseToneConditional).length > 0) || (config.responseTone !== '' && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical') },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
                         { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },
