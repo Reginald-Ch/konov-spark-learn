@@ -1389,7 +1389,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'RESPONSE_TONE', ok: Object.keys(config.responseToneConditional).length > 0 && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical', val: config.responseTone || 'default' },
+      { label: 'RESPONSE_TONE', ok: (Object.keys(config.responseToneConditional).length > 0) || (config.responseTone !== '' && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical'), val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
@@ -1443,7 +1443,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/25 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/24 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
@@ -1498,7 +1498,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.maxResponseLength !== 'medium',
       cfg.maxTokens !== 512,
       cfg.mood && cfg.mood !== 'neutral',
-      Object.keys(cfg.responseToneConditional).length > 0 && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical',
+      (Object.keys(cfg.responseToneConditional).length > 0) || (cfg.responseTone !== '' && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical'),
       cfg.catchphrases.length > (isAgent ? 3 : 0),
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
@@ -3023,8 +3023,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const isAgent = projectType === 'agent';
             const defaultName = isAgent ? 'Research Agent' : 'Spark';
             const defaultTemp = isAgent ? 0.3 : 0.7;
-            const defaultStyle = isAgent ? 'Professional' : 'Friendly';
-            const defaultPrompt = isAgent 
+            const _defaultPrompt = isAgent 
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             

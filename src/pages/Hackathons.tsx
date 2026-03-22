@@ -63,7 +63,7 @@ const Hackathons = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Access code gate
-  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('forge-access-unlocked') === 'true');
+  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('forge-access-unlocked') === 'true');
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [accessCodeError, setAccessCodeError] = useState(false);
 
@@ -256,7 +256,7 @@ const Hackathons = () => {
   const handleAccessCodeSubmit = () => {
     if (accessCodeInput.trim() === ACCESS_CODE) {
       setIsUnlocked(true);
-      localStorage.setItem('forge-access-unlocked', 'true');
+      sessionStorage.setItem('forge-access-unlocked', 'true');
       setAccessCodeError(false);
       toast.success('🔓 Access granted! Welcome to FORGE Studio.');
     } else {
