@@ -5,6 +5,199 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Real Tool Implementations ──
+
+async function webSearch(query: string): Promise<string> {
+  try {
+    // Use DuckDuckGo instant answer API (free, no key needed)
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const resp = await fetch(url, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+    if (!resp.ok) return `[Search failed: HTTP ${resp.status}]`;
+    const data = await resp.json();
+    
+    const results: string[] = [];
+    if (data.Abstract) results.push(`📄 ${data.AbstractSource}: ${data.Abstract}`);
+    if (data.Answer) results.push(`💡 Answer: ${data.Answer}`);
+    if (data.Definition) results.push(`📖 Definition: ${data.Definition}`);
+    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
+      const topics = data.RelatedTopics.slice(0, 5);
+      for (const t of topics) {
+        if (t.Text) results.push(`• ${t.Text}`);
+      }
+    }
+    
+    if (results.length === 0) {
+      // Fallback: use Wikipedia search as backup
+      return await wikiSearch(query);
+    }
+    return `🔍 Web Search Results for "${query}":\n${results.join('\n')}`;
+  } catch (e) {
+    return `[Search error: ${e instanceof Error ? e.message : 'unknown'}]`;
+  }
+}
+
+async function wikiSearch(query: string): Promise<string> {
+  try {
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/\s+/g, '_'))}`;
+    const resp = await fetch(url, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+    
+    if (!resp.ok) {
+      // Try Wikipedia search API as fallback
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&format=json`;
+      const searchResp = await fetch(searchUrl, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+      if (!searchResp.ok) return `[Wikipedia: No results found for "${query}"]`;
+      const searchData = await searchResp.json();
+      if (searchData[1] && searchData[1].length > 0) {
+        const titles = searchData[1].slice(0, 3).join(', ');
+        // Fetch the first result's summary
+        const firstTitle = searchData[1][0];
+        const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle.replace(/\s+/g, '_'))}`;
+        const summaryResp = await fetch(summaryUrl, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+        if (summaryResp.ok) {
+          const summaryData = await summaryResp.json();
+          return `📚 Wikipedia — ${summaryData.title}:\n${summaryData.extract}\n\nRelated: ${titles}`;
+        }
+        return `📚 Wikipedia results for "${query}": ${titles}`;
+      }
+      return `[Wikipedia: No results found for "${query}"]`;
+    }
+    
+    const data = await resp.json();
+    return `📚 Wikipedia — ${data.title}:\n${data.extract}`;
+  } catch (e) {
+    return `[Wikipedia error: ${e instanceof Error ? e.message : 'unknown'}]`;
+  }
+}
+
+function calculate(expression: string): string {
+  try {
+    // Safe math evaluation — only allow numbers, operators, parentheses, and math functions
+    const sanitized = expression.replace(/[^0-9+\-*/().,%^ sqrt pi e log sin cos tan abs pow min max floor ceil round]/g, '');
+    
+    // Replace common math notation
+    let expr = sanitized
+      .replace(/\^/g, '**')
+      .replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)')
+      .replace(/pi/g, 'Math.PI')
+      .replace(/\be\b/g, 'Math.E')
+      .replace(/log\(([^)]+)\)/g, 'Math.log($1)')
+      .replace(/sin\(([^)]+)\)/g, 'Math.sin($1)')
+      .replace(/cos\(([^)]+)\)/g, 'Math.cos($1)')
+      .replace(/tan\(([^)]+)\)/g, 'Math.tan($1)')
+      .replace(/abs\(([^)]+)\)/g, 'Math.abs($1)')
+      .replace(/pow\(([^,]+),([^)]+)\)/g, 'Math.pow($1,$2)')
+      .replace(/min\(([^)]+)\)/g, 'Math.min($1)')
+      .replace(/max\(([^)]+)\)/g, 'Math.max($1)')
+      .replace(/floor\(([^)]+)\)/g, 'Math.floor($1)')
+      .replace(/ceil\(([^)]+)\)/g, 'Math.ceil($1)')
+      .replace(/round\(([^)]+)\)/g, 'Math.round($1)');
+    
+    // Validate: only math-safe characters after substitution
+    if (/[a-zA-Z]/.test(expr.replace(/Math\.\w+/g, ''))) {
+      return `[Calculator: Cannot evaluate "${expression}" — only numerical expressions are supported]`;
+    }
+    
+    const result = new Function(`"use strict"; return (${expr})`)();
+    if (typeof result !== 'number' || !isFinite(result)) {
+      return `[Calculator: Result is not a finite number for "${expression}"]`;
+    }
+    return `🧮 Calculator: ${expression} = ${result}`;
+  } catch (e) {
+    return `[Calculator error: Could not evaluate "${expression}"]`;
+  }
+}
+
+// Determine which tool to use based on the user's message and available tools
+async function determineAndRunTools(
+  userMessage: string,
+  tools: Record<string, string>,
+  apiKey: string
+): Promise<{ toolResults: string; toolsUsed: string[] }> {
+  const availableTools = Object.keys(tools);
+  if (availableTools.length === 0) return { toolResults: "", toolsUsed: [] };
+  
+  // Ask the AI which tool to use and what query to send
+  const toolDecisionPrompt = `You are a tool-routing agent. Given the user's message, decide which tool(s) to use and what query to send to each.
+
+Available tools: ${availableTools.map(t => `"${t}"`).join(', ')}
+
+Tool descriptions:
+${Object.entries(tools).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+Rules:
+- Return ONLY a JSON array of tool calls. No other text.
+- Each entry: {"tool": "tool_name", "query": "search query or expression"}
+- Use at most 2 tools per request.
+- If no tool is needed (simple greeting, opinion, etc.), return an empty array: []
+- For calculator: extract the math expression only
+- For web_search: extract the search query
+- For wikipedia: extract the topic name
+
+User message: "${userMessage}"
+
+Response (JSON array only):`;
+
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [{ role: "user", content: toolDecisionPrompt }],
+        temperature: 0,
+        max_tokens: 200,
+      }),
+    });
+
+    if (!resp.ok) return { toolResults: "", toolsUsed: [] };
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
+    
+    // Parse the JSON array from the response
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return { toolResults: "", toolsUsed: [] };
+    
+    const toolCalls = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(toolCalls) || toolCalls.length === 0) return { toolResults: "", toolsUsed: [] };
+    
+    // Execute tools in parallel
+    const results: string[] = [];
+    const toolsUsed: string[] = [];
+    
+    const promises = toolCalls.slice(0, 2).map(async (call: { tool: string; query: string }) => {
+      if (!call.tool || !call.query) return;
+      toolsUsed.push(call.tool);
+      
+      switch (call.tool) {
+        case 'web_search':
+          return await webSearch(call.query);
+        case 'wikipedia':
+          return await wikiSearch(call.query);
+        case 'calculator':
+          return calculate(call.query);
+        default:
+          return `[Unknown tool: ${call.tool}]`;
+      }
+    });
+    
+    const resolvedResults = await Promise.all(promises);
+    for (const r of resolvedResults) {
+      if (r) results.push(r);
+    }
+    
+    return {
+      toolResults: results.length > 0 ? `\n\n═══ REAL TOOL RESULTS (use these in your response) ═══\n${results.join('\n\n')}\n═══ END TOOL RESULTS ═══\n` : "",
+      toolsUsed,
+    };
+  } catch (e) {
+    console.error("Tool routing error:", e);
+    return { toolResults: "", toolsUsed: [] };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -112,11 +305,11 @@ serve(async (req) => {
         botConfigContext += `\n\n🧠 REASONING MODE — You are an AGENT, not a simple chatbot. For EVERY response, you MUST show your thinking process using this EXACT format:
 
 **🤔 Thought:** [What you're thinking about the question — analyze what the user needs]
-**🔧 Action:** [Which tool you would use: 🔍 Web Search, 🧮 Calculator, or 📚 Wikipedia — and why]
-**👁️ Observation:** [What you found or calculated — present the key findings]
-**💡 Answer:** [Your final synthesized response to the user]
+**🔧 Action:** [Which tool you used: 🔍 Web Search, 🧮 Calculator, or 📚 Wikipedia — and why]
+**👁️ Observation:** [What you found from the REAL TOOL RESULTS provided below — present the key findings]
+**💡 Answer:** [Your final synthesized response to the user based on REAL data]
 
-IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis for EVERY response. This shows the user your "reasoning chain" — the core concept of AI agents. Even for simple questions, show at least a brief Thought and Answer. For complex questions, show all 4 steps. You may repeat Thought → Action → Observation multiple times for multi-step problems before giving the final Answer.`;
+IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis for EVERY response. When REAL TOOL RESULTS are provided, you MUST reference and use them in your Observation and Answer. Do NOT make up data — use the real results. For complex questions, show all 4 steps. You may repeat Thought → Action → Observation multiple times for multi-step problems before giving the final Answer.`;
       }
       if (cfg.toolInstructions && Object.keys(cfg.toolInstructions).length > 0) {
         botConfigContext += `\n\nTOOL USAGE INSTRUCTIONS:\n`;
@@ -185,6 +378,20 @@ NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
 Format as plain terminal text with emojis. Under 300 words.`;
       userPrompt = `Simulate loading this FORGE config (show SUCCESSFUL output):\n\n${code}`;
     } else if (action === "test-agent") {
+      // ── Real tool calling for agent projects ──
+      let toolResultsContext = "";
+      let toolsUsedNames: string[] = [];
+      
+      if (botConfig?.tools && Object.keys(botConfig.tools).length > 0) {
+        const { toolResults, toolsUsed } = await determineAndRunTools(
+          code, // code is the user message in test-agent
+          botConfig.tools,
+          LOVABLE_API_KEY
+        );
+        toolResultsContext = toolResults;
+        toolsUsedNames = toolsUsed;
+      }
+      
       const agentPrompt = systemPrompt || "You are a helpful AI assistant.";
       sysPrompt = `You are an AI that a student built. Your core personality is defined by this prompt:
 
@@ -192,6 +399,7 @@ Format as plain terminal text with emojis. Under 300 words.`;
 
 ${botConfigContext}
 ${knowledgeContext}
+${toolResultsContext}
 
 ═══ STRICT EXECUTION PRIORITY (follow in this exact order) ═══
 
@@ -199,25 +407,27 @@ ${knowledgeContext}
 
 2. **KNOWLEDGE BASE**: For questions related to knowledge base content, use it as your primary truth. Quote it directly.
 
-3. **BLOCKED TOPICS**: If user asks about a blocked topic, politely refuse and redirect. No exceptions.
+3. **REAL TOOL RESULTS**: If REAL TOOL RESULTS are provided above, you MUST incorporate them into your response. Present real data from tools, never fabricate. Reference the actual search results, Wikipedia content, or calculations provided.
 
-4. **FORBIDDEN WORDS**: NEVER use any forbidden word in your response. Find synonyms or alternatives.
+4. **BLOCKED TOPICS**: If user asks about a blocked topic, politely refuse and redirect. No exceptions.
 
-5. **CONVERSATION RULES**: Follow ALL rules in EVERY response without exception.
+5. **FORBIDDEN WORDS**: NEVER use any forbidden word in your response. Find synonyms or alternatives.
 
-6. **CATCHPHRASES**: Include at least one catchphrase per response if configured. Pick randomly.
+6. **CONVERSATION RULES**: Follow ALL rules in EVERY response without exception.
 
-7. **MOOD + LANGUAGE STYLE**: Match the configured mood and language style consistently.
+7. **CATCHPHRASES**: Include at least one catchphrase per response if configured. Pick randomly.
 
-8. **RESPONSE STYLE + LENGTH**: Strictly match configured style and length limits.
+8. **MOOD + LANGUAGE STYLE**: Match the configured mood and language style consistently.
 
-9. **SIGN-OFF**: If configured, end EVERY response with the exact sign-off phrase.
+9. **RESPONSE STYLE + LENGTH**: Strictly match configured style and length limits.
 
-10. **FOLLOW-UP QUESTION**: End with a relevant follow-up question if enabled (before sign-off).
+10. **SIGN-OFF**: If configured, end EVERY response with the exact sign-off phrase.
 
-11. **PERSONALITY**: Stay in character as defined by the system prompt at all times.
+11. **FOLLOW-UP QUESTION**: End with a relevant follow-up question if enabled (before sign-off).
 
-CRITICAL: You ARE this bot. Never break character. Never mention "system prompt", "configuration", "Q&A pairs", or that you are simulating anything. Respond naturally as the bot personality.`;
+12. **PERSONALITY**: Stay in character as defined by the system prompt at all times.
+
+CRITICAL: You ARE this bot. Never break character. Never mention "system prompt", "configuration", "Q&A pairs", or that you are simulating anything. Respond naturally as the bot personality.${toolsUsedNames.length > 0 ? `\n\nNOTE: Real tools were called for this query (${toolsUsedNames.join(', ')}). Use the actual results provided.` : ''}`;
       
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.map((m: { role: string; content: string }) => ({
@@ -265,7 +475,7 @@ RULES:
 - Reference THEIR actual values: "Your BOT_NAME is currently..."
 - Be encouraging. Under 150 words.
 - End with a next step for them to try.
-- Reference the 22-challenge system.
+- Reference the 24-challenge system.
 
 PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
 PROMPT: "${systemPrompt || 'not set'}"
@@ -288,7 +498,7 @@ ${code}
       sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;
     } else if (action === "idea-to-code") {
-      sysPrompt = `You are the FORGE AI project generator. Generate a complete 22-challenge config file.
+      sysPrompt = `You are the FORGE AI project generator. Generate a complete 24-challenge config file.
 
 Include ALL variables with creative, topic-specific values:
 BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE (3+ sentences, triple-quoted),
@@ -314,7 +524,7 @@ FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `Generate a complete FORGE 22-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, MOOD_RESPONSES (dict of mood->instruction), MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, CATCHPHRASES, TIME_OF_DAY + if/elif RESPONSE_TONE block, VOICE_ENABLED, VOICE_MODE.`;
+      sysPrompt = `Generate a complete FORGE 24-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, MOOD_RESPONSES (dict of mood->instruction), MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, CATCHPHRASES, TIME_OF_DAY + if/elif RESPONSE_TONE block, VOICE_ENABLED, VOICE_MODE.`;
       userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
       sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;
