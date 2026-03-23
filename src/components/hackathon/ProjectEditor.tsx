@@ -1634,6 +1634,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             followUpQuestions: config.followUpQuestions,
             rememberName: config.rememberName,
             showReasoning: config.showReasoning,
+            tools: config.tools,
             toolInstructions: config.toolInstructions,
             forbiddenWords: config.forbiddenWords,
             mood: config.mood,
