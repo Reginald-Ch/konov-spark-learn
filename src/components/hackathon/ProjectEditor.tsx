@@ -1127,7 +1127,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
     const controller = new AbortController();
-    const timeoutMs = (body as any).action === 'test-agent' ? 30000 : 60000;
+    const timeoutMs = (body as any).action === 'test-agent' ? 60000 : 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(
