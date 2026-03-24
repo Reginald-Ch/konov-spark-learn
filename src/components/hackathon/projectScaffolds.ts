@@ -342,6 +342,8 @@ APP_THEME = "default"
 # ═══════════════════════════════════════════════
 # BONUS SETTINGS (already configured!)
 # ═══════════════════════════════════════════════
+RESPONSE_STYLE = "Balanced"
+LANGUAGE_STYLE = "casual"
 SIGN_OFF = ""
 FOLLOW_UP_QUESTIONS = True
 MEMORY_ENABLED = True
