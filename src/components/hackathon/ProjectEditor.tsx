@@ -1154,7 +1154,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const decoder = new TextDecoder();
       let buffer = '';
       let fullText = '';
-      while (true) {
+      let streamDone = false;
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -1163,14 +1164,28 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           let line = buffer.slice(0, newlineIdx);
           buffer = buffer.slice(newlineIdx + 1);
           if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
+          if (jsonStr === '[DONE]') { streamDone = true; break; }
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) { fullText += content; onChunk(fullText); }
           } catch { /* skip malformed JSON chunk */ }
+        }
+      }
+      // Flush remaining buffer
+      if (buffer.trim()) {
+        for (const raw of buffer.split('\n')) {
+          if (!raw || !raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) { fullText += content; onChunk(fullText); }
+          } catch { /* ignore */ }
         }
       }
       setAiCallCount(prev => prev + 1);
