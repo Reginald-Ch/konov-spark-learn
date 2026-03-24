@@ -261,7 +261,7 @@ const extractConfigFromCode = (code: string) => {
     errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
     knowledgeBaseFromCode: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
     qaPairsFromCode: extractQAPairs(),
-    showReasoning: extractBool(true, 'SHOW_REASONING', 'show_reasoning'),
+    showReasoning: extractBool(false, 'SHOW_REASONING', 'show_reasoning'),
     maxThinkingSteps: extractNumber(5, 'MAX_THINKING_STEPS', 'max_thinking_steps'),
     tools: extractDict('TOOLS', 'tools'),
     toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
