@@ -1643,7 +1643,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const placeholderId = Date.now();
     try {
       let assistantReply = '';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
       const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
@@ -1688,9 +1688,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           assistantReply = text;
           setChatMessages(prev => {
             const updated = [...prev];
-            const idx = updated.findIndex((m: any) => m._id === placeholderId);
+            const idx = updated.findIndex(m => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId } as any;
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId };
             return updated;
           });
         }
