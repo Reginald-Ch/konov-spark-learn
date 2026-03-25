@@ -1701,7 +1701,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId };
             return updated;
           });
-        }
+        },
+        chatController.signal,
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
