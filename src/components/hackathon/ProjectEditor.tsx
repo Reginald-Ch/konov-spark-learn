@@ -1413,10 +1413,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
       { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-      { label: 'RULES', ok: config.conversationRules.length > 3, val: `${config.conversationRules.length} rules` },
-      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length > 4, val: `${config.conversationStarters.length} starters` },
+      { label: 'RULES', ok: config.conversationRules.length >= 3, val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length >= 4, val: `${config.conversationStarters.length} starters` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
-      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length > 2, val: `${config.blockedTopics.length} topics` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length >= 2, val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
       { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0), val: `${Object.keys(config.secretResponses).length} secrets` },
       { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0), val: `${Object.keys(config.moodResponses).length} moods` },
@@ -1522,10 +1522,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaultKB,
       cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
       cfg.temperature !== defaultTemp,
-      cfg.conversationRules.length > 3,
-      cfg.conversationStarters.length > 4,
+      cfg.conversationRules.length >= 3,
+      cfg.conversationStarters.length >= 4,
       cfg.forbiddenWords.length > 0,
-      cfg.blockedTopics.length > 2,
+      cfg.blockedTopics.length >= 2,
       cfg.fewShotExamples.length > 0,
       Object.keys(cfg.secretResponses).length > (isAgent ? 2 : 0),
       Object.keys(cfg.moodResponses).length > (isAgent ? 3 : 0),
@@ -2112,10 +2112,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
                         { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length > 3 },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length > 4 },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length >= 3 },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length >= 4 },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length > 2 },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length >= 2 },
                         { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > 0 },
                         { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0) },
                         { emoji: '🎯', name: 'Mood Responses', done: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0) },
@@ -3110,7 +3110,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               </div>
             )}
             {chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg._id || `chat-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
                   msg.role === 'system'
                     ? 'bg-ide-border text-ide-text-muted italic'
@@ -3123,6 +3123,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
+                    msg.content === '...' && isStreaming ? null : (
                     <div className={`prose prose-invert prose-xs max-w-none [&_p]:m-0 ${
                       projectType === 'agent' && msg.content.includes('**🤔 Thought:**')
                         ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
@@ -3130,6 +3131,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
+                    )
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
                   )}
