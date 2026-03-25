@@ -45,10 +45,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
 
   useEffect(() => {
     if (isOpen) {
-      if (prefillName) setProjectName(prefillName);
-      if (prefillDesc) setDescription(prefillDesc);
-      if (prefillEmail) setAuthorEmail(prefillEmail);
-      if (prefillAuthorName) setAuthorName(prefillAuthorName);
+      setProjectName(prefillName || '');
+      setDescription(prefillDesc || '');
+      setAuthorEmail(prefillEmail || '');
+      setAuthorName(prefillAuthorName || '');
       const isAutoName = prefillAuthorName?.startsWith('Student-') || !prefillAuthorName;
       setShowNameInput(!!isAutoName);
       setDeployStep('form');
