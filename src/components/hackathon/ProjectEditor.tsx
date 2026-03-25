@@ -1145,10 +1145,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   // Stream AI response helper
-  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
+  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal): Promise<string> => {
     const controller = new AbortController();
     const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    // If an external signal is provided, chain it to abort this request too
+    if (externalSignal) {
+      externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
