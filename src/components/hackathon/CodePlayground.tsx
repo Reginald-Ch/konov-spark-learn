@@ -108,8 +108,9 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
       const decoder = new TextDecoder();
       let buffer = '';
       let fullText = '';
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -121,7 +122,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
           if (line.endsWith('\r')) line = line.slice(0, -1);
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
+          if (jsonStr === '[DONE]') { streamDone = true; break; }
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;

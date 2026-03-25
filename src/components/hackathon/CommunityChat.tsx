@@ -152,7 +152,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   const fetchChannels = async () => {
     const { data, error } = await supabase
-      .from('community_channels' as any)
+      .from('community_channels')
       .select('*')
       .order('channel_type')
       .order('name');
@@ -169,7 +169,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   const fetchMessages = async (channelId: string) => {
     const { data, error } = await supabase
-      .from('community_messages' as any)
+      .from('community_messages')
       .select('*')
       .eq('channel_id', channelId)
       .order('created_at', { ascending: true })
@@ -182,7 +182,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   const fetchVoiceParticipants = async (channelId: string) => {
     const { data, error } = await supabase
-      .from('voice_room_participants' as any)
+      .from('voice_room_participants')
       .select('*')
       .eq('channel_id', channelId);
 
@@ -208,7 +208,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
     setIsSending(true);
     const { error } = await supabase
-      .from('community_messages' as any)
+      .from('community_messages')
       .insert({
         channel_id: activeChannel.id,
         sender_name: userName,
@@ -280,7 +280,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
     if (!activeChannel) return;
 
     const { error } = await supabase
-      .from('voice_room_participants' as any)
+      .from('voice_room_participants')
       .insert({
         channel_id: activeChannel.id,
         participant_name: userName,
@@ -300,7 +300,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
     if (!activeChannel) return;
 
     await supabase
-      .from('voice_room_participants' as any)
+      .from('voice_room_participants')
       .delete()
       .eq('channel_id', activeChannel.id)
       .eq('participant_email', userEmail);
