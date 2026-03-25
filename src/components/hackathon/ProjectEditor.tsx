@@ -782,6 +782,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = scaffold.main;
     // Imperatively reset textarea to match new scaffold
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
+    // Immediately update debounced config to prevent stale AI responses
+    setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
     toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
   };
 
@@ -808,6 +810,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setSelectedTheme(THEMES[0]);
     themeSyncRef.current = 'default';
     if (textareaRef.current) textareaRef.current.value = scaffold.main;
+    // Immediately update debounced config to prevent stale AI responses
+    setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
     // Clear project ID on reset so next save creates a fresh project
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
@@ -3033,7 +3037,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               <X className="w-3 h-3" />
             </Button>
             <Button variant="ghost" size="icon"
-              onClick={() => setChatMessages([{ role: 'system', content: '⚡ Preview cleared.' }])}
+              onClick={() => setChatMessages([])}
               className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
               <Trash2 className="w-3 h-3" />
             </Button>

@@ -870,7 +870,11 @@ const ProjectView = () => {
                   }
                 >
                   {msg.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0">
+                    <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
+                      project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
+                        ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
+                        : ''
+                    }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : msg.content}
