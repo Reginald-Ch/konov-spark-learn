@@ -650,7 +650,7 @@ const ProjectView = () => {
                 const updated = [...prev];
                 const idx = updated.findIndex((m: any) => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText };
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId } as any;
                 return updated;
               });
             }
@@ -672,7 +672,7 @@ const ProjectView = () => {
                 const updated = [...prev];
                 const idx = updated.findIndex((m: any) => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText };
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId } as any;
                 return updated;
               });
             }
@@ -878,7 +878,7 @@ const ProjectView = () => {
                 </div>
               </motion.div>
             ))}
-            {isStreaming && chatMessages[chatMessages.length - 1]?.content === '...' && (
+            {isStreaming && !chatMessages.some(m => m.role === 'assistant' && m.content !== '...' && (m as any)._id) && (
               <div className="flex gap-1 pl-2">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: theme.accent, animationDelay: `${i * 0.15}s` }} />
