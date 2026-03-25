@@ -878,7 +878,10 @@ const ProjectView = () => {
                 </div>
               </motion.div>
             ))}
-            {isStreaming && !chatMessages.some(m => m.role === 'assistant' && m.content !== '...' && (m as any)._id) && (
+            {isStreaming && (() => {
+              const lastMsg = chatMessages[chatMessages.length - 1];
+              return lastMsg?.role === 'assistant' && (lastMsg.content === '...' || lastMsg.content === '');
+            })() && (
               <div className="flex gap-1 pl-2">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: theme.accent, animationDelay: `${i * 0.15}s` }} />
