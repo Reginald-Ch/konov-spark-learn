@@ -105,7 +105,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       if (currentProjectId) {
         const { data: updateData, error } = await supabase
           .from('ai_projects')
-          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true, points_earned: 10 })
+          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true })
           .eq('id', currentProjectId)
           .eq('author_email', finalEmail)
           .select('id')
@@ -122,7 +122,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, points_earned: 10 })
+          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true })
           .select('id')
           .single();
         if (error) throw error;

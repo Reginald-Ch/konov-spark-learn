@@ -56,13 +56,15 @@ export const RegistrationModal = ({
       setIsSubmitting(true);
 
       const { error } = await supabase
-        .from('hackathon_registrations' as any)
+        .from('hackathon_registrations')
         .insert({
           hackathon_id: hackathonId,
-          ...validated,
+          participant_name: validated.participant_name,
+          participant_email: validated.participant_email,
+          participant_phone: validated.participant_phone || null,
           skills: validated.skills || null,
           experience_level: validated.experience_level || null,
-          participant_phone: validated.participant_phone || null,
+          looking_for_team: validated.looking_for_team,
         });
 
       if (error) {

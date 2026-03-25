@@ -58,7 +58,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
     
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('hackathon_teams' as any)
+      .from('hackathon_teams')
       .select('*')
       .eq('hackathon_id', hackathonId)
       .order('created_at', { ascending: false });
@@ -82,7 +82,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
       setIsSubmitting(true);
 
       const { error } = await supabase
-        .from('hackathon_teams' as any)
+        .from('hackathon_teams')
         .insert({
           hackathon_id: hackathonId,
           team_name: validated.team_name,
@@ -142,7 +142,7 @@ export const TeamsModal = ({ hackathonId, hackathonTitle, isOpen, onClose }: Tea
 
     try {
       const { error } = await supabase
-        .from('hackathon_registrations' as any)
+        .from('hackathon_registrations')
         .update({ team_id: teamId })
         .eq('hackathon_id', hackathonId)
         .eq('participant_email', email);

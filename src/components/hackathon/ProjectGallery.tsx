@@ -160,7 +160,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                   )}
                     <div className="flex items-center justify-between">
                      <span className="text-xs text-[hsl(var(--discord-text-muted))]">
-                       ⭐ {project.points_earned} pts
+                       {new Date(project.created_at).toLocaleDateString()}
                      </span>
                      <div className="flex gap-2">
                        {currentEmail && currentEmail === project.author_email && (
