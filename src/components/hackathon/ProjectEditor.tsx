@@ -35,12 +35,27 @@ interface ProjectEditorProps {
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  _id?: number;
 }
 
 interface QAPair {
   q: string;
   a: string;
 }
+
+// Shared helper for Response Tone challenge validation
+const isResponseToneCustomized = (
+  responseTone: string,
+  responseToneConditional: Record<string, string>,
+  isAgent: boolean
+): boolean => {
+  const condKeys = Object.keys(responseToneConditional);
+  if (condKeys.length === 0 && responseTone) return true;
+  const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
+  const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
+  const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
+  return condKeys.some(k => responseToneConditional[k] !== defaults[k]);
+};
 
 // Scaffolds imported from ./projectScaffolds
 
@@ -1408,16 +1423,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'RESPONSE_TONE', ok: (() => {
-        const cond = config.responseToneConditional;
-        const condKeys = Object.keys(cond);
-        if (condKeys.length === 0 && config.responseTone) return true;
-        // Compare conditional values against scaffold defaults
-        const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
-        const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
-        const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
-        return condKeys.some(k => cond[k] !== defaults[k]);
-      })(), val: config.responseTone || 'default' },
+      { label: 'RESPONSE_TONE', ok: isResponseToneCustomized(config.responseTone, config.responseToneConditional, isAgent), val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
@@ -1526,15 +1532,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.maxResponseLength !== 'medium',
       cfg.maxTokens !== 512,
       cfg.mood && cfg.mood !== 'neutral',
-      (() => {
-        const cond = cfg.responseToneConditional;
-        const condKeys = Object.keys(cond);
-        if (condKeys.length === 0 && cfg.responseTone) return true;
-        const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
-        const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
-        const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
-        return condKeys.some(k => cond[k] !== defaults[k]);
-      })(),
+      isResponseToneCustomized(cfg.responseTone, cfg.responseToneConditional, isAgent),
       cfg.catchphrases.length > (isAgent ? 3 : 0),
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
@@ -1642,7 +1640,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const placeholderId = Date.now();
     try {
       let assistantReply = '';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
       const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
@@ -1687,9 +1685,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           assistantReply = text;
           setChatMessages(prev => {
             const updated = [...prev];
-            const idx = updated.findIndex((m: any) => m._id === placeholderId);
+            const idx = updated.findIndex(m => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId } as any;
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId };
             return updated;
           });
         }
@@ -2124,7 +2122,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
-                        { emoji: '🎵', name: 'Response Tone', done: (Object.keys(config.responseToneConditional).length > 0) || (config.responseTone !== '' && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical') },
+                        { emoji: '🎵', name: 'Response Tone', done: isResponseToneCustomized(config.responseTone, config.responseToneConditional, isAgent) },
                         { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
                         { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },

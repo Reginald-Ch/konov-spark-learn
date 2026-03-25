@@ -24,6 +24,7 @@ interface Project {
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  _id?: number;
 }
 
 // Token-based Python syntax highlighter
@@ -567,7 +568,7 @@ const ProjectView = () => {
       const history = newMessages
         .filter(m => m.content !== '...')
         .map(m => ({ role: m.role, content: m.content }));
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId } as any]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
@@ -647,9 +648,9 @@ const ProjectView = () => {
               fullText += content;
               setChatMessages(prev => {
                 const updated = [...prev];
-                const idx = updated.findIndex((m: any) => m._id === placeholderId);
+                const idx = updated.findIndex(m => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId } as any;
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId };
                 return updated;
               });
             }
@@ -669,9 +670,9 @@ const ProjectView = () => {
               fullText += content;
               setChatMessages(prev => {
                 const updated = [...prev];
-                const idx = updated.findIndex((m: any) => m._id === placeholderId);
+                const idx = updated.findIndex(m => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId } as any;
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId };
                 return updated;
               });
             }
@@ -821,7 +822,7 @@ const ProjectView = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
-            {chatMessages.length <= 1 && config && (
+            {chatMessages.length === 0 && config && (
               <div className="text-center py-12 space-y-4">
                 <motion.div
                   initial={{ scale: 0 }}
