@@ -88,8 +88,9 @@ export const BotBattleArena = () => {
     const decoder = new TextDecoder();
     let buffer = '';
     let fullText = '';
+    let streamDone = false;
     
-    while (true) {
+    while (!streamDone) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -100,7 +101,7 @@ export const BotBattleArena = () => {
         if (line.endsWith('\r')) line = line.slice(0, -1);
         if (!line.startsWith('data: ')) continue;
         const jsonStr = line.slice(6).trim();
-        if (jsonStr === '[DONE]') break;
+        if (jsonStr === '[DONE]') { streamDone = true; break; }
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content;
@@ -262,7 +263,7 @@ export const BotBattleArena = () => {
               
               return (
                 <motion.div
-                  key={i}
+                  key={`${msg.speaker}-${i}`}
                   initial={{ opacity: 0, x: isBot1 ? -20 : 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
