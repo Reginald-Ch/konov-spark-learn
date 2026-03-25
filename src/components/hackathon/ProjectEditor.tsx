@@ -1404,7 +1404,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'RESPONSE_TONE', ok: (Object.keys(config.responseToneConditional).length > 0) || (config.responseTone !== '' && config.responseTone !== 'energetic and cheerful' && config.responseTone !== 'sharp and analytical'), val: config.responseTone || 'default' },
+      { label: 'RESPONSE_TONE', ok: (() => {
+        const cond = config.responseToneConditional;
+        const condKeys = Object.keys(cond);
+        if (condKeys.length === 0 && config.responseTone) return true;
+        // Compare conditional values against scaffold defaults
+        const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
+        const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
+        const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
+        return condKeys.some(k => cond[k] !== defaults[k]);
+      })(), val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
@@ -1513,7 +1522,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.maxResponseLength !== 'medium',
       cfg.maxTokens !== 512,
       cfg.mood && cfg.mood !== 'neutral',
-      (Object.keys(cfg.responseToneConditional).length > 0) || (cfg.responseTone !== '' && cfg.responseTone !== 'energetic and cheerful' && cfg.responseTone !== 'sharp and analytical'),
+      (() => {
+        const cond = cfg.responseToneConditional;
+        const condKeys = Object.keys(cond);
+        if (condKeys.length === 0 && cfg.responseTone) return true;
+        const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
+        const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
+        const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
+        return condKeys.some(k => cond[k] !== defaults[k]);
+      })(),
       cfg.catchphrases.length > (isAgent ? 3 : 0),
       cfg.voiceEnabled === true,
       cfg.voiceMode !== 'push-to-talk',
@@ -1668,7 +1685,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const updated = [...prev];
             const idx = updated.findIndex((m: any) => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text };
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId } as any;
             return updated;
           });
         }
