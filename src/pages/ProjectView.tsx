@@ -24,7 +24,7 @@ interface Project {
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  _id?: string;
+  _id?: number;
 }
 
 // Token-based Python syntax highlighter

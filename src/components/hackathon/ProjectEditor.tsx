@@ -35,7 +35,7 @@ interface ProjectEditorProps {
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  _id?: string;
+  _id?: number;
 }
 
 interface QAPair {
