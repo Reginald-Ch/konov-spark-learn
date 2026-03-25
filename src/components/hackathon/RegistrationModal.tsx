@@ -56,7 +56,7 @@ export const RegistrationModal = ({
       setIsSubmitting(true);
 
       const { error } = await supabase
-        .from('hackathon_registrations' as any)
+        .from('hackathon_registrations')
         .insert({
           hackathon_id: hackathonId,
           ...validated,

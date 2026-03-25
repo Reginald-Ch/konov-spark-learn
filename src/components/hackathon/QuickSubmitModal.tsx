@@ -65,7 +65,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
   const fetchHackathons = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('hackathons' as any)
+      .from('hackathons')
       .select('id, title, status')
       .in('status', ['live', 'upcoming'])
       .order('start_date');
@@ -78,7 +78,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
 
   const fetchTeams = async (hackathonId: string) => {
     const { data, error } = await supabase
-      .from('hackathon_teams' as any)
+      .from('hackathon_teams')
       .select('id, team_name, hackathon_id')
       .eq('hackathon_id', hackathonId)
       .order('team_name');
@@ -105,7 +105,7 @@ export const QuickSubmitModal = ({ isOpen, onClose, onSuccess }: QuickSubmitModa
       setIsSubmitting(true);
 
       const { error } = await supabase
-        .from('hackathon_submissions' as any)
+        .from('hackathon_submissions')
         .insert({
           hackathon_id: selectedHackathonId,
           team_id: selectedTeamId,
