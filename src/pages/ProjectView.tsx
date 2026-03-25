@@ -273,7 +273,8 @@ const ProjectView = () => {
       errorMessage: extract('', 'ERROR_MESSAGE', 'error_message'),
       knowledgeBase: extract('', 'KNOWLEDGE_BASE', 'knowledge_base'),
       qaPairs: extractQAPairs(),
-      showReasoning: extractBool(true, 'SHOW_REASONING', 'show_reasoning'),
+      showReasoning: extractBool(false, 'SHOW_REASONING', 'show_reasoning'),
+      tools: extractDict('TOOLS', 'tools'),
       toolInstructions: extractDict('TOOL_INSTRUCTIONS', 'tool_instructions'),
       forbiddenWords: extractList('FORBIDDEN_WORDS', 'forbidden_words'),
       mood: extract('neutral', 'MOOD', 'mood'),
@@ -560,7 +561,7 @@ const ProjectView = () => {
     setIsStreaming(true);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
     const placeholderId = Date.now();
 
     try {
@@ -602,6 +603,7 @@ const ProjectView = () => {
               followUpQuestions: config.followUpQuestions,
               rememberName: config.rememberName,
               showReasoning: config.showReasoning,
+              tools: config.tools,
               toolInstructions: config.toolInstructions,
               forbiddenWords: config.forbiddenWords,
               mood: config.mood,
@@ -624,8 +626,9 @@ const ProjectView = () => {
       const decoder = new TextDecoder();
       let buffer = '';
       let fullText = '';
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -634,9 +637,10 @@ const ProjectView = () => {
           let line = buffer.slice(0, newlineIdx);
           buffer = buffer.slice(newlineIdx + 1);
           if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
+          if (jsonStr === '[DONE]') { streamDone = true; break; }
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
@@ -651,6 +655,28 @@ const ProjectView = () => {
               });
             }
           } catch { /* partial JSON */ }
+        }
+      }
+      // Flush remaining buffer
+      if (buffer.trim()) {
+        for (const raw of buffer.split('\n')) {
+          if (!raw || !raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              setChatMessages(prev => {
+                const updated = [...prev];
+                const idx = updated.findIndex((m: any) => m._id === placeholderId);
+                const targetIdx = idx !== -1 ? idx : updated.length - 1;
+                updated[targetIdx] = { role: 'assistant', content: fullText };
+                return updated;
+              });
+            }
+          } catch { /* ignore */ }
         }
       }
       // TTS: Speak the response if voice is enabled
