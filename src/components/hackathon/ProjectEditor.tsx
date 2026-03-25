@@ -513,6 +513,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevLevelRef = useRef<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatAbortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1268,6 +1269,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (!last.isFinal) return;
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
+      // Reset retry counter on successful speech to prevent premature voice shutdown
+      retryCountRef.current = 0;
 
       if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
@@ -1637,6 +1640,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
+    // Abort any in-flight chat request to prevent garbled output
+    if (chatAbortRef.current) chatAbortRef.current.abort();
+    const chatController = new AbortController();
+    chatAbortRef.current = chatController;
     const placeholderId = Date.now();
     try {
       let assistantReply = '';
@@ -1699,6 +1706,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
+      if (e?.name === 'AbortError' || e?.message?.includes('aborted')) return; // User sent a new message
       // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
@@ -1711,7 +1719,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         updated.push({ role: 'system', content: `❌ ${e.message}` });
         return updated;
       });
-    } finally { setIsStreaming(false); }
+    } finally { setIsStreaming(false); chatAbortRef.current = null; }
   };
   handleChatSendRef.current = handleChatSend;
 
@@ -1781,10 +1789,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setShowBottomPanel(true);
     setBottomTab('ai-mentor');
     
-    // Add user message to mentor display
-    const newHistory = [...mentorHistory, { role: 'user', content: question }];
+    // Add user message to mentor display (cap history to last 20 messages to prevent huge payloads)
+    const cappedHistory = mentorHistory.length > 18 ? mentorHistory.slice(-18) : mentorHistory;
+    const newHistory = [...cappedHistory, { role: 'user', content: question }];
     setMentorHistory(newHistory);
-    setAiOutput(prev => prev + '\n\n──────\n\n**You:** ' + question + '\n\n');
+    const MENTOR_SEP = '\n\n─── ✦ ───\n\n';
+    setAiOutput(prev => prev + MENTOR_SEP + '**You:** ' + question + '\n\n');
     
     try {
       let assistantReply = '';
@@ -1800,11 +1810,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         },
         (text) => {
           assistantReply = text;
-          // Use a unique separator that won't appear in AI output
-          const SEP = '\n\n──────\n\n';
+          const MSEP = '\n\n─── ✦ ───\n\n';
           setAiOutput(prev => {
-            const sepIdx = prev.lastIndexOf(SEP);
-            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + SEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+            const sepIdx = prev.lastIndexOf(MSEP);
+            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + MSEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
             return prefix + text;
           });
         }
@@ -2984,6 +2993,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <div className="font-mono text-xs text-ide-green space-y-0.5">
                       {terminalOutput.map((line, i) => <div key={i}>{line}</div>)}
                       {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
+                      {terminalOutput.length > 0 && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(terminalOutput.join('\n'));
+                            toast.success('Terminal output copied!');
+                          }}
+                          className="mt-2 text-[10px] text-ide-text-muted hover:text-ide-accent transition-colors"
+                        >
+                          📋 Copy All
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-ide-text flex flex-col h-full">
