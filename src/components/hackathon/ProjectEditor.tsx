@@ -513,7 +513,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const prevLevelRef = useRef<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const chatAbortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1144,12 +1143,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setQaData(prev => prev.map((pair, i) => i === idx ? { ...pair, [field]: value } : pair));
   };
 
+  // Abort ref for cancelling in-flight chat/mentor requests
+  const chatAbortRef = useRef<AbortController | null>(null);
+
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal): Promise<string> => {
     const controller = new AbortController();
     const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    // If an external signal is provided, chain it to abort this request too
+    // If an external signal is provided, abort the internal controller when it fires
     if (externalSignal) {
       externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
     }
@@ -1273,7 +1275,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (!last.isFinal) return;
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
-      // Reset retry counter on successful speech to prevent premature voice shutdown
+      // Reset retry counter on any successful recognition result
       retryCountRef.current = 0;
 
       if (isWakeWordMode && waitingForWakeWordRef.current) {
@@ -1570,6 +1572,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
     if (!msg || isStreaming) return;
+    // Cancel any in-flight chat stream
+    if (chatAbortRef.current) { chatAbortRef.current.abort(); chatAbortRef.current = null; }
+    const abortCtl = new AbortController();
+    chatAbortRef.current = abortCtl;
     const userMsg = msg;
     setChatInput('');
 
@@ -1644,10 +1650,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
-    // Abort any in-flight chat request to prevent garbled output
-    if (chatAbortRef.current) chatAbortRef.current.abort();
-    const chatController = new AbortController();
-    chatAbortRef.current = chatController;
     const placeholderId = Date.now();
     try {
       let assistantReply = '';
@@ -1702,7 +1704,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             return updated;
           });
         },
-        chatController.signal,
+        abortCtl.signal,
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
@@ -1711,7 +1713,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
-      if (e?.name === 'AbortError' || e?.message?.includes('aborted')) return; // User sent a new message
+      if (e?.name === 'AbortError' || e?.message?.includes('aborted')) {
+        // User triggered new message — silently discard
+        return;
+      }
       // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
@@ -1794,9 +1799,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setShowBottomPanel(true);
     setBottomTab('ai-mentor');
     
-    // Add user message to mentor display (cap history to last 20 messages to prevent huge payloads)
-    const cappedHistory = mentorHistory.length > 18 ? mentorHistory.slice(-18) : mentorHistory;
-    const newHistory = [...cappedHistory, { role: 'user', content: question }];
+    // Add user message to mentor display (cap history to 20 messages to prevent huge payloads)
+    const trimmedHistory = mentorHistory.length > 18 ? mentorHistory.slice(-18) : mentorHistory;
+    const newHistory = [...trimmedHistory, { role: 'user', content: question }];
     setMentorHistory(newHistory);
     const MENTOR_SEP = '\n\n─── ✦ ───\n\n';
     setAiOutput(prev => prev + MENTOR_SEP + '**You:** ' + question + '\n\n');
@@ -1815,10 +1820,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         },
         (text) => {
           assistantReply = text;
-          const MSEP = '\n\n─── ✦ ───\n\n';
+          // Use a unique separator that won't appear in AI output
+          const SEP = '\n\n─── ✦ ───\n\n';
           setAiOutput(prev => {
-            const sepIdx = prev.lastIndexOf(MSEP);
-            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + MSEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
+            const sepIdx = prev.lastIndexOf(SEP);
+            const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + SEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
             return prefix + text;
           });
         }
@@ -2998,17 +3004,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <div className="font-mono text-xs text-ide-green space-y-0.5">
                       {terminalOutput.map((line, i) => <div key={i}>{line}</div>)}
                       {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
-                      {terminalOutput.length > 0 && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(terminalOutput.join('\n'));
-                            toast.success('Terminal output copied!');
-                          }}
-                          className="mt-2 text-[10px] text-ide-text-muted hover:text-ide-accent transition-colors"
-                        >
-                          📋 Copy All
-                        </button>
-                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-ide-text flex flex-col h-full">

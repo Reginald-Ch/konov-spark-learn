@@ -160,7 +160,13 @@ Response (JSON array only):`;
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return { toolResults: "", toolsUsed: [] };
     
-    const toolCalls = JSON.parse(jsonMatch[0]);
+    let toolCalls: any[];
+    try {
+      toolCalls = JSON.parse(jsonMatch[0]);
+    } catch {
+      console.error("Failed to parse tool routing JSON:", jsonMatch[0].slice(0, 200));
+      return { toolResults: "", toolsUsed: [] };
+    }
     if (!Array.isArray(toolCalls) || toolCalls.length === 0) return { toolResults: "", toolsUsed: [] };
     
     // Execute tools in parallel
