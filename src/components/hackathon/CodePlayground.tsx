@@ -72,12 +72,20 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
     toast.success('Opening Google Colab — paste your code there!');
   };
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const handleAiAssist = async (action: string, customInput?: string) => {
     const input = customInput || code;
     if (!input.trim()) {
       toast.error('Write some code or describe your idea first!');
       return;
     }
+
+    // Abort any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setIsAiLoading(true);
     setActiveAiAction(action);
     setAiOutput('');
@@ -92,6 +100,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ code: input, model: selectedModel, action }),
+          signal: controller.signal,
         }
       );
 
@@ -109,11 +118,14 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
       let buffer = '';
       let fullText = '';
       let streamDone = false;
+      let parseRetries = 0;
+      const MAX_PARSE_RETRIES = 3;
 
       while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
+        parseRetries = 0; // Reset retries on new data
 
         let newlineIdx: number;
         while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
@@ -130,9 +142,18 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
               fullText += content;
               setAiOutput(fullText);
             }
+            parseRetries = 0;
           } catch {
-            buffer = line + '\n' + buffer;
-            break;
+            parseRetries++;
+            if (parseRetries >= MAX_PARSE_RETRIES) {
+              // Skip genuinely malformed line after retries
+              console.warn('Skipping malformed SSE line:', line.slice(0, 100));
+              parseRetries = 0;
+            } else {
+              // Partial JSON - put back and wait for more data
+              buffer = line + '\n' + buffer;
+              break;
+            }
           }
         }
       }
@@ -145,12 +166,14 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
           toast.success('✨ Code generated from your idea!');
         }
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'AbortError') return; // User triggered new action
       console.error(e);
       toast.error('Failed to connect to AI assistant');
     } finally {
       setIsAiLoading(false);
       setActiveAiAction(null);
+      abortRef.current = null;
     }
   };
 
