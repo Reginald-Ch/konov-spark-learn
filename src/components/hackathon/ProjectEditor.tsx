@@ -1143,11 +1143,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setQaData(prev => prev.map((pair, i) => i === idx ? { ...pair, [field]: value } : pair));
   };
 
+  // Abort ref for cancelling in-flight chat/mentor requests
+  const chatAbortRef = useRef<AbortController | null>(null);
+
   // Stream AI response helper
-  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
+  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal): Promise<string> => {
     const controller = new AbortController();
     const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    // If an external signal is provided, abort the internal controller when it fires
+    if (externalSignal) {
+      externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
@@ -1268,6 +1275,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (!last.isFinal) return;
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
+      // Reset retry counter on any successful recognition result
+      retryCountRef.current = 0;
 
       if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
@@ -1563,6 +1572,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
     if (!msg || isStreaming) return;
+    // Cancel any in-flight chat stream
+    if (chatAbortRef.current) { chatAbortRef.current.abort(); chatAbortRef.current = null; }
+    const abortCtl = new AbortController();
+    chatAbortRef.current = abortCtl;
     const userMsg = msg;
     setChatInput('');
 
@@ -1690,7 +1703,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId };
             return updated;
           });
-        }
+        },
+        abortCtl.signal,
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
@@ -1699,6 +1713,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Recognition is in continuous mode — already listening
       }
     } catch (e: any) {
+      if (e?.name === 'AbortError' || e?.message?.includes('aborted')) {
+        // User triggered new message — silently discard
+        return;
+      }
       // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
@@ -1711,7 +1729,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         updated.push({ role: 'system', content: `❌ ${e.message}` });
         return updated;
       });
-    } finally { setIsStreaming(false); }
+    } finally { setIsStreaming(false); chatAbortRef.current = null; }
   };
   handleChatSendRef.current = handleChatSend;
 
@@ -1781,10 +1799,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setShowBottomPanel(true);
     setBottomTab('ai-mentor');
     
-    // Add user message to mentor display
-    const newHistory = [...mentorHistory, { role: 'user', content: question }];
+    // Add user message to mentor display (cap history to 20 messages to prevent huge payloads)
+    const trimmedHistory = mentorHistory.length > 18 ? mentorHistory.slice(-18) : mentorHistory;
+    const newHistory = [...trimmedHistory, { role: 'user', content: question }];
     setMentorHistory(newHistory);
-    setAiOutput(prev => prev + '\n\n──────\n\n**You:** ' + question + '\n\n');
+    const MENTOR_SEP = '\n\n─── ✦ ───\n\n';
+    setAiOutput(prev => prev + MENTOR_SEP + '**You:** ' + question + '\n\n');
     
     try {
       let assistantReply = '';
@@ -1801,7 +1821,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         (text) => {
           assistantReply = text;
           // Use a unique separator that won't appear in AI output
-          const SEP = '\n\n──────\n\n';
+          const SEP = '\n\n─── ✦ ───\n\n';
           setAiOutput(prev => {
             const sepIdx = prev.lastIndexOf(SEP);
             const prefix = sepIdx !== -1 ? prev.slice(0, sepIdx) + SEP + '**You:** ' + question + '\n\n' : '**You:** ' + question + '\n\n';
