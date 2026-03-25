@@ -1146,7 +1146,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void): Promise<string> => {
     const controller = new AbortController();
-    const timeoutMs = (body as any).action === 'test-agent' ? 60000 : 60000;
+    const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(
@@ -1702,7 +1702,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // Remove the placeholder before adding error — find by _id for robustness
       setChatMessages(prev => {
         const updated = [...prev];
-        const idx = updated.findIndex((m: any) => m._id === placeholderId);
+        const idx = updated.findIndex(m => m._id === placeholderId);
         if (idx !== -1) {
           updated.splice(idx, 1);
         } else if (updated.length > 0 && updated[updated.length - 1].role === 'assistant' && updated[updated.length - 1].content === '...') {
