@@ -299,10 +299,9 @@ const ProjectView = () => {
   }, [project]);
 
   // Send greeting as first message when config loads or after reset
-  const greetingFiredRef = useRef(false);
   useEffect(() => {
     if (!config) return;
-    if (chatMessages.length > 0) { greetingFiredRef.current = true; return; }
+    if (chatMessages.length > 0) return;
     // Fire greeting on first load OR after a reset (chatMessages became empty)
     const greeting = config.greeting || `Hi! I'm ${config.botName}. How can I help you?`;
     setChatMessages([{ role: 'assistant', content: greeting }]);
