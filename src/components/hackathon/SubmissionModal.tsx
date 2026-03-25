@@ -64,7 +64,7 @@ export const SubmissionModal = ({
     
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('hackathon_teams' as any)
+      .from('hackathon_teams')
       .select('id, team_name')
       .eq('hackathon_id', hackathonId)
       .order('team_name');
@@ -94,7 +94,7 @@ export const SubmissionModal = ({
       setIsSubmitting(true);
 
       const { error } = await supabase
-        .from('hackathon_submissions' as any)
+        .from('hackathon_submissions')
         .insert({
           hackathon_id: hackathonId,
           team_id: selectedTeamId,
