@@ -43,6 +43,20 @@ interface QAPair {
   a: string;
 }
 
+// Shared helper for Response Tone challenge validation
+const isResponseToneCustomized = (
+  responseTone: string,
+  responseToneConditional: Record<string, string>,
+  isAgent: boolean
+): boolean => {
+  const condKeys = Object.keys(responseToneConditional);
+  if (condKeys.length === 0 && responseTone) return true;
+  const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
+  const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
+  const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
+  return condKeys.some(k => responseToneConditional[k] !== defaults[k]);
+};
+
 // Scaffolds imported from ./projectScaffolds
 
 // Theme options for student customization
@@ -692,18 +706,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
   }, [isDirty]);
 
-const isResponseToneCustomized = (
-  responseTone: string,
-  responseToneConditional: Record<string, string>,
-  isAgent: boolean
-): boolean => {
-  const condKeys = Object.keys(responseToneConditional);
-  if (condKeys.length === 0 && responseTone) return true;
-  const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
-  const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
-  const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
-  return condKeys.some(k => responseToneConditional[k] !== defaults[k]);
-};
 
   const prevSystemPromptRef = useRef(systemPrompt);
   useEffect(() => {
