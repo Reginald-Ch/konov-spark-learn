@@ -373,6 +373,9 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
       if (cfg.signOff && cfg.signOff.trim()) {
         botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
       }
+      if (cfg.errorMessage && cfg.errorMessage.trim()) {
+        botConfigContext += `\n\n⚠️ ERROR MESSAGE — When you cannot answer a question or encounter confusion, respond with: "${cfg.errorMessage}"`;
+      }
     }
 
     if (action === "run") {
