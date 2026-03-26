@@ -367,7 +367,7 @@ const Resources = () => {
                           </p>
                         </div>
 
-                        {/* Activities */}
+                         {/* Activities */}
                         <div className="bg-accent/20 rounded-xl p-3 border-2 border-accent/30">
                           <span className="font-fredoka font-bold text-accent text-sm">
                             🎮 ACTIVITIES:
@@ -381,6 +381,9 @@ const Resources = () => {
                             ))}
                           </ul>
                         </div>
+
+                        {/* Inline Quiz */}
+                        <AIQuiz topicId={topic.id} />
                       </motion.div>
 
                       {/* Expand Button */}
