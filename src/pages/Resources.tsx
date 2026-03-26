@@ -11,8 +11,10 @@ import {
   Rocket, CheckCircle2, Heart, Code, Bot, 
   Database, Eye, MessageSquare, 
   Gamepad2,
-  ChevronRight, Play
+  ChevronRight, Play, ExternalLink
 } from "lucide-react";
+import { AIQuiz } from "@/components/resources/AIQuiz";
+import { ConceptMatch } from "@/components/resources/ConceptMatch";
 import { useState } from "react";
 import { SignupModal } from "@/components/SignupModal";
 import { SEO, createBreadcrumbSchema } from "@/components/SEO";
