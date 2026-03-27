@@ -73,7 +73,7 @@ function calculate(expression: string): string {
   try {
     // Safe math evaluation — only allow numbers, operators, parentheses, and math functions
     // Strip anything that isn't a number, operator, parenthesis, or a known math word
-    const allowedWords = ['sqrt', 'pi', 'log', 'sin', 'cos', 'tan', 'abs', 'pow', 'min', 'max', 'floor', 'ceil', 'round'];
+    const allowedWords = ['sqrt', 'pi', 'log', 'sin', 'cos', 'tan', 'abs', 'pow', 'min', 'max', 'floor', 'ceil', 'round', 'e'];
     const sanitized = expression.replace(new RegExp(`(?:${allowedWords.join('|')})|[0-9+\\-*/().,%^\\s]|.`, 'g'), (match) => {
       if (allowedWords.includes(match) || /[0-9+\-*/().,%^\s]/.test(match)) return match;
       return '';
