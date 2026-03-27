@@ -73,7 +73,7 @@ function calculate(expression: string): string {
   try {
     // Safe math evaluation — only allow numbers, operators, parentheses, and math functions
     // Strip anything that isn't a number, operator, parenthesis, or a known math word
-    const allowedWords = ['sqrt', 'pi', 'log', 'sin', 'cos', 'tan', 'abs', 'pow', 'min', 'max', 'floor', 'ceil', 'round'];
+    const allowedWords = ['sqrt', 'pi', 'log', 'sin', 'cos', 'tan', 'abs', 'pow', 'min', 'max', 'floor', 'ceil', 'round', 'e'];
     const sanitized = expression.replace(new RegExp(`(?:${allowedWords.join('|')})|[0-9+\\-*/().,%^\\s]|.`, 'g'), (match) => {
       if (allowedWords.includes(match) || /[0-9+\-*/().,%^\s]/.test(match)) return match;
       return '';
@@ -369,6 +369,12 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
             botConfigContext += `  - When time is "${condition}": respond with tone "${tone}"\n`;
           }
         }
+      }
+      if (cfg.timeOfDay) {
+        botConfigContext += `\n\n🕐 CURRENT TIME OF DAY: "${cfg.timeOfDay}" — Use this to determine conditional tone routing above.`;
+      }
+      if (cfg.greeting) {
+        botConfigContext += `\nYour configured greeting message is: "${cfg.greeting}". If asked what you say when starting a conversation, reference this.`;
       }
       if (cfg.signOff && cfg.signOff.trim()) {
         botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
