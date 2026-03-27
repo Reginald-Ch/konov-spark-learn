@@ -370,6 +370,12 @@ IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis f
           }
         }
       }
+      if (cfg.timeOfDay) {
+        botConfigContext += `\n\n🕐 CURRENT TIME OF DAY: "${cfg.timeOfDay}" — Use this to determine conditional tone routing above.`;
+      }
+      if (cfg.greeting) {
+        botConfigContext += `\nYour configured greeting message is: "${cfg.greeting}". If asked what you say when starting a conversation, reference this.`;
+      }
       if (cfg.signOff && cfg.signOff.trim()) {
         botConfigContext += `\n\n✍️ SIGN-OFF — End EVERY response with: "${cfg.signOff}"`;
       }
