@@ -291,6 +291,7 @@ const ProjectView = () => {
       moodResponses: extractDict('MOOD_RESPONSES', 'mood_responses'),
       responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
       responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
+      timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
     };
   };
 
@@ -614,6 +615,9 @@ const ProjectView = () => {
               moodResponses: config.moodResponses,
               responseTone: config.responseTone,
               responseToneConditional: config.responseToneConditional,
+              errorMessage: config.errorMessage,
+              timeOfDay: config.timeOfDay,
+              greeting: config.greeting,
             },
           }),
           signal: controller.signal,
@@ -858,7 +862,7 @@ const ProjectView = () => {
             )}
             {chatMessages.map((msg, i) => (
               <motion.div
-                key={i}
+                key={msg._id || `chat-${i}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -871,6 +875,7 @@ const ProjectView = () => {
                   }
                 >
                   {msg.role === 'assistant' ? (
+                    msg.content === '...' && isStreaming ? null : (
                     <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
                       project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
                         ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
@@ -878,6 +883,7 @@ const ProjectView = () => {
                     }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
+                    )
                   ) : msg.content}
                 </div>
               </motion.div>
