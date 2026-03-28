@@ -301,12 +301,19 @@ const ProjectView = () => {
   }, [project]);
 
   // Send greeting as first message when config loads or after reset
+  // Delay slightly so the welcome screen with conversation starters is visible
   useEffect(() => {
     if (!config) return;
     if (chatMessages.length > 0) return;
-    // Fire greeting on first load OR after a reset (chatMessages became empty)
     const greeting = config.greeting || `Hi! I'm ${config.botName}. How can I help you?`;
-    setChatMessages([{ role: 'assistant', content: greeting }]);
+    const timer = setTimeout(() => {
+      setChatMessages(prev => {
+        // Only add greeting if still empty (user may have clicked a starter)
+        if (prev.length > 0) return prev;
+        return [{ role: 'assistant', content: greeting }];
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [config, chatMessages.length]);
 
   const theme = useMemo(() => {
@@ -557,8 +564,11 @@ const ProjectView = () => {
     }
 
     // 4. AI-powered response for everything else
-    const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: userMsg }];
-    setChatMessages(newMessages);
+    let newMessages: ChatMessage[] = [];
+    setChatMessages(prev => {
+      newMessages = [...prev, { role: 'user', content: userMsg }];
+      return newMessages;
+    });
     setIsStreaming(true);
 
     const controller = new AbortController();
@@ -860,34 +870,36 @@ const ProjectView = () => {
                 </div>
               </div>
             )}
-            {chatMessages.map((msg, i) => (
-              <motion.div
-                key={msg._id || `chat-${i}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
-                  style={
-                    msg.role === 'user'
-                      ? { backgroundColor: theme.accent, color: '#fff', borderBottomRightRadius: '4px' }
-                      : { backgroundColor: `${theme.accent}18`, border: `1px solid ${theme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
-                  }
+            {chatMessages.map((msg, i) => {
+              // Skip rendering the placeholder bubble entirely during streaming
+              if (msg.content === '...' && isStreaming && msg.role === 'assistant') return null;
+              return (
+                <motion.div
+                  key={msg._id || `chat-${i}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {msg.role === 'assistant' ? (
-                    msg.content === '...' && isStreaming ? null : (
-                    <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
-                      project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
-                        ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
-                        : ''
-                    }`}>
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                    )
-                  ) : msg.content}
-                </div>
-              </motion.div>
-            ))}
+                  <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+                    style={
+                      msg.role === 'user'
+                        ? { backgroundColor: theme.accent, color: '#fff', borderBottomRightRadius: '4px' }
+                        : { backgroundColor: `${theme.accent}18`, border: `1px solid ${theme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
+                    }
+                  >
+                    {msg.role === 'assistant' ? (
+                      <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
+                        project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
+                          ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
+                          : ''
+                      }`}>
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : msg.content}
+                  </div>
+                </motion.div>
+              );
+            })}
             {isStreaming && (() => {
               const lastMsg = chatMessages[chatMessages.length - 1];
               return lastMsg?.role === 'assistant' && (lastMsg.content === '...' || lastMsg.content === '');
