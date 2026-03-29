@@ -3132,7 +3132,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 </div>
               </div>
             )}
-            {chatMessages.map((msg, i) => (
+            {chatMessages.map((msg, i) => {
+              // Skip rendering the entire bubble for placeholder during streaming
+              if (msg.role === 'assistant' && msg.content === '...' && isStreaming) return null;
+              return (
               <div key={msg._id || `chat-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
                   msg.role === 'system'
@@ -3146,7 +3149,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
-                    msg.content === '...' && isStreaming ? null : (
                     <div className={`prose prose-invert prose-xs max-w-none [&_p]:m-0 ${
                       projectType === 'agent' && msg.content.includes('**🤔 Thought:**')
                         ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
@@ -3154,13 +3156,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     }`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
-                    )
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
             {isStreaming && (() => { const last = chatMessages[chatMessages.length - 1]; return last?.role === 'assistant' && (last.content === '...' || last.content === ''); })() && (
               <div className="flex justify-start">
                 <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
