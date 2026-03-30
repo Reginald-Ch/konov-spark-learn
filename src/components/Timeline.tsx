@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { BookOpen, Palette, Laptop, GraduationCap } from "lucide-react";
 import { Button } from "./ui/button";
 import { ComicPanel } from "./ComicPanel";
-import { useRef } from "react";
+import { forwardRef, useRef } from "react";
 
 const timelineEvents = [
   {
@@ -35,7 +35,7 @@ const timelineEvents = [
   },
 ];
 
-export const Timeline = () => {
+export const Timeline = forwardRef<HTMLDivElement>((_, _ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -161,4 +161,5 @@ export const Timeline = () => {
       </div>
     </section>
   );
-};
+});
+Timeline.displayName = "Timeline";

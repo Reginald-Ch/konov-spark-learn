@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { forwardRef, ReactNode } from "react";
 
 interface ComicPanelProps {
   children: ReactNode;
@@ -8,12 +8,12 @@ interface ComicPanelProps {
   delay?: number;
 }
 
-export const ComicPanel = ({ 
+export const ComicPanel = forwardRef<HTMLDivElement, ComicPanelProps>(({ 
   children, 
   color = "default", 
   className = "",
   delay = 0 
-}: ComicPanelProps) => {
+}, _ref) => {
   const borderClass = {
     primary: "comic-border-primary",
     secondary: "comic-border-secondary",
@@ -38,4 +38,5 @@ export const ComicPanel = ({
       {children}
     </motion.div>
   );
-};
+});
+ComicPanel.displayName = "ComicPanel";

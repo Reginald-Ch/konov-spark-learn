@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, Lightbulb, Trophy } from "lucide-react";
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 
-export const SuccessStories = () => {
+export const SuccessStories = forwardRef<HTMLElement>((_, _ref) => {
   const [activeStory, setActiveStory] = useState(0);
 
   const stories = [
@@ -148,4 +148,5 @@ export const SuccessStories = () => {
       </div>
     </section>
   );
-};
+});
+SuccessStories.displayName = "SuccessStories";
