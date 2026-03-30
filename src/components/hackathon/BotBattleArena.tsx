@@ -193,13 +193,13 @@ export const BotBattleArena = () => {
                   <p className="text-white font-medium">{extractBotName(selected.code)}</p>
                   <p className="text-xs text-[hsl(var(--discord-text-muted))]">by {selected.author_name}</p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setSelected(null)} className="text-[hsl(var(--discord-text-muted))]">
+                <Button size="sm" variant="ghost" onClick={() => setSelected(null)} disabled={isBattling} className="text-[hsl(var(--discord-text-muted))]">
                   <RotateCcw className="w-3 h-3" />
                 </Button>
               </div>
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
-                {projects.map(p => (
+                {projects.filter(p => p.id !== (label === 'Challenger 1' ? bot2?.id : bot1?.id)).map(p => (
                   <button
                     key={p.id}
                     onClick={() => setSelected(p)}
@@ -279,7 +279,7 @@ export const BotBattleArena = () => {
                     {!isAnnouncement && (
                       <p className="text-[10px] font-bold mb-1" style={{ color: isBot1 ? '#5865F2' : '#ED4245' }}>{botName}</p>
                     )}
-                    <p className="text-sm text-white/90">{msg.content}</p>
+                    <p className="text-sm text-white/90" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                   </div>
                 </motion.div>
               );
