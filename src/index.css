@@ -85,6 +85,11 @@ All colors MUST be HSL.
     --ide-selection: 220 13% 28%;
     --ide-cursor: 221 100% 66%;
   }
+
+  /* Builder Mode - Modern/sleek for teens */
+  [data-ui-mode="builder"] {
+    --radius: 0.5rem;
+  }
 }
 
 @layer base {
