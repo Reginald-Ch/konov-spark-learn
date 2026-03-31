@@ -53,23 +53,32 @@ export const Navbar = () => {
             </Link>
 
             {/* Desktop Nav Links */}
-            <div className="hidden md:flex items-center gap-6">
-              {navLinks.map((link, idx) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  className={`font-fredoka font-medium text-lg transition-all duration-300 relative group ${
-                    location.pathname === link.path 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {link.name}
-                  <span className={`absolute -bottom-1 left-0 h-1 bg-primary rounded-full transition-all duration-300 ${
-                    location.pathname === link.path ? "w-full" : "w-0 group-hover:w-full"
-                  }`} />
-                </Link>
-              ))}
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const isActive = location.pathname === link.path;
+                return (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group"
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="navbar-active"
+                        className="absolute inset-0 bg-primary/10 rounded-xl border-2 border-primary/20"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    <span className={`relative z-10 transition-colors duration-200 ${
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-foreground"
+                    }`}>
+                      {link.name}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
 
             {/* CTA Button */}

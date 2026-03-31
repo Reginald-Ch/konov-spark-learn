@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { toast } from "sonner";
+import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "./components/PageTransition";
 import Index from "./pages/Index";
 import Community from "./pages/Community";
 import ProgramsPage from "./pages/ProgramsPage";
@@ -18,6 +20,26 @@ import JudgeDashboard from "./pages/JudgeDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
+        <Route path="/programs" element={<PageTransition><ProgramsPage /></PageTransition>} />
+        <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
+        <Route path="/resources" element={<PageTransition><Resources /></PageTransition>} />
+        <Route path="/hackathons" element={<PageTransition><Hackathons /></PageTransition>} />
+        <Route path="/projects/:id" element={<PageTransition><ProjectView /></PageTransition>} />
+        <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 const App = () => {
   useEffect(() => {
@@ -37,19 +59,7 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/programs" element={<ProgramsPage />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/resources" element={<Resources />} />
-          <Route path="/hackathons" element={<Hackathons />} />
-          <Route path="/projects/:id" element={<ProjectView />} />
-          <Route path="/judge" element={<JudgeDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AnimatedRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
