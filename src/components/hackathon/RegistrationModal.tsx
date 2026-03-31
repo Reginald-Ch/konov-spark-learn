@@ -81,6 +81,13 @@ export const RegistrationModal = ({
         return;
       }
 
+      analytics.trackFormSubmission('hackathon_registration', true);
+      analytics.track({
+        category: 'Conversion',
+        action: 'Hackathon Registration',
+        label: hackathonTitle,
+      });
+
       toast({
         title: '🎉 Registration Successful!',
         description: 'You have been registered for the hackathon.',
