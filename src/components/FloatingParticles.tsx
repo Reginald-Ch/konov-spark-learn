@@ -83,7 +83,8 @@ export const FloatingParticles = () => {
           const dy = a.y - b.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
+          const connectionDist = isMobile ? 80 : 120;
+          if (distance < connectionDist) {
             ctx.strokeStyle = `rgba(168, 85, 247, ${0.15 * (1 - distance / 120)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();

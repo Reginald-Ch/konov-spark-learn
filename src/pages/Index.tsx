@@ -44,23 +44,27 @@ const Index = () => {
         keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "STEM programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
-      <FloatingParticles />
-      <InteractiveIcons />
+      <Suspense fallback={null}>
+        <FloatingParticles />
+        <InteractiveIcons />
+        <AIMascot />
+      </Suspense>
       <ScrollProgress />
-      <AIMascot />
       <Navbar />
       <Hero />
-      <BookFreeTrial />
-      <SocialProof />
-      <Mission />
-      <Values />
-      <Timeline />
-      <SuccessStories />
-      <Gallery />
-      <HackathonBanner />
-      <Testimonials />
-      <FAQ />
-      <CTA />
+      <Suspense fallback={<div className="min-h-[200px]" />}>
+        <BookFreeTrial />
+        <SocialProof />
+        <Mission />
+        <Values />
+        <Timeline />
+        <SuccessStories />
+        <Gallery />
+        <HackathonBanner />
+        <Testimonials />
+        <FAQ />
+        <CTA />
+      </Suspense>
       <Footer />
     </div>
   );
