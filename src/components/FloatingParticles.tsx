@@ -57,7 +57,10 @@ export const FloatingParticles = () => {
 
     // Create particles
     const particles: Particle[] = [];
-    const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 15000), 100);
+    const isMobile = canvas.width < 768;
+    const particleCount = isMobile 
+      ? Math.min(Math.floor((canvas.width * canvas.height) / 40000), 25) 
+      : Math.min(Math.floor((canvas.width * canvas.height) / 15000), 100);
     
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle());
