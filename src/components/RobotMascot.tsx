@@ -51,7 +51,7 @@ const playSound = (type: "click" | "hover" | "welcome") => {
 const welcomeEmotions = ["wave", "smile", "sparkle"] as const;
 type WelcomeEmotion = typeof welcomeEmotions[number];
 
-export const RobotMascot = ({ 
+export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({ 
   type = "happy", 
   size = "md",
   className = "",
