@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket, Zap } from "lucide-react";
+import { analytics } from "@/hooks/useAnalytics";
 import { motion } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
