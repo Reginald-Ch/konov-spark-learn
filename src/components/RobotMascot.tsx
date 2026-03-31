@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 
 interface RobotMascotProps {
   type?: "happy" | "thinking" | "excited" | "teaching" | "cool";
@@ -51,12 +51,12 @@ const playSound = (type: "click" | "hover" | "welcome") => {
 const welcomeEmotions = ["wave", "smile", "sparkle"] as const;
 type WelcomeEmotion = typeof welcomeEmotions[number];
 
-export const RobotMascot = ({ 
+export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({ 
   type = "happy", 
   size = "md",
   className = "",
   followScroll = false
-}: RobotMascotProps) => {
+}, _ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [blinking, setBlinking] = useState(false);
@@ -473,4 +473,5 @@ export const RobotMascot = ({
       </motion.div>
     </motion.div>
   );
-};
+});
+RobotMascot.displayName = "RobotMascot";
