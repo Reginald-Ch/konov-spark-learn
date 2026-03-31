@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 
 interface RobotMascotProps {
   type?: "happy" | "thinking" | "excited" | "teaching" | "cool";
