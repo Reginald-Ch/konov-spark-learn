@@ -120,7 +120,10 @@ export const Hero = () => {
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card"
-              onClick={() => navigate('/programs')}
+              onClick={() => {
+                analytics.trackButtonClick('Explore Programs', 'Hero');
+                navigate('/programs');
+              }}
             >
               <Zap className="mr-2 w-5 h-5" />
               Explore Programs
