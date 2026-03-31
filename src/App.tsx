@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { UIModeProvider } from "@/contexts/UIModeContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,6 +33,7 @@ const App = () => {
 
   return (
   <QueryClientProvider client={queryClient}>
+    <UIModeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -52,6 +54,7 @@ const App = () => {
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </UIModeProvider>
   </QueryClientProvider>
   );
 };

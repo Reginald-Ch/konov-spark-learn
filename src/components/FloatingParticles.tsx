@@ -57,7 +57,10 @@ export const FloatingParticles = () => {
 
     // Create particles
     const particles: Particle[] = [];
-    const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 15000), 100);
+    const isMobile = canvas.width < 768;
+    const particleCount = isMobile 
+      ? Math.min(Math.floor((canvas.width * canvas.height) / 40000), 25) 
+      : Math.min(Math.floor((canvas.width * canvas.height) / 15000), 100);
     
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle());
@@ -80,7 +83,8 @@ export const FloatingParticles = () => {
           const dy = a.y - b.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
+          const connectionDist = isMobile ? 80 : 120;
+          if (distance < connectionDist) {
             ctx.strokeStyle = `rgba(168, 85, 247, ${0.15 * (1 - distance / 120)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();

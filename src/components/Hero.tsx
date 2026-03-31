@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket, Zap } from "lucide-react";
+import { analytics } from "@/hooks/useAnalytics";
 import { motion } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
@@ -107,7 +108,10 @@ export const Hero = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-primary"
-              onClick={() => setShowSignupModal(true)}
+              onClick={() => {
+                analytics.trackButtonClick('Start Learning', 'Hero');
+                setShowSignupModal(true);
+              }}
             >
               <Rocket className="mr-2 w-6 h-6" />
               Start Learning!
@@ -116,7 +120,10 @@ export const Hero = () => {
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card"
-              onClick={() => navigate('/programs')}
+              onClick={() => {
+                analytics.trackButtonClick('Explore Programs', 'Hero');
+                navigate('/programs');
+              }}
             >
               <Zap className="mr-2 w-5 h-5" />
               Explore Programs
