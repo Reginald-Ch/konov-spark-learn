@@ -473,4 +473,5 @@ export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({
       </motion.div>
     </motion.div>
   );
-};
+});
+RobotMascot.displayName = "RobotMascot";
