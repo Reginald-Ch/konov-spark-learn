@@ -33,6 +33,7 @@ const App = () => {
 
   return (
   <QueryClientProvider client={queryClient}>
+    <UIModeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -53,6 +54,7 @@ const App = () => {
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </UIModeProvider>
   </QueryClientProvider>
   );
 };
