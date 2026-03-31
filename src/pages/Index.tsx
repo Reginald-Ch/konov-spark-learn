@@ -1,24 +1,26 @@
+import { lazy, Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
 import { ScrollProgress } from "@/components/ScrollProgress";
-import { FloatingParticles } from "@/components/FloatingParticles";
-import { InteractiveIcons } from "@/components/InteractiveIcons";
 import { Hero } from "@/components/Hero";
-import { Mission } from "@/components/Mission";
-import { Values } from "@/components/Values";
-import { ProgramsWithRocket } from "@/components/ProgramsWithRocket";
-import { Timeline } from "@/components/Timeline";
-import { Testimonials } from "@/components/Testimonials";
-import { CTA } from "@/components/CTA";
 import { Footer } from "@/components/Footer";
-import { AIMascot } from "@/components/AIMascot";
-import { SocialProof } from "@/components/SocialProof";
-import { FAQ } from "@/components/FAQ";
-import { SuccessStories } from "@/components/SuccessStories";
-import { Gallery } from "@/components/Gallery";
-import { BookFreeTrial } from "@/components/BookFreeTrial";
-import { HackathonBanner } from "@/components/HackathonBanner";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { SEO, createFAQSchema } from "@/components/SEO";
+
+// Lazy-load heavy/below-fold components for mobile performance
+const FloatingParticles = lazy(() => import("@/components/FloatingParticles").then(m => ({ default: m.FloatingParticles })));
+const InteractiveIcons = lazy(() => import("@/components/InteractiveIcons").then(m => ({ default: m.InteractiveIcons })));
+const AIMascot = lazy(() => import("@/components/AIMascot").then(m => ({ default: m.AIMascot })));
+const BookFreeTrial = lazy(() => import("@/components/BookFreeTrial").then(m => ({ default: m.BookFreeTrial })));
+const SocialProof = lazy(() => import("@/components/SocialProof").then(m => ({ default: m.SocialProof })));
+const Mission = lazy(() => import("@/components/Mission").then(m => ({ default: m.Mission })));
+const Values = lazy(() => import("@/components/Values").then(m => ({ default: m.Values })));
+const Timeline = lazy(() => import("@/components/Timeline").then(m => ({ default: m.Timeline })));
+const SuccessStories = lazy(() => import("@/components/SuccessStories").then(m => ({ default: m.SuccessStories })));
+const Gallery = lazy(() => import("@/components/Gallery").then(m => ({ default: m.Gallery })));
+const HackathonBanner = lazy(() => import("@/components/HackathonBanner").then(m => ({ default: m.HackathonBanner })));
+const Testimonials = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.Testimonials })));
+const FAQ = lazy(() => import("@/components/FAQ").then(m => ({ default: m.FAQ })));
+const CTA = lazy(() => import("@/components/CTA").then(m => ({ default: m.CTA })));
 
 // FAQ data for structured data
 const homepageFAQs = [
