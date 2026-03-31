@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SignupModal } from "@/components/SignupModal";
+import { UIModeSwitcher } from "@/components/UIModeSwitcher";
 import logo from "@/assets/logo-new.png";
 
 export const Navbar = () => {
