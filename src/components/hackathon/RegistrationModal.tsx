@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { analytics } from '@/hooks/useAnalytics';
 import { z } from 'zod';
 import { Zap, User, Mail, Phone, Code, GraduationCap, Users } from 'lucide-react';
 
