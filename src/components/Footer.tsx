@@ -25,7 +25,7 @@ export const Footer = () => {
             <div className="flex items-center gap-4 mb-4">
               <RobotMascot type="happy" size="sm" />
               <h3 className="text-3xl font-fredoka font-bold text-primary">
-                Konov Artechtist
+                Konov
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
