@@ -77,7 +77,7 @@ const Community = () => {
     <div className="min-h-screen halftone-bg">
       <SEO 
         title="Community - Join Our Tech Learning Paths"
-        description="Join Konov Artechtist's learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs."
+        description="Join Konov's learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs."
         canonical="/community"
         keywords={["AI learning community Ghana", "kids tech groups Accra", "children coding community Africa"]}
         jsonLd={communityBreadcrumb}

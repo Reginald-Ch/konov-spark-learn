@@ -25,11 +25,11 @@ const contactBreadcrumb = createBreadcrumbSchema([
 const contactPageJsonLd = {
   "@context": "https://schema.org",
   "@type": "ContactPage",
-  name: "Contact Konov Artechtist",
-  description: "Get in touch with Konov Artechtist for AI and ML education programs for kids in Ghana.",
+  name: "Contact Konov",
+  description: "Get in touch with Konov for AI and ML education programs for kids in Ghana.",
   mainEntity: {
     "@type": "EducationalOrganization",
-    name: "Konov Artechtist",
+    name: "Konov",
     email: "info@konovartechtist.com",
     telephone: "+234 (0) 20 874 1417",
     address: {
@@ -129,9 +129,9 @@ const Contact = () => {
     <div className="min-h-screen">
       <SEO 
         title="Contact Us - Get in Touch"
-        description="Contact Konov Artechtist for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
+        description="Contact Konov for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
         canonical="/contact"
-        keywords={["contact Konov Artechtist", "AI education inquiry Ghana", "tech programs contact Accra"]}
+        keywords={["contact Konov", "AI education inquiry Ghana", "tech programs contact Accra"]}
         jsonLd={[contactBreadcrumb, contactPageJsonLd]}
       />
       <Navbar />

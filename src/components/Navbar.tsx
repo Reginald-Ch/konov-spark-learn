@@ -46,7 +46,7 @@ export const Navbar = () => {
             <Link to="/" className="flex items-center group cursor-pointer">
               <motion.img 
                 src={logo} 
-                alt="Konov Artechtist" 
+                alt="Konov" 
                 className="h-[100px] w-auto"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 transition={{ type: "spring", stiffness: 300 }}

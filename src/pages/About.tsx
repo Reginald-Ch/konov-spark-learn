@@ -82,9 +82,9 @@ const About = () => {
     <div className="min-h-screen">
       <SEO 
         title="About Us - Our Story & Mission"
-        description="Learn about Konov Artechtist, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
+        description="Learn about Konov, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
         canonical="/about"
-        keywords={["about Konov Artechtist", "AI education company Ghana", "tech startup Africa", "children education mission"]}
+        keywords={["about Konov", "AI education company Ghana", "tech startup Africa", "children education mission"]}
         jsonLd={aboutBreadcrumb}
       />
       <Navbar />
@@ -102,7 +102,7 @@ const About = () => {
               </ActionBurst>
             </div>
             <h1 className="text-5xl md:text-7xl font-fredoka font-bold mb-6">
-              About <span className="gradient-text">Konov Artechtist</span>
+              About <span className="gradient-text">Konov</span>
             </h1>
             <div className="flex justify-center mb-6">
               <RobotMascot type="happy" size="lg" />
@@ -151,7 +151,7 @@ const About = () => {
               <div className="max-w-3xl mx-auto space-y-6 font-space text-lg text-muted-foreground leading-relaxed">
                 <SpeechBubble direction="left" delay={0.2}>
                   <p>
-                    Founded  in Accra, Ghana, Konov Artechtist was born from a simple observation of providing innovative and creative tech education: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
+                    Founded in Accra, Ghana, Konov was born from a simple observation of providing innovative and creative tech education: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI and ML literacy—understanding how intelligent systems think.
                   </p>
                 </SpeechBubble>
                 

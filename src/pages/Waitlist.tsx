@@ -23,7 +23,6 @@ import {
   Mail,
   Phone,
   ArrowRight,
-  Shield,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import meaiLogo from "@/assets/meai-logo.png";
@@ -343,12 +342,10 @@ const Waitlist = () => {
                     🔒 We'll only notify you when spots open. No spam, ever.
                   </p>
 
-                  {/* Trust — Built in Accra */}
-                  <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground font-fredoka">
-                    <span>🇬🇭</span>
-                    <span>Built by educators in Accra</span>
-                    <Shield className="w-3 h-3" />
-                  </div>
+                  {/* Urgency */}
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-fredoka font-bold">
+                    🔥 Only 100 early access spots remaining
+                  </p>
                 </motion.div>
               ) : (
                 <motion.div
@@ -515,7 +512,7 @@ const Waitlist = () => {
         </section>
 
         {/* Bottom CTA */}
-        {!signupData && (
+        {/* Always show bottom CTA — scroll back to form if already signed up */}
           <section className="py-12 md:py-16">
             <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center">
               <motion.div
@@ -536,12 +533,11 @@ const Waitlist = () => {
                   className="h-12 px-8 font-fredoka font-bold text-base rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                 >
                   <ArrowRight className="w-5 h-5 mr-2" />
-                  Join the Waitlist
+                  {signupData ? "Share & Move Up" : "Join the Waitlist"}
                 </Button>
               </motion.div>
             </div>
           </section>
-        )}
       </div>
       <Footer />
     </>

@@ -11,7 +11,7 @@ interface SEOProps {
 }
 
 const SITE_URL = "https://konovartechtist.com";
-const SITE_NAME = "Konov Artechtist";
+const SITE_NAME = "Konov";
 
 // Organization structured data - used across all pages
 const organizationSchema = {
@@ -19,7 +19,7 @@ const organizationSchema = {
   "@type": "EducationalOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: "Konov Artechtist AI Hub",
+  alternateName: "Konov AI Hub",
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
@@ -87,7 +87,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 2,
       name: "About Us",
-      description: "Learn about Konov Artechtist's mission to empower young tech innovators in Africa",
+      description: "Learn about Konov's mission to empower young tech innovators in Africa",
       url: `${SITE_URL}/about`
     },
     {
@@ -108,7 +108,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 5,
       name: "Contact",
-      description: "Get in touch with Konov Artechtist for programs and partnerships",
+      description: "Get in touch with Konov for programs and partnerships",
       url: `${SITE_URL}/contact`
     }
   ]
@@ -134,7 +134,7 @@ export const SEO = ({
     "AI workshops",
     "tech camp Ghana",
     "artificial intelligence education",
-    "Konov Artechtist"
+    "Konov"
   ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   

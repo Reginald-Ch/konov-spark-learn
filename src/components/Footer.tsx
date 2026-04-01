@@ -25,7 +25,7 @@ export const Footer = () => {
             <div className="flex items-center gap-4 mb-4">
               <RobotMascot type="happy" size="sm" />
               <h3 className="text-3xl font-fredoka font-bold text-primary">
-                Konov Artechtist
+                Konov
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
@@ -91,7 +91,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t-4 border-foreground/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground font-space flex items-center gap-2">
-            © 2025 Konov Artechtist. Made with{" "}
+            © 2025 Konov. Made with{" "}
             <motion.span
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1, repeat: Infinity }}

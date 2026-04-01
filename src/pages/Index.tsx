@@ -22,7 +22,7 @@ import { SEO, createFAQSchema } from "@/components/SEO";
 
 // FAQ data for structured data
 const homepageFAQs = [
-  { question: "What is Konov Artechtist?", answer: "Konov Artechtist is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners." },
+  { question: "What is Konov?", answer: "Konov is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners." },
   { question: "Why should kids learn AI and Machine Learning?", answer: "AI is shaping the future of every industry. When kids understand how intelligent systems work, they become creators — not just consumers — of technology. Early exposure builds problem-solving, critical thinking, creativity, and confidence." },
   { question: "What age groups do you cater to?", answer: "We offer programs for ages 6-16, with content specifically designed for different developmental stages. Our AI Explorers (6-9), Young Builders (9-11), and Tech Ambassadors (12-16) programs ensure age-appropriate learning experiences." },
   { question: "Does my child need prior coding experience?", answer: "Not at all! Our programs are designed for complete beginners. We start with visual programming and gradually progress to text-based coding. Each child learns at their own pace with support from our instructors." },
