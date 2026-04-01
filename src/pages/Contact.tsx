@@ -29,7 +29,7 @@ const contactPageJsonLd = {
   description: "Get in touch with Konov for AI and ML education programs for kids in Ghana.",
   mainEntity: {
     "@type": "EducationalOrganization",
-    name: "Konov Artechtist",
+    name: "Konov",
     email: "info@konovartechtist.com",
     telephone: "+234 (0) 20 874 1417",
     address: {
