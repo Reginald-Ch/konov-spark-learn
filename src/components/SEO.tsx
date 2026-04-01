@@ -87,7 +87,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 2,
       name: "About Us",
-      description: "Learn about Konov Artechtist's mission to empower young tech innovators in Africa",
+      description: "Learn about Konov's mission to empower young tech innovators in Africa",
       url: `${SITE_URL}/about`
     },
     {
