@@ -17,6 +17,7 @@ import Resources from "./pages/Resources";
 import Hackathons from "./pages/Hackathons";
 import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
+import Waitlist from "./pages/Waitlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
