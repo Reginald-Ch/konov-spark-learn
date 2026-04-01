@@ -129,7 +129,7 @@ const Waitlist = () => {
     }
   };
 
-  const siteOrigin = "https://konov-spark-learn.lovable.app";
+  const siteOrigin = "https://konovartechtist.com";
   const referralLink = signupData
     ? `${siteOrigin}/waitlist?ref=${signupData.referralCode}`
     : "";
