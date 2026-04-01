@@ -595,6 +595,36 @@ export type Database = {
           },
         ]
       }
+      waitlist_signups: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          position: number
+          referral_code: string
+          referred_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          position?: number
+          referral_code: string
+          referred_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          position?: number
+          referral_code?: string
+          referred_by?: string | null
+        }
+        Relationships: []
+      }
       workshop_registrations: {
         Row: {
           created_at: string
