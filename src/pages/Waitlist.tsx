@@ -23,7 +23,6 @@ import {
   Mail,
   Phone,
   ArrowRight,
-  Shield,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import meaiLogo from "@/assets/meai-logo.png";
