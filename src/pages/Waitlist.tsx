@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import logo from "@/assets/logo-new.png";
+import meaiLogo from "@/assets/meai-logo.png";
 
 const Waitlist = () => {
   const [email, setEmail] = useState("");
@@ -199,7 +199,7 @@ const Waitlist = () => {
               className="mb-8"
             >
               <img
-                src={logo}
+                src={meaiLogo}
                 alt="MeAI"
                 className="h-24 md:h-32 w-auto mx-auto"
               />
