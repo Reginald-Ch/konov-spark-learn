@@ -199,7 +199,7 @@ const Waitlist = () => {
               className="mb-8"
             >
               <img
-                src={logo}
+                src={meaiLogo}
                 alt="MeAI"
                 className="h-24 md:h-32 w-auto mx-auto"
               />
