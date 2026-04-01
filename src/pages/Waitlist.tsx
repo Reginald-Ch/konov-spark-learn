@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import logo from "@/assets/logo-new.png";
+import meaiLogo from "@/assets/meai-logo.png";
 
 const Waitlist = () => {
   const [email, setEmail] = useState("");
