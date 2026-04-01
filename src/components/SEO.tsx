@@ -108,7 +108,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 5,
       name: "Contact",
-      description: "Get in touch with Konov Artechtist for programs and partnerships",
+      description: "Get in touch with Konov for programs and partnerships",
       url: `${SITE_URL}/contact`
     }
   ]
