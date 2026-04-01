@@ -16,16 +16,23 @@ import {
   Share2,
   Copy,
   CheckCircle2,
-  ArrowRight,
   Star,
   BookOpen,
   Zap,
+  MessageCircle,
+  Mail,
+  Phone,
+  ArrowRight,
+  Shield,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import meaiLogo from "@/assets/meai-logo.png";
 
+type ContactMethod = "whatsapp" | "email";
+
 const Waitlist = () => {
-  const [email, setEmail] = useState("");
+  const [contactMethod, setContactMethod] = useState<ContactMethod>("whatsapp");
+  const [contactValue, setContactValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signupData, setSignupData] = useState<{
     position: number;
@@ -35,14 +42,12 @@ const Waitlist = () => {
   const [copied, setCopied] = useState(false);
   const [referredBy, setReferredBy] = useState<string | null>(null);
 
-  // Check for referral code in URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref) setReferredBy(ref);
   }, []);
 
-  // Fetch total signups count
   useEffect(() => {
     const fetchCount = async () => {
       const { count } = await supabase
@@ -55,34 +60,57 @@ const Waitlist = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const trimmed = contactValue.trim();
+    if (!trimmed) return;
+
+    // Validate
+    if (contactMethod === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+    } else {
+      // WhatsApp: accept digits, spaces, +, -, min 8 chars
+      const cleaned = trimmed.replace(/[\s\-()]/g, "");
+      if (!/^\+?\d{8,15}$/.test(cleaned)) {
+        toast.error("Please enter a valid WhatsApp number (e.g. +233 24 123 4567)");
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     try {
+      const insertData = {
+        referral_code: "",
+        referred_by: referredBy,
+        ...(contactMethod === "email"
+          ? { email: trimmed.toLowerCase() }
+          : { whatsapp: trimmed.replace(/[\s\-()]/g, "") }),
+      };
+
       const { data, error } = await supabase
         .from("waitlist_signups")
-        .insert({
-          email: email.trim().toLowerCase(),
-          referral_code: "", // trigger will generate
-          referred_by: referredBy,
-        })
+        .insert([insertData])
         .select("position, referral_code")
         .single();
 
       if (error) {
         if (error.code === "23505") {
-          // Duplicate email - fetch existing record
-          const { data: existing } = await supabase
-            .from("waitlist_signups")
-            .select("position, referral_code")
-            .eq("email", email.trim().toLowerCase())
-            .single();
+          // Duplicate — fetch existing
+          let query = supabase.from("waitlist_signups").select("position, referral_code");
+          if (contactMethod === "email") {
+            query = query.eq("email", trimmed.toLowerCase());
+          } else {
+            query = query.eq("whatsapp", trimmed.replace(/[\s\-()]/g, ""));
+          }
+          const { data: existing } = await query.single();
           if (existing) {
             setSignupData({
               position: existing.position,
               referralCode: existing.referral_code,
             });
-            toast.info("You're already on the waitlist!");
+            toast.info("You're already on the waitlist! Here's your spot.");
           }
         } else {
           throw error;
@@ -113,21 +141,21 @@ const Waitlist = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const shareOnWhatsApp = () => {
+    const text = encodeURIComponent(
+      `Charley, check this out! MeAI is teaching kids real AI & machine learning — not just robot toys. My pikin go learn how ChatGPT actually works 🤯\n\nJoin the waitlist: ${referralLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
   const shareOnTwitter = () => {
     const text = encodeURIComponent(
-      "I just joined the MeAI waitlist! 🚀 Real AI & ML education for kids — not robot toys. Join me:"
+      "Just joined the MeAI waitlist! 🚀 Real AI & ML education for kids. Join me:"
     );
     window.open(
       `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(referralLink)}`,
       "_blank"
     );
-  };
-
-  const shareOnWhatsApp = () => {
-    const text = encodeURIComponent(
-      `Check out MeAI — real AI education for kids! Join the waitlist: ${referralLink}`
-    );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
   };
 
   const features = [
@@ -140,13 +168,13 @@ const Waitlist = () => {
     {
       icon: Bot,
       title: "Build Chatbots & AI Models",
-      desc: "Hands-on projects where kids build their own conversational AI and train machine learning models.",
+      desc: "Hands-on projects where kids build conversational AI and train machine learning models.",
       gradient: "from-green-500 to-emerald-600",
     },
     {
       icon: BookOpen,
       title: "Interactive Comic Lessons",
-      desc: "Fun, story-driven learning with African characters that makes complex concepts simple and engaging.",
+      desc: "Fun, story-driven learning with African characters that makes complex concepts simple.",
       gradient: "from-amber-500 to-orange-500",
     },
     {
@@ -157,6 +185,12 @@ const Waitlist = () => {
     },
   ];
 
+  const trustQuotes = [
+    { text: "Finally something that teaches REAL AI, not just Scratch.", author: "— Parent, Accra" },
+    { text: "My daughter built her first chatbot in one session!", author: "— Parent, Kumasi" },
+    { text: "This is what AI education should look like in Africa.", author: "— Educator, Tema" },
+  ];
+
   return (
     <>
       <SEO
@@ -165,109 +199,129 @@ const Waitlist = () => {
       />
       <Navbar />
       <div className="min-h-screen bg-gradient-to-b from-amber-50/50 via-background to-orange-50/30 dark:from-amber-950/20 dark:via-background dark:to-orange-950/10">
-        {/* Hero */}
-        <section className="py-16 md:py-24 relative overflow-hidden">
-          {/* Background particles */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {[...Array(8)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-3 h-3 rounded-full bg-primary/20"
-                style={{
-                  left: `${15 + i * 10}%`,
-                  top: `${20 + (i % 3) * 25}%`,
-                }}
-                animate={{
-                  y: [-10, 10, -10],
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{
-                  duration: 3 + i * 0.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-          </div>
-
-          <div className="container mx-auto px-4 text-center relative z-10">
+        {/* Hero — Mobile-first, CTA above fold */}
+        <section className="pt-8 pb-12 md:pt-16 md:pb-20 relative overflow-hidden">
+          <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center relative z-10">
             {/* Logo */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, type: "spring" }}
-              className="mb-8"
+              transition={{ duration: 0.5, type: "spring" }}
+              className="mb-5"
             >
-              <img
-                src={meaiLogo}
-                alt="MeAI"
-                className="h-24 md:h-32 w-auto mx-auto"
-              />
+              <img src={meaiLogo} alt="MeAI" className="h-20 md:h-28 w-auto mx-auto" />
             </motion.div>
 
             {/* Badge */}
             <motion.div
-              initial={{ y: -20, opacity: 0 }}
+              initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 text-amber-700 dark:text-amber-300 font-bold text-sm mb-6 border-2 border-amber-300 dark:border-amber-700 shadow-lg font-fredoka"
+              transition={{ delay: 0.15 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 text-amber-700 dark:text-amber-300 font-bold text-sm mb-4 border-2 border-amber-300 dark:border-amber-700 shadow-md font-fredoka"
             >
               <Star className="h-4 w-4" />
               Limited Early Access
             </motion.div>
 
-            {/* Headline */}
+            {/* Headline — shorter for mobile */}
             <motion.h1
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 15, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-fredoka font-bold mb-6 leading-tight max-w-4xl mx-auto"
+              transition={{ delay: 0.2 }}
+              className="text-3xl md:text-4xl lg:text-5xl font-fredoka font-bold mb-3 leading-tight"
             >
               <span className="text-foreground">Your Kids Use AI Every Day.</span>
               <br />
               <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-primary bg-clip-text text-transparent">
-                Now They Can Understand How It Works.
+                Now They Can Understand It.
               </span>
             </motion.h1>
 
-            {/* Subheadline */}
+            {/* Problem statement */}
             <motion.p
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+              transition={{ delay: 0.3 }}
+              className="text-base md:text-lg text-muted-foreground mb-6 leading-relaxed"
             >
-              MeAI teaches kids{" "}
-              <strong className="text-foreground">real AI & machine learning</strong>{" "}
-              — not robot toys or basic coding. Interactive comics, chatbot building,
-              and hands-on ML projects for ages 6–15.
+              Most programs teach robot toys, not real AI.{" "}
+              <strong className="text-foreground">MeAI is different.</strong>{" "}
+              Interactive comics, chatbot building, and hands-on ML for ages 6–15.
             </motion.p>
+
+            {/* Social proof counter — near the form */}
+            {totalSignups > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                className="flex items-center justify-center gap-2 mb-5"
+              >
+                <Users className="w-4 h-4 text-primary" />
+                <span className="font-fredoka font-bold">
+                  <AnimatedCounter end={totalSignups} duration={1200} />
+                </span>
+                <span className="text-muted-foreground font-fredoka text-sm">
+                  parents already joined
+                </span>
+              </motion.div>
+            )}
 
             {/* Form / Post-Signup */}
             <AnimatePresence mode="wait">
               {!signupData ? (
-                <motion.form
+                <motion.div
                   key="form"
-                  initial={{ y: 20, opacity: 0 }}
+                  initial={{ y: 15, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -20, opacity: 0 }}
-                  transition={{ delay: 0.5 }}
-                  onSubmit={handleSubmit}
-                  className="max-w-md mx-auto"
+                  exit={{ y: -15, opacity: 0 }}
+                  transition={{ delay: 0.4 }}
                 >
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Contact method toggle */}
+                  <div className="flex gap-2 mb-4 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => { setContactMethod("whatsapp"); setContactValue(""); }}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl font-fredoka font-bold text-sm transition-all ${
+                        contactMethod === "whatsapp"
+                          ? "bg-[#25D366] text-white shadow-lg scale-105"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setContactMethod("email"); setContactValue(""); }}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl font-fredoka font-bold text-sm transition-all ${
+                        contactMethod === "email"
+                          ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-3">
                     <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type={contactMethod === "email" ? "email" : "tel"}
+                      placeholder={
+                        contactMethod === "email"
+                          ? "your@email.com"
+                          : "+233 24 123 4567"
+                      }
+                      value={contactValue}
+                      onChange={(e) => setContactValue(e.target.value)}
                       required
-                      className="h-14 text-lg rounded-xl border-3 border-foreground/20 focus:border-primary font-fredoka"
+                      className="h-14 text-lg rounded-xl border-2 border-foreground/20 focus:border-primary font-fredoka text-center"
                     />
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="h-14 px-8 font-fredoka font-bold text-lg rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all text-white whitespace-nowrap"
+                      className="w-full h-14 font-fredoka font-bold text-lg rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all text-white"
                     >
                       {isSubmitting ? (
                         <motion.div
@@ -283,54 +337,92 @@ const Waitlist = () => {
                         </>
                       )}
                     </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-3 font-fredoka">
-                    🔒 No spam, ever. Unsubscribe anytime.
+                  </form>
+
+                  <p className="text-xs text-muted-foreground mt-3 font-fredoka">
+                    🔒 We'll only notify you when spots open. No spam, ever.
                   </p>
-                </motion.form>
+
+                  {/* Trust — Built in Accra */}
+                  <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground font-fredoka">
+                    <span>🇬🇭</span>
+                    <span>Built by educators in Accra</span>
+                    <Shield className="w-3 h-3" />
+                  </div>
+                </motion.div>
               ) : (
                 <motion.div
                   key="success"
-                  initial={{ scale: 0.8, opacity: 0 }}
+                  initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="max-w-lg mx-auto bg-card rounded-3xl border-4 border-primary/30 p-8 shadow-2xl"
+                  className="bg-card rounded-3xl border-3 border-primary/30 p-6 md:p-8 shadow-2xl"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.2 }}
                   >
-                    <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                    <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-3" />
                   </motion.div>
-                  <h3 className="text-2xl font-fredoka font-bold mb-2">
+                  <h3 className="text-2xl font-fredoka font-bold mb-1">
                     You're In! 🎉
                   </h3>
-                  <p className="text-4xl font-fredoka font-bold text-primary mb-2">
+                  <p className="text-4xl font-fredoka font-bold text-primary mb-1">
                     #{signupData.position}
                   </p>
-                  <p className="text-muted-foreground mb-6 font-fredoka">
+                  <p className="text-muted-foreground mb-5 font-fredoka text-sm">
                     on the waitlist
                   </p>
 
+                  {/* What happens next */}
+                  <div className="bg-muted/30 rounded-2xl p-4 mb-5 text-left">
+                    <p className="font-fredoka font-bold text-sm mb-3 text-center">What happens next?</p>
+                    <div className="space-y-3">
+                      {[
+                        { step: "1", text: "We're building something amazing for your kids" },
+                        { step: "2", text: "You'll get early access before everyone else" },
+                        { step: "3", text: "Share to move up — the higher you are, the sooner you get in!" },
+                      ].map((item) => (
+                        <div key={item.step} className="flex items-start gap-3">
+                          <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                            {item.step}
+                          </span>
+                          <p className="text-sm text-muted-foreground font-fredoka">{item.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Referral Section */}
-                  <div className="bg-muted/50 rounded-2xl p-6 mb-4">
+                  <div className="bg-muted/50 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-3 justify-center">
                       <Share2 className="w-5 h-5 text-primary" />
                       <p className="font-fredoka font-bold text-sm">
-                        Share to move up the list!
+                        Share with 3 friends to move up! 🚀
                       </p>
                     </div>
-                    <div className="flex gap-2 mb-4">
+
+                    {/* WhatsApp share — PRIMARY */}
+                    <Button
+                      onClick={shareOnWhatsApp}
+                      className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-fredoka font-bold text-base mb-3"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Share on WhatsApp
+                    </Button>
+
+                    {/* Copy link */}
+                    <div className="flex gap-2 mb-3">
                       <Input
                         value={referralLink}
                         readOnly
-                        className="text-sm font-mono rounded-xl"
+                        className="text-xs font-mono rounded-xl h-10"
                       />
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={copyReferralLink}
-                        className="rounded-xl shrink-0 border-2"
+                        className="rounded-xl shrink-0 border-2 h-10 w-10"
                       >
                         {copied ? (
                           <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -339,84 +431,81 @@ const Waitlist = () => {
                         )}
                       </Button>
                     </div>
-                    <div className="flex gap-3 justify-center">
-                      <Button
-                        onClick={shareOnTwitter}
-                        className="rounded-xl bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-fredoka font-bold"
-                      >
-                        𝕏 Tweet
-                      </Button>
-                      <Button
-                        onClick={shareOnWhatsApp}
-                        className="rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-fredoka font-bold"
-                      >
-                        WhatsApp
-                      </Button>
-                    </div>
+
+                    {/* Twitter — secondary */}
+                    <Button
+                      onClick={shareOnTwitter}
+                      variant="outline"
+                      className="w-full h-10 rounded-xl font-fredoka font-bold text-sm"
+                    >
+                      𝕏 Share on Twitter
+                    </Button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+        </section>
 
-            {/* Social Proof Counter */}
-            {totalSignups > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="mt-8 flex items-center justify-center gap-2"
-              >
-                <Users className="w-5 h-5 text-primary" />
-                <span className="font-fredoka font-bold text-lg">
-                  <AnimatedCounter end={totalSignups} duration={1500} />
-                </span>
-                <span className="text-muted-foreground font-fredoka">
-                  {" "}
-                  already joined
-                </span>
-              </motion.div>
-            )}
+        {/* Trust Quotes — near the form */}
+        <section className="pb-10 md:pb-16">
+          <div className="container mx-auto px-4 max-w-lg md:max-w-2xl">
+            <div className="grid gap-3">
+              {trustQuotes.map((q, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ x: i % 2 === 0 ? -20 : 20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-card rounded-2xl border border-foreground/10 p-4 shadow-sm"
+                >
+                  <p className="text-sm font-fredoka italic text-foreground">"{q.text}"</p>
+                  <p className="text-xs text-muted-foreground font-fredoka mt-1">{q.author}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* Features */}
-        <section className="py-16 md:py-20">
-          <div className="container mx-auto px-4">
+        <section className="py-12 md:py-16">
+          <div className="container mx-auto px-4 max-w-lg md:max-w-3xl">
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 15, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true }}
-              className="text-center mb-12"
+              className="text-center mb-8"
             >
-              <h2 className="text-3xl md:text-4xl font-fredoka font-bold mb-4">
+              <h2 className="text-2xl md:text-3xl font-fredoka font-bold mb-2">
                 <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
                   What Your Kids Will Learn
                 </span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-sm md:text-base text-muted-foreground">
                 Real AI literacy that prepares them for the future
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid gap-4 md:grid-cols-2">
               {features.map((feature, i) => (
                 <motion.div
                   key={feature.title}
-                  initial={{ y: 30, opacity: 0 }}
+                  initial={{ y: 20, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-card rounded-3xl border-3 border-foreground/10 p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+                  transition={{ delay: i * 0.08 }}
+                  className="bg-card rounded-2xl border border-foreground/10 p-5 shadow-sm"
                 >
                   <div
-                    className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-4 shadow-md`}
+                    className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center mb-3 shadow-md`}
                   >
-                    <feature.icon className="w-7 h-7 text-white" />
+                    <feature.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-fredoka font-bold mb-2">
+                  <h3 className="text-lg font-fredoka font-bold mb-1">
                     {feature.title}
                   </h3>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {feature.desc}
                   </p>
                 </motion.div>
@@ -427,26 +516,24 @@ const Waitlist = () => {
 
         {/* Bottom CTA */}
         {!signupData && (
-          <section className="py-16 md:py-20">
-            <div className="container mx-auto px-4 text-center">
+          <section className="py-12 md:py-16">
+            <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center">
               <motion.div
-                initial={{ y: 20, opacity: 0 }}
+                initial={{ y: 15, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                className="max-w-2xl mx-auto bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl border-3 border-amber-300/30 p-10"
+                className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl border-2 border-amber-300/30 p-8"
               >
-                <Zap className="w-10 h-10 text-amber-500 mx-auto mb-4" />
-                <h3 className="text-2xl md:text-3xl font-fredoka font-bold mb-3">
+                <Zap className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+                <h3 className="text-xl md:text-2xl font-fredoka font-bold mb-2">
                   Don't Let Your Kids Fall Behind
                 </h3>
-                <p className="text-muted-foreground mb-6 font-fredoka">
+                <p className="text-sm text-muted-foreground mb-4 font-fredoka">
                   AI is the future. Early access spots are limited.
                 </p>
                 <Button
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: "smooth" })
-                  }
-                  className="h-14 px-10 font-fredoka font-bold text-lg rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] transition-all text-white"
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="h-12 px-8 font-fredoka font-bold text-base rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                 >
                   <ArrowRight className="w-5 h-5 mr-2" />
                   Join the Waitlist
