@@ -134,7 +134,7 @@ export const SEO = ({
     "AI workshops",
     "tech camp Ghana",
     "artificial intelligence education",
-    "Konov Artechtist"
+    "Konov"
   ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   

@@ -534,12 +534,11 @@ const Waitlist = () => {
                   className="h-12 px-8 font-fredoka font-bold text-base rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                 >
                   <ArrowRight className="w-5 h-5 mr-2" />
-                  Join the Waitlist
+                  {signupData ? "Share & Move Up" : "Join the Waitlist"}
                 </Button>
               </motion.div>
             </div>
           </section>
-        )}
       </div>
       <Footer />
     </>

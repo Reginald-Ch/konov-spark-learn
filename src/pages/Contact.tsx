@@ -131,7 +131,7 @@ const Contact = () => {
         title="Contact Us - Get in Touch"
         description="Contact Konov for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
         canonical="/contact"
-        keywords={["contact Konov Artechtist", "AI education inquiry Ghana", "tech programs contact Accra"]}
+        keywords={["contact Konov", "AI education inquiry Ghana", "tech programs contact Accra"]}
         jsonLd={[contactBreadcrumb, contactPageJsonLd]}
       />
       <Navbar />

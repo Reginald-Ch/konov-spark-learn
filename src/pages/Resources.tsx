@@ -34,7 +34,7 @@ const learningResourceSchema = {
   inLanguage: "en",
   provider: {
     "@type": "EducationalOrganization",
-    name: "Konov Artechtist",
+    name: "Konov",
     url: "https://konovartechtist.com"
   },
   about: [

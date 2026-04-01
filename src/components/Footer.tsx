@@ -91,7 +91,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t-4 border-foreground/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground font-space flex items-center gap-2">
-            © 2025 Konov Artechtist. Made with{" "}
+            © 2025 Konov. Made with{" "}
             <motion.span
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
