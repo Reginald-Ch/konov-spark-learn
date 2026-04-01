@@ -129,7 +129,7 @@ const Contact = () => {
     <div className="min-h-screen">
       <SEO 
         title="Contact Us - Get in Touch"
-        description="Contact Konov Artechtist for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
+        description="Contact Konov for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
         canonical="/contact"
         keywords={["contact Konov Artechtist", "AI education inquiry Ghana", "tech programs contact Accra"]}
         jsonLd={[contactBreadcrumb, contactPageJsonLd]}
