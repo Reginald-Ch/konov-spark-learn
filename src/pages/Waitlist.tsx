@@ -343,12 +343,10 @@ const Waitlist = () => {
                     🔒 We'll only notify you when spots open. No spam, ever.
                   </p>
 
-                  {/* Trust — Built in Accra */}
-                  <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground font-fredoka">
-                    <span>🇬🇭</span>
-                    <span>Built by educators in Accra</span>
-                    <Shield className="w-3 h-3" />
-                  </div>
+                  {/* Urgency */}
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-fredoka font-bold">
+                    🔥 Only 100 early access spots remaining
+                  </p>
                 </motion.div>
               ) : (
                 <motion.div
