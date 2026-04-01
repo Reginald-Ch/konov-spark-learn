@@ -102,7 +102,7 @@ const About = () => {
               </ActionBurst>
             </div>
             <h1 className="text-5xl md:text-7xl font-fredoka font-bold mb-6">
-              About <span className="gradient-text">Konov Artechtist</span>
+              About <span className="gradient-text">Konov</span>
             </h1>
             <div className="flex justify-center mb-6">
               <RobotMascot type="happy" size="lg" />
