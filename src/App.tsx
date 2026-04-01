@@ -17,6 +17,7 @@ import Resources from "./pages/Resources";
 import Hackathons from "./pages/Hackathons";
 import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
+import Waitlist from "./pages/Waitlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const AnimatedRoutes = () => {
         <Route path="/hackathons" element={<PageTransition><Hackathons /></PageTransition>} />
         <Route path="/projects/:id" element={<PageTransition><ProjectView /></PageTransition>} />
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
+        <Route path="/waitlist" element={<PageTransition><Waitlist /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
