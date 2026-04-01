@@ -84,7 +84,7 @@ const About = () => {
         title="About Us - Our Story & Mission"
         description="Learn about Konov, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
         canonical="/about"
-        keywords={["about Konov Artechtist", "AI education company Ghana", "tech startup Africa", "children education mission"]}
+        keywords={["about Konov", "AI education company Ghana", "tech startup Africa", "children education mission"]}
         jsonLd={aboutBreadcrumb}
       />
       <Navbar />
