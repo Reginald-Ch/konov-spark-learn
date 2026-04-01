@@ -145,11 +145,8 @@ const Waitlist = () => {
     const text = encodeURIComponent(
       `Charley, check this out! MeAI is teaching kids real AI & machine learning — not just robot toys. My pikin go learn how ChatGPT actually works 🤯\n\nJoin the waitlist: ${referralLink}`
     );
-    // Use intent:// for Android, fallback to web.whatsapp.com (wa.me is often blocked)
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    const url = isMobile
-      ? `whatsapp://send?text=${text}`
-      : `https://web.whatsapp.com/send?text=${text}`;
+    // Use wa.me with fallback — most reliable cross-platform
+    const url = `https://wa.me/?text=${text}`;
     window.open(url, "_blank");
   };
 
