@@ -25,8 +25,8 @@ const contactBreadcrumb = createBreadcrumbSchema([
 const contactPageJsonLd = {
   "@context": "https://schema.org",
   "@type": "ContactPage",
-  name: "Contact Konov Artechtist",
-  description: "Get in touch with Konov Artechtist for AI and ML education programs for kids in Ghana.",
+  name: "Contact Konov",
+  description: "Get in touch with Konov for AI and ML education programs for kids in Ghana.",
   mainEntity: {
     "@type": "EducationalOrganization",
     name: "Konov Artechtist",
