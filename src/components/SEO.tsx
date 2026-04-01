@@ -19,7 +19,7 @@ const organizationSchema = {
   "@type": "EducationalOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: "Konov Artechtist AI Hub",
+  alternateName: "Konov AI Hub",
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
