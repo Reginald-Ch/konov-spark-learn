@@ -11,7 +11,7 @@ import {
   Rocket, CheckCircle2, Heart, Code, Bot, 
   Database, Eye, MessageSquare, 
   Gamepad2,
-  ChevronRight, Play, ExternalLink
+  ChevronRight, Play
 } from "lucide-react";
 import { AIQuiz } from "@/components/resources/AIQuiz";
 import { ConceptMatch } from "@/components/resources/ConceptMatch";
@@ -427,52 +427,6 @@ const Resources = () => {
         </div>
       </section>
 
-      {/* ME AI App CTA */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <ComicPanel color="primary" className="p-8 md:p-10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/20 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/2" />
-            
-            <div className="relative flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-shrink-0">
-                <RobotMascot type="excited" size="lg" />
-              </div>
-              <div className="text-center md:text-left flex-1">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ type: "spring" }}
-                  className="inline-block mb-3"
-                >
-                  <ActionBurst>
-                    <span className="text-foreground text-sm">NEW!</span>
-                  </ActionBurst>
-                </motion.div>
-                <h3 className="text-3xl md:text-4xl font-fredoka font-bold text-foreground mb-3">
-                  Ready to <span className="text-secondary">Build Your Own AI</span>? 🤖
-                </h3>
-                <p className="font-space text-muted-foreground mb-6 max-w-lg">
-                  Take what you've learned and create your own AI chatbot or agent in our 
-                  interactive AI Building Playground — no experience needed!
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                  <Button 
-                    size="lg"
-                    className="font-fredoka text-lg px-8 py-6 rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
-                    onClick={() => window.open('/hackathons', '_self')}
-                  >
-                    <Rocket className="mr-2 w-6 h-6" />
-                    Try ME AI Builder
-                    <ExternalLink className="ml-2 w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </ComicPanel>
-        </div>
-      </section>
 
       {/* For Parents Section */}
       <section className="py-16 px-4 bg-card/50">
