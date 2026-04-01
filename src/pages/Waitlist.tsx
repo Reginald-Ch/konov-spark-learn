@@ -513,7 +513,7 @@ const Waitlist = () => {
         </section>
 
         {/* Bottom CTA */}
-        {!signupData && (
+        {/* Always show bottom CTA — scroll back to form if already signed up */}
           <section className="py-12 md:py-16">
             <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center">
               <motion.div
