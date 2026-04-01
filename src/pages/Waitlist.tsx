@@ -129,8 +129,9 @@ const Waitlist = () => {
     }
   };
 
+  const siteOrigin = "https://konov-spark-learn.lovable.app";
   const referralLink = signupData
-    ? `${window.location.origin}/waitlist?ref=${signupData.referralCode}`
+    ? `${siteOrigin}/waitlist?ref=${signupData.referralCode}`
     : "";
 
   const copyReferralLink = () => {
