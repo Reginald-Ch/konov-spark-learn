@@ -1,49 +1,76 @@
 
 
-# Rebrand "Konov Artechtist" → "Konov" + Waitlist Polish
+# Web Push Notifications for Waitlist
 
-## Two changes
+## What You Get
 
-### 1. Remove "Built by educators in Accra 🇬🇭" from Waitlist
-Delete lines 346-351 in `src/pages/Waitlist.tsx` (the trust badge below the form).
+After someone joins the waitlist, they'll see a prompt asking to allow notifications. Once allowed, you can send custom messages directly to their device — with your own title, body text, icon, and link. These appear as native notifications on Android (and desktop browsers). On iPhone, it only works if they add your site to their home screen.
 
-### 2. Rename "Konov Artechtist" → "Konov" site-wide
+## How It Works
 
-Every instance of "Konov Artechtist" becomes "Konov" across ~10 files:
+```text
+User joins waitlist → "Enable notifications?" prompt → User allows
+     ↓
+Push subscription saved to database
+     ↓
+You tell me in chat: "Send notification: title, message, link"
+     ↓
+Edge function sends push to all subscribers
+```
 
-| File | What changes |
+## Technical Plan
+
+### 1. Generate VAPID keys (Web Push credentials)
+- Create an edge function `generate-vapid-keys` to generate a key pair
+- Store the private key as a secret, public key in code
+- These are free, no third-party service needed
+
+### 2. New database table: `push_subscriptions`
+| Column | Type |
 |---|---|
-| `index.html` | Page title |
-| `src/components/SEO.tsx` | SITE_NAME, alternateName, descriptions |
-| `src/components/Footer.tsx` | Brand name, copyright |
-| `src/components/Navbar.tsx` | Logo alt text |
-| `src/components/FAQ.tsx` | FAQ Q&A text |
-| `src/pages/Index.tsx` | FAQ data |
-| `src/pages/About.tsx` | SEO, headings, body text |
-| `src/pages/Contact.tsx` | Schema, SEO, content |
-| `src/pages/ProgramsPage.tsx` | SEO description |
-| `src/pages/Community.tsx` | SEO description |
-| `src/pages/Resources.tsx` | Schema data |
+| id | uuid (PK) |
+| waitlist_signup_id | uuid (FK, nullable) |
+| endpoint | text |
+| p256dh | text |
+| auth | text |
+| created_at | timestamp |
 
-Email addresses like `konovartechtist@gmail.com` and domain `konovartechtist.com` stay unchanged (those are real accounts/domains).
+### 3. Service Worker for receiving push (`public/push-sw.js`)
+- Lightweight, separate from any PWA service worker
+- Listens for `push` events, shows notification with custom title/body/icon/link
+- Handles notification click to open the link
 
-### 3. Waitlist scrutiny — minor improvements
+### 4. Frontend: Ask permission after signup
+- After successful waitlist signup, show a friendly prompt: "Want to know the moment we launch? Enable notifications!"
+- On accept, register `push-sw.js`, get subscription, save to `push_subscriptions` table
+- No intrusive browser prompt on page load — only after signup action
 
-While editing the waitlist, apply these refinements:
-- Make the bottom CTA section visible even after signup (currently hidden) — users who scrolled down should still see the value props
-- Add a subtle urgency element: show "Only X early access spots remaining" near the form (static number, e.g. 100)
+### 5. Edge function: `send-push-notification`
+- Accepts: `title`, `body`, `url` (link on click), `icon` (optional)
+- Fetches all subscriptions from `push_subscriptions`
+- Sends Web Push to each using the VAPID private key
+- **You design every message** — just tell me what to send in chat, or we can build a simple form later
 
-## Files changed
-- `index.html`
-- `src/components/SEO.tsx`
-- `src/components/Footer.tsx`
-- `src/components/Navbar.tsx`
-- `src/components/FAQ.tsx`
-- `src/pages/Index.tsx`
-- `src/pages/About.tsx`
-- `src/pages/Contact.tsx`
-- `src/pages/ProgramsPage.tsx`
-- `src/pages/Community.tsx`
-- `src/pages/Resources.tsx`
-- `src/pages/Waitlist.tsx`
+### 6. Custom message design
+Yes — every notification you send is fully customizable:
+- **Title**: e.g. "Konov is launching! 🚀"
+- **Body**: e.g. "Your spot #42 is confirmed. Get ready!"
+- **Icon**: your logo
+- **Click link**: e.g. `https://konovartechtist.com/waitlist`
+
+## Important Notes
+
+- **Free** — Web Push uses open standards, no paid service needed
+- **Android + Desktop**: Works great on Chrome, Firefox, Edge
+- **iPhone limitation**: Only works if user adds site to home screen (iOS 16.4+)
+- **Ghana market**: Most Android users on Chrome — good coverage
+- **No PWA required** — we use a standalone push service worker, not a full PWA setup
+- **You control messages** — nothing is auto-sent; you decide when and what to send
+
+## Files Created/Changed
+- `public/push-sw.js` — push service worker
+- `supabase/functions/send-push-notification/index.ts` — edge function to send notifications
+- `src/pages/Waitlist.tsx` — add post-signup notification opt-in
+- `src/hooks/usePushNotifications.ts` — push subscription logic
+- New migration for `push_subscriptions` table
 
