@@ -81,20 +81,17 @@ const Waitlist = () => {
 
     setIsSubmitting(true);
     try {
-      const insertData: Record<string, string | null> = {
-        referral_code: "", // trigger generates
+      const insertData = {
+        referral_code: "",
         referred_by: referredBy,
+        ...(contactMethod === "email"
+          ? { email: trimmed.toLowerCase() }
+          : { whatsapp: trimmed.replace(/[\s\-()]/g, "") }),
       };
-
-      if (contactMethod === "email") {
-        insertData.email = trimmed.toLowerCase();
-      } else {
-        insertData.whatsapp = trimmed.replace(/[\s\-()]/g, "");
-      }
 
       const { data, error } = await supabase
         .from("waitlist_signups")
-        .insert(insertData)
+        .insert([insertData])
         .select("position, referral_code")
         .single();
 
