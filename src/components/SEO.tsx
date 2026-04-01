@@ -11,7 +11,7 @@ interface SEOProps {
 }
 
 const SITE_URL = "https://konovartechtist.com";
-const SITE_NAME = "Konov Artechtist";
+const SITE_NAME = "Konov";
 
 // Organization structured data - used across all pages
 const organizationSchema = {
