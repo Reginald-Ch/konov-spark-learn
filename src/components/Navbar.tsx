@@ -27,6 +27,7 @@ export const Navbar = () => {
     { name: "Programs", path: "/programs" },
     { name: "Community", path: "/community" },
     { name: "Learn AI", path: "/resources" },
+    { name: "Waitlist", path: "/waitlist" },
     { name: "Contact", path: "/contact" },
   ];
 

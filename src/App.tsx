@@ -36,6 +36,7 @@ const AnimatedRoutes = () => {
         <Route path="/hackathons" element={<PageTransition><Hackathons /></PageTransition>} />
         <Route path="/projects/:id" element={<PageTransition><ProjectView /></PageTransition>} />
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
+        <Route path="/waitlist" element={<PageTransition><Waitlist /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
