@@ -1,40 +1,68 @@
 
 
-# Bug Fix Plan: AI Chatbot IDE Workflow
+# MeAI Waitlist Page Plan
 
-## Bugs Found
+## Overview
+Create a high-converting `/waitlist` page for the MeAI app, replacing the mascot with the MeAI logo, using waitlist best practices for maximum signups.
 
-### Bug 1: Challenge threshold mismatches frustrate students
-The scaffold instructions tell students to write specific amounts, but the validation code uses `>` (strictly greater than) instead of `>=`, requiring one MORE item than documented:
+## Database
 
-| Challenge | Scaffold says | Code checks | Student writes 3 rules → |
-|-----------|---------------|-------------|--------------------------|
-| RULES | "Write at least 3 rules" | `length > 3` (needs 4+) | Stays incomplete |
-| CONVERSATION_STARTERS | "Create a list of 3-5 strings" | `length > 4` (needs 5+) | Stays incomplete with 4 |
-| BLOCKED_TOPICS | implicit 2+ | `length > 2` (needs 3+) | Stays incomplete with 2 |
+**New `waitlist_signups` table** with columns:
+- `id` (uuid, PK)
+- `email` (text, unique, required)
+- `name` (text, optional)
+- `referral_code` (text, unique) — auto-generated for viral sharing
+- `referred_by` (text, nullable) — referral_code of referrer
+- `position` (serial) — queue position
+- `created_at` (timestamptz)
 
-This affects **all 3 validation sites**: `handleRun` (terminal), `getChallengeCount` (level badge), and the Mission Progress panel. Students follow instructions but challenges don't complete.
+RLS: public INSERT (anyone can join), SELECT restricted to own row by email match.
 
-**Fix**: Change `> 3` to `>= 3` for RULES, `> 4` to `>= 4` for STARTERS, `> 2` to `>= 2` for BLOCKED_TOPICS — across all 3 validation sites.
+A database function to auto-generate a short referral code on insert.
 
-### Bug 2: Chat messages use array index as React key
-Line 3112 renders `{chatMessages.map((msg, i) => <div key={i}>...)}`. During streaming, the `_id`-based `findIndex` update mutates elements in-place, but React sees the same index keys and may skip re-rendering or flash incorrectly. This causes subtle UI glitches during message streaming.
+## Page Structure (`src/pages/Waitlist.tsx`)
 
-**Fix**: Use `msg._id || i` as the key to give streaming messages stable identity.
+Single-page, mobile-first, clean layout with these sections:
 
-### Bug 3: Loading dots render alongside the "..." placeholder text
-Line 3139 shows animated loading dots when the last message is `'...'`. But the `'...'` placeholder is ALSO rendered by the `chatMessages.map` loop (line 3131 renders it through ReactMarkdown as visible text). So the user sees both literal "..." text AND animated dots simultaneously until the first streaming chunk arrives.
+1. **Hero / Above the Fold**
+   - MeAI logo (fetched from meai.lovable.app or use existing brand asset) replacing the mascot
+   - Bold outcome-driven headline: *"Your Kids Use AI Every Day. Now They Can Understand How It Works."*
+   - Subheadline explaining MeAI value prop (real AI/ML literacy, not robot toys)
+   - Minimal form: just email input + "Get Early Access" CTA button
+   - Animated counter showing total waitlist signups as social proof
 
-**Fix**: Skip rendering the message content when it's the placeholder `'...'` during streaming, so only the animated dots show.
+2. **Post-Signup State (inline, no separate page)**
+   - Shows queue position: "You are #X on the waitlist!"
+   - Referral share section: unique link + social sharing buttons (Twitter, WhatsApp, copy link)
+   - "Refer friends to move up the list" messaging
 
-## Files Modified
+3. **Social Proof Section**
+   - Animated counter of total signups
+   - Brief testimonial quotes or parent endorsements
+   - Partner logos or trust badges
 
-1. **src/components/hackathon/ProjectEditor.tsx**
-   - Fix 3 challenge thresholds in `handleRun`, `getChallengeCount`, and Mission Progress panel
-   - Use stable React keys for chat messages
-   - Hide placeholder "..." text during streaming
+4. **What You'll Get Section**
+   - 3-4 comic-panel styled cards showing MeAI features (chatbot building, ML training, interactive lessons)
 
-## Implementation Order
-1. Fix challenge thresholds (Bug 1) — 3 locations
-2. Fix React keys and loading dots (Bugs 2 + 3)
+5. **Footer** — minimal, reuse existing Footer component
+
+## Key Best Practices Applied
+- **Minimal friction**: email-only form (name optional)
+- **Action CTA**: "Get Early Access" not "Submit"
+- **Position tracking**: show queue number after signup
+- **Referral mechanism**: unique code + share buttons for viral growth
+- **Social proof**: live signup counter
+- **Mobile-first**: single-column layout, large tap targets
+- **Urgency**: "Limited early access spots" messaging
+
+## Route
+Add `/waitlist` route in `App.tsx`. Add "Waitlist" link to Navbar.
+
+## Technical Details
+- Store signups in `waitlist_signups` table via Supabase
+- Generate 6-char referral codes via a DB trigger function
+- Query total count for social proof counter (public SELECT on count)
+- Use existing `ComicPanel`, `AnimatedCounter`, `SpeechBubble` components for brand consistency
+- Framer Motion animations for form, counter, and reveal effects
+- MeAI logo: fetch from `https://meai.lovable.app` or reference the app's branding
 
