@@ -598,30 +598,33 @@ export type Database = {
       waitlist_signups: {
         Row: {
           created_at: string
-          email: string
+          email: string | null
           id: string
           name: string | null
           position: number
           referral_code: string
           referred_by: string | null
+          whatsapp: string | null
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string | null
           id?: string
           name?: string | null
           position?: number
           referral_code: string
           referred_by?: string | null
+          whatsapp?: string | null
         }
         Update: {
           created_at?: string
-          email?: string
+          email?: string | null
           id?: string
           name?: string | null
           position?: number
           referral_code?: string
           referred_by?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
