@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, Sparkles, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, Rocket, RotateCcw } from "lucide-react";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 

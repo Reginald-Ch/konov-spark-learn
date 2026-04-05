@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { PublishModal } from './PublishModal';
 import { 
-  Code, Maximize2, Minimize2, Play, Sparkles, 
+  Code, Maximize2, Minimize2, Play, 
   Brain, MessageSquare, Lightbulb, ExternalLink,
   ChevronDown, Loader2, Copy, Check, Trash2,
   Rocket, Send, X

@@ -7,7 +7,7 @@ import { ActionBurst } from "@/components/ActionBurst";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
-  Brain, Sparkles, Lightbulb, Zap, 
+  Brain, Lightbulb, Zap, 
   Rocket, CheckCircle2, Heart, Code, Bot, 
   Database, Eye, MessageSquare, 
   Gamepad2,
@@ -110,7 +110,7 @@ const aiTopics = [
     id: 6,
     title: "Creative AI",
     subtitle: "Generative Models & Digital Art",
-    icon: Sparkles,
+    icon: Rocket,
     color: "accent",
     mascotType: "excited" as const,
     description: "Generative AI creates images, music, text, and video from prompts — opening new frontiers in design, media, and entertainment.",

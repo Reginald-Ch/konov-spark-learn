@@ -11,7 +11,6 @@ import {
   Rocket,
   Brain,
   Bot,
-  Sparkles,
   Users,
   Share2,
   Copy,
