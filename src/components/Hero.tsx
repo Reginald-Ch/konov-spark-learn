@@ -16,7 +16,7 @@ export const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden halftone-bg">
+    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden halftone-bg pt-20">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-20"
@@ -43,7 +43,7 @@ export const Hero = () => {
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
           {/* Action Burst Badge */}
           <motion.div
             initial={{ scale: 0, rotate: -10 }}
@@ -90,7 +90,7 @@ export const Hero = () => {
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-2 md:gap-4 my-8"
+            className="flex justify-center items-end gap-2 md:gap-4 my-4"
           >
             <RobotMascot type="thinking" size="sm" />
             <RobotMascot type="excited" size="md" />
@@ -99,14 +99,14 @@ export const Hero = () => {
           
           {/* CTA Buttons - Comic Style */}
           <motion.div 
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-primary"
+              className="text-xl px-10 py-7 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[8px_8px_0_hsl(var(--foreground))] hover:translate-x-[-4px] hover:translate-y-[-4px] transition-all bg-primary text-primary-foreground scale-105"
               onClick={() => setShowSignupModal(true)}
             >
               <Rocket className="mr-2 w-6 h-6" />
@@ -115,7 +115,7 @@ export const Hero = () => {
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card"
+              className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
               onClick={() => navigate('/programs')}
             >
               <Zap className="mr-2 w-5 h-5" />
@@ -131,7 +131,7 @@ export const Hero = () => {
           
           {/* Stats - Comic Panels */}
           <motion.div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 max-w-5xl mx-auto"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 max-w-5xl mx-auto"
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.8 }}
