@@ -323,21 +323,8 @@ export const AIMascot = () => {
               <img
                 src={mascotImage}
                 alt="Konovy AI Mascot"
-                className="w-full h-auto absolute top-0 left-0"
-                style={{ transform: 'scale(1.4)', transformOrigin: 'top center', marginTop: '5%' }}
+                className="w-full h-full object-contain"
               />
-            </div>
-            
-            {/* Animated eyes overlay */}
-            <div 
-              className="absolute top-7 left-1/2 -translate-x-1/2 w-8 flex justify-between pointer-events-none"
-              style={{
-                transform: `translate(calc(-50% + ${eyePosition.x}px), ${eyePosition.y}px)`,
-                transition: "transform 0.1s ease-out",
-              }}
-            >
-              <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg"></div>
-              <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg"></div>
             </div>
           </div>
           
