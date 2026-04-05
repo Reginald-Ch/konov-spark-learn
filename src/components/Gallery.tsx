@@ -84,9 +84,9 @@ export const Gallery = () => {
           </p>
         </motion.div>
 
-        {/* Masonry-style grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {galleryImages.map((image, index) => (
+        {/* Clean 2-row grid: 4 on top, 3 centered on bottom */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {galleryImages.slice(0, 4).map((image, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -95,9 +95,7 @@ export const Gallery = () => {
               transition={{ duration: 0.4, delay: index * 0.08 }}
               whileHover={{ scale: 1.03 }}
               onClick={() => openLightbox(index)}
-              className={`relative cursor-pointer group overflow-hidden rounded-xl ${
-                index === 0 || index === 3 ? "row-span-2 aspect-[3/4]" : "aspect-square"
-              }`}
+              className="relative cursor-pointer group overflow-hidden rounded-xl aspect-[4/3]"
             >
               <img
                 src={image.src}
