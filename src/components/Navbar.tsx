@@ -97,6 +97,47 @@ export const Navbar = () => {
                   </Link>
                 );
               })}
+              
+              {/* Explore dropdown */}
+              <div ref={exploreRef} className="relative">
+                <button
+                  onClick={() => setExploreOpen(!exploreOpen)}
+                  className={`relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group flex items-center gap-1 ${
+                    exploreLinks.some(l => location.pathname === l.path)
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Explore
+                  <ChevronDown className={`w-4 h-4 transition-transform ${exploreOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {exploreOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-2 bg-card border-2 border-foreground/20 rounded-xl shadow-lg overflow-hidden min-w-[180px] z-50"
+                    >
+                      {exploreLinks.map((link) => (
+                        <Link
+                          key={link.name}
+                          to={link.path}
+                          onClick={() => setExploreOpen(false)}
+                          className={`block px-4 py-3 font-fredoka font-medium text-base transition-colors ${
+                            location.pathname === link.path
+                              ? "text-primary bg-primary/10"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* CTA Button */}
