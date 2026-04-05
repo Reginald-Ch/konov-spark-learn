@@ -84,8 +84,10 @@ const Waitlist = () => {
 
     setIsSubmitting(true);
     try {
+      // Generate a 6-char referral code
+      const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const insertData = {
-        referral_code: "",
+        referral_code: referralCode,
         referred_by: referredBy,
         ...(contactMethod === "email"
           ? { email: trimmed.toLowerCase() }
@@ -95,7 +97,7 @@ const Waitlist = () => {
       const { data, error } = await supabase
         .from("waitlist_signups")
         .insert([insertData])
-        .select("position, referral_code")
+        .select("id, position, referral_code")
         .single();
 
       if (error) {
