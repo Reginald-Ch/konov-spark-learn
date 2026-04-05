@@ -78,10 +78,10 @@ export const Values = () => {
               <ComicPanel key={idx} color={value.color} delay={idx * 0.1}>
                 <div className="p-6">
                   <motion.div 
-                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${
-                      value.color === 'primary' ? 'from-primary to-primary/70' :
-                      value.color === 'secondary' ? 'from-secondary to-secondary/70' :
-                      'from-accent to-accent/70'
+                    className={`w-14 h-14 rounded-2xl ${
+                      value.color === 'primary' ? 'bg-primary' :
+                      value.color === 'secondary' ? 'bg-secondary' :
+                      'bg-accent'
                     } flex items-center justify-center mb-4`}
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.5 }}

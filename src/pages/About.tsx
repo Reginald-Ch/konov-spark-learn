@@ -52,28 +52,28 @@ const About = () => {
       icon: Target,
       title: "Mission-Driven",
       description: "We're on a mission to make AI and emerging technologies accessible to every African child, breaking down barriers to tech education.",
-      color: "from-primary to-accent",
+      color: "bg-primary",
       mascot: "happy" as const,
     },
     {
       icon: Lightbulb,
       title: "Innovation First",
       description: "We constantly innovate our teaching methods, combining traditional learning with cutting-edge technology and playful experiences.",
-      color: "from-accent to-secondary",
+      color: "bg-accent",
       mascot: "excited" as const,
     },
     {
       icon: Heart,
       title: "Student-Centered",
       description: "Every program is designed with our students in mind, ensuring age-appropriate content that sparks curiosity and builds confidence.",
-      color: "from-secondary to-primary",
+      color: "bg-secondary",
       mascot: "thinking" as const,
     },
     {
       icon: Award,
       title: "Quality Excellence",
       description: "We maintain the highest standards in curriculum design, instructor training, and learning outcomes to deliver exceptional results.",
-      color: "from-primary via-accent to-secondary",
+      color: "bg-primary",
       mascot: "cool" as const,
     },
   ];
@@ -204,7 +204,7 @@ const About = () => {
                   >
                     <ComicPanel className="p-8 h-full group hover:scale-[1.02] transition-transform">
                       <div className="flex items-start gap-4">
-                        <div className={`w-16 h-16 flex-shrink-0 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 border-3 border-foreground`}>
+                        <div className={`w-16 h-16 flex-shrink-0 rounded-2xl ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 border-3 border-foreground`}>
                           <Icon className="w-8 h-8 text-foreground" />
                         </div>
                         <div className="flex-1">

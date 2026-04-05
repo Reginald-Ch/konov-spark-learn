@@ -121,7 +121,7 @@ export const ProgramSelector = ({ onComplete }: ProgramSelectorProps) => {
 
     return (
       <Card className="p-8 glow-card bg-card/50 backdrop-blur-sm border border-primary/20 text-center">
-        <div className={`w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br ${program.color} flex items-center justify-center shadow-lg`}>
+        <div className={`w-20 h-20 mx-auto mb-6 rounded-3xl ${program.color.includes('from-') ? 'bg-primary' : program.color} flex items-center justify-center shadow-lg`}>
           <Icon className="w-10 h-10 text-foreground" />
         </div>
         <h3 className="text-3xl font-orbitron font-bold mb-4 gradient-text">{program.title}</h3>

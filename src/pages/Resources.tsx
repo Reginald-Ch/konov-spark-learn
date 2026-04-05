@@ -296,9 +296,9 @@ const Resources = () => {
               const Icon = topic.icon;
               const isExpanded = expandedTopic === topic.id;
               const colorClass = {
-                primary: "from-primary to-primary/70",
-                secondary: "from-secondary to-secondary/70",
-                accent: "from-accent to-accent/70"
+                primary: "bg-primary",
+                secondary: "bg-secondary",
+                accent: "bg-accent"
               }[topic.color];
 
               return (
@@ -313,7 +313,7 @@ const Resources = () => {
                     layout
                   >
                     {/* Header */}
-                    <div className={`bg-gradient-to-r ${colorClass} p-4`}>
+                    <div className={`${colorClass} p-4`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border-2 border-foreground">

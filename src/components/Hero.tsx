@@ -22,7 +22,7 @@ export const Hero = () => {
         className="absolute inset-0 bg-cover bg-center opacity-20"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+      <div className="absolute inset-0 bg-background/80" />
       
       {/* Floating Elements */}
       <motion.div 
@@ -90,11 +90,11 @@ export const Hero = () => {
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-4 my-8"
+            className="flex justify-center items-end gap-2 md:gap-4 my-8"
           >
-            <RobotMascot type="thinking" size="md" />
-            <RobotMascot type="excited" size="lg" />
-            <RobotMascot type="happy" size="md" />
+            <RobotMascot type="thinking" size="sm" />
+            <RobotMascot type="excited" size="md" />
+            <RobotMascot type="happy" size="sm" />
           </motion.div>
           
           {/* CTA Buttons - Comic Style */}
@@ -164,8 +164,8 @@ export const Hero = () => {
         </div>
       </div>
       
-      {/* Bottom Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+      {/* Bottom fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-background/80" />
     </section>
   );
 };

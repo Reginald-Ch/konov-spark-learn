@@ -35,11 +35,11 @@ export const CTA = () => {
                 initial={{ y: -20, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                className="flex justify-center gap-4 mb-6"
+                className="flex justify-center gap-2 md:gap-4 mb-6"
               >
-                <RobotMascot type="excited" size="md" />
-                <RobotMascot type="happy" size="lg" />
-                <RobotMascot type="thinking" size="md" />
+                <RobotMascot type="excited" size="sm" />
+                <RobotMascot type="happy" size="md" />
+                <RobotMascot type="thinking" size="sm" />
               </motion.div>
 
               {/* Action Burst */}
