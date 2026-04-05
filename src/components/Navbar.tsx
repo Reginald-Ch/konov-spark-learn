@@ -178,7 +178,7 @@ export const Navbar = () => {
             >
               <div className="bg-background/95 backdrop-blur-lg border-t-4 border-foreground/20 py-6">
                 <div className="container mx-auto px-4 flex flex-col gap-3">
-                  {navLinks.map((link, idx) => (
+                  {[...navLinks, ...exploreLinks].map((link, idx) => (
                     <motion.div
                       key={link.name}
                       initial={{ x: -20, opacity: 0 }}
