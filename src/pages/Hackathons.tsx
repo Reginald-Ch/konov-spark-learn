@@ -266,46 +266,87 @@ const Hackathons = () => {
 
   if (!isUnlocked) {
     return (
-      <div className="h-screen bg-[hsl(var(--discord-darker))] flex items-center justify-center p-4">
-        <SEO title="FORGE — Access Code" description="Enter your access code to enter FORGE Studio." />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-2xl p-8 max-w-md w-full shadow-2xl text-center"
-        >
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-primary/20 border border-primary/30">
-            <Rocket className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Enter FORGE Studio</h1>
-          <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
-            Enter your access code to begin building AI projects.
-          </p>
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={accessCodeInput}
-              onChange={e => { setAccessCodeInput(e.target.value); setAccessCodeError(false); }}
-              onKeyDown={e => e.key === 'Enter' && handleAccessCodeSubmit()}
-              placeholder="Access code..."
-              autoFocus
-              className={`w-full h-12 text-center text-lg font-mono tracking-widest rounded-xl border-2 bg-[hsl(var(--discord-darker))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:outline-none transition-colors ${
-                accessCodeError ? 'border-red-500 focus:border-red-400' : 'border-[hsl(var(--discord-light)/0.3)] focus:border-primary'
-              }`}
-            />
-            {accessCodeError && (
-              <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm">
-                Invalid access code. Please try again.
-              </motion.p>
-            )}
-            <Button onClick={handleAccessCodeSubmit} className="w-full h-11 text-base font-bold bg-primary hover:bg-primary/90">
-              <Rocket className="w-4 h-4 mr-2" />
-              Enter Studio
-            </Button>
-          </div>
-          <button onClick={() => navigate('/')} className="mt-4 text-sm text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors">
+      <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex flex-col">
+        <SEO title="FORGE Studio — AI Hackathon Platform" description="Build, learn, and compete in AI hackathons designed for young innovators." />
+        
+        {/* Hero landing section */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+          {/* Info section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-10"
+          >
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-primary/20 border border-primary/30">
+              <Rocket className="w-10 h-10 text-primary" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">FORGE Studio</h1>
+            <p className="text-lg text-white/70 mb-8 leading-relaxed">
+              FORGE is KONOV's AI hackathon platform where young innovators build Python-powered AI projects, 
+              compete in hackathons, and showcase their creations — all in the browser.
+            </p>
+            
+            {/* Feature highlights */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+              {[
+                { icon: Code, label: 'Browser IDE', desc: 'Write Python code with AI assistance' },
+                { icon: Trophy, label: 'Hackathons', desc: 'Compete and win prizes' },
+                { icon: Swords, label: 'Bot Battles', desc: 'Pit your bots against others' },
+              ].map((f, i) => (
+                <motion.div
+                  key={f.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.2)] rounded-xl p-4"
+                >
+                  <f.icon className="w-6 h-6 text-primary mx-auto mb-2" />
+                  <p className="text-white font-semibold text-sm">{f.label}</p>
+                  <p className="text-white/50 text-xs mt-1">{f.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Access code form */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-2xl p-8 max-w-md w-full shadow-2xl"
+          >
+            <h2 className="text-xl font-bold text-white mb-2">Enter Access Code</h2>
+            <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
+              Got an access code from your instructor? Enter it below to start building.
+            </p>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={accessCodeInput}
+                onChange={e => { setAccessCodeInput(e.target.value); setAccessCodeError(false); }}
+                onKeyDown={e => e.key === 'Enter' && handleAccessCodeSubmit()}
+                placeholder="Access code..."
+                autoFocus
+                className={`w-full h-12 text-center text-lg font-mono tracking-widest rounded-xl border-2 bg-[hsl(var(--discord-darker))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:outline-none transition-colors ${
+                  accessCodeError ? 'border-red-500 focus:border-red-400' : 'border-[hsl(var(--discord-light)/0.3)] focus:border-primary'
+                }`}
+              />
+              {accessCodeError && (
+                <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm">
+                  Invalid access code. Please try again.
+                </motion.p>
+              )}
+              <Button onClick={handleAccessCodeSubmit} className="w-full h-11 text-base font-bold bg-primary hover:bg-primary/90">
+                <Rocket className="w-4 h-4 mr-2" />
+                Enter Studio
+              </Button>
+            </div>
+          </motion.div>
+
+          <button onClick={() => navigate('/')} className="mt-6 text-sm text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors">
             ← Back to home
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }

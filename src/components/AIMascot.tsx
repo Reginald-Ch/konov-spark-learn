@@ -281,7 +281,7 @@ export const AIMascot = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 pointer-events-none hidden md:block">
+    <div className="fixed bottom-20 right-4 z-40 pointer-events-none hidden md:block">
       {/* Enhanced Speech Bubble */}
       <div
         className={`absolute bottom-24 right-0 pointer-events-auto transition-all duration-500 ${
