@@ -103,7 +103,7 @@ const Waitlist = () => {
       if (error) {
         if (error.code === "23505") {
           // Duplicate — fetch existing
-          let query = supabase.from("waitlist_signups").select("position, referral_code");
+          let query = supabase.from("waitlist_signups").select("id, position, referral_code");
           if (contactMethod === "email") {
             query = query.eq("email", trimmed.toLowerCase());
           } else {
@@ -112,6 +112,7 @@ const Waitlist = () => {
           const { data: existing } = await query.single();
           if (existing) {
             setSignupData({
+              id: existing.id,
               position: existing.position,
               referralCode: existing.referral_code,
             });
@@ -122,6 +123,7 @@ const Waitlist = () => {
         }
       } else if (data) {
         setSignupData({
+          id: data.id,
           position: data.position,
           referralCode: data.referral_code,
         });
