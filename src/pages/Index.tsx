@@ -1,24 +1,24 @@
+import { lazy, Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
-import { ScrollProgress } from "@/components/ScrollProgress";
-import { FloatingParticles } from "@/components/FloatingParticles";
-import { InteractiveIcons } from "@/components/InteractiveIcons";
 import { Hero } from "@/components/Hero";
-import { Mission } from "@/components/Mission";
-import { Values } from "@/components/Values";
-import { ProgramsWithRocket } from "@/components/ProgramsWithRocket";
-import { Timeline } from "@/components/Timeline";
-import { Testimonials } from "@/components/Testimonials";
-import { CTA } from "@/components/CTA";
+import { SocialProof } from "@/components/SocialProof";
+import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { Footer } from "@/components/Footer";
 import { AIMascot } from "@/components/AIMascot";
-import { SocialProof } from "@/components/SocialProof";
-import { FAQ } from "@/components/FAQ";
-import { SuccessStories } from "@/components/SuccessStories";
-import { Gallery } from "@/components/Gallery";
-import { BookFreeTrial } from "@/components/BookFreeTrial";
 import { HackathonBanner } from "@/components/HackathonBanner";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
 import { SEO, createFAQSchema } from "@/components/SEO";
+import { ParentTrust } from "@/components/ParentTrust";
+
+// Lazy-load below-fold sections
+const Mission = lazy(() => import("@/components/Mission").then(m => ({ default: m.Mission })));
+const Values = lazy(() => import("@/components/Values").then(m => ({ default: m.Values })));
+const Timeline = lazy(() => import("@/components/Timeline").then(m => ({ default: m.Timeline })));
+const Testimonials = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.Testimonials })));
+const CTA = lazy(() => import("@/components/CTA").then(m => ({ default: m.CTA })));
+const FAQ = lazy(() => import("@/components/FAQ").then(m => ({ default: m.FAQ })));
+const SuccessStories = lazy(() => import("@/components/SuccessStories").then(m => ({ default: m.SuccessStories })));
+const Gallery = lazy(() => import("@/components/Gallery").then(m => ({ default: m.Gallery })));
 
 // FAQ data for structured data
 const homepageFAQs = [
@@ -28,6 +28,8 @@ const homepageFAQs = [
   { question: "Does my child need prior coding experience?", answer: "Not at all! Our programs are designed for complete beginners. We start with visual programming and gradually progress to text-based coding. Each child learns at their own pace with support from our instructors." },
   { question: "What programs do you offer?", answer: "We offer three main programs: Workshops (twice yearly, two-month duration), Summer Tech Camp (full immersion during summer), and One-Day Tech Fair (mega event with exhibitions and demonstrations)." }
 ];
+
+const SectionFallback = () => <div className="py-16" />;
 
 const Index = () => {
   usePageTracking('/');
@@ -42,23 +44,23 @@ const Index = () => {
         keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "STEM programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
-      <FloatingParticles />
-      <InteractiveIcons />
-      <ScrollProgress />
       <AIMascot />
       <Navbar />
       <Hero />
       <SocialProof />
       <BookFreeTrial />
-      <Mission />
-      <Values />
-      <Timeline />
-      <SuccessStories />
-      <Gallery />
-      <HackathonBanner />
-      <Testimonials />
-      <FAQ />
-      <CTA />
+      <Suspense fallback={<SectionFallback />}>
+        <Mission />
+        <Values />
+        <ParentTrust />
+        <Timeline />
+        <SuccessStories />
+        <Gallery />
+        <HackathonBanner />
+        <Testimonials />
+        <FAQ />
+        <CTA />
+      </Suspense>
       <Footer />
     </div>
   );
