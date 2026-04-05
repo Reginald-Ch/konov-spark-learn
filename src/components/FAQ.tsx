@@ -8,8 +8,8 @@ import { SpeechBubble } from "./SpeechBubble";
 export const FAQ = () => {
   const faqs = [
      {
-      question: "What is Konov?",
-      answer: "Konov is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners. We make tech education fun, creative, and easy to grasp."
+      question: "What is KONOV?",
+      answer: "KONOV is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners. We make tech education fun, creative, and easy to grasp."
     },
     
      {
