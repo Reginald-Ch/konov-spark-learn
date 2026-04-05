@@ -9,7 +9,7 @@ const FloatingCode = ({ delay, x, y, children }: { delay: number; x: string; y: 
     whileInView={{ opacity: 0.08 }}
     viewport={{ once: true }}
     transition={{ delay, duration: 1 }}
-    className="absolute font-mono text-xs text-secondary select-none pointer-events-none whitespace-pre"
+    className="absolute font-mono text-xs text-primary/20 select-none pointer-events-none whitespace-pre"
     style={{ left: x, top: y }}
   >
     {children}
@@ -18,7 +18,7 @@ const FloatingCode = ({ delay, x, y, children }: { delay: number; x: string; y: 
 
 export const HackathonBanner = () => {
   return (
-    <section className="py-20 md:py-28 relative overflow-hidden bg-[hsl(220,25%,12%)]">
+    <section className="py-20 md:py-28 relative overflow-hidden bg-background">
 
       {/* Floating code snippets for atmosphere */}
       <FloatingCode delay={0.5} x="5%" y="15%">{"SYSTEM_PROMPT = \"You are a helpful AI\""}</FloatingCode>
