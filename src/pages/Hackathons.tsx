@@ -189,7 +189,7 @@ const Hackathons = () => {
             {/* Welcome Banner */}
             <div 
               className="rounded-lg p-6 mb-8 relative overflow-hidden tech-grid"
-              style={{ background: 'linear-gradient(135deg, #1a0a0f 0%, #C70110 50%, #0d1117 100%)' }}
+              style={{ background: 'hsl(var(--discord-darker))' }}
             >
               <div className="absolute inset-0 opacity-10">
                 <Rocket className="w-32 h-32 text-white absolute top-4 right-4" />
