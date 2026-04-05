@@ -18,7 +18,7 @@ export const Testimonials = () => {
     {
       name: "Coach Issac ",
       role: "Founder, SLAC",
-      content: "We integrated Konov's AI program with our sport summer program. We have not regretted having them has partners.",
+      content: "We integrated KONOV's AI program with our sport summer program. We have not regretted having them has partners.",
       rating: 5,
       mascot: "teaching" as const,
     },

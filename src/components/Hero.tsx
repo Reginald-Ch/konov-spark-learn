@@ -80,7 +80,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                “Konov helps K-12 build the skills they need for the future — critical thinking, creativity, collaboration, and confidence — through fun, hands-on AI learning experiences designed for young minds.”
+                “KONOV helps K-12 build the skills they need for the future — critical thinking, creativity, collaboration, and confidence — through fun, hands-on AI learning experiences designed for young minds.”
               </p>
             </SpeechBubble>
           </motion.div>
