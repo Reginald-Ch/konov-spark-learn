@@ -38,10 +38,12 @@ const Waitlist = () => {
   const [signupData, setSignupData] = useState<{
     position: number;
     referralCode: string;
+    id?: string;
   } | null>(null);
   const [totalSignups, setTotalSignups] = useState(0);
   const [copied, setCopied] = useState(false);
   const [referredBy, setReferredBy] = useState<string | null>(null);
+  const { subscribe, isSubscribing, isSubscribed, isSupported } = usePushNotifications();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
