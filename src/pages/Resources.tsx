@@ -313,7 +313,7 @@ const Resources = () => {
                     layout
                   >
                     {/* Header */}
-                    <div className={`bg-gradient-to-r ${colorClass} p-4`}>
+                    <div className={`${colorClass} p-4`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border-2 border-foreground">
