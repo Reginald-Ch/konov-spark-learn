@@ -2,31 +2,49 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
-import workshopsImg from "@/assets/programs-workshops.jpg";
-import comicsImg from "@/assets/programs-comics.jpg";
-import edtechImg from "@/assets/programs-edtech.jpg";
-import schoolsImg from "@/assets/programs-schools.jpg";
+import workshop1 from "@/assets/gallery-workshop-1.jpg";
+import workshop2 from "@/assets/gallery-workshop-2.jpg";
+import session from "@/assets/gallery-session.jpg";
+import school from "@/assets/gallery-school.jpg";
+import highfive from "@/assets/gallery-highfive.jpg";
+import excited from "@/assets/gallery-excited.jpg";
+import mentoring from "@/assets/gallery-mentoring.jpg";
 
 const galleryImages = [
   {
-    src: workshopsImg,
-    title: "Hands-On Workshops",
-    description: "Students building projects with real tech tools"
+    src: highfive,
+    title: "Hands-On Learning",
+    description: "Students celebrating breakthroughs with their instructors"
   },
   {
-    src: comicsImg,
-    title: "Creative Learning",
-    description: "Making tech fun through storytelling and comics"
+    src: excited,
+    title: "Curiosity in Action",
+    description: "Young learners eager to explore new tech concepts"
   },
   {
-    src: edtechImg,
-    title: "Digital Skills",
-    description: "Young learners exploring coding and AI"
+    src: workshop1,
+    title: "Innovation Workshops",
+    description: "Students collaborating on real-world tech projects"
   },
   {
-    src: schoolsImg,
+    src: school,
     title: "School Programs",
-    description: "Bringing tech education directly to classrooms"
+    description: "Bringing tech education directly into classrooms across Ghana"
+  },
+  {
+    src: mentoring,
+    title: "Personalized Mentoring",
+    description: "One-on-one guidance to help every child succeed"
+  },
+  {
+    src: workshop2,
+    title: "Teamwork & Collaboration",
+    description: "Building problem-solving skills through group projects"
+  },
+  {
+    src: session,
+    title: "Expert-Led Sessions",
+    description: "Industry professionals sharing knowledge with the next generation"
   }
 ];
 
@@ -49,39 +67,43 @@ export const Gallery = () => {
   };
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-12 md:py-16 bg-muted/30">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="text-center mb-10"
         >
-          <h2 className="text-3xl md:text-4xl font-orbitron font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl font-orbitron font-bold text-foreground mb-3">
             Our Impact in Action
           </h2>
           <p className="text-muted-foreground font-space max-w-2xl mx-auto">
-            See how we're transforming tech education across Africa
+            Real moments from our workshops, hackathons, and school programs across Ghana
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Masonry-style grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {galleryImages.map((image, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
               whileHover={{ scale: 1.03 }}
               onClick={() => openLightbox(index)}
-              className="relative cursor-pointer group overflow-hidden rounded-xl aspect-square"
+              className={`relative cursor-pointer group overflow-hidden rounded-xl ${
+                index === 0 || index === 3 ? "row-span-2 aspect-[3/4]" : "aspect-square"
+              }`}
             >
               <img
                 src={image.src}
                 alt={image.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                 <div>
