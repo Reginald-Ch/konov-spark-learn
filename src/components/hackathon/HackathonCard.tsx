@@ -86,7 +86,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
         <div className="absolute top-0 left-0 right-0 h-1 bg-primary animate-pulse" />
       )}
       
-      {/* Upcoming indicator with Konov colors */}
+      {/* Upcoming indicator with KONOV colors */}
       {hackathon.status === 'upcoming' && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
       )}
