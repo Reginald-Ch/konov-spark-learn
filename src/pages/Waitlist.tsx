@@ -23,8 +23,10 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import meaiLogo from "@/assets/meai-logo.png";
 
 type ContactMethod = "whatsapp" | "email";
