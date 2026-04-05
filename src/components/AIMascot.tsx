@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import mascotImage from "@/assets/ai-mascot.jpg";
+import mascotImage from "@/assets/meai-mascot.png";
 import { Button } from "./ui/button";
 import { analytics } from "@/hooks/useAnalytics";
 
