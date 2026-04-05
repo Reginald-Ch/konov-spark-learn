@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import mascotImage from "@/assets/ai-mascot.jpg";
+import mascotImage from "@/assets/meai-mascot.png";
 import { Button } from "./ui/button";
 import { analytics } from "@/hooks/useAnalytics";
 
@@ -319,11 +319,14 @@ export const AIMascot = () => {
           
           {/* Mascot image with mood-based animations */}
           <div className="relative">
-            <img
-              src={mascotImage}
-              alt="Konovy AI Mascot"
-              className={`relative w-20 h-20 rounded-full border-2 border-primary/50 shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:border-secondary ${getMoodAnimation()}`}
-            />
+            <div className={`relative w-20 h-20 rounded-full border-2 border-primary/50 shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:border-secondary overflow-hidden ${getMoodAnimation()}`}>
+              <img
+                src={mascotImage}
+                alt="Konovy AI Mascot"
+                className="w-full h-auto absolute top-0 left-0"
+                style={{ transform: 'scale(1.4)', transformOrigin: 'top center', marginTop: '5%' }}
+              />
+            </div>
             
             {/* Animated eyes overlay */}
             <div 
