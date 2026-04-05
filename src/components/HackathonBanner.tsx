@@ -61,7 +61,7 @@ export const HackathonBanner = () => {
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
               <span className="text-white">Build Your First </span>
               <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-secondary via-primary to-secondary bg-clip-text text-transparent">
+                <span className="text-secondary">
                   AI Project
                 </span>
                 <motion.span
@@ -69,7 +69,7 @@ export const HackathonBanner = () => {
                   whileInView={{ scaleX: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.6, duration: 0.5 }}
-                  className="absolute -bottom-2 left-0 right-0 h-1 rounded-full bg-gradient-to-r from-secondary to-primary origin-left"
+                  className="absolute -bottom-2 left-0 right-0 h-1 rounded-full bg-secondary origin-left"
                 />
               </span>
             </h2>
