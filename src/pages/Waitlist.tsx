@@ -187,7 +187,7 @@ const Waitlist = () => {
       gradient: "from-amber-500 to-orange-500",
     },
     {
-      icon: Sparkles,
+      icon: Rocket,
       title: "No Experience Needed",
       desc: "Designed for ages 6–15. Zero coding background required — just curiosity and imagination.",
       gradient: "from-blue-500 to-cyan-600",
@@ -337,7 +337,7 @@ const Waitlist = () => {
                           animate={{ rotate: 360 }}
                           transition={{ repeat: Infinity, duration: 1 }}
                         >
-                          <Sparkles className="w-5 h-5" />
+                          <Rocket className="w-5 h-5" />
                         </motion.div>
                       ) : (
                         <>

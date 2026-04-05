@@ -263,7 +263,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
                 {/* Idea to Code */}
                 <div className="mt-4 pt-3 border-t border-[hsl(var(--discord-light)/0.2)]">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))] mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Rocket className="w-3.5 h-3.5" />
                     Idea → Code
                   </h3>
                   <div className="relative">
@@ -312,7 +312,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
 
             <Button size="sm" onClick={() => handleAiAssist('review')} disabled={isAiLoading}
               className="h-7 text-xs bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)] text-white">
-              {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+              {isAiLoading && activeAiAction === 'review' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Rocket className="w-3 h-3 mr-1" />}
               Review
             </Button>
             <Button size="sm" onClick={() => handleAiAssist('explain')} disabled={isAiLoading} variant="ghost"
@@ -364,7 +364,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
               >
                 <div className="px-3 py-1.5 text-[10px] font-mono text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-dark))] border-b border-[hsl(var(--discord-light)/0.1)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
+                    <Rocket className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
                     AI Mentor
                     {isAiLoading && <Loader2 className="w-3 h-3 animate-spin text-[hsl(var(--discord-blurple))]" />}
                   </div>
