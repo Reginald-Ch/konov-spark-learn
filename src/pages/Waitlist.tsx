@@ -23,8 +23,10 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import meaiLogo from "@/assets/meai-logo.png";
 
 type ContactMethod = "whatsapp" | "email";
@@ -36,10 +38,12 @@ const Waitlist = () => {
   const [signupData, setSignupData] = useState<{
     position: number;
     referralCode: string;
+    id?: string;
   } | null>(null);
   const [totalSignups, setTotalSignups] = useState(0);
   const [copied, setCopied] = useState(false);
   const [referredBy, setReferredBy] = useState<string | null>(null);
+  const { subscribe, isSubscribing, isSubscribed, isSupported } = usePushNotifications();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -80,8 +84,10 @@ const Waitlist = () => {
 
     setIsSubmitting(true);
     try {
+      // Generate a 6-char referral code
+      const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const insertData = {
-        referral_code: "",
+        referral_code: referralCode,
         referred_by: referredBy,
         ...(contactMethod === "email"
           ? { email: trimmed.toLowerCase() }
@@ -91,13 +97,13 @@ const Waitlist = () => {
       const { data, error } = await supabase
         .from("waitlist_signups")
         .insert([insertData])
-        .select("position, referral_code")
+        .select("id, position, referral_code")
         .single();
 
       if (error) {
         if (error.code === "23505") {
           // Duplicate — fetch existing
-          let query = supabase.from("waitlist_signups").select("position, referral_code");
+          let query = supabase.from("waitlist_signups").select("id, position, referral_code");
           if (contactMethod === "email") {
             query = query.eq("email", trimmed.toLowerCase());
           } else {
@@ -106,6 +112,7 @@ const Waitlist = () => {
           const { data: existing } = await query.single();
           if (existing) {
             setSignupData({
+              id: existing.id,
               position: existing.position,
               referralCode: existing.referral_code,
             });
@@ -116,6 +123,7 @@ const Waitlist = () => {
         }
       } else if (data) {
         setSignupData({
+          id: data.id,
           position: data.position,
           referralCode: data.referral_code,
         });
@@ -393,7 +401,47 @@ const Waitlist = () => {
                     </div>
                   </div>
 
-                  {/* Referral Section */}
+                  {/* Push Notification Opt-in */}
+                  {isSupported && !isSubscribed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-300/30 p-4 mb-5"
+                    >
+                      <div className="flex items-center gap-2 mb-2 justify-center">
+                        <Bell className="w-5 h-5 text-amber-500" />
+                        <p className="font-fredoka font-bold text-sm">
+                          Get notified when we launch! 🔔
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-fredoka mb-3 text-center">
+                        Be the first to know — straight to your device.
+                      </p>
+                      <Button
+                        onClick={() => subscribe(signupData?.id)}
+                        disabled={isSubscribing}
+                        className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-fredoka font-bold text-sm"
+                      >
+                        {isSubscribing ? (
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                            <Bell className="w-4 h-4" />
+                          </motion.div>
+                        ) : (
+                          <>
+                            <Bell className="w-4 h-4 mr-2" />
+                            Enable Notifications
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  )}
+                  {isSubscribed && (
+                    <div className="flex items-center gap-2 justify-center mb-5 text-green-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <p className="font-fredoka font-bold text-xs">Notifications enabled! We'll ping you 🎉</p>
+                    </div>
+                  )}
                   <div className="bg-muted/50 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-3 justify-center">
                       <Share2 className="w-5 h-5 text-primary" />
