@@ -208,7 +208,7 @@ const Waitlist = () => {
         description="Join the waitlist for MeAI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects."
       />
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-b from-amber-50/50 via-background to-orange-50/30 dark:from-amber-950/20 dark:via-background dark:to-orange-950/10">
+      <div className="min-h-screen bg-background">
         {/* Hero — Mobile-first, CTA above fold */}
         <section className="pt-8 pb-12 md:pt-16 md:pb-20 relative overflow-hidden">
           <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center relative z-10">

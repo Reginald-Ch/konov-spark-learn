@@ -49,7 +49,7 @@ export const Testimonials = () => {
   return (
     <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
       {/* Background */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-primary/5 blur-3xl" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div 
@@ -132,7 +132,7 @@ export const Testimonials = () => {
                 whileTap={{ scale: 0.9 }}
                 className={`transition-all duration-300 rounded-full border-2 border-foreground ${
                   idx === activeIndex
-                    ? "w-10 h-4 bg-gradient-to-r from-primary to-secondary"
+                    ? "w-10 h-4 bg-primary"
                     : "w-4 h-4 bg-card hover:bg-primary/30"
                 }`}
               />
