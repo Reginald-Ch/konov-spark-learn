@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, Zap, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SignupModal } from "@/components/SignupModal";
@@ -10,6 +10,8 @@ export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const exploreRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -21,14 +23,29 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
+        setExploreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Programs", path: "/programs" },
-    { name: "Community", path: "/community" },
-    { name: "Learn AI", path: "/resources" },
     { name: "Waitlist", path: "/waitlist" },
     { name: "Contact", path: "/contact" },
+  ];
+
+  const exploreLinks = [
+    { name: "Community", path: "/community" },
+    { name: "Learn AI", path: "/resources" },
+    { name: "FORGE Studio", path: "/hackathons" },
   ];
 
   return (
@@ -80,6 +97,47 @@ export const Navbar = () => {
                   </Link>
                 );
               })}
+              
+              {/* Explore dropdown */}
+              <div ref={exploreRef} className="relative">
+                <button
+                  onClick={() => setExploreOpen(!exploreOpen)}
+                  className={`relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group flex items-center gap-1 ${
+                    exploreLinks.some(l => location.pathname === l.path)
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Explore
+                  <ChevronDown className={`w-4 h-4 transition-transform ${exploreOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {exploreOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-2 bg-card border-2 border-foreground/20 rounded-xl shadow-lg overflow-hidden min-w-[180px] z-50"
+                    >
+                      {exploreLinks.map((link) => (
+                        <Link
+                          key={link.name}
+                          to={link.path}
+                          onClick={() => setExploreOpen(false)}
+                          className={`block px-4 py-3 font-fredoka font-medium text-base transition-colors ${
+                            location.pathname === link.path
+                              ? "text-primary bg-primary/10"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {link.name}
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* CTA Button */}
@@ -120,7 +178,7 @@ export const Navbar = () => {
             >
               <div className="bg-background/95 backdrop-blur-lg border-t-4 border-foreground/20 py-6">
                 <div className="container mx-auto px-4 flex flex-col gap-3">
-                  {navLinks.map((link, idx) => (
+                  {[...navLinks, ...exploreLinks].map((link, idx) => (
                     <motion.div
                       key={link.name}
                       initial={{ x: -20, opacity: 0 }}

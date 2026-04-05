@@ -85,16 +85,16 @@ export const Hero = () => {
             </SpeechBubble>
           </motion.div>
 
-          {/* Mascots Row */}
+          {/* Mascots Row — Hero Visual */}
           <motion.div
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-2 md:gap-4 my-4"
+            className="flex justify-center items-end gap-3 md:gap-6 my-4"
           >
-            <RobotMascot type="thinking" size="sm" />
-            <RobotMascot type="excited" size="md" />
-            <RobotMascot type="happy" size="sm" />
+            <RobotMascot type="thinking" size="md" />
+            <RobotMascot type="excited" size="lg" />
+            <RobotMascot type="happy" size="md" />
           </motion.div>
           
           {/* CTA Buttons - Comic Style */}

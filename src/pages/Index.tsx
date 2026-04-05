@@ -48,8 +48,8 @@ const Index = () => {
       <AIMascot />
       <Navbar />
       <Hero />
-      <BookFreeTrial />
       <SocialProof />
+      <BookFreeTrial />
       <Mission />
       <Values />
       <Timeline />
