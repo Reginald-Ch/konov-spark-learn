@@ -296,9 +296,9 @@ const Resources = () => {
               const Icon = topic.icon;
               const isExpanded = expandedTopic === topic.id;
               const colorClass = {
-                primary: "from-primary to-primary/70",
-                secondary: "from-secondary to-secondary/70",
-                accent: "from-accent to-accent/70"
+                primary: "bg-primary",
+                secondary: "bg-secondary",
+                accent: "bg-accent"
               }[topic.color];
 
               return (
