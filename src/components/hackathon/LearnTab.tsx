@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, ExternalLink, Rocket, Brain, Code, Sparkles, Zap, GraduationCap, Palette, Target, Smile, CheckCircle2, Circle, Timer, Trophy } from 'lucide-react';
+import { BookOpen, ExternalLink, Rocket, Brain, Code, Zap, GraduationCap, Palette, Target, Smile, CheckCircle2, Circle, Timer, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
@@ -155,7 +155,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     step: 4,
     title: "Control Bot Behaviour",
     subtitle: "Challenges 8–10 — Write Python lists from scratch",
-    icon: Sparkles,
+    icon: Rocket,
     color: "#5865F2",
     timeLimit: 10,
     challenges: [
@@ -184,7 +184,7 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
     step: 6,
     title: "Teach & Surprise",
     subtitle: "Challenges 13–14 — Few-shot examples + secret triggers",
-    icon: Sparkles,
+    icon: Rocket,
     color: "#3498DB",
     timeLimit: 10,
     challenges: [
@@ -251,7 +251,7 @@ const TOTAL_POINTS = 155; // Fixed: sum of all challenge points (same for both t
 const RESOURCES = [
   { title: 'Python for AI Beginners', description: 'Learn Python basics: variables, loops, functions, and data structures for AI.', icon: Code, color: '#006600', link: 'https://www.learnpython.org/', level: 'Beginner' },
   { title: 'Introduction to Machine Learning', description: 'Understand what ML is, how models learn, and supervised vs unsupervised learning.', icon: Brain, color: '#5865F2', link: 'https://developers.google.com/machine-learning/crash-course', level: 'Beginner' },
-  { title: 'Build a Chatbot with LangChain', description: 'Step-by-step guide to building a conversational AI chatbot using LangChain.', icon: Sparkles, color: '#F7941D', link: 'https://python.langchain.com/docs/tutorials/', level: 'Intermediate' },
+  { title: 'Build a Chatbot with LangChain', description: 'Step-by-step guide to building a conversational AI chatbot using LangChain.', icon: Rocket, color: '#F7941D', link: 'https://python.langchain.com/docs/tutorials/', level: 'Intermediate' },
   { title: 'Streamlit: Build AI Demos Fast', description: 'Create interactive web apps for your AI projects in minutes — no frontend code needed.', icon: Rocket, color: '#C70110', link: 'https://docs.streamlit.io/get-started', level: 'Beginner' },
   { title: 'Hugging Face Transformers', description: 'Access thousands of pre-trained AI models for text, image, and audio tasks.', icon: Zap, color: '#9B59B6', link: 'https://huggingface.co/docs/transformers', level: 'Intermediate' },
   { title: 'AI Agents with Tools', description: 'Learn to build AI agents that search the web, calculate, and interact with APIs.', icon: GraduationCap, color: '#3498DB', link: 'https://python.langchain.com/docs/how_to/#agents', level: 'Advanced' },

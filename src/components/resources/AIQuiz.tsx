@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, Sparkles, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, Rocket, RotateCcw } from "lucide-react";
 import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 
@@ -115,7 +115,7 @@ export const AIQuiz = ({ topicId }: { topicId: number }) => {
       className="mt-4 p-4 rounded-xl border-2 border-secondary/30 bg-secondary/5"
     >
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-secondary" />
+        <Rocket className="w-4 h-4 text-secondary" />
         <span className="font-fredoka font-bold text-secondary text-sm">
           QUICK QUIZ — Q{currentQ + 1}/{questions.length}
         </span>

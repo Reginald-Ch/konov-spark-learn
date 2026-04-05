@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { 
   Rocket, UserPlus, Users, Brain, Trophy, CheckCircle2, 
-  ArrowRight, Lightbulb, Zap, MessageSquare, Sparkles
+  ArrowRight, Lightbulb, Zap, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
