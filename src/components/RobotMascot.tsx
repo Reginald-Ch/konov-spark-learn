@@ -55,17 +55,11 @@ export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({
       whileHover={{ scale: 1.15 }}
       whileTap={{ scale: 0.95 }}
     >
-      <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
-        {/* Logo image - cropped to show only the head (top ~65%) */}
+      <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-background">
         <img 
           src={mascotLogo} 
           alt="ME AI Mascot" 
-          className="w-full h-auto absolute top-0 left-0"
-          style={{ 
-            transform: 'scale(1.4)',
-            transformOrigin: 'top center',
-            marginTop: '5%'
-          }}
+          className="absolute inset-0 w-full h-full object-cover object-[center_30%]"
         />
       </div>
 
