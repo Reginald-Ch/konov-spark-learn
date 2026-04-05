@@ -401,7 +401,47 @@ const Waitlist = () => {
                     </div>
                   </div>
 
-                  {/* Referral Section */}
+                  {/* Push Notification Opt-in */}
+                  {isSupported && !isSubscribed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-300/30 p-4 mb-5"
+                    >
+                      <div className="flex items-center gap-2 mb-2 justify-center">
+                        <Bell className="w-5 h-5 text-amber-500" />
+                        <p className="font-fredoka font-bold text-sm">
+                          Get notified when we launch! 🔔
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-fredoka mb-3 text-center">
+                        Be the first to know — straight to your device.
+                      </p>
+                      <Button
+                        onClick={() => subscribe(signupData?.id)}
+                        disabled={isSubscribing}
+                        className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-fredoka font-bold text-sm"
+                      >
+                        {isSubscribing ? (
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                            <Bell className="w-4 h-4" />
+                          </motion.div>
+                        ) : (
+                          <>
+                            <Bell className="w-4 h-4 mr-2" />
+                            Enable Notifications
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  )}
+                  {isSubscribed && (
+                    <div className="flex items-center gap-2 justify-center mb-5 text-green-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <p className="font-fredoka font-bold text-xs">Notifications enabled! We'll ping you 🎉</p>
+                    </div>
+                  )}
                   <div className="bg-muted/50 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-3 justify-center">
                       <Share2 className="w-5 h-5 text-primary" />
