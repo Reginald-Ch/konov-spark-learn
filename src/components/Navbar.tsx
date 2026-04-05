@@ -102,14 +102,25 @@ export const Navbar = () => {
               <div ref={exploreRef} className="relative">
                 <button
                   onClick={() => setExploreOpen(!exploreOpen)}
-                  className={`relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group flex items-center gap-1 ${
+                  className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group flex items-center gap-1"
+                >
+                  {exploreLinks.some(l => location.pathname === l.path) && (
+                    <motion.span
+                      layoutId="navbar-active"
+                      className="absolute inset-0 bg-primary/10 rounded-xl border-2 border-primary/20"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <span className={`relative z-10 transition-colors duration-200 ${
                     exploreLinks.some(l => location.pathname === l.path)
                       ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Explore
-                  <ChevronDown className={`w-4 h-4 transition-transform ${exploreOpen ? 'rotate-180' : ''}`} />
+                      : "text-muted-foreground group-hover:text-foreground"
+                  }`}>
+                    Explore
+                  </span>
+                  <ChevronDown className={`relative z-10 w-4 h-4 transition-transform ${
+                    exploreLinks.some(l => location.pathname === l.path) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  } ${exploreOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <AnimatePresence>
                   {exploreOpen && (
