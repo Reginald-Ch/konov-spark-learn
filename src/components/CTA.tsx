@@ -11,7 +11,7 @@ export const CTA = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
   
   return (
-    <section id="cta-section" className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+    <section id="cta-section" className="py-14 md:py-20 relative overflow-hidden halftone-bg">
       {/* Animated Background */}
       <div className="absolute inset-0">
         <motion.div 

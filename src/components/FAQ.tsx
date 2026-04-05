@@ -64,7 +64,7 @@ export const FAQ = () => {
   ];
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+    <section className="py-14 md:py-20 relative overflow-hidden halftone-bg">
       <motion.div 
         className="absolute top-1/3 -left-20 w-72 h-72 bg-primary/15 rounded-full blur-3xl"
         animate={{ y: [0, 30, 0] }}
