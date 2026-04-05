@@ -65,7 +65,7 @@ export const Programs = () => {
   ];
 
   return (
-    <section ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden">
+    <section ref={sectionRef} className="py-14 md:py-20 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{

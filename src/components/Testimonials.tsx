@@ -47,7 +47,7 @@ export const Testimonials = () => {
   }, [testimonials.length]);
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+    <section className="py-14 md:py-20 relative overflow-hidden halftone-bg">
       {/* Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl bg-primary/5 blur-3xl" />
       

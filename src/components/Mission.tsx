@@ -42,7 +42,7 @@ export const Mission = () => {
   ];
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+    <section className="py-14 md:py-20 relative overflow-hidden halftone-bg">
       {/* Background Elements */}
       <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-secondary/20 rounded-full blur-3xl" />

@@ -45,7 +45,7 @@ export const Timeline = forwardRef<HTMLDivElement>((_, _ref) => {
   const lineHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <section ref={containerRef} className="py-24 md:py-32 relative overflow-hidden halftone-bg">
+    <section ref={containerRef} className="py-14 md:py-20 relative overflow-hidden halftone-bg">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

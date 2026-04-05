@@ -58,7 +58,7 @@ export const SuccessStories = forwardRef<HTMLElement>((_, _ref) => {
   };
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden bg-background">
+    <section className="py-14 md:py-20 relative overflow-hidden bg-background">
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       
