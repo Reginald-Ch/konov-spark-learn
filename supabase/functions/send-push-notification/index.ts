@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_PUBLIC_KEY = "BKEIlKAqx1H3slXbH3GOTrxFhvqTaOqo7WqmU5vrQvYzRcv7LjjZohKMSP1lC0wBMc0-O04oaI8tTEVhcGr3LVI";
+const VAPID_PUBLIC_KEY = "BI3C64tzgI4LIQnaj6e-roiWw4Kur4hVEtKjN_BIWWGyqcITBGeoIwZhLKkb-iPa9frRWjx0y9ia4Qjjxfttlkk";
 
 // --- Web Push utilities ---
 
