@@ -208,7 +208,7 @@ All colors MUST be HSL.
   }
 
   .action-burst {
-    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)));
+    background: hsl(var(--secondary));
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
 
