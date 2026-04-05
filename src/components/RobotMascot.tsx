@@ -63,35 +63,6 @@ export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({
         />
       </div>
 
-      {/* Sparkles when clicked */}
-      <AnimatePresence>
-        {isClicked && (
-          <>
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute text-accent"
-                style={{
-                  top: "50%",
-                  left: "50%",
-                  fontSize: size === "lg" ? 14 : size === "md" ? 10 : 8,
-                }}
-                initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
-                animate={{
-                  x: Math.cos(i * 60 * Math.PI / 180) * 30,
-                  y: Math.sin(i * 60 * Math.PI / 180) * 30,
-                  opacity: 0,
-                  scale: 1,
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                ✨
-              </motion.div>
-            ))}
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Glow ring on hover only */}
       {isHovered && (
