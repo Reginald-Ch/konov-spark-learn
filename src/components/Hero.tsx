@@ -24,22 +24,9 @@ export const Hero = () => {
       />
       <div className="absolute inset-0 bg-background/80" />
       
-      {/* Floating Elements */}
-      <motion.div 
-        className="absolute top-20 left-10 w-20 h-20 bg-primary/30 rounded-full blur-2xl"
-        animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 4, repeat: Infinity }}
-      />
-      <motion.div 
-        className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/30 rounded-full blur-2xl"
-        animate={{ y: [0, 20, 0], scale: [1, 1.2, 1] }}
-        transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-      />
-      <motion.div 
-        className="absolute top-40 right-20 w-24 h-24 bg-accent/30 rounded-full blur-2xl"
-        animate={{ y: [0, -15, 0] }}
-        transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
-      />
+      {/* Subtle accent dots — static, no animation cost */}
+      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
+      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
