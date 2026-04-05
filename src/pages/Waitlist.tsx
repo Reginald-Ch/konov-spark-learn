@@ -227,7 +227,7 @@ const Waitlist = () => {
               initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.15 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 text-amber-700 dark:text-amber-300 font-bold text-sm mb-4 border-2 border-amber-300 dark:border-amber-700 shadow-md font-fredoka"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary font-bold text-sm mb-4 border-2 border-secondary/30 shadow-md font-fredoka"
             >
               <Star className="h-4 w-4" />
               Limited Early Access
@@ -242,7 +242,7 @@ const Waitlist = () => {
             >
               <span className="text-foreground">Your Kids Use AI Every Day.</span>
               <br />
-              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-primary bg-clip-text text-transparent">
+              <span className="text-secondary">
                 Now They Can Understand It.
               </span>
             </motion.h1>
@@ -331,7 +331,7 @@ const Waitlist = () => {
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full h-14 font-fredoka font-bold text-lg rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all text-white"
+                      className="w-full h-14 font-fredoka font-bold text-lg rounded-xl bg-secondary hover:bg-secondary/90 border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all text-white"
                     >
                       {isSubmitting ? (
                         <motion.div
@@ -407,7 +407,7 @@ const Waitlist = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-300/30 p-4 mb-5"
+                      className="bg-secondary/10 rounded-2xl border border-secondary/30 p-4 mb-5"
                     >
                       <div className="flex items-center gap-2 mb-2 justify-center">
                         <Bell className="w-5 h-5 text-amber-500" />
@@ -421,7 +421,7 @@ const Waitlist = () => {
                       <Button
                         onClick={() => subscribe(signupData?.id)}
                         disabled={isSubscribing}
-                        className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-fredoka font-bold text-sm"
+                        className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary/90 text-white font-fredoka font-bold text-sm"
                       >
                         {isSubscribing ? (
                           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
@@ -526,7 +526,7 @@ const Waitlist = () => {
               className="text-center mb-8"
             >
               <h2 className="text-2xl md:text-3xl font-fredoka font-bold mb-2">
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                <span className="text-secondary">
                   What Your Kids Will Learn
                 </span>
               </h2>
@@ -546,7 +546,7 @@ const Waitlist = () => {
                   className="bg-card rounded-2xl border border-foreground/10 p-5 shadow-sm"
                 >
                   <div
-                    className={`w-12 h-12 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center mb-3 shadow-md`}
+                    className={`w-12 h-12 ${feature.gradient === 'from-primary to-accent' ? 'bg-primary' : feature.gradient === 'from-green-500 to-emerald-600' ? 'bg-accent' : feature.gradient === 'from-amber-500 to-orange-500' ? 'bg-secondary' : 'bg-primary'} rounded-xl flex items-center justify-center mb-3 shadow-md`}
                   >
                     <feature.icon className="w-6 h-6 text-white" />
                   </div>
@@ -570,7 +570,7 @@ const Waitlist = () => {
                 initial={{ y: 15, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
-                className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl border-2 border-amber-300/30 p-8"
+                className="bg-secondary/10 rounded-3xl border-2 border-secondary/30 p-8"
               >
                 <Zap className="w-8 h-8 text-amber-500 mx-auto mb-3" />
                 <h3 className="text-xl md:text-2xl font-fredoka font-bold mb-2">
@@ -581,7 +581,7 @@ const Waitlist = () => {
                 </p>
                 <Button
                   onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                  className="h-12 px-8 font-fredoka font-bold text-base rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                  className="h-12 px-8 font-fredoka font-bold text-base rounded-xl bg-secondary hover:bg-secondary/90 text-white"
                 >
                   <ArrowRight className="w-5 h-5 mr-2" />
                   {signupData ? "Share & Move Up" : "Join the Waitlist"}
