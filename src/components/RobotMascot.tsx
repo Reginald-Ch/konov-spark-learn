@@ -93,15 +93,15 @@ export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({
         )}
       </AnimatePresence>
 
-      {/* Glow ring on hover */}
-      <motion.div
-        className="absolute inset-0 rounded-full border-2 border-accent/50"
-        animate={{ 
-          opacity: isHovered ? [0.3, 0.7, 0.3] : 0.2,
-          scale: isHovered ? [1, 1.05, 1] : 1,
-        }}
-        transition={{ duration: 1, repeat: Infinity }}
-      />
+      {/* Glow ring on hover only */}
+      {isHovered && (
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-primary/40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.08, 1] }}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
+      )}
     </motion.div>
   );
 });
