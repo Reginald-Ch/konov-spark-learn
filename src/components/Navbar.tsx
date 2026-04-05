@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, Zap, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SignupModal } from "@/components/SignupModal";
@@ -10,6 +10,8 @@ export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const exploreRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -21,14 +23,29 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
+        setExploreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Programs", path: "/programs" },
-    { name: "Community", path: "/community" },
-    { name: "Learn AI", path: "/resources" },
     { name: "Waitlist", path: "/waitlist" },
     { name: "Contact", path: "/contact" },
+  ];
+
+  const exploreLinks = [
+    { name: "Community", path: "/community" },
+    { name: "Learn AI", path: "/resources" },
+    { name: "FORGE Studio", path: "/hackathons" },
   ];
 
   return (

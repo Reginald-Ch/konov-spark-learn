@@ -61,6 +61,7 @@ export const Footer = () => {
                 { to: "/programs", label: "Our Programs" },
                 { to: "/community", label: "Community" },
                 { to: "/resources", label: "Learn AI" },
+                { to: "/hackathons", label: "FORGE Studio" },
                 { to: "/contact", label: "Contact" },
               ].map((link, idx) => (
                 <li key={idx}>
@@ -91,7 +92,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t-4 border-foreground/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground font-space flex items-center gap-2">
-            © 2025 KONOV. Made with{" "}
+            © 2026 KONOV. Made with{" "}
             <motion.span
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
