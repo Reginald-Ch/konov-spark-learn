@@ -59,7 +59,7 @@ export const RobotMascot = forwardRef<HTMLDivElement, RobotMascotProps>(({
         <img 
           src={mascotLogo} 
           alt="ME AI Mascot" 
-          className="absolute inset-0 w-full h-full object-cover object-[center_30%]"
+          className="absolute inset-0 w-full h-full object-cover object-[center_20%] scale-125"
         />
       </div>
 
