@@ -182,7 +182,7 @@ const Contact = () => {
                     <div className="flex justify-center mb-4">
                       <RobotMascot type={info.mascot} size="sm" />
                     </div>
-                    <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${info.color} flex items-center justify-center shadow-lg border-3 border-foreground group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${info.color.replace('from-', 'bg-').split(' ')[0]} flex items-center justify-center shadow-lg border-3 border-foreground group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="w-8 h-8 text-foreground" />
                     </div>
                     <h3 className="text-xl font-fredoka font-bold mb-2 text-foreground">

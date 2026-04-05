@@ -204,7 +204,7 @@ const About = () => {
                   >
                     <ComicPanel className="p-8 h-full group hover:scale-[1.02] transition-transform">
                       <div className="flex items-start gap-4">
-                        <div className={`w-16 h-16 flex-shrink-0 rounded-2xl bg-gradient-to-br ${value.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 border-3 border-foreground`}>
+                        <div className={`w-16 h-16 flex-shrink-0 rounded-2xl ${value.color.replace('from-', 'bg-').split(' ')[0]} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 border-3 border-foreground`}>
                           <Icon className="w-8 h-8 text-foreground" />
                         </div>
                         <div className="flex-1">
