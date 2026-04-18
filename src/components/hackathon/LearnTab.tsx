@@ -346,6 +346,21 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
           <h2 className="text-2xl font-bold text-white">Challenge Guide</h2>
           <p className="text-white text-sm">Complete all 24 challenges to build your AI bot</p>
         </div>
+        <Button
+          asChild
+          size="lg"
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-bold shadow-lg"
+        >
+          <a
+            href="https://meaiedtech.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Rocket className="w-4 h-4" />
+            Launch MeAI App
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </Button>
       </div>
 
       {/* Score Banner */}
