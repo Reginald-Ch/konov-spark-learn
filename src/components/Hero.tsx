@@ -12,6 +12,7 @@ import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
 
 const HeroScene = lazy(() => import("@/components/3d/HeroScene").then(m => ({ default: m.HeroScene })));
+const InteractiveAIBrain = lazy(() => import("@/components/3d/InteractiveAIBrain").then(m => ({ default: m.InteractiveAIBrain })));
 
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -75,16 +76,18 @@ export const Hero = () => {
             </SpeechBubble>
           </motion.div>
 
-          {/* Mascots Row — Hero Visual */}
+          {/* Interactive 3D AI Brain */}
           <motion.div
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-3 md:gap-6 my-4"
           >
-            <RobotMascot type="thinking" size="md" />
-            <RobotMascot type="excited" size="lg" />
-            <RobotMascot type="happy" size="md" />
+            <Suspense fallback={<div className="h-[300px] md:h-[400px]" />}>
+              <InteractiveAIBrain />
+            </Suspense>
+            <p className="text-xs text-muted-foreground/60 font-space mt-1">
+              ✨ Move your mouse over the brain to interact
+            </p>
           </motion.div>
           
           {/* CTA Buttons - Comic Style */}
