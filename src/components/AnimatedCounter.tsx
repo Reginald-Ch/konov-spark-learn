@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 interface AnimatedCounterProps {
   end: number;
@@ -6,7 +6,7 @@ interface AnimatedCounterProps {
   suffix?: string;
 }
 
-export const AnimatedCounter = ({ end, duration = 2000, suffix = "" }: AnimatedCounterProps) => {
+export const AnimatedCounter = forwardRef<HTMLDivElement, AnimatedCounterProps>(({ end, duration = 2000, suffix = "" }, _ref) => {
   const [count, setCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const counterRef = useRef<HTMLDivElement>(null);
