@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
+
+const FloatingBackground = lazy(() => import("@/components/3d/FloatingBackground").then(m => ({ default: m.FloatingBackground })));
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -210,6 +212,10 @@ const Waitlist = () => {
       <div className="min-h-screen bg-background">
         {/* Hero — Mobile-first, CTA above fold */}
         <section className="pt-8 pb-12 md:pt-16 md:pb-20 relative overflow-hidden">
+          {/* 3D Floating Background */}
+          <Suspense fallback={null}>
+            <FloatingBackground intensity="light" />
+          </Suspense>
           <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center relative z-10">
             {/* Logo */}
             <motion.div

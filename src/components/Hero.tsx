@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket, Zap } from "lucide-react";
@@ -11,22 +11,26 @@ import { RobotMascot } from "./RobotMascot";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
 
+const HeroScene = lazy(() => import("@/components/3d/HeroScene").then(m => ({ default: m.HeroScene })));
+const InteractiveAIBrain = lazy(() => import("@/components/3d/InteractiveAIBrain").then(m => ({ default: m.InteractiveAIBrain })));
+
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const navigate = useNavigate();
 
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden halftone-bg pt-20">
+      {/* 3D Background Scene */}
+      <Suspense fallback={null}>
+        <HeroScene />
+      </Suspense>
+      
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20"
+        className="absolute inset-0 bg-cover bg-center opacity-10"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
-      <div className="absolute inset-0 bg-background/80" />
-      
-      {/* Subtle accent dots — static, no animation cost */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
+      <div className="absolute inset-0 bg-background/70" />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
@@ -72,16 +76,18 @@ export const Hero = () => {
             </SpeechBubble>
           </motion.div>
 
-          {/* Mascots Row — Hero Visual */}
+          {/* Interactive 3D AI Brain */}
           <motion.div
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-3 md:gap-6 my-4"
           >
-            <RobotMascot type="thinking" size="md" />
-            <RobotMascot type="excited" size="lg" />
-            <RobotMascot type="happy" size="md" />
+            <Suspense fallback={<div className="h-[300px] md:h-[400px]" />}>
+              <InteractiveAIBrain />
+            </Suspense>
+            <p className="text-xs text-muted-foreground/60 font-space mt-1">
+              ✨ Move your mouse over the brain to interact
+            </p>
           </motion.div>
           
           {/* CTA Buttons - Comic Style */}
