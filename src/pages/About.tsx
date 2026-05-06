@@ -1,6 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
-
-const FloatingBackground = lazy(() => import("@/components/3d/FloatingBackground").then(m => ({ default: m.FloatingBackground })));
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card } from "@/components/ui/card";
@@ -94,9 +92,6 @@ const About = () => {
       
       {/* Hero Section */}
       <section className="py-24 md:py-32 relative overflow-hidden">
-        <Suspense fallback={null}>
-          <FloatingBackground intensity="light" />
-        </Suspense>
         <div className="absolute inset-0 halftone-bg opacity-30" />
         
         <div className="container mx-auto px-4 relative z-10">
