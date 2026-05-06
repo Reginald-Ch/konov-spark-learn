@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket, Zap } from "lucide-react";
@@ -11,22 +11,25 @@ import { RobotMascot } from "./RobotMascot";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
 
+const HeroScene = lazy(() => import("@/components/3d/HeroScene").then(m => ({ default: m.HeroScene })));
+
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const navigate = useNavigate();
 
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden halftone-bg pt-20">
+      {/* 3D Background Scene */}
+      <Suspense fallback={null}>
+        <HeroScene />
+      </Suspense>
+      
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20"
+        className="absolute inset-0 bg-cover bg-center opacity-10"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
-      <div className="absolute inset-0 bg-background/80" />
-      
-      {/* Subtle accent dots — static, no animation cost */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
+      <div className="absolute inset-0 bg-background/70" />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
