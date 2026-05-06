@@ -212,6 +212,10 @@ const Waitlist = () => {
       <div className="min-h-screen bg-background">
         {/* Hero — Mobile-first, CTA above fold */}
         <section className="pt-8 pb-12 md:pt-16 md:pb-20 relative overflow-hidden">
+          {/* 3D Floating Background */}
+          <Suspense fallback={null}>
+            <FloatingBackground intensity="light" />
+          </Suspense>
           <div className="container mx-auto px-4 max-w-lg md:max-w-2xl text-center relative z-10">
             {/* Logo */}
             <motion.div
