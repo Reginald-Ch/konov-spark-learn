@@ -352,7 +352,7 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
           className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-bold shadow-lg"
         >
           <a
-            href="https://meaiedtech.vercel.app/"
+            href="https://meaitech.com"
             target="_blank"
             rel="noopener noreferrer"
           >
