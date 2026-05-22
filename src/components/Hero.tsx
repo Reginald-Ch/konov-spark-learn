@@ -103,7 +103,7 @@ export const Hero = () => {
               size="lg" 
               variant="outline"
               className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
-              onClick={() => window.open('https://meaiedtech.vercel.app/', '_blank')}
+              onClick={() => window.open('https://meaitech.com', '_blank')}
             >
               <Zap className="mr-2 w-5 h-5" />
               Explore MeAI
