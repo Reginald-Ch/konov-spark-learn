@@ -40,7 +40,7 @@ export const Hero = () => {
           >
             <ActionBurst>
               <span className="text-base md:text-lg font-bold">
-                Young Innovators  AI & ML Literacy Hub!
+                Practical AI & ML Education for Ages 6–16
               </span>
             </ActionBurst>
           </motion.div>
@@ -52,10 +52,10 @@ export const Hero = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <span className="text-primary">AI Literacy</span>
+            <span className="text-primary">Helping Young Learners</span>
             <br />
-            <span className="text-foreground">Made Fun & </span>
-            <span className="text-secondary">Creative!</span>
+            <span className="text-foreground">Learn and </span>
+            <span className="text-secondary">Build With AI</span>
           </motion.h1>
           
           {/* Speech Bubble Description */}
@@ -67,7 +67,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                “KONOV helps K-12 build the skills they need for the future — critical thinking, creativity, collaboration, and confidence — through fun, hands-on AI learning experiences designed for young minds.”
+                Practical Artificial Intelligence (AI) & Machine Learning (ML) education for young learners (ages 6–16) through hands-on learning, games, projects, and real-world creation. Preparing students for an AI-driven future.
               </p>
             </SpeechBubble>
           </motion.div>
@@ -97,16 +97,16 @@ export const Hero = () => {
               onClick={() => setShowSignupModal(true)}
             >
               <Rocket className="mr-2 w-6 h-6" />
-              Start Learning!
+              Book a School Demo
             </Button>
             <Button 
               size="lg" 
               variant="outline"
               className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
-              onClick={() => navigate('/programs')}
+              onClick={() => window.open('https://meaiedtech.vercel.app/', '_blank')}
             >
               <Zap className="mr-2 w-5 h-5" />
-              Explore Programs
+              Explore MeAI
             </Button>
           </motion.div>
           

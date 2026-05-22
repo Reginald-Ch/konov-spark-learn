@@ -57,12 +57,12 @@ export const Mission = () => {
             className="text-center lg:text-left"
           >
             <h2 className="text-4xl md:text-6xl font-fredoka font-bold mb-4">
-              We Help Kids{" "}
-              <span className="text-primary">Understand</span>{" "}
-              <span className="text-secondary">AI!</span>
+              Who{" "}
+              <span className="text-primary">We</span>{" "}
+              <span className="text-secondary">Are</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl font-space leading-relaxed">
-              Teaching how intelligent systems think, how data drives decisions, and how algorithms power creativity
+              KONOV is an education technology company building practical AI & ML learning experiences for young learners. Through our flagship platform, MeAI, we move young learners from passive technology users to active AI creators.
             </p>
           </motion.div>
           
