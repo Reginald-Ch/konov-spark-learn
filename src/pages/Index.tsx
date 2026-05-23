@@ -22,11 +22,11 @@ const Gallery = lazy(() => import("@/components/Gallery").then(m => ({ default: 
 
 // FAQ data for structured data
 const homepageFAQs = [
-  { question: "What is KONOV?", answer: "KONOV is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners." },
-  { question: "Why should kids learn AI and Machine Learning?", answer: "AI is shaping the future of every industry. When kids understand how intelligent systems work, they become creators — not just consumers — of technology. Early exposure builds problem-solving, critical thinking, creativity, and confidence." },
-  { question: "What age groups do you cater to?", answer: "We offer programs for ages 6-16, with content specifically designed for different developmental stages. Our AI Explorers (6-9), Young Builders (9-11), and Tech Ambassadors (12-16) programs ensure age-appropriate learning experiences." },
-  { question: "Does my child need prior coding experience?", answer: "Not at all! Our programs are designed for complete beginners. We start with visual programming and gradually progress to text-based coding. Each child learns at their own pace with support from our instructors." },
-  { question: "What programs do you offer?", answer: "We offer three main programs: Workshops (twice yearly, two-month duration), Summer Tech Camp (full immersion during summer), and One-Day Tech Fair (mega event with exhibitions and demonstrations)." }
+  { question: "What is KONOV?", answer: "KONOV is an AI & Machine Learning education company helping young learners (ages 6–16) develop practical, future-ready technology skills through school partnerships, workshops, and our learning platform MeAI." },
+  { question: "What is MeAI?", answer: "MeAI is KONOV's interactive AI & Machine Learning learning platform for young learners aged 6–16. Students build AI assistants, train simple ML models, create AI-powered games, and learn through prompting and creativity." },
+  { question: "What age range do you work with?", answer: "Our programs and learning experiences are designed for young learners aged 6–16, tailored by age and understanding level to stay age-appropriate, practical, and fun." },
+  { question: "Do students need coding experience?", answer: "No prior coding experience is required. KONOV's learning experiences are beginner-friendly — students progress at their own pace through exploration, creativity, and hands-on practice." },
+  { question: "Can schools partner with KONOV?", answer: "Yes. We partner with schools to bring practical AI & ML learning into the classroom through curriculum support, facilitator-led sessions, teacher training, and access to MeAI." }
 ];
 
 const SectionFallback = () => <div className="py-16" />;
