@@ -10,7 +10,6 @@ import { ComicPanel } from "./ComicPanel";
 import { RobotMascot } from "./RobotMascot";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
-import { Hero3D } from "./Hero3D";
 
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -25,14 +24,6 @@ export const Hero = () => {
       />
       <div className="absolute inset-0 bg-background/80" />
       
-      <div className="absolute inset-0 bg-background/80" />
-
-      {/* Interactive 3D layer */}
-      <div className="absolute inset-0 opacity-60 pointer-events-none">
-        <Hero3D />
-      </div>
-      <div className="absolute inset-0 bg-background/40 pointer-events-none" />
-
       {/* Subtle accent dots — static, no animation cost */}
       <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
       <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
