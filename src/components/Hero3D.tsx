@@ -70,13 +70,6 @@ export const Hero3D = ({ className = "" }: { className?: string }) => {
           <Stars radius={50} depth={50} count={1200} factor={3} fade speed={1} />
           <Blob />
           <Orbiters />
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate
-            autoRotateSpeed={0.6}
-            rotateSpeed={0.4}
-          />
         </Suspense>
       </Canvas>
     </div>
