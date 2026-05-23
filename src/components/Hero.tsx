@@ -28,7 +28,7 @@ export const Hero = () => {
       <div className="absolute inset-0 bg-background/80" />
 
       {/* Interactive 3D layer */}
-      <div className="absolute inset-0 opacity-60 pointer-events-auto">
+      <div className="absolute inset-0 opacity-60 pointer-events-none">
         <Hero3D />
       </div>
       <div className="absolute inset-0 bg-background/40 pointer-events-none" />
