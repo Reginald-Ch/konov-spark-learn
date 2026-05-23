@@ -7,59 +7,45 @@ import { SpeechBubble } from "./SpeechBubble";
 
 export const FAQ = () => {
   const faqs = [
-     {
+    {
       question: "What is KONOV?",
-      answer: "KONOV is a company dedicated to transforming tech education across Africa. Our mission is to make emerging technologies, starting with AI, accessible, engaging, and fun for young learners. We make tech education fun, creative, and easy to grasp."
+      answer: "KONOV is an AI & Machine Learning education company helping young learners develop practical, future-ready technology skills. We believe children should not only grow up using technology — they should learn how to understand, think with, and build using Artificial Intelligence. Through school partnerships, workshops, and our learning platform MeAI, we make AI & ML education practical, engaging, and accessible for young learners."
     },
-    
-     {
-      question: "Why should kids learn AI and Machine Learning?",
-      answer: "AI is shaping the future of every industry. When kids understand how intelligent systems work, they become creators — not just consumers — of technology. Early exposure builds problem-solving, critical thinking, creativity, and confidence in the digital world."
-    },
-    
     {
-      question: "What age groups do you cater to?",
-      answer: "We offer programs for ages 6-18, with content specifically designed for different developmental stages. Our AI Explorers (7-10), Young Builders (11-14), and Tech Ambassadors (15-18) programs ensure age-appropriate learning experiences."
+      question: "What does KONOV do?",
+      answer: "KONOV provides practical AI & Machine Learning learning experiences through: 🏫 School Partnerships — bringing AI learning directly into schools; 🛠 AI Workshops & Programs — hands-on learning experiences; 💻 The MeAI Learning Platform — interactive AI learning through projects, games, and experimentation; 🎓 Future-Ready Education — helping students develop practical emerging technology skills. Our goal: move students from passive technology users to active AI creators."
     },
-    
     {
-      question: "Does my child need prior coding experience?",
-      answer: "Not at all! Our programs are designed for complete beginners. We start with visual programming and gradually progress to text-based coding. Each child learns at their own pace with support from our instructors."
+      question: "What is MeAI?",
+      answer: "MeAI is KONOV's interactive AI & Machine Learning learning platform for young learners aged 6–16. Students learn by building, experimenting, and creating: 🤖 Build AI assistants & conversational AI · 🧠 Train simple Machine Learning models · 🎮 Create AI-powered games and missions · 💻 Build AI-powered projects · ✨ Learn through prompting and creativity."
     },
-    
     {
-      question: "What equipment or materials do we need?",
-      answer: "For workshops, we provide all materials and kits during sessions expect laptops.Your child would need a computer or tablet."
+      question: "Who is KONOV designed for?",
+      answer: "🧒 Young Learners (ages 6–16) building practical AI knowledge and confidence · 🏫 Schools partnering with us to introduce practical AI & ML learning · 👨‍👩‍👧 Parents who want safe, guided, practical tech learning for their children · 🌍 Educational organizations & partners interested in future-ready education and AI literacy."
     },
-    
     {
-      question: "How are workshops structured?",
-      answer: "Workshops run every Saturday in 2-hour sessions. Each session includes hands-on building, challenges, and a project showcase. Classes are small (12-15 students) to ensure personalized attention."
+      question: "What age range do you work with?",
+      answer: "Our programs and learning experiences are designed for young learners aged 6–16. We tailor each experience by age and understanding level so learning stays age-appropriate, practical, fun, and beginner-friendly."
     },
-    
     {
-      question: "Can schools integrate your curriculum?",
-      answer: "Yes! Our School Programs include complete curriculum packages,KONOV facilitators or  teacher training, and ongoing support."
+      question: "What do students actually learn?",
+      answer: "Students learn practical AI & ML skills through hands-on experiences. Depending on age and level they can: 🤖 build AI assistants & conversational AI · 🧠 train simple ML models using real data · 🎮 create AI-powered games and missions · 💻 build AI-powered projects · ✨ learn through prompting, creativity, and experimentation · 📚 understand AI concepts in fun, simple, practical ways. Our focus: learning AI by building with AI."
     },
-    
     {
-      question: "How do I track my child's progress?",
-      answer: "Our EdTech platform includes a parent dashboard showing completed courses, projects built, skills mastered, and time spent learning. "
+      question: "Why should children learn AI early?",
+      answer: "AI is rapidly shaping education, healthcare, business, finance, creativity, and future careers — yet many children grow up only using technology without understanding how it works. Learning AI early helps children understand AI concepts, build confidence with technology, strengthen creativity and problem-solving, and learn how to create — not just consume. The future will increasingly belong to those who understand and build with AI."
     },
-    
     {
-      question: "What do kids actually learn?",
-      answer: "Kids learn how intelligent systems think, how to program and build simple AI systems and apps, and how data is collected, labelled, and used to make decisions. They explore how algorithms make predictions, train their own beginner-friendly AI models, and unleash creativity by using AI to create stories, images, and projects. Along the way, they also learn about AI ethics, responsible use, and how to apply problem-solving skills to real-world challenges."
+      question: "Do students need coding experience?",
+      answer: "No prior coding experience is required. KONOV's learning experiences are beginner-friendly. Students start with foundational concepts and gradually progress into more advanced AI building experiences at their own pace, through exploration, creativity, and hands-on practice."
     },
-    
     {
-      question: "What is included in your workshops?",
-      answer: "Our workshops offer rich AI and Machine Learning lessons, beginner-friendly programming, and hands-on projects that help kids build real skills and confidence. Participants also enjoy snacks and refreshments to keep them energized, receive a proudly earned certificate of participation.Each session includes interactive challenges and a practical mini-project, ensuring every child leaves with new knowledge, improved problem-solving skills, and a fun, meaningful learning experience."
+      question: "How does learning happen?",
+      answer: "At KONOV, learning is practical, interactive, hands-on, and fun. Students learn by doing — building real AI projects, training models, experimenting with prompts, and creating their own AI-powered games and assistants, with guidance from KONOV facilitators and the MeAI platform."
     },
-    
     {
-      question: "What is included in your workshops?",
-      answer: "It is a  learning platform that teaches African children real Artificial Intelligence and Machine Learning through simple coding, hands-on model training, and culturally relevant storytelling. Unlike typical programs that focus only on robotics or basic coding, it empowers kids to build real AI systems — including chatbots, image classifiers, and audio models. Learners start with Chatie, an easy English-like coding tool, progress to Python with ChatterBot, and eventually explore our ML Studio to train real machine learning models directly in their browser."
+      question: "Can schools partner with KONOV?",
+      answer: "Yes. We partner with schools to bring practical AI & Machine Learning learning into the classroom through curriculum support, facilitator-led sessions, teacher training, and access to the MeAI learning platform. Book a school demo to get started."
     },
   ];
 
