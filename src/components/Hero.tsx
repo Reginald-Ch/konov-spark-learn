@@ -10,6 +10,7 @@ import { ComicPanel } from "./ComicPanel";
 import { RobotMascot } from "./RobotMascot";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
+import { Hero3D } from "./Hero3D";
 
 export const Hero = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
