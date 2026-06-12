@@ -10,7 +10,38 @@ import highfive from "@/assets/gallery-highfive.jpg";
 import excited from "@/assets/gallery-excited.jpg";
 import mentoring from "@/assets/gallery-mentoring.jpg";
 
+import mentor from "@/assets/gallery-meai-mentor.jpg.asset.json";
+import builder from "@/assets/gallery-meai-builder.jpg.asset.json";
+import focus from "@/assets/gallery-meai-focus.jpg.asset.json";
+import collab from "@/assets/gallery-meai-collab.jpg.asset.json";
+import group from "@/assets/gallery-meai-group.jpg.asset.json";
+
 const galleryImages = [
+  {
+    src: group.url,
+    title: "MeAI Build Cohort",
+    description: "Young African innovators completing their AI building journey"
+  },
+  {
+    src: builder.url,
+    title: "Building with MeAI",
+    description: "A student designing her own conversational AI on MeAI's visual builder"
+  },
+  {
+    src: mentor.url,
+    title: "Mentor-Led Learning",
+    description: "KONOV facilitators guiding learners through hands-on AI sessions"
+  },
+  {
+    src: focus.url,
+    title: "Deep Focus",
+    description: "A learner crafting AI intents and responses inside MeAI"
+  },
+  {
+    src: collab.url,
+    title: "Side-by-Side Learning",
+    description: "Students collaborating as they build their first AI projects"
+  },
   {
     src: highfive,
     title: "Hands-On Learning",
@@ -47,6 +78,7 @@ const galleryImages = [
     description: "Industry professionals sharing knowledge with the next generation"
   }
 ];
+
 
 export const Gallery = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
