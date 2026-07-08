@@ -205,6 +205,7 @@ const Waitlist = () => {
       <SEO
         title="MeAI Waitlist — Real AI Education for Kids"
         description="Join the waitlist for MeAI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects."
+        canonical="/waitlist"
       />
       <Navbar />
       <div className="min-h-screen bg-background">

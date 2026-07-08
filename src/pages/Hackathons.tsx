@@ -267,7 +267,7 @@ const Hackathons = () => {
   if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-[hsl(var(--discord-darker))] flex flex-col">
-        <SEO title="FORGE Studio — AI Hackathon Platform" description="Build, learn, and compete in AI hackathons designed for young innovators." />
+        <SEO title="FORGE Studio — AI Hackathon Platform" description="Build, learn, and compete in AI hackathons designed for young innovators." canonical="/hackathons" />
         
         {/* Hero landing section */}
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
@@ -358,6 +358,7 @@ const Hackathons = () => {
         <SEO 
           title="FORGE — Build AI Projects"
           description="Build AI projects with Python. 1-click templates, AI models, hackathons, and more!"
+          canonical="/hackathons"
         />
 
         {/* Onboarding Overlay */}
