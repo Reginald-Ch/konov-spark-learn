@@ -759,7 +759,7 @@ const ProjectView = () => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.bg }}>
-      <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} />
+      <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} canonical={`/projects/${id}`} />
 
       {/* ── App-like Header ── */}
       <motion.div

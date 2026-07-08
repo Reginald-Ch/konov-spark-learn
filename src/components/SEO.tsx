@@ -10,7 +10,7 @@ interface SEOProps {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const SITE_URL = "https://konovartechtist.com";
+const SITE_URL = "https://konov-spark-learn.lovable.app";
 const SITE_NAME = "KONOV";
 
 // Organization structured data - used across all pages
