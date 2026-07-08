@@ -42,7 +42,7 @@ Disallow: /api/
 Disallow: /_internal/
 
 # Sitemap location
-Sitemap: https://konovartechtist.com/sitemap.xml
+Sitemap: https://konov-spark-learn.lovable.app/sitemap.xml
 
 # Crawl-delay for respectful crawling (optional)
 Crawl-delay: 1
