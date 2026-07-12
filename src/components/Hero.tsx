@@ -48,9 +48,8 @@ export const Hero = () => {
           {/* Main Heading - Comic Style */}
           <motion.h1 
             className="text-5xl md:text-7xl lg:text-8xl font-fredoka font-bold leading-tight"
-            initial={{ y: 50, opacity: 0 }}
+            initial={{ y: 0, opacity: 1 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
           >
             <span className="text-primary">Helping Young Learners</span>
             <br />

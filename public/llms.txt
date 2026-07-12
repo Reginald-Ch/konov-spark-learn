@@ -1,0 +1,19 @@
+# KONOV
+
+> KONOV is Africa's first AI & ML literacy hub for kids ages 6–16, teaching how intelligent systems think through hands-on workshops, tech camps, and the MeAI learning app in Ghana.
+
+KONOV builds practical AI and Machine Learning education for young African learners. Programs combine in-person workshops, a summer tech camp, community tech fairs, the MeAI ed-tech app, and the FORGE project studio where teens build real AI projects.
+
+## Pages
+
+- [Home](/): Overview of KONOV's mission, programs, and impact.
+- [About](/about): Founder story, mission, values, and team behind KONOV.
+- [Programs](/programs): Workshops, Summer Tech Camp, and Tech Fair offerings for ages 6–16.
+- [Resources](/resources): Interactive AI learning resources and links to the MeAI app.
+- [Waitlist](/waitlist): Join the waitlist for upcoming programs and MeAI access.
+- [Contact](/contact): Get in touch with the KONOV team.
+
+## Optional
+
+- [Hackathons / FORGE Studio](/hackathons): Teen project studio for building AI apps.
+- [MeAI App](https://meaitech.com): Companion ed-tech app for young AI learners.
