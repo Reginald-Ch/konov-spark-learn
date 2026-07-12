@@ -126,7 +126,7 @@ export const Timeline = forwardRef<HTMLDivElement>((_, _ref) => {
                                 size="sm"
                                 className="font-fredoka rounded-full border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))] hover:shadow-[3px_3px_0_hsl(var(--foreground))] transition-all"
                               >
-                                Learn More
+                                View Program Details
                               </Button>
                             </div>
                           </div>

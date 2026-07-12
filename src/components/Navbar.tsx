@@ -63,7 +63,7 @@ export const Navbar = () => {
             <Link to="/" className="flex items-center group cursor-pointer">
               <motion.img 
                 src={logo} 
-                alt="KONOV" 
+                alt="KONOV AI Literacy Hub" 
                 className="h-[100px] w-auto"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -167,6 +167,7 @@ export const Navbar = () => {
               whileTap={{ scale: 0.95 }}
               className="md:hidden w-12 h-12 rounded-xl bg-card border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] flex items-center justify-center"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle navigation menu"
             >
               {isMobileMenuOpen ? (
                 <X className="w-6 h-6 text-foreground" />
