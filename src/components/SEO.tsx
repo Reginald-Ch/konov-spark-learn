@@ -166,21 +166,32 @@ export const SEO = ({
 }: SEOProps) => {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const defaultKeywords = [
-    "AI for kids",
-    "machine learning for children",
-    "tech education Ghana",
-    "AI literacy Africa",
+    "AI for kids Ghana",
+    "machine learning for children Africa",
+    "robotics for kids Ghana",
+    "coding classes Accra",
     "kids coding Ghana",
-    "STEM education",
-    "AI workshops",
+    "STEM education Ghana",
+    "STEM Accra",
+    "app development for kids",
+    "hackathons for kids Ghana",
+    "youth hackathon Accra",
+    "weekend tech programs Ghana",
+    "AI workshops for kids",
     "tech camp Ghana",
+    "summer coding camp Accra",
+    "AI literacy Africa",
     "artificial intelligence education",
-    "KONOV"
+    "MeAI app",
+    "KONOV",
+    "Konov Artechtist",
+    "Konov Ghana"
   ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   
   // Combine all JSON-LD schemas
-  const schemas: Record<string, unknown>[] = [organizationSchema, websiteSchema, siteNavigationSchema];
+  const schemas: Record<string, unknown>[] = [organizationSchema, localBusinessSchema, websiteSchema, siteNavigationSchema];
+
   if (jsonLd) {
     if (Array.isArray(jsonLd)) {
       schemas.push(...jsonLd);
