@@ -19,41 +19,82 @@ const organizationSchema = {
   "@type": "EducationalOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: "KONOV AI Hub",
+  alternateName: ["KONOV AI Hub", "Konov Artechtist", "KONOV Ghana"],
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
     "@id": `${SITE_URL}/#logo`,
-    url: `${SITE_URL}/favicon.jpg`,
-    contentUrl: `${SITE_URL}/favicon.jpg`,
+    url: `${SITE_URL}/favicon.png`,
+    contentUrl: `${SITE_URL}/favicon.png`,
     width: 512,
     height: 512,
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "Africa's First AI & ML Literacy Hub for Kids. Teaching children ages 6-14 how intelligent systems think through fun, interactive programs.",
+  description: "Africa's first AI & ML literacy hub for kids ages 6-16. Hands-on AI, robotics, coding, app development, STEM workshops, weekend programs and hackathons in Ghana.",
+  foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Accra",
+    addressRegion: "Greater Accra",
     addressCountry: "Ghana"
   },
-  areaServed: {
-    "@type": "Country",
-    name: "Ghana"
-  },
+  areaServed: [
+    { "@type": "Country", name: "Ghana" },
+    { "@type": "City", name: "Accra" },
+    { "@type": "Continent", name: "Africa" }
+  ],
+  knowsAbout: [
+    "Artificial Intelligence Education",
+    "Machine Learning for Kids",
+    "Robotics for Children",
+    "Coding for Kids",
+    "STEM Education Ghana",
+    "App Development for Teens",
+    "Hackathons for Youth",
+    "Weekend Tech Programs",
+    "AI Literacy Africa"
+  ],
   sameAs: [
     "https://twitter.com/konovartechtist",
     "https://instagram.com/konovartechtist",
-    "https://linkedin.com/company/konovartechtist"
+    "https://linkedin.com/company/konovartechtist",
+    "https://konovartechtist.com"
   ],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
-    email: "info@konovartechtist.com",
+    email: "konovartechtist@gmail.com",
     areaServed: "GH",
     availableLanguage: "English"
   }
 };
+
+// LocalBusiness schema — helps Google surface a knowledge panel / map card
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": `${SITE_URL}/#localbusiness`,
+  name: SITE_NAME,
+  image: `${SITE_URL}/favicon.png`,
+  url: SITE_URL,
+  telephone: "+233",
+  email: "konovartechtist@gmail.com",
+  priceRange: "$$",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Accra",
+    addressRegion: "Greater Accra",
+    addressCountry: "GH"
+  },
+  geo: { "@type": "GeoCoordinates", latitude: 5.6037, longitude: -0.1870 },
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    opens: "09:00", closes: "18:00"
+  }]
+};
+
 
 // Website structured data with sitelinks search box
 const websiteSchema = {
