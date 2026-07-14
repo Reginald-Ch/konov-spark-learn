@@ -10,7 +10,7 @@ interface SEOProps {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const SITE_URL = "https://konov-spark-learn.lovable.app";
+const SITE_URL = "https://konovartechtist.com";
 const SITE_NAME = "KONOV";
 
 // Organization structured data - used across all pages
@@ -103,7 +103,7 @@ const websiteSchema = {
   "@id": `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: "Africa's First AI & ML Literacy Hub for Kids",
+  description: "Africa's first AI & ML literacy hub for kids ages 6-16",
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
@@ -121,7 +121,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 1,
       name: "Programs",
-      description: "AI & ML workshops, tech camps, and tech fairs for kids ages 6-14",
+      description: "AI & ML workshops, tech camps, and tech fairs for kids ages 6-16",
       url: `${SITE_URL}/programs`
     },
     {

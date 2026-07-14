@@ -122,7 +122,7 @@ const ProgramsPage = () => {
     <div className="min-h-screen">
       <SEO 
         title="Programs - AI Workshops, Tech Camps & Fairs"
-        description="Explore KONOV's AI & ML programs for kids ages 6-14. Join our workshops, summer tech camps, and one-day tech fairs in Ghana."
+        description="Explore KONOV's AI, robotics, coding and STEM programs for kids ages 6-16, including workshops, tech camps and youth hackathons in Ghana."
         canonical="/programs"
         type="course"
         keywords={["AI workshops Ghana", "kids tech camp Accra", "coding for children", "STEM summer camp Africa"]}
