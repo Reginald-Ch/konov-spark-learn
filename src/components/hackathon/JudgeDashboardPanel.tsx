@@ -449,7 +449,7 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
                 <Badge className={
                   h.status === 'live' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                   h.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                  'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                  'bg-slate-500/30 text-slate-200 border-slate-400/40'
                 }>
                   {h.status.toUpperCase()}
                 </Badge>

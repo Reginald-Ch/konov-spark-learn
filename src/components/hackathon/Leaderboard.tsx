@@ -184,7 +184,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const getRankIcon = (index: number) => {
     switch (index) {
       case 0: return <Crown className="w-5 h-5 text-yellow-400" />;
-      case 1: return <Medal className="w-5 h-5 text-gray-300" />;
+      case 1: return <Medal className="w-5 h-5 text-slate-200" />;
       case 2: return <Medal className="w-5 h-5 text-amber-600" />;
       default: return <span className="text-[hsl(var(--discord-text-muted))] font-medium w-5 text-center text-sm">#{index + 1}</span>;
     }

@@ -14,6 +14,7 @@ import ProgramsPage from "./pages/ProgramsPage";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
+import BestAIToolsForKids from "./pages/BestAIToolsForKids";
 import Hackathons from "./pages/Hackathons";
 import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
@@ -33,6 +34,7 @@ const AnimatedRoutes = () => {
         <Route path="/about" element={<PageTransition><About /></PageTransition>} />
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/resources" element={<PageTransition><Resources /></PageTransition>} />
+        <Route path="/resources/best-ai-tools-for-kids" element={<PageTransition><BestAIToolsForKids /></PageTransition>} />
         <Route path="/hackathons" element={<PageTransition><Hackathons /></PageTransition>} />
         <Route path="/projects/:id" element={<PageTransition><ProjectView /></PageTransition>} />
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />

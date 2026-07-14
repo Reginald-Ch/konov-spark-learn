@@ -27,9 +27,9 @@ const resourcesBreadcrumb = createBreadcrumbSchema([
 const learningResourceSchema = {
   "@context": "https://schema.org",
   "@type": "LearningResource",
-  name: "AI Learning Resources for Secondary Students",
-  description: "Interactive AI and ML learning resources for secondary students ages 13-18 including topics on What is AI, Machine Learning, Data & Decisions, Computer Vision, Natural Language Processing, and Creative AI.",
-  educationalLevel: "Ages 13-18",
+  name: "AI Learning Resources for Kids and Teens",
+  description: "Interactive AI and ML learning resources for young learners ages 6-16 including topics on What is AI, Machine Learning, Data & Decisions, Computer Vision, Natural Language Processing, and Creative AI.",
+  educationalLevel: "Ages 6-16",
   learningResourceType: "Interactive lesson",
   inLanguage: "en",
   provider: {
@@ -152,10 +152,10 @@ const Resources = () => {
   return (
     <div className="min-h-screen halftone-bg">
       <SEO 
-        title="AI Learning Resources for Secondary Students"
-        description="Interactive AI & ML learning resources for secondary students ages 13-18. Explore What is AI, Machine Learning, Computer Vision, NLP, and Creative AI."
+        title="AI Learning Resources for Kids and Teens"
+        description="Interactive AI & ML resources for kids ages 6-16. Explore machine learning, computer vision, NLP, creative AI and safe AI tools."
         canonical="/resources"
-        keywords={["AI resources for teens", "machine learning tutorials secondary school", "AI education ages 13-18", "teen tech learning materials"]}
+        keywords={["AI resources for kids", "machine learning tutorials for children", "AI education ages 6-16", "safe AI tools for kids", "STEM Ghana"]}
         jsonLd={[resourcesBreadcrumb, learningResourceSchema]}
       />
       <Navbar />
