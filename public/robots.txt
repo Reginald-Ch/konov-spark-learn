@@ -41,6 +41,9 @@ Allow: /
 Disallow: /api/
 Disallow: /_internal/
 
+# /judge is a client-side redirect to /hackathons with no unique content of its own
+Disallow: /judge
+
 # Sitemap location
 Sitemap: https://konovartechtist.com/sitemap.xml
 

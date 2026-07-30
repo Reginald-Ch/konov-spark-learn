@@ -39,7 +39,7 @@ const Index = () => {
     <div className="min-h-screen relative">
       <SEO 
         title="Empowering Young Tech Innovators"
-        description="KONOV teaches AI, machine learning , coding, emerging tech, app development and  robotics for kids ages 6-16 in Ghana through hands-on programs."
+        description="KONOV teaches AI, machine learning, coding, emerging tech, app development and robotics for kids ages 6-16 in Ghana through hands-on programs."
         canonical="/"
         keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "tech programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}

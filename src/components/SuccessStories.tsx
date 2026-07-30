@@ -13,7 +13,7 @@ export const SuccessStories = forwardRef<HTMLElement>((_, _ref) => {
       achievement: "Learnt how to train an AI ",
       icon: Lightbulb,
       color: "primary" as const,
-      story: "Damien learnt about datasets , learning algorithms and prediction and applied these concept by training a computer to recognize  images.",
+      story: "Damien learnt about datasets, learning algorithms and prediction and applied these concepts by training a computer to recognize images.",
       project: "AI and Machine Learning",
       quote: "The lessons are fun and easy to understand!"
     },

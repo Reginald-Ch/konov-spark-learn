@@ -8,6 +8,7 @@ interface SEOProps {
   type?: "website" | "article" | "course";
   keywords?: string[];
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
 }
 
 const SITE_URL = "https://konovartechtist.com";
@@ -162,7 +163,8 @@ export const SEO = ({
   ogImage = "/og-image.jpg",
   type = "website",
   keywords = [],
-  jsonLd
+  jsonLd,
+  noindex = false
 }: SEOProps) => {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const defaultKeywords = [
@@ -208,7 +210,7 @@ export const SEO = ({
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords.join(", ")} />
       <meta name="author" content={SITE_NAME} />
-      <meta name="robots" content="index, follow" />
+      <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
       <meta name="language" content="English" />
       <meta name="revisit-after" content="7 days" />
       
@@ -224,8 +226,8 @@ export const SEO = ({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={`${SITE_URL}${ogImage}`} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
+      <meta property="og:image:width" content="1080" />
+      <meta property="og:image:height" content="1080" />
       <meta property="og:image:alt" content={`${SITE_NAME} - AI Education for Kids`} />
       <meta property="og:locale" content="en_US" />
       {canonical && <meta property="og:url" content={`${SITE_URL}${canonical}`} />}
