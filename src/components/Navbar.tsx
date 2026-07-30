@@ -45,6 +45,7 @@ export const Navbar = () => {
   const exploreLinks = [
     { name: "Community", path: "/community" },
     { name: "Learn AI", path: "/resources" },
+    { name: "Blog", path: "/blog" },
     { name: "FORGE Studio", path: "/hackathons" },
   ];
 

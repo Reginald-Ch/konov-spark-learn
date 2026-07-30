@@ -119,6 +119,34 @@ const ROUTES = [
         <p><a href="/resources">Back to Resources</a> · <a href="/">Back to home</a></p>`,
   },
   {
+    path: "/blog",
+    title: "Blog - AI Education Insights for Schools, Teachers & Parents | KONOV",
+    description:
+      "Practical, research-backed AI education insights for African schools, teachers and parents — curriculum frameworks, teacher training and classroom guides.",
+    h1: "AI Education Insights",
+    intro:
+      "Practical, research-backed guidance for schools, teachers and parents navigating AI education across Africa — grounded in real frameworks, not buzzwords.",
+    main: `
+        <h2>Latest</h2>
+        <ul>
+          <li><a href="/blog/ai-education-for-schools-in-africa">AI Education for Schools in Africa: A Practical Framework</a></li>
+        </ul>
+        <p><a href="/">Back to home</a></p>`,
+  },
+  {
+    path: "/blog/ai-education-for-schools-in-africa",
+    title: "AI Education for Schools in Africa: A Practical Framework | KONOV",
+    description:
+      "A practical framework for teaching AI in African schools — mapped to Ghana's 2026 curriculum reform and UNESCO's AI competency standards.",
+    h1: "AI Education for Schools in Africa: A Practical Framework",
+    intro:
+      "Ghana's 2026 curriculum reform is adding AI to the classroom, KG through JHS. Here's a term-by-term framework any African school can use, mapped to UNESCO's AI competency standards.",
+    main: `
+        <h2>What This Covers</h2>
+        <p>What "AI education" actually means for a school, the infrastructure reality (low bandwidth, teacher shortages), a three-term rollout plan, and how to train teachers who've never used AI — grounded in Ghana's NaCCA curriculum reform and UNESCO's 2024 AI competency frameworks for students and teachers.</p>
+        <p><a href="/blog">Back to Blog</a> · <a href="/">Back to home</a></p>`,
+  },
+  {
     path: "/waitlist",
     title: "MeAI Waitlist — Real AI Education for Kids | KONOV",
     description:

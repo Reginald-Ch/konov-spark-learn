@@ -57,9 +57,7 @@ const organizationSchema = {
     "AI Literacy Africa"
   ],
   sameAs: [
-    "https://twitter.com/konovartechtist",
-    "https://instagram.com/konovartechtist",
-    "https://linkedin.com/company/konovartechtist",
+    "https://www.linkedin.com/company/konov-artechtist",
     "https://konovartechtist.com"
   ],
   contactPoint: {
@@ -79,7 +77,6 @@ const localBusinessSchema = {
   name: SITE_NAME,
   image: `${SITE_URL}/favicon.png`,
   url: SITE_URL,
-  telephone: "+233",
   email: "konovartechtist@gmail.com",
   priceRange: "$$",
   address: {
@@ -149,6 +146,13 @@ const siteNavigationSchema = {
     {
       "@type": "SiteNavigationElement",
       position: 5,
+      name: "Blog",
+      description: "AI education insights for schools, teachers and parents",
+      url: `${SITE_URL}/blog`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 6,
       name: "Contact",
       description: "Get in touch with KONOV for programs and partnerships",
       url: `${SITE_URL}/contact`
@@ -299,6 +303,36 @@ export const createFAQSchema = (faqs: { question: string; answer: string }[]) =>
       text: faq.answer
     }
   }))
+});
+
+// Helper function to create Article/BlogPosting schema
+export const createArticleSchema = (article: {
+  title: string;
+  description: string;
+  slug: string;
+  publishedDate: string;
+  updatedDate?: string;
+  image?: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: article.title,
+  description: article.description,
+  image: `${SITE_URL}${article.image || "/og-image.jpg"}`,
+  datePublished: article.publishedDate,
+  dateModified: article.updatedDate || article.publishedDate,
+  author: {
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL
+  },
+  publisher: {
+    "@id": `${SITE_URL}/#organization`
+  },
+  mainEntityOfPage: {
+    "@type": "WebPage",
+    "@id": `${SITE_URL}/blog/${article.slug}`
+  }
 });
 
 // Helper function to create Breadcrumb schema

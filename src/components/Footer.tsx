@@ -34,13 +34,15 @@ export const Footer = () => {
             </p>
             <div className="flex gap-3">
               {[
-                { Icon: Linkedin, href: "#", label: "LinkedIn" },
+                { Icon: Linkedin, href: "https://www.linkedin.com/company/konov-artechtist", label: "LinkedIn" },
                 { Icon: TikTokIcon, href: "#", label: "TikTok" },
                 { Icon: Instagram, href: "#", label: "Instagram" },
               ].map(({ Icon, href, label }, idx) => (
                 <motion.a
                   key={idx}
                   href={href}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   aria-label={label}
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.95 }}
@@ -61,6 +63,7 @@ export const Footer = () => {
                 { to: "/programs", label: "Our Programs" },
                 { to: "/community", label: "Community" },
                 { to: "/resources", label: "Learn AI" },
+                { to: "/blog", label: "Blog" },
                 { to: "/hackathons", label: "FORGE Studio" },
                 { to: "/contact", label: "Contact" },
               ].map((link, idx) => (
