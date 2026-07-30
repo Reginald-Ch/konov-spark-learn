@@ -9,11 +9,13 @@ KONOV builds practical AI and Machine Learning education for young African learn
 - [Home](/): Overview of KONOV's mission, programs, and impact.
 - [About](/about): Founder story, mission, values, and team behind KONOV.
 - [Programs](/programs): Workshops, Summer Tech Camp, and Tech Fair offerings for ages 6–16.
-- [Resources](/resources): Interactive AI learning resources and links to the MeAI app.
-- [Waitlist](/waitlist): Join the waitlist for upcoming programs and MeAI access.
 - [Contact](/contact): Get in touch with the KONOV team.
+- [Blog](/blog): AI education insights for schools, teachers, and parents.
+- [Hackathons / FORGE Studio](/hackathons): Teen project studio for building AI apps.
+- [MeAI App](https://meaitech.com): Companion ed-tech app for young AI learners.
 
 ## Optional
 
-- [Hackathons / FORGE Studio](/hackathons): Teen project studio for building AI apps.
-- [MeAI App](https://meaitech.com): Companion ed-tech app for young AI learners.
+- [Resources](/resources): Interactive AI learning resources and links to the MeAI app.
+- [Community](/community): Learning paths for AI Explorers, Young Builders, and Tech Ambassadors.
+- [Waitlist](/waitlist): Join the waitlist for upcoming programs and MeAI access.
