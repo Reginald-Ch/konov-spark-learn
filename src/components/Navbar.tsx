@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap, ChevronDown } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Menu, X, Zap, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SignupModal } from "@/components/SignupModal";
@@ -10,8 +10,6 @@ export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
-  const [exploreOpen, setExploreOpen] = useState(false);
-  const exploreRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -23,31 +21,16 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
-        setExploreOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Programs", path: "/programs" },
-    { name: "Waitlist", path: "/waitlist" },
     { name: "Contact", path: "/contact" },
-  ];
-
-  const exploreLinks = [
-    { name: "Community", path: "/community" },
-    { name: "Learn AI", path: "/resources" },
     { name: "Blog", path: "/blog" },
     { name: "FORGE Studio", path: "/hackathons" },
   ];
+
+  const meaiLink = { name: "MeAI", href: "https://meaitech.com" };
 
   return (
     <>
@@ -62,9 +45,9 @@ export const Navbar = () => {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center group cursor-pointer">
-              <motion.img 
-                src={logo} 
-                alt="KONOV AI Literacy Hub" 
+              <motion.img
+                src={logo}
+                alt="KONOV AI Literacy Hub"
                 className="h-[100px] w-auto"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -98,63 +81,22 @@ export const Navbar = () => {
                   </Link>
                 );
               })}
-              
-              {/* Explore dropdown */}
-              <div ref={exploreRef} className="relative">
-                <button
-                  onClick={() => setExploreOpen(!exploreOpen)}
-                  className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group flex items-center gap-1"
-                >
-                  {exploreLinks.some(l => location.pathname === l.path) && (
-                    <motion.span
-                      layoutId="navbar-active"
-                      className="absolute inset-0 bg-primary/10 rounded-xl border-2 border-primary/20"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  <span className={`relative z-10 transition-colors duration-200 ${
-                    exploreLinks.some(l => location.pathname === l.path)
-                      ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  }`}>
-                    Explore
-                  </span>
-                  <ChevronDown className={`relative z-10 w-4 h-4 transition-transform ${
-                    exploreLinks.some(l => location.pathname === l.path) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                  } ${exploreOpen ? 'rotate-180' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {exploreOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-2 bg-card border-2 border-foreground/20 rounded-xl shadow-lg overflow-hidden min-w-[180px] z-50"
-                    >
-                      {exploreLinks.map((link) => (
-                        <Link
-                          key={link.name}
-                          to={link.path}
-                          onClick={() => setExploreOpen(false)}
-                          className={`block px-4 py-3 font-fredoka font-medium text-base transition-colors ${
-                            location.pathname === link.path
-                              ? "text-primary bg-primary/10"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          {link.name}
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+
+              {/* MeAI — external link */}
+              <a
+                href={meaiLink.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+              >
+                {meaiLink.name}
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
 
             {/* CTA Button */}
             <div className="hidden md:block">
-              <Button 
+              <Button
                 onClick={() => setShowSignupModal(true)}
                 className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all bg-primary"
               >
@@ -191,7 +133,7 @@ export const Navbar = () => {
             >
               <div className="bg-background/95 backdrop-blur-lg border-t-4 border-foreground/20 py-6">
                 <div className="container mx-auto px-4 flex flex-col gap-3">
-                  {[...navLinks, ...exploreLinks].map((link, idx) => (
+                  {navLinks.map((link, idx) => (
                     <motion.div
                       key={link.name}
                       initial={{ x: -20, opacity: 0 }}
@@ -214,7 +156,22 @@ export const Navbar = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: navLinks.length * 0.05 }}
                   >
-                    <Button 
+                    <a
+                      href={meaiLink.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-fredoka font-medium text-lg py-2 inline-flex items-center gap-1 text-muted-foreground"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {meaiLink.name} <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </motion.div>
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
+                  >
+                    <Button
                       onClick={() => {
                         setShowSignupModal(true);
                         setIsMobileMenuOpen(false);
@@ -234,7 +191,7 @@ export const Navbar = () => {
 
       {/* Spacer */}
       <div className="h-20" />
-      
+
       <SignupModal open={showSignupModal} onOpenChange={setShowSignupModal} source="navbar" />
     </>
   );

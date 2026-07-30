@@ -125,37 +125,30 @@ const siteNavigationSchema = {
     {
       "@type": "SiteNavigationElement",
       position: 2,
-      name: "About Us",
+      name: "About",
       description: "Learn about KONOV's mission to empower young tech innovators in Africa",
       url: `${SITE_URL}/about`
     },
     {
       "@type": "SiteNavigationElement",
       position: 3,
-      name: "Community",
-      description: "Join our community of young innovators and tech-savvy kids in Ghana",
-      url: `${SITE_URL}/community`
+      name: "Contact",
+      description: "Get in touch with KONOV for programs and partnerships",
+      url: `${SITE_URL}/contact`
     },
     {
       "@type": "SiteNavigationElement",
       position: 4,
-      name: "Resources",
-      description: "Free AI & ML learning resources for kids and parents",
-      url: `${SITE_URL}/resources`
-    },
-    {
-      "@type": "SiteNavigationElement",
-      position: 5,
       name: "Blog",
       description: "AI education insights for schools, teachers and parents",
       url: `${SITE_URL}/blog`
     },
     {
       "@type": "SiteNavigationElement",
-      position: 6,
-      name: "Contact",
-      description: "Get in touch with KONOV for programs and partnerships",
-      url: `${SITE_URL}/contact`
+      position: 5,
+      name: "FORGE Studio",
+      description: "KONOV's AI hackathon platform for young innovators",
+      url: `${SITE_URL}/hackathons`
     }
   ]
 };

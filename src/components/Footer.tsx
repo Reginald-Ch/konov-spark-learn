@@ -1,4 +1,4 @@
-import { Instagram, Linkedin, Mail, Heart } from "lucide-react";
+import { Instagram, Linkedin, Mail, Heart, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RobotMascot } from "./RobotMascot";
@@ -19,7 +19,7 @@ export const Footer = () => {
       <div className="absolute inset-0 halftone-bg opacity-50" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid md:grid-cols-4 gap-8 mb-12">
+        <div className="grid md:grid-cols-5 gap-8 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-4 mb-4">
@@ -59,17 +59,49 @@ export const Footer = () => {
             <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">Quick Links</h4>
             <ul className="space-y-3 font-space">
               {[
-                { to: "/about", label: "About Us" },
-                { to: "/programs", label: "Our Programs" },
-                { to: "/community", label: "Community" },
-                { to: "/resources", label: "Learn AI" },
+                { to: "/about", label: "About" },
+                { to: "/programs", label: "Programs" },
+                { to: "/contact", label: "Contact" },
                 { to: "/blog", label: "Blog" },
                 { to: "/hackathons", label: "FORGE Studio" },
-                { to: "/contact", label: "Contact" },
               ].map((link, idx) => (
                 <li key={idx}>
-                  <Link 
-                    to={link.to} 
+                  <Link
+                    to={link.to}
+                    className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
+                  >
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <a
+                  href="https://meaitech.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  MeAI
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* More */}
+          <div>
+            <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">More</h4>
+            <ul className="space-y-3 font-space">
+              {[
+                { to: "/community", label: "Community" },
+                { to: "/resources", label: "Learn AI" },
+                { to: "/waitlist", label: "Waitlist" },
+              ].map((link, idx) => (
+                <li key={idx}>
+                  <Link
+                    to={link.to}
                     className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
                   >
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
