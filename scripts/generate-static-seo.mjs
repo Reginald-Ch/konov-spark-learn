@@ -26,7 +26,7 @@ const ROUTES = [
     path: "/",
     title: "KONOV | AI, Machine learning, Coding & robotics for Kids in Ghana (Ages 6-16)",
     description:
-      "KONOV — Ghana's leading AI, robotics, coding & STEM hub for kids ages 6-16. Weekend programs, hackathons, app development, tech camps & the MeAI app in Accra.",
+      "KONOV — Ghana's leading AI, robotics, coding & tech hub for kids ages 6-16. Weekend programs, hackathons, app development, tech camps & the MeAI app in Accra.",
     h1: "KONOV — AI, Machine Learning, Robotics, Coding &amp; Emerging Tech Programs for Kids in Ghana",
     intro:
       "KONOV is Ghana's leading AI &amp; ML literacy hub for children and teens ages 6–16. We run hands-on AI workshops, robotics classes, coding bootcamps, app-development studios, weekend tech programs, summer tech camps and youth hackathons across Accra and Africa — and we build the MeAI edtech app so kids can keep learning at home.",
@@ -43,7 +43,7 @@ const ROUTES = [
           <li><strong>MeAI App</strong> — a comic-style, project-based AI learning app kids use at home (<a href="https://meaitech.com">meaitech.com</a>).</li>
         </ul>
         <h2>Why Parents &amp; Schools in Ghana Choose KONOV</h2>
-        <p>Most edtech is designed for the West. KONOV is built for African classrooms, homes and internet speeds — with authentic African mentors, real projects kids can show off, and a curriculum spanning AI, robotics, coding, hackathons and STEM. We partner with schools across Accra and Ghana to bring practical AI &amp; ML learning into every classroom.</p>
+        <p>Most edtech is designed for the West. KONOV is built for African classrooms, homes and internet speeds — with authentic African mentors, real projects kids can show off, and a curriculum spanning AI, robotics, coding, hackathons and tech. We partner with schools across Accra and Ghana to bring practical AI &amp; ML learning into every classroom.</p>
         <h2>Contact</h2>
         <p>Email: <a href="mailto:konovartechtist@gmail.com">konovartechtist@gmail.com</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
   },
@@ -67,7 +67,7 @@ const ROUTES = [
     path: "/programs",
     title: "Programs - AI Workshops, Tech Camps & Fairs | KONOV",
     description:
-      "Explore KONOV's AI, robotics, coding and STEM programs for kids ages 6-16, including workshops, tech camps and youth hackathons in Ghana.",
+      "Explore KONOV's AI, robotics, coding and tech programs for kids ages 6-16, including workshops, tech camps and youth hackathons in Ghana.",
     h1: "Our Programs",
     intro: "A comprehensive ecosystem of tech education designed to inspire and empower the next generation.",
     main: `

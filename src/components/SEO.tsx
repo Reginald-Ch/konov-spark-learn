@@ -32,7 +32,7 @@ const organizationSchema = {
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "Africa's first AI & ML literacy hub for kids ages 6-16. Hands-on AI, robotics, coding, app development, STEM workshops, weekend programs and hackathons in Ghana.",
+  description: "Africa's first AI & ML literacy hub for kids ages 6-16. Hands-on AI, robotics, coding, app development, tech workshops, weekend programs and hackathons in Ghana.",
   foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
@@ -50,7 +50,7 @@ const organizationSchema = {
     "Machine Learning for Kids",
     "Robotics for Children",
     "Coding for Kids",
-    "STEM Education Ghana",
+    "Tech Education Ghana",
     "App Development for Teens",
     "Hackathons for Youth",
     "Weekend Tech Programs",
@@ -173,8 +173,8 @@ export const SEO = ({
     "robotics for kids Ghana",
     "coding classes Accra",
     "kids coding Ghana",
-    "STEM education Ghana",
-    "STEM Accra",
+    "tech education Ghana",
+    "Tech Accra",
     "app development for kids",
     "hackathons for kids Ghana",
     "youth hackathon Accra",

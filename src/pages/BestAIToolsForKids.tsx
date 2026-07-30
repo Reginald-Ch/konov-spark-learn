@@ -18,7 +18,7 @@ const faqSchema = createFAQSchema([
   },
   {
     question: "What age should children start learning AI?",
-    answer: "Children can start learning AI concepts from age 6 when lessons are visual, playful and supervised. KONOV adapts AI, robotics, coding and STEM learning for ages 6-16.",
+    answer: "Children can start learning AI concepts from age 6 when lessons are visual, playful and supervised. KONOV adapts AI, robotics, coding and tech learning for ages 6-16.",
   },
   {
     question: "Do kids need coding before learning AI?",
@@ -119,7 +119,7 @@ const BestAIToolsForKids = () => {
           <div className="container mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
             {[
               { value: "6-16", label: "age-adapted AI learning" },
-              { value: "STEM", label: "robotics, coding and app projects" },
+              { value: "Tech", label: "robotics, coding and app projects" },
               { value: "Ghana", label: "built for African learners and schools" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg border-4 border-foreground bg-background p-6 shadow-[5px_5px_0_hsl(var(--foreground))]">

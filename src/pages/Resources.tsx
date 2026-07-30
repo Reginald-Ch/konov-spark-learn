@@ -155,7 +155,7 @@ const Resources = () => {
         title="AI Learning Resources for Kids and Teens"
         description="Interactive AI & ML resources for kids ages 6-16. Explore machine learning, computer vision, NLP, creative AI and safe AI tools."
         canonical="/resources"
-        keywords={["AI resources for kids", "machine learning tutorials for children", "AI education ages 6-16", "safe AI tools for kids", "STEM Ghana"]}
+        keywords={["AI resources for kids", "machine learning tutorials for children", "AI education ages 6-16", "safe AI tools for kids", "Tech Ghana"]}
         jsonLd={[resourcesBreadcrumb, learningResourceSchema]}
       />
       <Navbar />
