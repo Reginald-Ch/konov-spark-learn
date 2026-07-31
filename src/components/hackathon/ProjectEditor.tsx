@@ -306,7 +306,7 @@ const ONBOARDING_STEPS = [
   { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
   { target: 'editor', title: '💻 Write Code', description: 'Edit your Python code here. The syntax highlighter shows your code in color. Switch between files using the tabs.' },
   { target: 'preview', title: '💬 Test Your AI', description: 'Chat with your AI in real-time! Your system prompt controls how it responds. Try changing it and see the difference.' },
-  { target: 'knowledge', title: '📚 Add Knowledge', description: 'Add custom text and Q&A pairs to make your bot smarter! Your bot will reference this data when answering.' },
+  { target: 'knowledge', title: '📚 Add Knowledge', description: 'Add custom text and intents (trigger phrase → response pairs) to make your bot smarter! Your bot will reference this data when answering.' },
   { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
 ];
 
@@ -2100,7 +2100,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Capabilities</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">Capabilities (Tools)</label>
+                      <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">The same idea agent frameworks like LangChain call "tools" — extra powers your bot can call on.</p>
                       <div className="space-y-0.5">
                         {CAPABILITY_OPTIONS[projectType].map(cap => (
                           <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors text-ide-text hover:bg-ide-border/30">
@@ -2217,7 +2218,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* Explainer card */}
                     <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20 mb-1">
                       <p className="text-[10px] text-ide-text leading-relaxed">
-                        <strong className="text-ide-accent">📚 Teach Your AI</strong> — Add facts, notes, or Q&A pairs below. Your bot will use this data to answer questions in the Live Preview and deployed app.
+                        <strong className="text-ide-accent">📚 Teach Your AI</strong> — Add facts, notes, or intents below. Your bot will use this data to answer questions in the Live Preview and deployed app.
                       </p>
                     </div>
 
@@ -2248,19 +2249,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* Divider */}
                     <div className="h-px bg-ide-border/50" />
 
-                    {/* Q&A Pairs */}
+                    {/* Q&A Pairs, framed as Intents */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">Q&A Pairs</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">Intents</label>
                         <Button size="sm" variant="ghost" onClick={addQA} className="h-5 px-1.5 text-[10px] text-ide-accent hover:bg-ide-border/50">
                           <Plus className="w-3 h-3 mr-0.5" /> Add
                         </Button>
                       </div>
-                      <p className="text-[10px] text-ide-text-muted mb-2">Add exact question → answer pairs for precise responses.</p>
-                      
+                      <p className="text-[10px] text-ide-text-muted mb-0.5">Add exact trigger phrase → response pairs for precise answers.</p>
+                      <p className="text-[10px] text-ide-text-muted/70 italic mb-2">This is the same idea real conversational-AI tools like Rasa call an "intent."</p>
+
                       {qaData.length === 0 && (
                         <button onClick={addQA} className="w-full p-3 rounded-lg border-2 border-dashed border-ide-border text-ide-text-muted text-xs hover:border-ide-accent hover:text-ide-accent transition-colors">
-                          + Add your first Q&A pair
+                          + Add your first intent
                         </button>
                       )}
 
@@ -2268,7 +2270,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         {qaData.map((pair, idx) => (
                           <div key={idx} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold text-ide-accent">Pair {idx + 1}</span>
+                              <span className="text-[10px] font-bold text-ide-accent">Intent {idx + 1}</span>
                               <button onClick={() => removeQA(idx)} className="text-ide-text-muted hover:text-red-400">
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -2296,7 +2298,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         <p className="text-[10px] text-ide-green font-medium">
                           ✅ Your bot has custom knowledge: {knowledgeBase ? `${knowledgeBase.split(/\s+/).filter(Boolean).length} words` : ''}
                           {knowledgeBase && qaData.filter(p => p.q.trim()).length > 0 ? ' + ' : ''}
-                          {qaData.filter(p => p.q.trim()).length > 0 ? `${qaData.filter(p => p.q.trim()).length} Q&A pairs` : ''}
+                          {qaData.filter(p => p.q.trim()).length > 0 ? `${qaData.filter(p => p.q.trim()).length} intents` : ''}
                         </p>
                         <p className="text-[10px] text-ide-text-muted mt-0.5">Test it in the Live Preview panel →</p>
                       </div>

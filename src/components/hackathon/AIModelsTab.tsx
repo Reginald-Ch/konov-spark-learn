@@ -100,7 +100,7 @@ const CHATBOT_SECTIONS: ConfigSection[] = [
     id: 'knowledge', title: 'Knowledge', subtitle: 'What your bot knows', icon: <BookOpen className="w-4 h-4" />, color: '#10B981',
     fields: [
       { key: 'KNOWLEDGE_BASE', label: 'Knowledge Base', type: 'textarea', placeholder: 'TOPIC: Python\n- Created by Guido van Rossum\n- Used for AI, web dev', hint: 'Facts your bot should know' },
-      { key: 'QA_PAIRS', label: 'Q&A Pairs', type: 'qa-list', hint: 'Exact question-answer pairs' },
+      { key: 'QA_PAIRS', label: 'Intents', type: 'qa-list', hint: 'Exact trigger phrase → response pairs (like a Rasa "intent")' },
       { key: 'FEW_SHOT_EXAMPLES', label: 'Few-Shot Examples', type: 'qa-list', hint: 'Teaching examples (input → output)' },
     ]
   },
@@ -161,7 +161,7 @@ const AGENT_SECTIONS: ConfigSection[] = [
     id: 'knowledge', title: 'Knowledge', subtitle: 'Domain expertise', icon: <BookOpen className="w-4 h-4" />, color: '#10B981',
     fields: [
       { key: 'KNOWLEDGE_BASE', label: 'Knowledge Base', type: 'textarea', placeholder: 'Facts your agent should know...', hint: 'Domain knowledge' },
-      { key: 'QA_PAIRS', label: 'Q&A Pairs', type: 'qa-list', hint: 'Pre-defined answers' },
+      { key: 'QA_PAIRS', label: 'Intents', type: 'qa-list', hint: 'Pre-defined answers (like a Rasa "intent")' },
     ]
   },
   {
@@ -625,7 +625,7 @@ APP_THEME = "default"
                 Conversational AI with personality, knowledge base, and custom rules. Perfect for tutors, support bots, and fun companions!
               </p>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                {['Personality', 'Knowledge', 'Q&A', 'Rules', 'Memory'].map(tag => (
+                {['Personality', 'Knowledge', 'Intents', 'Rules', 'Memory'].map(tag => (
                   <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--discord-blurple)/0.12)] text-[hsl(var(--discord-blurple))] font-medium">{tag}</span>
                 ))}
               </div>
