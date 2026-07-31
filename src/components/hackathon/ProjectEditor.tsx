@@ -2135,7 +2135,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
                         { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaultSystemMessage && config.systemMessage.length > 30 },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '❓', name: 'Q&A Pairs', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
+                        { emoji: '❓', name: 'Intents', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
                         { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length >= (isAgent ? 4 : 3) },
                         { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length >= (isAgent ? 5 : 4) },
@@ -2192,6 +2192,32 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         </div>
                       );
                     })()}
+
+                    {/* ── Memory & State ── */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">🧠 Memory &amp; State</label>
+                      <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">What your bot carries between messages — the same idea Rasa calls "slots" or LangChain calls "memory."</p>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between text-ide-text">
+                          <span>Remembers your name</span>
+                          <span className={`font-mono ${liveConfig.rememberName ? 'text-ide-green' : 'text-ide-text-muted'}`}>
+                            {liveConfig.rememberName ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-ide-text">
+                          <span>Current mood</span>
+                          <span className="font-mono text-ide-accent">{liveConfig.mood}</span>
+                        </div>
+                        <div className="flex justify-between text-ide-text">
+                          <span>Mood-based responses</span>
+                          <span className="font-mono text-ide-accent">{Object.keys(liveConfig.moodResponses).length}</span>
+                        </div>
+                        <div className="flex justify-between text-ide-text">
+                          <span>Conversation turns remembered</span>
+                          <span className="font-mono text-ide-accent">{chatMessages.length}</span>
+                        </div>
+                      </div>
+                    </div>
 
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
