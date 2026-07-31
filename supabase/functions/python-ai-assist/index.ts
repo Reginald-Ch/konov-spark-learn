@@ -156,11 +156,28 @@ function calculate(expression: string): string {
 async function determineAndRunTools(
   userMessage: string,
   tools: Record<string, string>,
-  apiKey: string
+  apiKey: string,
+  supabaseAdmin: ReturnType<typeof createClient>
 ): Promise<{ toolResults: string; toolsUsed: string[] }> {
   const availableTools = Object.keys(tools);
   if (availableTools.length === 0) return { toolResults: "", toolsUsed: [] };
-  
+
+  // This is a quick, non-streaming classification call, but it shares the same
+  // gateway key as the main call — gate it too, with a short TTL. If no slot is
+  // free, skip tool use for this message rather than block/queue: this is a
+  // best-effort enhancement to the response, not the core answer.
+  let toolSlotId: number | null = null;
+  const { data: acquiredToolSlot, error: acquireToolSlotError } = await supabaseAdmin.rpc("acquire_ai_slot", {
+    p_ttl_seconds: 30,
+  });
+  if (acquireToolSlotError) {
+    console.error("acquire_ai_slot (tool routing) error:", acquireToolSlotError);
+  } else if (acquiredToolSlot === null) {
+    return { toolResults: "", toolsUsed: [] };
+  } else {
+    toolSlotId = acquiredToolSlot;
+  }
+
   // Ask the AI which tool to use and what query to send
   const toolDecisionPrompt = `You are a tool-routing agent. Given the user's message, decide which tool(s) to use and what query to send to each.
 
@@ -246,6 +263,11 @@ Response (JSON array only):`;
   } catch (e) {
     console.error("Tool routing error:", e);
     return { toolResults: "", toolsUsed: [] };
+  } finally {
+    if (toolSlotId !== null) {
+      const { error } = await supabaseAdmin.rpc("release_ai_slot", { p_slot_id: toolSlotId });
+      if (error) console.error("release_ai_slot (tool routing) failed:", error);
+    }
   }
 }
 
@@ -459,7 +481,8 @@ Format as plain terminal text with emojis. Under 300 words.`;
         const { toolResults, toolsUsed } = await determineAndRunTools(
           code, // code is the user message in test-agent
           botConfig.tools,
-          LOVABLE_API_KEY
+          LOVABLE_API_KEY,
+          supabaseAdmin
         );
         toolResultsContext = toolResults;
         toolsUsedNames = toolsUsed;
