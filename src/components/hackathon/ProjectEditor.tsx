@@ -8,6 +8,7 @@ import { PublishModal } from './PublishModal';
 import { LevelBadge, AchievementGrid, getForgeLevel } from './AchievementBadges';
 import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAIEndpoint } from '@/lib/aiFetch';
 import {
   Code, Play, Send, X, Copy, Check, Trash2,
   Rocket, Loader2, Save, Bot, Brain, Clock,
@@ -1156,7 +1157,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
     }
     try {
-      const resp = await fetch(
+      const resp = await fetchAIEndpoint(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
         {
           method: 'POST',

@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { PublishModal } from './PublishModal';
+import { fetchAIEndpoint } from '@/lib/aiFetch';
 import { 
   Code, Maximize2, Minimize2, Play, 
   Brain, MessageSquare, Lightbulb, ExternalLink,
@@ -91,7 +92,7 @@ export const CodePlayground = ({ initialCode, initialTemplate }: CodePlaygroundP
     setAiOutput('');
 
     try {
-      const resp = await fetch(
+      const resp = await fetchAIEndpoint(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
         {
           method: 'POST',

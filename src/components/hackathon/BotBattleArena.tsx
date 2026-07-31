@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAIEndpoint } from '@/lib/aiFetch';
 import { Swords, Rocket, ThumbsUp, ThumbsDown, RotateCcw, Trophy, Bot, Brain, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +66,7 @@ export const BotBattleArena = () => {
     const systemPrompt = extractSystemPrompt(botCode);
     const botName = extractBotName(botCode);
     
-    const resp = await fetch(
+    const resp = await fetchAIEndpoint(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
       {
         method: 'POST',

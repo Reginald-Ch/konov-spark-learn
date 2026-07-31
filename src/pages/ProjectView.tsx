@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
+import { fetchAIEndpoint } from '@/lib/aiFetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
@@ -584,7 +585,7 @@ const ProjectView = () => {
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
 
-      const resp = await fetch(
+      const resp = await fetchAIEndpoint(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
         {
           method: 'POST',

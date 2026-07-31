@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { fetchAIEndpoint } from '@/lib/aiFetch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
@@ -325,7 +326,7 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const history = [...chatMessages, userMsg].map(m => ({ role: m.role === 'user' ? 'human' : 'assistant', content: m.content }));
 
-      const resp = await fetch(`${supabaseUrl}/functions/v1/python-ai-assist`, {
+      const resp = await fetchAIEndpoint(`${supabaseUrl}/functions/v1/python-ai-assist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
         body: JSON.stringify({
