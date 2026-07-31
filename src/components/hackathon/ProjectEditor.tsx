@@ -298,6 +298,87 @@ const extractConfigFromCode = (code: string) => {
   };
 };
 
+// ── Agent reasoning trace ──
+// FORGE's "Show Reasoning" mode already asks the model for a
+// Thought -> Action -> Observation -> Answer trace (see python-ai-assist's
+// showReasoning prompt); it just used to render as plain markdown paragraphs.
+// This parses that same text into discrete steps so it can be drawn as a small
+// timeline instead. Returns null for anything that isn't actually a trace
+// (including partial ones still mid-stream), so callers fall back to normal
+// markdown rendering with zero behavior change.
+type ReasoningStepType = 'thought' | 'action' | 'observation' | 'answer';
+interface ReasoningStep {
+  type: ReasoningStepType;
+  text: string;
+}
+
+function parseReasoningTrace(content: string): ReasoningStep[] | null {
+  const markerPattern = /\*\*(?:🤔\s*Thought|🔧\s*Action|👁️\s*Observation|💡\s*Answer):\*\*/g;
+  const matches: { index: number; length: number; type: ReasoningStepType }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = markerPattern.exec(content)) !== null) {
+    const raw = m[0];
+    const type: ReasoningStepType = raw.includes('🤔')
+      ? 'thought'
+      : raw.includes('🔧')
+      ? 'action'
+      : raw.includes('👁️')
+      ? 'observation'
+      : 'answer';
+    matches.push({ index: m.index, length: raw.length, type });
+  }
+  if (matches.length < 2) return null;
+
+  const steps: ReasoningStep[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index + matches[i].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : content.length;
+    const text = content.slice(start, end).trim();
+    if (text) steps.push({ type: matches[i].type, text });
+  }
+  return steps.length > 0 ? steps : null;
+}
+
+const REASONING_STEP_META: Record<ReasoningStepType, { label: string; icon: typeof Lightbulb; color: string }> = {
+  thought: { label: 'Thought', icon: Lightbulb, color: '#F7941D' },
+  action: { label: 'Action', icon: Wand2, color: '#5865F2' },
+  observation: { label: 'Observation', icon: Eye, color: '#22C55E' },
+  answer: { label: 'Answer', icon: MessageSquare, color: '#EC4899' },
+};
+
+function ReasoningTrace({ steps }: { steps: ReasoningStep[] }) {
+  return (
+    <div>
+      {steps.map((step, i) => {
+        const meta = REASONING_STEP_META[step.type];
+        const Icon = meta.icon;
+        const isLast = i === steps.length - 1;
+        return (
+          <div key={i} className="flex gap-2">
+            <div className="flex flex-col items-center">
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}55` }}
+              >
+                <Icon className="w-3 h-3" style={{ color: meta.color }} />
+              </div>
+              {!isLast && <div className="w-px flex-1 my-0.5" style={{ backgroundColor: `${meta.color}30` }} />}
+            </div>
+            <div className={`flex-1 min-w-0 ${isLast ? '' : 'pb-2'}`}>
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: meta.color }}>
+                {meta.label}
+              </span>
+              <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0 mt-0.5 text-ide-text">
+                <ReactMarkdown>{step.text}</ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'ai-mentor';
 type ConfigTab = 'settings' | 'knowledge' | 'theme';
@@ -3178,13 +3259,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
-                    <div className={`prose prose-invert prose-xs max-w-none [&_p]:m-0 ${
-                      projectType === 'agent' && msg.content.includes('**🤔 Thought:**')
-                        ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
-                        : ''
-                    }`}>
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
+                    (() => {
+                      const reasoningSteps = projectType === 'agent' ? parseReasoningTrace(msg.content) : null;
+                      if (reasoningSteps) {
+                        return <ReasoningTrace steps={reasoningSteps} />;
+                      }
+                      return (
+                        <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      );
+                    })()
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
                   )}
