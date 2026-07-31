@@ -1,9 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// ── Concurrency gate ──
+// Wraps the gateway's response stream so the acquired slot (see
+// supabase/migrations/..._a4c1f7e2..., ai_gateway_slots) is only released once
+// the stream is fully drained, errors, or is cancelled — not the instant the
+// gateway responds with headers. A slot represents an actual open connection to
+// the shared AI gateway for its whole duration, including the streamed tail.
+function releaseSlotOnStreamEnd(
+  body: ReadableStream<Uint8Array>,
+  release: () => Promise<void>
+): ReadableStream<Uint8Array> {
+  const reader = body.getReader();
+  let released = false;
+  const doRelease = async () => {
+    if (released) return;
+    released = true;
+    await release();
+  };
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          await doRelease();
+          return;
+        }
+        controller.enqueue(value);
+      } catch (e) {
+        controller.error(e);
+        await doRelease();
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+      await doRelease();
+    },
+  });
+}
 
 // ── Real Tool Implementations ──
 
@@ -211,6 +251,19 @@ Response (JSON array only):`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  let slotId: number | null = null;
+  const releaseSlot = async () => {
+    if (slotId === null) return;
+    const idToRelease = slotId;
+    slotId = null;
+    const { error } = await supabaseAdmin.rpc("release_ai_slot", { p_slot_id: idToRelease });
+    if (error) console.error("release_ai_slot failed:", error);
+  };
 
   try {
     const { code, model, action, systemPrompt, messages: conversationHistory, knowledgeBase, qaData, projectType, projectName, botConfig } = await req.json();
@@ -579,6 +632,23 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
       requestBody.max_tokens = maxTokens;
     }
 
+    // Acquire a concurrency slot before calling the shared gateway. Fail open if
+    // the gate itself errors (e.g. a transient DB hiccup) — this table is a
+    // smoother, not a feature the whole platform should become newly fragile to.
+    const { data: acquiredSlot, error: acquireError } = await supabaseAdmin.rpc("acquire_ai_slot", {
+      p_ttl_seconds: 120,
+    });
+    if (acquireError) {
+      console.error("acquire_ai_slot error:", acquireError);
+    } else if (acquiredSlot === null) {
+      return new Response(
+        JSON.stringify({ error: "FORGE is busy right now — please try again in a few seconds." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      slotId = acquiredSlot;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -589,6 +659,7 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
     });
 
     if (!response.ok) {
+      await releaseSlot();
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }), {
           status: 429,
@@ -609,10 +680,16 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
       });
     }
 
-    return new Response(response.body, {
+    if (!response.body) {
+      await releaseSlot();
+      throw new Error("No response body from AI gateway");
+    }
+
+    return new Response(releaseSlotOnStreamEnd(response.body, releaseSlot), {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
+    await releaseSlot();
     console.error("python-ai-assist error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
