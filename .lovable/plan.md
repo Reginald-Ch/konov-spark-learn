@@ -1,76 +1,19 @@
+# Ship the AI concurrency gate to the live backend
 
+The gate code is already complete in `python-ai-assist`: both AI gateway call sites (the tool-routing classification call and the main streaming chat call) acquire and release a slot, and the streaming response releases its slot only when the stream ends, errors, or is cancelled.
 
-# Web Push Notifications for Waitlist
+What is missing is that the database side of the gate does not exist in the live project yet. A query against the live database confirms there is no `acquire_ai_slot` / `release_ai_slot` function, so today every gate call fails and the function falls back to "fail open" (no throttling at all). The migration file exists locally but was never applied, and there is no CI pipeline to apply it.
 
-## What You Get
+## Steps
 
-After someone joins the waitlist, they'll see a prompt asking to allow notifications. Once allowed, you can send custom messages directly to their device — with your own title, body text, icon, and link. These appear as native notifications on Android (and desktop browsers). On iPhone, it only works if they add your site to their home screen.
+1. Apply the concurrency-gate database change (creates `ai_gateway_slots` with a pool of 10 slots, plus the `acquire_ai_slot` and `release_ai_slot` functions restricted to backend/service access only). This is submitted for your approval before it runs.
+2. Deploy `python-ai-assist` so the running function talks to the newly created gate functions.
+3. Smoke test: call the deployed function once and confirm a normal AI response streams back, then check the slot table returns to fully unlocked afterwards (proving release works and slots are not leaking).
+4. Check function logs for `acquire_ai_slot error` lines — none should appear after the migration.
 
-## How It Works
+## Technical notes
 
-```text
-User joins waitlist → "Enable notifications?" prompt → User allows
-     ↓
-Push subscription saved to database
-     ↓
-You tell me in chat: "Send notification: title, message, link"
-     ↓
-Edge function sends push to all subscribers
-```
-
-## Technical Plan
-
-### 1. Generate VAPID keys (Web Push credentials)
-- Create an edge function `generate-vapid-keys` to generate a key pair
-- Store the private key as a secret, public key in code
-- These are free, no third-party service needed
-
-### 2. New database table: `push_subscriptions`
-| Column | Type |
-|---|---|
-| id | uuid (PK) |
-| waitlist_signup_id | uuid (FK, nullable) |
-| endpoint | text |
-| p256dh | text |
-| auth | text |
-| created_at | timestamp |
-
-### 3. Service Worker for receiving push (`public/push-sw.js`)
-- Lightweight, separate from any PWA service worker
-- Listens for `push` events, shows notification with custom title/body/icon/link
-- Handles notification click to open the link
-
-### 4. Frontend: Ask permission after signup
-- After successful waitlist signup, show a friendly prompt: "Want to know the moment we launch? Enable notifications!"
-- On accept, register `push-sw.js`, get subscription, save to `push_subscriptions` table
-- No intrusive browser prompt on page load — only after signup action
-
-### 5. Edge function: `send-push-notification`
-- Accepts: `title`, `body`, `url` (link on click), `icon` (optional)
-- Fetches all subscriptions from `push_subscriptions`
-- Sends Web Push to each using the VAPID private key
-- **You design every message** — just tell me what to send in chat, or we can build a simple form later
-
-### 6. Custom message design
-Yes — every notification you send is fully customizable:
-- **Title**: e.g. "Konov is launching! 🚀"
-- **Body**: e.g. "Your spot #42 is confirmed. Get ready!"
-- **Icon**: your logo
-- **Click link**: e.g. `https://konovartechtist.com/waitlist`
-
-## Important Notes
-
-- **Free** — Web Push uses open standards, no paid service needed
-- **Android + Desktop**: Works great on Chrome, Firefox, Edge
-- **iPhone limitation**: Only works if user adds site to home screen (iOS 16.4+)
-- **Ghana market**: Most Android users on Chrome — good coverage
-- **No PWA required** — we use a standalone push service worker, not a full PWA setup
-- **You control messages** — nothing is auto-sent; you decide when and what to send
-
-## Files Created/Changed
-- `public/push-sw.js` — push service worker
-- `supabase/functions/send-push-notification/index.ts` — edge function to send notifications
-- `src/pages/Waitlist.tsx` — add post-signup notification opt-in
-- `src/hooks/usePushNotifications.ts` — push subscription logic
-- New migration for `push_subscriptions` table
-
+- The SQL is taken from `supabase/migrations/20260730120000_a4c1f7e2-...sql` as written; no logic changes.
+- `ai_gateway_slots` has RLS enabled with no policies on purpose — it is reachable only through the two `SECURITY DEFINER` functions, which are granted to `service_role` only.
+- Pool size of 10 is a starting value. After the smoke test we can raise or lower it based on observed load; that is a follow-up migration, not part of this one.
+- Behaviour once live: when all slots are busy, the main call returns a retryable 429 with a friendly "FORGE is busy right now" message, and tool routing is silently skipped rather than queued.
