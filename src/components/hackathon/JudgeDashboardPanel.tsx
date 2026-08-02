@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, memo } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
-  Shield, Trophy, ExternalLink, Star, Users, Play, Lock,
-  CheckCircle2, Loader2, Send, Rocket, Flame, Award,
-  Plus, Pencil, Trash2, Calendar, AlertTriangle
+  Shield, Trophy, ExternalLink, Star, Lock,
+  CheckCircle2, Loader2, Send, Flame, Award, Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,37 +26,10 @@ interface Project {
   created_at: string;
 }
 
-interface Hackathon {
-  id: string;
-  title: string;
-  description: string | null;
-  theme: string | null;
-  status: 'upcoming' | 'live' | 'ended';
-  start_date: string;
-  end_date: string;
-  registration_deadline: string;
-  max_participants: number;
-  current_participants: number;
-  prizes: string | null;
-  rules: string | null;
-}
-
 const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot' },
   agent: { icon: '🧠', label: 'Agent' },
 };
-
-const emptyHackathon = (): Partial<Hackathon> => ({
-  title: '',
-  description: '',
-  theme: '',
-  start_date: new Date().toISOString().slice(0, 16),
-  end_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
-  registration_deadline: new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 16),
-  max_participants: 100,
-  prizes: '',
-  rules: '',
-});
 
 const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
   project: Project;
@@ -129,28 +101,15 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
 ));
 ProjectCard.displayName = 'ProjectCard';
 
-interface JudgeDashboardPanelProps {
-  onRefreshHackathons?: () => void;
-}
-
-export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanelProps) => {
+export const JudgeDashboardPanel = () => {
   const [accessCode, setAccessCode] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [submittedScores, setSubmittedScores] = useState<Set<string>>(new Set());
   const [judgeName, setJudgeName] = useState('');
-
-  const [eventModalOpen, setEventModalOpen] = useState(false);
-  const [eventForm, setEventForm] = useState<Partial<Hackathon>>(emptyHackathon());
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [deleteEventTarget, setDeleteEventTarget] = useState<Hackathon | null>(null);
-  const [isSavingEvent, setIsSavingEvent] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('judge-authenticated');
@@ -175,13 +134,11 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [projectsRes, hackathonsRes, existingScores] = await Promise.all([
+      const [projectsRes, existingScores] = await Promise.all([
         supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').order('created_at', { ascending: false }).limit(100),
-        supabase.from('hackathons').select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules').order('start_date', { ascending: false }).limit(50),
         supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score').limit(500),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
-      if (hackathonsRes.data) setHackathons(hackathonsRes.data as Hackathon[]);
       if (existingScores.data) {
         const scored = new Set<string>();
         const scoreMap: Record<string, number> = {};
@@ -241,112 +198,6 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
     }
   }, [scores, feedback, judgeName]);
 
-  const handleGoLive = useCallback(async (hackathonId: string) => {
-    try {
-      // Find the hackathon to calculate original duration
-      const hackathon = hackathons.find(h => h.id === hackathonId);
-      const now = new Date();
-      let updatePayload: Record<string, string> = { status: 'live' };
-      
-      if (hackathon) {
-        const originalStart = new Date(hackathon.start_date);
-        const originalEnd = new Date(hackathon.end_date);
-        const durationMs = originalEnd.getTime() - originalStart.getTime();
-        // Set start to now, end to now + original duration so timer counts down properly
-        updatePayload.start_date = now.toISOString();
-        updatePayload.end_date = new Date(now.getTime() + durationMs).toISOString();
-      }
-      
-      const { error } = await supabase.from('hackathons').update(updatePayload).eq('id', hackathonId);
-      if (error) throw error;
-      toast.success('Hackathon is now LIVE! Timer started.');
-      fetchData();
-      onRefreshHackathons?.();
-    } catch (e) { toast.error('Failed to update hackathon status'); }
-  }, [fetchData, onRefreshHackathons, hackathons]);
-
-  const handleEndHackathon = useCallback(async (hackathonId: string) => {
-    try {
-      const { error } = await supabase.from('hackathons').update({ status: 'ended' }).eq('id', hackathonId);
-      if (error) throw error;
-      toast.success('Hackathon ended');
-      fetchData();
-      onRefreshHackathons?.();
-    } catch (e) { toast.error('Failed to end hackathon'); }
-  }, [fetchData, onRefreshHackathons]);
-
-  const openCreateEvent = () => {
-    setEditingEventId(null);
-    setEventForm(emptyHackathon());
-    setEventModalOpen(true);
-  };
-
-  const openEditEvent = (h: Hackathon) => {
-    setEditingEventId(h.id);
-    setEventForm({
-      title: h.title,
-      description: h.description || '',
-      theme: h.theme || '',
-      start_date: h.start_date.slice(0, 16),
-      end_date: h.end_date.slice(0, 16),
-      registration_deadline: h.registration_deadline.slice(0, 16),
-      max_participants: h.max_participants,
-      prizes: h.prizes || '',
-      rules: h.rules || '',
-    });
-    setEventModalOpen(true);
-  };
-
-  const handleSaveEvent = async () => {
-    if (!eventForm.title?.trim()) { toast.error('Title is required'); return; }
-    setIsSavingEvent(true);
-    try {
-      const payload = {
-        title: eventForm.title,
-        description: eventForm.description || null,
-        theme: eventForm.theme || null,
-        start_date: new Date(eventForm.start_date!).toISOString(),
-        end_date: new Date(eventForm.end_date!).toISOString(),
-        registration_deadline: new Date(eventForm.registration_deadline!).toISOString(),
-        max_participants: eventForm.max_participants || 100,
-        prizes: eventForm.prizes || null,
-        rules: eventForm.rules || null,
-      };
-
-      if (editingEventId) {
-        const { error } = await supabase.from('hackathons').update(payload).eq('id', editingEventId);
-        if (error) throw error;
-        toast.success('Event updated');
-      } else {
-        const { error } = await supabase.from('hackathons').insert(payload);
-        if (error) throw error;
-        toast.success('Event created');
-      }
-      setEventModalOpen(false);
-      fetchData();
-      onRefreshHackathons?.();
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to save event');
-    } finally {
-      setIsSavingEvent(false);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!deleteEventTarget) return;
-    try {
-      const { error } = await supabase.from('hackathons').delete().eq('id', deleteEventTarget.id);
-      if (error) throw error;
-      toast.success('Event deleted');
-      setDeleteEventTarget(null);
-      fetchData();
-      onRefreshHackathons?.();
-    } catch (e) {
-      toast.error('Failed to delete event');
-    }
-  };
-
   const handleTogglePublish = useCallback(async (project: Project) => {
     try {
       const newStatus = !project.is_published;
@@ -356,31 +207,6 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
     } catch (e) { toast.error('Failed to update project status'); }
   }, []);
-
-  const handleResetLeaderboard = useCallback(async () => {
-    setIsResetting(true);
-    try {
-      const { error } = await supabase.from('point_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      if (error) throw error;
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('forge-scored-')) keysToRemove.push(key);
-      }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-      setSubmittedScores(new Set());
-      setScores({});
-      setFeedback({});
-      setResetConfirmOpen(false);
-      toast.success('Leaderboard reset! All scores cleared.');
-      fetchData();
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to reset leaderboard');
-    } finally {
-      setIsResetting(false);
-    }
-  }, [fetchData]);
 
   const handleScoreChange = useCallback((id: string, val: number) => {
     setScores(prev => ({ ...prev, [id]: val }));
@@ -431,91 +257,15 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
         <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
       </div>
 
-      {/* Hackathon Controls */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-[#F7941D]" /> Hackathon Control
-          </h2>
-          <Button size="sm" onClick={openCreateEvent} className="h-8 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
-            <Plus className="w-3 h-3 mr-1" /> Create Event
-          </Button>
+      {/* Event setup, daily challenges, Forge Coins, and reward boxes now live in the
+          passphrase-gated Admin Panel — this view stays focused on scoring submitted projects. */}
+      <Link to="/admin" className="flex items-center justify-between gap-3 bg-[hsl(var(--discord-darker))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)] hover:border-[hsl(var(--discord-light)/0.4)] transition-colors">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-[#F7941D]" />
+          <span className="text-sm text-white">Manage events, daily challenges, Forge Coins & reward boxes</span>
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {hackathons.map(h => (
-            <div key={h.id} className="bg-[hsl(var(--discord-darker))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)]">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-white text-sm truncate flex-1 mr-2">{h.title}</h3>
-                <Badge className={
-                  h.status === 'live' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                  h.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                  'bg-slate-500/30 text-slate-200 border-slate-400/40'
-                }>
-                  {h.status.toUpperCase()}
-                </Badge>
-              </div>
-              <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-1">
-                <Users className="w-3 h-3 inline mr-1" /> {h.current_participants} participants
-              </p>
-              <p className="text-xs text-[hsl(var(--discord-text-muted))] mb-3">
-                <Calendar className="w-3 h-3 inline mr-1" /> {new Date(h.start_date).toLocaleDateString()} — {new Date(h.end_date).toLocaleDateString()}
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {h.status === 'upcoming' && (
-                  <Button size="sm" onClick={() => handleGoLive(h.id)} className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white">
-                    <Play className="w-3 h-3 mr-1" /> Go Live
-                  </Button>
-                )}
-                {h.status === 'live' && (
-                  <Button size="sm" onClick={() => handleEndHackathon(h.id)} className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white">
-                    End Hackathon
-                  </Button>
-                )}
-                {h.status === 'ended' && (
-                  <Button size="sm" onClick={() => handleGoLive(h.id)} className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white">
-                    <Play className="w-3 h-3 mr-1" /> Restart
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={() => openEditEvent(h)}
-                  className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
-                  <Pencil className="w-3 h-3 mr-1" /> Edit
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setDeleteEventTarget(h)}
-                  className="h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10">
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {hackathons.length === 0 && (
-            <div className="col-span-full text-center py-8">
-              <Calendar className="w-10 h-10 mx-auto mb-3 text-[hsl(var(--discord-text-muted))] opacity-50" />
-              <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-3">No hackathon events yet</p>
-              <Button size="sm" onClick={openCreateEvent} className="bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
-                <Plus className="w-3 h-3 mr-1" /> Create Your First Event
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Reset Leaderboard Section */}
-      <div className="bg-red-500/5 rounded-lg border border-red-500/20 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400" /> Reset for New Event
-            </h3>
-            <p className="text-xs text-[hsl(var(--discord-text-muted))] mt-1">
-              Clear all leaderboard scores and unpublished projects to start fresh.
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setResetConfirmOpen(true)} 
-            className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white">
-            <Trash2 className="w-3 h-3 mr-1" /> Reset Leaderboard
-          </Button>
-        </div>
-      </div>
+        <span className="text-xs text-[hsl(var(--discord-text-muted))]">Open Admin Panel →</span>
+      </Link>
 
       {/* Projects to Score */}
       <div>
@@ -553,121 +303,6 @@ export const JudgeDashboardPanel = ({ onRefreshHackathons }: JudgeDashboardPanel
         )}
       </div>
 
-      {/* Create/Edit Event Modal */}
-      <Dialog open={eventModalOpen} onOpenChange={setEventModalOpen}>
-        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              {editingEventId ? <Pencil className="w-5 h-5 text-[#F7941D]" /> : <Plus className="w-5 h-5 text-[hsl(var(--discord-green))]" />}
-              {editingEventId ? 'Edit Event' : 'Create New Event'}
-            </DialogTitle>
-            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
-              {editingEventId ? 'Update hackathon event details.' : 'Set up a new hackathon event for participants.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">Title *</label>
-              <Input value={eventForm.title || ''} onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="AI Innovation Hackathon" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">Description</label>
-              <Textarea value={eventForm.description || ''} onChange={e => setEventForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Build innovative AI solutions..." rows={2}
-                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-white mb-1 block">Theme</label>
-                <Input value={eventForm.theme || ''} onChange={e => setEventForm(f => ({ ...f, theme: e.target.value }))}
-                  placeholder="Education, Health..." className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-white mb-1 block">Max Participants</label>
-                <Input type="number" value={eventForm.max_participants || 100} onChange={e => setEventForm(f => ({ ...f, max_participants: parseInt(e.target.value) || 100 }))}
-                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-white mb-1 block">Start Date</label>
-                <Input type="datetime-local" value={eventForm.start_date || ''} onChange={e => setEventForm(f => ({ ...f, start_date: e.target.value }))}
-                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-white mb-1 block">End Date</label>
-                <Input type="datetime-local" value={eventForm.end_date || ''} onChange={e => setEventForm(f => ({ ...f, end_date: e.target.value }))}
-                  className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">Registration Deadline</label>
-              <Input type="datetime-local" value={eventForm.registration_deadline || ''} onChange={e => setEventForm(f => ({ ...f, registration_deadline: e.target.value }))}
-                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">Prizes</label>
-              <Textarea value={eventForm.prizes || ''} onChange={e => setEventForm(f => ({ ...f, prizes: e.target.value }))}
-                placeholder="1st: Certificate + Feature, 2nd: Certificate..." rows={2}
-                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">Rules</label>
-              <Textarea value={eventForm.rules || ''} onChange={e => setEventForm(f => ({ ...f, rules: e.target.value }))}
-                placeholder="1. Teams of 1-5 members..." rows={2}
-                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white resize-none" />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setEventModalOpen(false)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
-              <Button onClick={handleSaveEvent} disabled={isSavingEvent} className="flex-1"
-                style={{ background: 'linear-gradient(135deg, #FFD700, #F7941D)' }}>
-                {isSavingEvent ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                {editingEventId ? 'Update Event' : 'Create Event'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Event Confirmation */}
-      <Dialog open={!!deleteEventTarget} onOpenChange={() => setDeleteEventTarget(null)}>
-        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <AlertTriangle className="w-5 h-5 text-red-400" /> Delete Event
-            </DialogTitle>
-            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
-              Are you sure you want to delete "{deleteEventTarget?.title}"? This will remove all associated data.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2 mt-2">
-            <Button variant="ghost" onClick={() => setDeleteEventTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
-            <Button onClick={handleDeleteEvent} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Delete</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reset Leaderboard Confirmation */}
-      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <AlertTriangle className="w-5 h-5 text-red-400" /> Reset Leaderboard
-            </DialogTitle>
-            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
-              This will permanently delete ALL scores and point events. Students will need to re-earn points. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2 mt-2">
-            <Button variant="ghost" onClick={() => setResetConfirmOpen(false)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
-            <Button onClick={handleResetLeaderboard} disabled={isResetting} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
-              {isResetting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-              Reset All Scores
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

@@ -67,6 +67,64 @@ export type Database = {
           },
         ]
       }
+      challenge_submissions: {
+        Row: {
+          challenge_id: string
+          content_url: string | null
+          hackathon_id: string
+          id: string
+          notes: string | null
+          participant_email: string
+          submitted_at: string
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          challenge_id: string
+          content_url?: string | null
+          hackathon_id: string
+          id?: string
+          notes?: string | null
+          participant_email: string
+          submitted_at?: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          challenge_id?: string
+          content_url?: string | null
+          hackathon_id?: string
+          id?: string
+          notes?: string | null
+          participant_email?: string
+          submitted_at?: string
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_submissions_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_submissions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hackathon_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_channels: {
         Row: {
           channel_type: string
@@ -181,6 +239,56 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      daily_challenges: {
+        Row: {
+          auto_max_points: number
+          closes_at: string | null
+          created_at: string
+          day_number: number
+          description: string | null
+          hackathon_id: string
+          id: string
+          judge_max_points: number
+          opens_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          auto_max_points?: number
+          closes_at?: string | null
+          created_at?: string
+          day_number: number
+          description?: string | null
+          hackathon_id: string
+          id?: string
+          judge_max_points?: number
+          opens_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          auto_max_points?: number
+          closes_at?: string | null
+          created_at?: string
+          day_number?: number
+          description?: string | null
+          hackathon_id?: string
+          id?: string
+          judge_max_points?: number
+          opens_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenges_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hackathon_registrations: {
         Row: {
@@ -594,6 +702,107 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "program_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_boxes: {
+        Row: {
+          awarded_at: string
+          box_type: string
+          challenge_id: string | null
+          contents_label: string | null
+          fulfilled_at: string | null
+          hackathon_id: string
+          id: string
+          opened_at: string | null
+          participant_email: string
+          status: string
+        }
+        Insert: {
+          awarded_at?: string
+          box_type: string
+          challenge_id?: string | null
+          contents_label?: string | null
+          fulfilled_at?: string | null
+          hackathon_id: string
+          id?: string
+          opened_at?: string | null
+          participant_email: string
+          status?: string
+        }
+        Update: {
+          awarded_at?: string
+          box_type?: string
+          challenge_id?: string | null
+          contents_label?: string | null
+          fulfilled_at?: string | null
+          hackathon_id?: string
+          id?: string
+          opened_at?: string | null
+          participant_email?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_boxes_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_boxes_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_scores: {
+        Row: {
+          auto_breakdown: Json | null
+          auto_score: number | null
+          created_at: string
+          id: string
+          judge_breakdown: Json | null
+          judge_score: number | null
+          scored_at: string | null
+          status: string
+          submission_id: string
+          total_sp: number | null
+        }
+        Insert: {
+          auto_breakdown?: Json | null
+          auto_score?: number | null
+          created_at?: string
+          id?: string
+          judge_breakdown?: Json | null
+          judge_score?: number | null
+          scored_at?: string | null
+          status?: string
+          submission_id: string
+          total_sp?: number | null
+        }
+        Update: {
+          auto_breakdown?: Json | null
+          auto_score?: number | null
+          created_at?: string
+          id?: string
+          judge_breakdown?: Json | null
+          judge_score?: number | null
+          scored_at?: string | null
+          status?: string
+          submission_id?: string
+          total_sp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_scores_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "challenge_submissions"
             referencedColumns: ["id"]
           },
         ]

@@ -20,6 +20,7 @@ import BlogPost from "./pages/BlogPost";
 import Hackathons from "./pages/Hackathons";
 import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
+import AdminPanel from "./pages/AdminPanel";
 import Waitlist from "./pages/Waitlist";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,7 @@ const AnimatedRoutes = () => {
         <Route path="/hackathons" element={<PageTransition><Hackathons /></PageTransition>} />
         <Route path="/projects/:id" element={<PageTransition><ProjectView /></PageTransition>} />
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
+        <Route path="/admin" element={<PageTransition><AdminPanel /></PageTransition>} />
         <Route path="/waitlist" element={<PageTransition><Waitlist /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>

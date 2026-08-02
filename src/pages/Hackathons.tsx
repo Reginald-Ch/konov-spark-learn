@@ -182,7 +182,7 @@ const Hackathons = () => {
       case 'faq':
         return <HackathonFAQ />;
       case 'judge':
-        return <JudgeDashboardPanel onRefreshHackathons={fetchHackathons} />;
+        return <JudgeDashboardPanel />;
       default:
         return (
           <>
