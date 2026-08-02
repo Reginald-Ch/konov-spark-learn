@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_gateway_slots: {
+        Row: {
+          expires_at: string | null
+          locked_at: string | null
+          slot_id: number
+        }
+        Insert: {
+          expires_at?: string | null
+          locked_at?: string | null
+          slot_id: number
+        }
+        Update: {
+          expires_at?: string | null
+          locked_at?: string | null
+          slot_id?: number
+        }
+        Relationships: []
+      }
       ai_projects: {
         Row: {
           author_email: string
@@ -963,7 +981,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      acquire_ai_slot: { Args: { p_ttl_seconds?: number }; Returns: number }
+      release_ai_slot: { Args: { p_slot_id: number }; Returns: undefined }
     }
     Enums: {
       hackathon_status: "upcoming" | "live" | "ended"
