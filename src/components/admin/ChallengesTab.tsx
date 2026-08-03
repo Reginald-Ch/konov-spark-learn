@@ -75,7 +75,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
       .eq('hackathon_id', hackathonId)
       .order('day_number', { ascending: true });
     if (error) toast.error('Failed to load challenges');
-    setChallenges((data as Challenge[]) || []);
+    setChallenges((data as unknown as Challenge[]) || []);
     setIsLoading(false);
   }, [hackathonId]);
 
