@@ -70,7 +70,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
       .select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules, settings')
       .order('start_date', { ascending: false });
     if (error) toast.error('Failed to load events');
-    setHackathons((data as Hackathon[]) || []);
+    setHackathons((data as unknown as Hackathon[]) || []);
     setIsLoading(false);
   }, []);
 

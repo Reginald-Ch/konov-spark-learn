@@ -547,8 +547,8 @@ const Hackathons = () => {
               </button>
 
               {[
-                { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
-                { id: 'battle-arena' as HackathonSubView, name: 'Bot Battle', icon: Swords, count: 0 },
+                { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0, live: false },
+                { id: 'battle-arena' as HackathonSubView, name: 'Bot Battle', icon: Swords, count: 0, live: false },
               ].map(ch => (
                 <button
                   key={ch.id}
