@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // VAPID public key generated for this project
@@ -15,13 +15,37 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+interface SubscribeOptions {
+  waitlistSignupId?: string;
+  participantEmail?: string;
+  topics?: string[];
+}
+
 export function usePushNotifications() {
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
 
-  const subscribe = async (waitlistSignupId?: string) => {
+  // Reflect an existing browser subscription on mount, instead of always
+  // showing "off" and letting someone re-click a button that already worked.
+  useEffect(() => {
+    if (!isSupported) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
+        const existing = await registration?.pushManager.getSubscription();
+        if (!cancelled && existing) setIsSubscribed(true);
+      } catch {
+        // No existing registration/subscription — leave isSubscribed false.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isSupported]);
+
+  const subscribe = async (options: SubscribeOptions = {}) => {
+    const { waitlistSignupId, participantEmail, topics } = options;
     if (!isSupported) return false;
     setIsSubscribing(true);
 
@@ -43,14 +67,22 @@ export function usePushNotifications() {
 
       const subJson = subscription.toJSON();
 
-      const { error } = await supabase.from("push_subscriptions").insert({
-        endpoint: subJson.endpoint!,
-        p256dh: subJson.keys!.p256dh!,
-        auth: subJson.keys!.auth!,
-        waitlist_signup_id: waitlistSignupId || null,
-      });
+      // Upsert on endpoint — a plain insert would silently no-op on the
+      // unique-endpoint conflict, so re-subscribing with a new topic (e.g.
+      // "community") on a browser that already had a waitlist subscription
+      // would report success without actually saving the new topic.
+      const { error } = await supabase
+        .from("push_subscriptions")
+        .upsert({
+          endpoint: subJson.endpoint!,
+          p256dh: subJson.keys!.p256dh!,
+          auth: subJson.keys!.auth!,
+          waitlist_signup_id: waitlistSignupId || null,
+          participant_email: participantEmail || null,
+          topics: topics || [],
+        }, { onConflict: "endpoint" });
 
-      if (error && error.code !== "23505") {
+      if (error) {
         console.error("Failed to save push subscription:", error);
         setIsSubscribing(false);
         return false;

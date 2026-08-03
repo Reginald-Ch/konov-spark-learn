@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, body, url, icon } = await req.json();
+    const { title, body, url, icon, topic } = await req.json();
 
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "title and body are required" }), {
@@ -281,9 +281,12 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: subscriptions, error } = await supabase
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth");
+    // Without a topic, broadcast to every subscriber (legacy waitlist behavior).
+    // With a topic (e.g. "community"), only notify subscribers who opted into it —
+    // a community announcement should never spam an unrelated waitlist subscriber.
+    let query = supabase.from("push_subscriptions").select("endpoint, p256dh, auth");
+    if (topic) query = query.contains("topics", [topic]);
+    const { data: subscriptions, error } = await query;
 
     if (error) throw error;
 

@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 24 Build-Up Challenges
+🤖 FORGE AI Chatbot — 26 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,9 +26,9 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-   - Complete all 24 challenges to build a unique AI!
+   - Complete all 26 challenges to build a unique AI!
 
-⏱️ Time: 50-70 minutes
+⏱️ Time: 55-75 minutes
 """
 
 # ═══════════════════════════════════════════════
@@ -334,6 +334,38 @@ WAKE_WORD = ""
 VOICE_GENDER = "default"
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 25: Write a Fallback Function (def + return)
+# When your bot doesn't know an answer, this FUNCTION
+# decides what to say. Write your OWN return message —
+# this teaches FUNCTIONS: reusable logic with an input
+# and a return value.
+#
+#   def build_fallback_message(bot_name):
+#       return f"Hmm, {bot_name} isn't sure about that one!"
+#
+# 🧪 TEST: Change the return text, then ask your bot
+#          something totally random and off-topic.
+# ═══════════════════════════════════════════════
+def build_fallback_message(bot_name):
+    return f"Hmm, that one is a bit tricky for me — try asking it a different way!"
+
+FALLBACK_MESSAGE = build_fallback_message(BOT_NAME)
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 26: Build Keywords With a Loop (for)
+# This LOOP walks through every Q&A pair you wrote in
+# Challenge 7 and pulls out the first word of each
+# question — automatically, without typing them by hand.
+# This teaches LOOPS: repeating an action per item.
+#
+# 🧪 TEST: Add 2-3 pairs to QA_PAIRS above (Challenge 7),
+#          then check that TOPIC_KEYWORDS fills in below.
+# ═══════════════════════════════════════════════
+TOPIC_KEYWORDS = []
+for pair in QA_PAIRS:
+    TOPIC_KEYWORDS.append(pair["q"].split()[0])
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -376,6 +408,8 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
 # ☐ 23. WAKE_WORD — Set a trigger phrase for hands-free
 # ☐ 24. VOICE_GENDER — "female", "male", or "default"
+# ☐ 25. FALLBACK_MESSAGE — Write your own function's return text!
+# ☐ 26. TOPIC_KEYWORDS — For-loop over QA_PAIRS, no typing by hand
 # ═══════════════════════════════════════════════
 
 
@@ -426,7 +460,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 24,
+  "challenges": 26,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
@@ -443,7 +477,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 24 Build-Up Challenges
+🧠 FORGE AI Agent — 26 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -451,7 +485,7 @@ An Agent USES TOOLS to take actions!
 
 Every variable below is LIVE — edit and test instantly.
 
-⏱️ Time: 50-70 minutes
+⏱️ Time: 55-75 minutes
 """
 
 # ═══════════════════════════════════════════════
@@ -669,6 +703,38 @@ WAKE_WORD = ""
 VOICE_GENDER = "default"
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 25: Write a Fallback Function (def + return)
+# When your agent can't complete a task, this FUNCTION
+# decides what to say. Write your OWN return message —
+# this teaches FUNCTIONS: reusable logic with an input
+# and a return value.
+#
+#   def build_fallback_message(bot_name):
+#       return f"{bot_name} hit a dead end — want to try a different angle?"
+#
+# 🧪 TEST: Change the return text, then give your agent
+#          an impossible or nonsensical task.
+# ═══════════════════════════════════════════════
+def build_fallback_message(bot_name):
+    return f"I could not find a clear answer to that — try rephrasing or giving me more detail!"
+
+FALLBACK_MESSAGE = build_fallback_message(BOT_NAME)
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 26: Build Keywords With a Loop (for)
+# This LOOP walks through every Q&A pair you wrote in
+# Challenge 7 and pulls out the first word of each
+# question — automatically, without typing them by hand.
+# This teaches LOOPS: repeating an action per item.
+#
+# 🧪 TEST: Edit QA_PAIRS above (Challenge 7), then check
+#          TOPIC_KEYWORDS updates to match.
+# ═══════════════════════════════════════════════
+TOPIC_KEYWORDS = []
+for pair in QA_PAIRS:
+    TOPIC_KEYWORDS.append(pair["q"].split()[0])
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -724,6 +790,8 @@ TOOL_INSTRUCTIONS = {
 # ☐ 22. VOICE_MODE — "push-to-talk" or "hands-free"
 # ☐ 23. WAKE_WORD — Set a trigger phrase for hands-free
 # ☐ 24. VOICE_GENDER — "female", "male", or "default"
+# ☐ 25. FALLBACK_MESSAGE — Write your own function's return text!
+# ☐ 26. TOPIC_KEYWORDS — For-loop over QA_PAIRS, no typing by hand
 # ═══════════════════════════════════════════════
 
 
@@ -781,7 +849,7 @@ TOOL_INSTRUCTIONS = {
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 24,
+  "challenges": 26,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!

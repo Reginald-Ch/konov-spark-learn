@@ -7,12 +7,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Hash, Volume2, Megaphone, Send, Users, Circle, 
+import {
+  Hash, Volume2, Megaphone, Send, Users, Circle,
   Video, Phone, PhoneOff, X, User, Smile, MessageSquare,
-  Mic, MicOff, Settings, ChevronDown, Plus, Heart, ThumbsUp, 
-  Laugh, PartyPopper, Flame, Rocket, Star
+  Mic, MicOff, Settings, ChevronDown, Plus, Heart, ThumbsUp,
+  Laugh, PartyPopper, Flame, Rocket, Star, Trophy, Bell, BellOff, Lock, Check, Menu, Crown,
 } from 'lucide-react';
+import { getStoredAdminRole, callAdminAction } from '@/lib/adminClient';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface Channel {
   id: string;
@@ -43,7 +45,30 @@ interface VoiceParticipant {
 interface MessageReaction {
   emoji: string;
   count: number;
-  users: string[];
+  emails: string[];
+  names: string[];
+}
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  quest_type: 'chat_action' | 'self_report';
+  action_channel_name: string | null;
+  action_url: string | null;
+  badge_emoji: string;
+  badge_label: string;
+  order_index: number;
+}
+
+interface Badge {
+  emoji: string;
+  label: string;
+}
+
+interface StaffInfo {
+  role_label: string;
+  badge_emoji: string;
 }
 
 interface CommunityChatProps {
@@ -81,8 +106,35 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
   const [showJitsi, setShowJitsi] = useState(false);
   const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showQuests, setShowQuests] = useState(false);
+  const [quests, setQuests] = useState<Quest[]>([]);
+  const [completedQuestIds, setCompletedQuestIds] = useState<Set<string>>(new Set());
+  const [badgesByEmail, setBadgesByEmail] = useState<Record<string, Badge[]>>({});
+  const [staffByEmail, setStaffByEmail] = useState<Record<string, StaffInfo>>({});
+  // Remembered per browser tab, same pattern as the admin passphrase
+  // elsewhere in this app — type it once per session, not every time the
+  // chat modal is reopened.
+  const [staffPin, setStaffPinState] = useState(() => sessionStorage.getItem('forge-staff-pin') || '');
+  const setStaffPin = (value: string) => {
+    setStaffPinState(value);
+    if (value) sessionStorage.setItem('forge-staff-pin', value);
+    else sessionStorage.removeItem('forge-staff-pin');
+  };
+  const [claimingQuestId, setClaimingQuestId] = useState<string | null>(null);
+  const [isPostingAnnouncement, setIsPostingAnnouncement] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const lastTypingSentRef = useRef(0);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const isOrganizer = getStoredAdminRole() === 'organizer';
+  const isStaffEmail = !!staffByEmail[userEmail];
+  const { subscribe: subscribeToPush, isSubscribing: isSubscribingPush, isSubscribed: isSubscribedPush, isSupported: isPushSupported } = usePushNotifications();
 
   // Generate unique room name for Jitsi based on channel
   const jitsiRoomName = useMemo(() => {
@@ -95,20 +147,31 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
   useEffect(() => {
     if (isOpen) {
       fetchChannels();
+      fetchQuestsAndBadges();
+      fetchStaffList();
     }
   }, [isOpen]);
+
+  const fetchStaffList = async () => {
+    const { data } = await supabase.from('community_staff').select('participant_email, role_label, badge_emoji');
+    if (data) {
+      const map: Record<string, StaffInfo> = {};
+      (data as any[]).forEach((row) => { map[row.participant_email] = { role_label: row.role_label, badge_emoji: row.badge_emoji }; });
+      setStaffByEmail(map);
+    }
+  };
 
   useEffect(() => {
     if (activeChannel && activeChannel.channel_type === 'text') {
       fetchMessages(activeChannel.id);
-      
+
       const messagesChannel = supabase
         .channel(`messages-${activeChannel.id}`)
         .on(
           'postgres_changes',
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
+          {
+            event: 'INSERT',
+            schema: 'public',
             table: 'community_messages',
             filter: `channel_id=eq.${activeChannel.id}`
           },
@@ -116,10 +179,43 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
             setMessages(prev => [...prev, payload.new as Message]);
           }
         )
+        // No channel_id column on reactions, so this subscribes globally —
+        // but skip the refetch entirely unless the change actually touches a
+        // message that's currently loaded, instead of re-querying on every
+        // reaction anywhere in the app regardless of channel.
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'community_message_reactions' },
+          (payload) => {
+            const touchedId = (payload.new as any)?.message_id || (payload.old as any)?.message_id;
+            if (touchedId && messagesRef.current.some(m => m.id === touchedId)) {
+              fetchReactionsForMessages(messagesRef.current.map(m => m.id));
+            }
+          }
+        )
         .subscribe();
+
+      // Ephemeral typing indicator — Realtime broadcast, not persisted to any table.
+      const typingChannel = supabase
+        .channel(`typing-${activeChannel.id}`)
+        .on('broadcast', { event: 'typing' }, ({ payload }) => {
+          if (!payload?.email || payload.email === userEmail) return;
+          setTypingUsers(prev => (prev.includes(payload.name) ? prev : [...prev, payload.name]));
+          if (typingTimeoutsRef.current[payload.email]) clearTimeout(typingTimeoutsRef.current[payload.email]);
+          typingTimeoutsRef.current[payload.email] = setTimeout(() => {
+            setTypingUsers(prev => prev.filter(n => n !== payload.name));
+          }, 3000);
+        })
+        .subscribe();
+      typingChannelRef.current = typingChannel;
+      setTypingUsers([]);
 
       return () => {
         supabase.removeChannel(messagesChannel);
+        supabase.removeChannel(typingChannel);
+        typingChannelRef.current = null;
+        Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+        typingTimeoutsRef.current = {};
       };
     } else if (activeChannel && activeChannel.channel_type === 'voice') {
       fetchVoiceParticipants(activeChannel.id);
@@ -167,6 +263,70 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
     }
   };
 
+  const fetchQuestsAndBadges = async (emailOverride?: string) => {
+    const email = emailOverride ?? userEmail;
+    const [{ data: questRows }, { data: completionRows }] = await Promise.all([
+      supabase.from('community_quests').select('*').eq('is_active', true).order('order_index'),
+      supabase.from('community_quest_completions').select('participant_email, quest_id, community_quests(badge_emoji, badge_label)'),
+    ]);
+
+    if (questRows) setQuests(questRows as unknown as Quest[]);
+
+    if (completionRows) {
+      const badgeMap: Record<string, Badge[]> = {};
+      const mine = new Set<string>();
+      (completionRows as any[]).forEach((row) => {
+        const badge = row.community_quests;
+        if (badge) {
+          (badgeMap[row.participant_email] ||= []).push({ emoji: badge.badge_emoji, label: badge.badge_label });
+        }
+        if (email && row.participant_email === email) mine.add(row.quest_id);
+      });
+      setBadgesByEmail(badgeMap);
+      setCompletedQuestIds(mine);
+    }
+  };
+
+  const handleClaimQuest = async (quest: Quest) => {
+    if (!userEmail.trim() || !userName.trim()) {
+      toast({ title: 'Join first', description: 'Enter your name and email to claim quests.', variant: 'destructive' });
+      return;
+    }
+    setClaimingQuestId(quest.id);
+    try {
+      const { data, error } = await supabase.rpc('claim_community_quest', {
+        p_participant_email: userEmail,
+        p_participant_name: userName,
+        p_quest_id: quest.id,
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result?.ok) {
+        toast({ title: `${result.badge_emoji || '🏅'} ${result.message}`, description: result.badge_label ? `You earned the "${result.badge_label}" badge!` : undefined });
+        await fetchQuestsAndBadges();
+      } else {
+        toast({ title: 'Not yet', description: result?.message || 'Could not claim this quest.', variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || 'Failed to claim quest.', variant: 'destructive' });
+    } finally {
+      setClaimingQuestId(null);
+    }
+  };
+
+  const handleToggleNotifications = async () => {
+    if (!userEmail.trim()) {
+      toast({ title: 'Join first', description: 'Enter your email to turn on notifications.', variant: 'destructive' });
+      return;
+    }
+    const ok = await subscribeToPush({ participantEmail: userEmail, topics: ['community'] });
+    if (ok) {
+      toast({ title: '🔔 Notifications on', description: "We'll ping you when something new drops in the community." });
+    } else {
+      toast({ title: 'Could not enable notifications', description: 'Check your browser permission settings and try again.', variant: 'destructive' });
+    }
+  };
+
   const fetchMessages = async (channelId: string) => {
     const { data, error } = await supabase
       .from('community_messages')
@@ -176,7 +336,9 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
       .limit(100);
 
     if (!error && data) {
-      setMessages(data as unknown as Message[]);
+      const rows = data as unknown as Message[];
+      setMessages(rows);
+      fetchReactionsForMessages(rows.map(m => m.id));
     }
   };
 
@@ -200,11 +362,63 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
       });
       return;
     }
+    // Normalize now — everything downstream (messages, reactions, quest
+    // claims, staff badge lookup) keys off this exact string. Untrimmed
+    // whitespace or inconsistent casing would silently break badge matching.
+    const cleanEmail = userEmail.trim().toLowerCase();
+    setUserName(userName.trim());
+    setUserEmail(cleanEmail);
     setIsJoined(true);
+    fetchQuestsAndBadges(cleanEmail);
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeChannel || isSending) return;
+
+    if (activeChannel.channel_type === 'announcement') {
+      if (!isOrganizer) {
+        toast({ title: 'Locked', description: 'Only FORGE organizers can post announcements.', variant: 'destructive' });
+        return;
+      }
+      setIsPostingAnnouncement(true);
+      try {
+        await callAdminAction('post_community_announcement', {
+          channel_name: activeChannel.name,
+          sender_name: userName || 'FORGE Team',
+          content: newMessage.trim(),
+        });
+        setNewMessage('');
+        fetchMessages(activeChannel.id);
+      } catch (e: any) {
+        toast({ title: 'Error', description: e.message || 'Failed to post announcement.', variant: 'destructive' });
+      } finally {
+        setIsPostingAnnouncement(false);
+      }
+      return;
+    }
+
+    if (isStaffEmail) {
+      if (!staffPin.trim()) {
+        toast({ title: 'Staff PIN required', description: 'Enter your staff PIN below to chat with your badge.', variant: 'destructive' });
+        return;
+      }
+      setIsSending(true);
+      const { data, error } = await supabase.rpc('send_staff_message', {
+        p_participant_email: userEmail,
+        p_pin: staffPin,
+        p_channel_id: activeChannel.id,
+        p_content: newMessage.trim(),
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error || !result?.ok) {
+        toast({ title: 'Could not send', description: result?.message || error?.message || 'Failed to verify staff PIN.', variant: 'destructive' });
+        setStaffPin(''); // wrong PIN — force re-entry rather than silently retrying
+      } else {
+        setNewMessage('');
+      }
+      setIsSending(false);
+      return;
+    }
 
     setIsSending(true);
     const { error } = await supabase
@@ -229,51 +443,59 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
     setIsSending(false);
   };
 
+  const handleTypingBroadcast = () => {
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 1500) return; // throttle
+    lastTypingSentRef.current = now;
+    typingChannelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { name: userName, email: userEmail } });
+  };
+
   const handleAddEmoji = (emoji: string) => {
     setNewMessage(prev => prev + emoji);
     setShowEmojiPicker(false);
     inputRef.current?.focus();
   };
 
-  const handleReaction = (messageId: string, emoji: string) => {
-    setMessageReactions(prev => {
-      const existing = prev[messageId] || [];
-      const reactionIndex = existing.findIndex(r => r.emoji === emoji);
-      
-      if (reactionIndex >= 0) {
-        const reaction = existing[reactionIndex];
-        if (reaction.users.includes(userName)) {
-          // Remove reaction
-          const newUsers = reaction.users.filter(u => u !== userName);
-          if (newUsers.length === 0) {
-            return {
-              ...prev,
-              [messageId]: existing.filter((_, i) => i !== reactionIndex)
-            };
-          }
-          return {
-            ...prev,
-            [messageId]: existing.map((r, i) => 
-              i === reactionIndex ? { ...r, count: r.count - 1, users: newUsers } : r
-            )
-          };
-        } else {
-          // Add to existing reaction
-          return {
-            ...prev,
-            [messageId]: existing.map((r, i) => 
-              i === reactionIndex ? { ...r, count: r.count + 1, users: [...r.users, userName] } : r
-            )
-          };
-        }
+  const fetchReactionsForMessages = async (messageIds: string[]) => {
+    if (messageIds.length === 0) { setMessageReactions({}); return; }
+    const { data, error } = await supabase
+      .from('community_message_reactions')
+      .select('message_id, emoji, participant_email, participant_name')
+      .in('message_id', messageIds);
+    if (error || !data) return;
+    const grouped: Record<string, MessageReaction[]> = {};
+    (data as any[]).forEach((r) => {
+      const arr = (grouped[r.message_id] ||= []);
+      const existing = arr.find(x => x.emoji === r.emoji);
+      if (existing) {
+        existing.count++;
+        existing.emails.push(r.participant_email);
+        existing.names.push(r.participant_name);
       } else {
-        // New reaction
-        return {
-          ...prev,
-          [messageId]: [...existing, { emoji, count: 1, users: [userName] }]
-        };
+        arr.push({ emoji: r.emoji, count: 1, emails: [r.participant_email], names: [r.participant_name] });
       }
     });
+    setMessageReactions(grouped);
+  };
+
+  const handleReaction = async (messageId: string, emoji: string) => {
+    const existing = (messageReactions[messageId] || []).find(r => r.emoji === emoji);
+    const alreadyReacted = existing?.emails.includes(userEmail);
+
+    if (alreadyReacted) {
+      await supabase
+        .from('community_message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('emoji', emoji)
+        .eq('participant_email', userEmail);
+    } else {
+      await supabase
+        .from('community_message_reactions')
+        .insert({ message_id: messageId, emoji, participant_email: userEmail, participant_name: userName });
+    }
+    // Realtime subscription (below) will also refresh this, but update now for snappy feedback.
+    fetchReactionsForMessages(messages.map(m => m.id));
   };
 
   const handleJoinVoice = async () => {
@@ -411,14 +633,24 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent hideCloseButton aria-describedby={undefined} className="sm:max-w-[1000px] h-[85vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white overflow-hidden">
-        <div className="flex h-full">
+      <DialogContent hideCloseButton aria-describedby={undefined} className="w-[95vw] max-w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-[85vh] p-0 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white overflow-hidden">
+        <div className="flex h-full relative">
+          {/* Mobile sidebar backdrop */}
+          {mobileSidebarOpen && (
+            <div className="md:hidden absolute inset-0 z-30 bg-black/60" onClick={() => setMobileSidebarOpen(false)} />
+          )}
+
           {/* Channels Sidebar */}
-          <div className="w-64 bg-[hsl(var(--discord-darker))] flex flex-col border-r border-[hsl(var(--discord-light)/0.15)]">
+          <div className={`${mobileSidebarOpen ? 'flex' : 'hidden'} md:flex w-64 flex-shrink-0 absolute md:relative inset-y-0 left-0 z-40 md:z-auto bg-[hsl(var(--discord-darker))] flex-col border-r border-[hsl(var(--discord-light)/0.15)]`}>
             {/* Server Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-light)/0.15)] bg-[hsl(var(--discord-darker))] hover:bg-[hsl(var(--discord-light)/0.1)] transition-colors cursor-pointer">
               <h3 className="font-bold text-white truncate">Hackathon Hub</h3>
-              <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+              <div className="flex items-center gap-1">
+                <ChevronDown className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+                <button onClick={() => setMobileSidebarOpen(false)} className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <ScrollArea className="flex-1">
@@ -445,7 +677,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                     return (
                       <motion.button
                         key={channel.id}
-                        onClick={() => setActiveChannel(channel)}
+                        onClick={() => { setActiveChannel(channel); setMobileSidebarOpen(false); }}
                         whileHover={{ x: 2 }}
                         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-all ${
                           isActive
@@ -474,7 +706,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                     return (
                       <div key={channel.id}>
                         <motion.button
-                          onClick={() => setActiveChannel(channel)}
+                          onClick={() => { setActiveChannel(channel); setMobileSidebarOpen(false); }}
                           whileHover={{ x: 2 }}
                           className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-all ${
                             isActive
@@ -531,7 +763,7 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                       return (
                         <motion.button
                           key={channel.id}
-                          onClick={() => setActiveChannel(channel)}
+                          onClick={() => { setActiveChannel(channel); setMobileSidebarOpen(false); }}
                           whileHover={{ x: 2 }}
                           className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-all ${
                             isActive
@@ -573,10 +805,81 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 relative">
+            {/* Quests Panel */}
+            <AnimatePresence>
+              {showQuests && (
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'tween', duration: 0.2 }}
+                  className="absolute top-0 right-0 bottom-0 w-80 max-w-full z-20 bg-[hsl(var(--discord-darker))] border-l border-[hsl(var(--discord-light)/0.2)] flex flex-col shadow-2xl"
+                >
+                  <div className="h-14 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-light)/0.15)] flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
+                      <span className="font-bold text-white">Community Quests</span>
+                    </div>
+                    <button onClick={() => setShowQuests(false)} className="text-[hsl(var(--discord-text-muted))] hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-2">
+                      {quests.length === 0 && (
+                        <p className="text-xs text-[hsl(var(--discord-text-muted))] text-center py-8">No quests available right now.</p>
+                      )}
+                      {quests.map((quest) => {
+                        const done = completedQuestIds.has(quest.id);
+                        return (
+                          <div key={quest.id} className={`rounded-lg p-3 border ${done ? 'bg-[hsl(var(--discord-green)/0.1)] border-[hsl(var(--discord-green)/0.3)]' : 'bg-[hsl(var(--discord-light)/0.08)] border-[hsl(var(--discord-light)/0.2)]'}`}>
+                            <div className="flex items-start gap-2">
+                              <span className="text-xl leading-none">{quest.badge_emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white">{quest.title}</p>
+                                <p className="text-[11px] text-[hsl(var(--discord-text-muted))] mt-0.5">{quest.description}</p>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              {done ? (
+                                <span className="text-[11px] font-bold text-[hsl(var(--discord-green))] flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5" /> {quest.badge_label} earned
+                                </span>
+                              ) : (
+                                <>
+                                  {quest.quest_type === 'self_report' && quest.action_url && (
+                                    <a href={quest.action_url} target="_blank" rel="noreferrer"
+                                      className="text-[11px] text-[hsl(var(--discord-blurple))] hover:underline">
+                                      Open link →
+                                    </a>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleClaimQuest(quest)}
+                                    disabled={claimingQuestId === quest.id}
+                                    className="h-7 text-[11px] ml-auto"
+                                  >
+                                    {claimingQuestId === quest.id ? 'Checking...' : quest.quest_type === 'chat_action' ? "I've done this" : "I did this!"}
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Channel Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-light)/0.15)] bg-[hsl(var(--discord-dark))]">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <button onClick={() => { setMobileSidebarOpen(true); setShowQuests(false); }} className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white flex-shrink-0">
+                  <Menu className="w-5 h-5" />
+                </button>
                 {activeChannel && (
                   <>
                     {(() => {
@@ -616,6 +919,26 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                     </Button>
                   </>
                 )}
+                {isPushSupported && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleNotifications}
+                    disabled={isSubscribingPush || isSubscribedPush}
+                    title={isSubscribedPush ? "Notifications on" : "Get notified about community activity"}
+                    className={`${isSubscribedPush ? 'text-[hsl(var(--discord-green))]' : 'text-[hsl(var(--discord-text-muted))]'} hover:text-white`}
+                  >
+                    {isSubscribedPush ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={() => { setShowQuests(s => !s); setMobileSidebarOpen(false); }}
+                  className={`${showQuests ? 'text-[hsl(var(--discord-yellow))]' : 'text-[hsl(var(--discord-text-muted))]'} hover:text-white gap-1.5 px-2.5`}
+                >
+                  <Trophy className="w-5 h-5" />
+                  <span className="text-sm font-medium hidden sm:inline">Quests</span>
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -766,8 +1089,8 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                           >
                             {showHeader ? (
                               <div className="flex items-start gap-4">
-                                <div 
-                                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                                <div
+                                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
                                   style={{ backgroundColor: getAvatarColor(message.sender_name) }}
                                 >
                                   {message.sender_name.charAt(0).toUpperCase()}
@@ -777,6 +1100,14 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                                     <span className="font-semibold text-white hover:underline cursor-pointer">
                                       {message.sender_name}
                                     </span>
+                                    {staffByEmail[message.sender_email] && (
+                                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#FFD700]/25 to-[#F7941D]/25 text-[#FFD700] border border-[#FFD700]/40 flex items-center gap-1">
+                                        {staffByEmail[message.sender_email].badge_emoji} {staffByEmail[message.sender_email].role_label}
+                                      </span>
+                                    )}
+                                    {(badgesByEmail[message.sender_email] || []).map((badge, bi) => (
+                                      <span key={bi} title={badge.label} className="text-xs">{badge.emoji}</span>
+                                    ))}
                                     <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">
                                       {formatTime(message.created_at)}
                                     </span>
@@ -806,8 +1137,9 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                                   <button
                                     key={reaction.emoji}
                                     onClick={() => handleReaction(message.id, reaction.emoji)}
+                                    title={reaction.names.join(', ')}
                                     className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${
-                                      reaction.users.includes(userName)
+                                      reaction.emails.includes(userEmail)
                                         ? 'bg-[hsl(var(--discord-blurple)/0.3)] border border-[hsl(var(--discord-blurple))]'
                                         : 'bg-[hsl(var(--discord-light)/0.3)] hover:bg-[hsl(var(--discord-light)/0.5)]'
                                     }`}
@@ -880,6 +1212,25 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
 
                 {/* Message Input */}
                 <div className="p-4 pt-0">
+                  {activeChannel?.channel_type === 'announcement' && !isOrganizer ? (
+                    <div className="flex items-center gap-2 bg-[hsl(var(--discord-lighter))] rounded-lg px-4 py-3 text-[hsl(var(--discord-text-muted))]">
+                      <Lock className="w-4 h-4" />
+                      <span className="text-sm">Only FORGE organizers can post in #{activeChannel.name}</span>
+                    </div>
+                  ) : (
+                  <div className="space-y-2">
+                  {isStaffEmail && activeChannel?.channel_type !== 'announcement' && (
+                    <div className="flex items-center gap-2 bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg px-3 py-2">
+                      <Crown className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
+                      <Input
+                        type="password"
+                        value={staffPin}
+                        onChange={(e) => setStaffPin(e.target.value)}
+                        placeholder="Enter your staff PIN to chat with your badge"
+                        className="flex-1 h-8 bg-transparent border-none text-white placeholder:text-[hsl(var(--discord-text-muted))] focus-visible:ring-0 text-sm"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 bg-[hsl(var(--discord-lighter))] rounded-lg px-4 py-3">
                     {/* Emoji Picker */}
                     <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
@@ -888,8 +1239,8 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                           <Smile className="w-5 h-5" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent 
-                        className="w-auto p-3 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))]" 
+                      <PopoverContent
+                        className="w-auto p-3 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))]"
                         side="top"
                         align="start"
                       >
@@ -906,19 +1257,19 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                         </div>
                       </PopoverContent>
                     </Popover>
-                    
+
                     <Input
                       ref={inputRef}
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={(e) => { setNewMessage(e.target.value); handleTypingBroadcast(); }}
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                      placeholder={`Message #${activeChannel?.name || 'channel'}`}
+                      placeholder={activeChannel?.channel_type === 'announcement' ? 'Post an announcement...' : `Message #${activeChannel?.name || 'channel'}`}
                       className="flex-1 bg-transparent border-none text-white placeholder:text-[hsl(var(--discord-text-muted))] focus-visible:ring-0 h-auto py-0"
                     />
-                    
+
                     <motion.button
                       onClick={handleSendMessage}
-                      disabled={isSending || !newMessage.trim()}
+                      disabled={isSending || isPostingAnnouncement || !newMessage.trim()}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="text-[hsl(var(--discord-text-muted))] hover:text-[hsl(var(--discord-blurple))] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -926,6 +1277,8 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
                       <Send className="w-5 h-5" />
                     </motion.button>
                   </div>
+                  </div>
+                  )}
                 </div>
               </>
             )}

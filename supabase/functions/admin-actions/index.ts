@@ -665,6 +665,90 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      // ---------------- Community (organizer only) ----------------
+
+      case "post_community_announcement": {
+        const { channel_name, sender_name, content } = payload;
+        if (!channel_name || !content?.trim()) throw new Error("channel_name and content are required");
+        const { data: channel, error: chErr } = await supabase
+          .from("community_channels")
+          .select("id, channel_type")
+          .eq("name", channel_name)
+          .single();
+        if (chErr || !channel) throw new Error("Channel not found");
+        if (channel.channel_type !== "announcement") throw new Error("This action only posts to announcement channels");
+
+        const { data: msg, error: msgErr } = await supabase
+          .from("community_messages")
+          .insert({
+            channel_id: channel.id,
+            sender_name: sender_name?.trim() || "FORGE Team",
+            sender_email: "team@forge.internal",
+            content: content.trim(),
+          })
+          .select()
+          .single();
+        if (msgErr) throw msgErr;
+
+        // Best-effort push to community-topic subscribers — an announcement
+        // still posts successfully even if the push fan-out fails.
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+            body: JSON.stringify({
+              title: "📣 New FORGE Announcement",
+              body: content.trim().slice(0, 120),
+              topic: "community",
+              url: "/hackathons",
+            }),
+          });
+        } catch (e) {
+          console.error("community announcement push trigger failed:", e);
+        }
+
+        return json({ ok: true, data: msg });
+      }
+
+      case "add_community_staff": {
+        const { participant_email, display_name, role_label, badge_emoji, pin } = payload;
+        if (!participant_email?.trim() || !display_name?.trim()) {
+          throw new Error("participant_email and display_name are required");
+        }
+        if (!pin || pin.length < 4) {
+          throw new Error("A staff PIN of at least 4 characters is required — the participant enters this in chat to prove they're really them");
+        }
+        const { error } = await supabase.rpc("upsert_community_staff", {
+          p_participant_email: participant_email.trim().toLowerCase(),
+          p_display_name: display_name.trim(),
+          p_role_label: role_label?.trim() || "Team",
+          p_badge_emoji: badge_emoji?.trim() || "👑",
+          p_pin: pin,
+        });
+        if (error) throw error;
+        return json({ ok: true });
+      }
+
+      case "remove_community_staff": {
+        const { participant_email } = payload;
+        if (!participant_email?.trim()) throw new Error("participant_email is required");
+        const { error } = await supabase
+          .from("community_staff")
+          .delete()
+          .eq("participant_email", participant_email.trim().toLowerCase());
+        if (error) throw error;
+        return json({ ok: true });
+      }
+
+      case "list_community_staff": {
+        const { data, error } = await supabase
+          .from("community_staff")
+          .select("participant_email, display_name, role_label, badge_emoji, added_at")
+          .order("added_at", { ascending: false });
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
       default:
         return json({ ok: false, error: `Unknown action: ${action}` }, 400);
     }

@@ -58,6 +58,14 @@ const isResponseToneCustomized = (
   return condKeys.some(k => responseToneConditional[k] !== defaults[k]);
 };
 
+// Shared helper for Fallback Function challenge validation (Challenge 25)
+const isFallbackMessageCustomized = (fallbackMessage: string, isAgent: boolean): boolean => {
+  if (!fallbackMessage) return false;
+  const defaultChatbot = 'Hmm, that one is a bit tricky for me — try asking it a different way!';
+  const defaultAgent = 'I could not find a clear answer to that — try rephrasing or giving me more detail!';
+  return fallbackMessage !== (isAgent ? defaultAgent : defaultChatbot);
+};
+
 // Scaffolds imported from ./projectScaffolds
 
 // Theme options for student customization
@@ -256,6 +264,17 @@ const extractConfigFromCode = (code: string) => {
     if (elseMatch) result['__else__'] = elseMatch[1];
     return result;
   };
+  // Challenge 25: find the function called to set targetVar, then read that function's return string
+  const extractFunctionReturn = (targetVar: string): string => {
+    const callMatch = code.match(new RegExp(`${targetVar}\\s*=\\s*(\\w+)\\s*\\(`));
+    if (!callMatch) return '';
+    const funcName = callMatch[1];
+    const defMatch = code.match(new RegExp(`def\\s+${funcName}\\s*\\([^)]*\\)\\s*:[\\s\\S]*?return\\s+f?["'](.*)["']`));
+    return defMatch ? defMatch[1] : '';
+  };
+  // Challenge 26: detect a for-loop that builds TOPIC_KEYWORDS from QA_PAIRS
+  const extractHasTopicKeywordsLoop = (): boolean =>
+    /for\s+\w+\s+in\s+QA_PAIRS\s*:[\s\S]{0,200}?TOPIC_KEYWORDS\.append/.test(code);
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -295,6 +314,8 @@ const extractConfigFromCode = (code: string) => {
     responseTone: extract('', 'RESPONSE_TONE', 'response_tone'),
     timeOfDay: extract('', 'TIME_OF_DAY', 'time_of_day'),
     responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
+    fallbackMessage: extractFunctionReturn('FALLBACK_MESSAGE'),
+    hasTopicKeywordsLoop: extractHasTopicKeywordsLoop(),
   };
 };
 
@@ -1520,6 +1541,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
+      { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, isAgent), val: config.fallbackMessage ? '✓ set' : '✗ default' },
+      { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > 0, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1530,12 +1553,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 24 challenges...`,
+      `📋 Scanning 26 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/24 challenges completed (${Math.round(completedCount / 24 * 100)}%)`,
+      `📊 Progress: ${completedCount}/26 challenges completed (${Math.round(completedCount / 26 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Mood: ${config.mood} | Length: ${config.maxResponseLength}`,
@@ -1568,7 +1591,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/24 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/26 challenges done.` }]);
       if (authorEmail) {
         const runKey = `forge-scored-first_run_success-${authorEmail}`;
         if (!localStorage.getItem(runKey)) {
@@ -1629,6 +1652,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.voiceMode !== 'push-to-talk',
       cfg.wakeWord,
       cfg.voiceGender !== 'default',
+      isFallbackMessageCustomized(cfg.fallbackMessage, isAgent),
+      cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > 0,
     ].filter(Boolean).length;
   }, []);
 
@@ -3195,7 +3220,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 24;
+            const totalChallenges = 26;
             const activeCount = getChallengeCount(cfg, projectType);
 
             return (

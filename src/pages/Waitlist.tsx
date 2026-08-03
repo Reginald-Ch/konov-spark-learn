@@ -419,7 +419,7 @@ const Waitlist = () => {
                         Be the first to know — straight to your device.
                       </p>
                       <Button
-                        onClick={() => subscribe(signupData?.id)}
+                        onClick={() => subscribe({ waitlistSignupId: signupData?.id })}
                         disabled={isSubscribing}
                         className="w-full h-11 rounded-xl bg-secondary hover:bg-secondary/90 text-white font-fredoka font-bold text-sm"
                       >

@@ -21,6 +21,7 @@ import { ChallengesTab } from '@/components/admin/ChallengesTab';
 import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
 import { RewardsTab } from '@/components/admin/RewardsTab';
 import { CoinsTab } from '@/components/admin/CoinsTab';
+import { CommunityStaffTab } from '@/components/admin/CommunityStaffTab';
 
 interface HackathonOption {
   id: string;
@@ -191,6 +192,7 @@ const AdminPanel = () => {
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
             <TabsTrigger value="rewards">Reward Boxes</TabsTrigger>
             <TabsTrigger value="coins">Forge Coins</TabsTrigger>
+            <TabsTrigger value="community-staff">Community Staff</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="mt-4">
@@ -207,6 +209,9 @@ const AdminPanel = () => {
           </TabsContent>
           <TabsContent value="coins" className="mt-4">
             <CoinsTab hackathonId={selectedHackathonId} />
+          </TabsContent>
+          <TabsContent value="community-staff" className="mt-4">
+            <CommunityStaffTab />
           </TabsContent>
         </Tabs>
       )}
