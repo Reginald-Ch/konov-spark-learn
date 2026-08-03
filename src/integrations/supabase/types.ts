@@ -551,6 +551,29 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_content: {
+        Row: {
+          content: Json
+          lesson_id: string
+        }
+        Insert: {
+          content: Json
+          lesson_id: string
+        }
+        Update: {
+          content?: Json
+          lesson_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_content_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: true
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           attempts: number
@@ -633,7 +656,6 @@ export type Database = {
       lessons: {
         Row: {
           coin_cost: number
-          content: Json | null
           created_at: string
           id: string
           is_published: boolean
@@ -645,7 +667,6 @@ export type Database = {
         }
         Insert: {
           coin_cost?: number
-          content?: Json | null
           created_at?: string
           id?: string
           is_published?: boolean
@@ -657,7 +678,6 @@ export type Database = {
         }
         Update: {
           coin_cost?: number
-          content?: Json | null
           created_at?: string
           id?: string
           is_published?: boolean
@@ -1137,6 +1157,10 @@ export type Database = {
     }
     Functions: {
       acquire_ai_slot: { Args: { p_ttl_seconds?: number }; Returns: number }
+      get_lesson_content: {
+        Args: { p_lesson_id: string; p_participant_email: string }
+        Returns: Json
+      }
       get_my_lesson_progress: {
         Args: { p_participant_email: string }
         Returns: {
@@ -1177,6 +1201,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_quiz_questions: {
+        Args: { p_lesson_id: string; p_participant_email: string }
+        Returns: {
+          id: string
+          options: Json
+          order_index: number
+          question: string
+        }[]
+      }
       open_reward_box: {
         Args: { p_box_id: string; p_participant_email: string }
         Returns: undefined
@@ -1195,6 +1228,7 @@ export type Database = {
         }
         Returns: {
           correct_flags: boolean[]
+          explanations: string[]
           key_awarded: boolean
           passed: boolean
           score: number
