@@ -94,9 +94,12 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipant[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [isJoined, setIsJoined] = useState(false);
+  // Shared with every other identity-aware surface in the app (Lessons,
+  // Daily Challenges, the Build Studio IDE, registration) — join once
+  // anywhere, and it's known everywhere, including here.
+  const [userName, setUserName] = useState(() => localStorage.getItem('forge-student-name') || '');
+  const [userEmail, setUserEmail] = useState(() => (localStorage.getItem('forge-student-email') || '').trim().toLowerCase());
+  const [isJoined, setIsJoined] = useState(() => !!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
   const [isInVoice, setIsInVoice] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -366,8 +369,11 @@ export const CommunityChat = ({ isOpen, onClose }: CommunityChatProps) => {
     // claims, staff badge lookup) keys off this exact string. Untrimmed
     // whitespace or inconsistent casing would silently break badge matching.
     const cleanEmail = userEmail.trim().toLowerCase();
-    setUserName(userName.trim());
+    const cleanName = userName.trim();
+    setUserName(cleanName);
     setUserEmail(cleanEmail);
+    localStorage.setItem('forge-student-name', cleanName);
+    localStorage.setItem('forge-student-email', cleanEmail);
     setIsJoined(true);
     fetchQuestsAndBadges(cleanEmail);
   };

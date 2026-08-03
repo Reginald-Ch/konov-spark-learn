@@ -106,6 +106,9 @@ export const LessonsPanel = () => {
   const [hackathonId, setHackathonId] = useState<string | null>(null);
   const [email, setEmail] = useState(localStorage.getItem('forge-student-email') || '');
   const [name, setName] = useState(localStorage.getItem('forge-student-name') || '');
+  // Identity is shared app-wide (Community, Daily Challenges, the IDE) — only
+  // show editable fields when we don't already know who this is.
+  const [editingIdentity, setEditingIdentity] = useState(!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [coinBalance, setCoinBalance] = useState(0);
@@ -238,7 +241,7 @@ export const LessonsPanel = () => {
         toast.error(result?.message || error?.message || 'Failed to unlock lesson');
         return;
       }
-      localStorage.setItem('forge-student-email', email.trim());
+      localStorage.setItem('forge-student-email', email.trim().toLowerCase());
       localStorage.setItem('forge-student-name', name.trim());
       toast.success(`Unlocked "${lesson.title}"!`);
       await fetchAll();
@@ -331,12 +334,34 @@ export const LessonsPanel = () => {
             <Badge variant="outline" className="text-white/70">{passedCount}/{lessons.length} lessons</Badge>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
-            className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
-          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email"
-            className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
-        </div>
+        {editingIdentity ? (
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email"
+              className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
+            {name.trim() && email.trim() && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  localStorage.setItem('forge-student-name', name.trim());
+                  localStorage.setItem('forge-student-email', email.trim().toLowerCase());
+                  setName(name.trim());
+                  setEmail(email.trim().toLowerCase());
+                  setEditingIdentity(false);
+                }}
+                className="col-span-2 h-8 text-xs"
+              >
+                Continue
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-2 flex-wrap text-sm text-white/70">
+            <span>Continuing as <span className="text-white font-medium">{name}</span> <span className="text-white/50">({email})</span></span>
+            <button onClick={() => setEditingIdentity(true)} className="text-[hsl(var(--discord-blurple))] hover:underline text-xs">Not you?</button>
+          </div>
+        )}
       </motion.div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 -mx-1 px-1">
