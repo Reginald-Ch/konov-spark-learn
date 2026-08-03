@@ -87,7 +87,11 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
   };
 }
 
-export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
+interface LeaderboardProps {
+  hackathonId?: string | null;
+}
+
+export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hackathonId }, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
@@ -96,6 +100,11 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
   const isMountedRef = useRef(true);
 
   const fetchLeaderboardData = useCallback(async () => {
+    if (!hackathonId) {
+      setParticipants([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setError(null);
       const [projectsRes, judgeEventsRes] = await Promise.all([
@@ -103,11 +112,13 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
           .from('ai_projects')
           .select('id, author_email, author_name, project_name, code, description, is_published, demo_url')
           .eq('is_published', true)
+          .eq('hackathon_id', hackathonId)
           .limit(500),
         supabase
           .from('point_events')
           .select('participant_email, points, metadata')
           .eq('event_type', 'judge_score')
+          .eq('hackathon_id', hackathonId)
           .limit(500),
       ]);
 
@@ -157,7 +168,7 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, []);
+  }, [hackathonId]);
 
   const debouncedFetch = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -303,6 +314,13 @@ export const Leaderboard = forwardRef<HTMLDivElement>((_, ref) => {
             <button onClick={() => { setIsLoading(true); fetchLeaderboardData(); }} className="text-sm text-[hsl(var(--discord-blurple))] hover:underline">
               Retry
             </button>
+          </div>
+        ) : !hackathonId ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[hsl(var(--discord-light))] flex items-center justify-center">
+              <Trophy className="w-8 h-8 text-[hsl(var(--discord-text-muted))]" />
+            </div>
+            <p className="text-[hsl(var(--discord-text-muted))]">No hackathon is live right now — the leaderboard will populate once one starts.</p>
           </div>
         ) : participants.length === 0 ? (
           <div className="text-center py-12">

@@ -7,8 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Plus, Pencil, Loader2, CalendarDays } from 'lucide-react';
+import { Plus, Pencil, Loader2, CalendarDays, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface BenchmarkTest {
+  label: string;
+  input: string;
+  expected_contains: string;
+}
 
 interface Challenge {
   id: string;
@@ -21,7 +27,24 @@ interface Challenge {
   auto_max_points: number;
   judge_max_points: number;
   status: 'draft' | 'live' | 'closed';
+  benchmark_tests: BenchmarkTest[];
 }
+
+const emptyBenchmarkTest = (): BenchmarkTest => ({ label: '', input: '', expected_contains: '' });
+
+// The organizer's status field (draft/live/closed) is the actual gate for
+// grading/closing — nothing here flips it automatically. This is a read-only
+// signal so the organizer can see, at a glance, whether "right now" falls
+// inside the day's scheduled window, instead of guessing when to click Live.
+const scheduleWindow = (c: Pick<Challenge, 'opens_at' | 'closes_at'>): { label: string; tone: 'upcoming' | 'open' | 'closed' | 'unset' } => {
+  if (!c.opens_at || !c.closes_at) return { label: 'No schedule set', tone: 'unset' };
+  const now = Date.now();
+  const opens = new Date(c.opens_at).getTime();
+  const closes = new Date(c.closes_at).getTime();
+  if (now < opens) return { label: 'Scheduled window not open yet', tone: 'upcoming' };
+  if (now > closes) return { label: 'Scheduled window has passed', tone: 'closed' };
+  return { label: 'Within scheduled window right now', tone: 'open' };
+};
 
 const emptyForm = (nextDay: number): Partial<Challenge> => ({
   day_number: nextDay,
@@ -32,6 +55,7 @@ const emptyForm = (nextDay: number): Partial<Challenge> => ({
   auto_max_points: 70,
   judge_max_points: 30,
   status: 'draft',
+  benchmark_tests: [],
 });
 
 export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
@@ -69,6 +93,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
       ...c,
       opens_at: c.opens_at ? c.opens_at.slice(0, 16) : '',
       closes_at: c.closes_at ? c.closes_at.slice(0, 16) : '',
+      benchmark_tests: c.benchmark_tests || [],
     });
     setModalOpen(true);
   };
@@ -88,6 +113,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
         auto_max_points: form.auto_max_points ?? 70,
         judge_max_points: form.judge_max_points ?? 30,
         status: form.status || 'draft',
+        benchmark_tests: (form.benchmark_tests || []).filter(t => t.label.trim() || t.input.trim()),
       };
       if (editingId) {
         await callAdminAction('update_challenge', { id: editingId, ...payload });
@@ -144,7 +170,16 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
                 <CalendarDays className="w-3 h-3" />
                 {c.opens_at ? new Date(c.opens_at).toLocaleString() : 'no open time'} — {c.closes_at ? new Date(c.closes_at).toLocaleString() : 'no close time'}
               </p>
+              {(() => {
+                const win = scheduleWindow(c);
+                return (
+                  <p className={`text-xs mt-0.5 ${win.tone === 'open' ? 'text-emerald-500' : win.tone === 'upcoming' ? 'text-blue-400' : win.tone === 'closed' ? 'text-muted-foreground' : 'text-muted-foreground italic'}`}>
+                    {win.tone === 'open' && '● '}{win.label}
+                  </p>
+                );
+              })()}
               <p className="text-xs text-muted-foreground mt-1">Auto {c.auto_max_points} SP + Judge {c.judge_max_points} SP = {c.auto_max_points + c.judge_max_points} SP max</p>
+              <p className="text-xs text-muted-foreground">{c.benchmark_tests?.length || 0} benchmark test(s) defined</p>
             </div>
             <div className="flex items-center gap-2">
               <Select value={c.status} onValueChange={(v) => handleStatusChange(c, v as Challenge['status'])}>
@@ -218,6 +253,58 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
               <div>
                 <label className="text-sm font-medium mb-1 block">Judge SP (max)</label>
                 <Input type="number" min={0} value={form.judge_max_points ?? 30} onChange={e => setForm(f => ({ ...f, judge_max_points: parseInt(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium block">Benchmark Tests (used by Auto-Grade)</label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => setForm(f => ({ ...f, benchmark_tests: [...(f.benchmark_tests || []), emptyBenchmarkTest()] }))}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Add Test
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Each test is a message sent to the participant's bot; the auto-grader checks whether the response satisfies what you describe. No tests defined = full benchmark credit by default.
+              </p>
+              <div className="space-y-2">
+                {(form.benchmark_tests || []).map((t, i) => (
+                  <div key={i} className="border rounded-lg p-2 space-y-1.5 relative">
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, benchmark_tests: (f.benchmark_tests || []).filter((_, idx) => idx !== i) }))}
+                      className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <Input
+                      value={t.label}
+                      onChange={e => setForm(f => ({ ...f, benchmark_tests: (f.benchmark_tests || []).map((bt, idx) => idx === i ? { ...bt, label: e.target.value } : bt) }))}
+                      placeholder="Test label (e.g. Handles rude input)"
+                      className="h-8 text-sm pr-6"
+                    />
+                    <Textarea
+                      value={t.input}
+                      onChange={e => setForm(f => ({ ...f, benchmark_tests: (f.benchmark_tests || []).map((bt, idx) => idx === i ? { ...bt, input: e.target.value } : bt) }))}
+                      placeholder="Message to send the bot"
+                      rows={1}
+                      className="text-sm resize-none"
+                    />
+                    <Input
+                      value={t.expected_contains}
+                      onChange={e => setForm(f => ({ ...f, benchmark_tests: (f.benchmark_tests || []).map((bt, idx) => idx === i ? { ...bt, expected_contains: e.target.value } : bt) }))}
+                      placeholder="What a passing response should do"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+                {(form.benchmark_tests || []).length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">No benchmark tests yet — Auto-Grade will award full benchmark credit.</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 pt-2">

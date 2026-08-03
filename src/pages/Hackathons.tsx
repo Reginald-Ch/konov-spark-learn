@@ -4,7 +4,8 @@ import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
-import { Leaderboard } from '@/components/hackathon/Leaderboard';
+import { SPLeaderboard } from '@/components/hackathon/SPLeaderboard';
+import { DailyChallengePanel } from '@/components/hackathon/DailyChallengePanel';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
 import { ProjectEditor, ProjectType } from '@/components/hackathon/ProjectEditor';
@@ -21,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords
+  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords, Settings2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ interface Hackathon {
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'daily-challenge' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
 
 const ACCESS_CODE = 'Forge2039';
 
@@ -175,8 +176,10 @@ const Hackathons = () => {
         return <ProjectGallery onViewCode={handleViewCode} />;
       case 'battle-arena':
         return <BotBattleArena />;
+      case 'daily-challenge':
+        return <DailyChallengePanel hackathonId={liveHackathons[0]?.id || null} />;
       case 'leaderboard':
-        return <Leaderboard />;
+        return <SPLeaderboard hackathonId={liveHackathons[0]?.id || null} />;
       case 'getting-started':
         return <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />;
       case 'faq':
@@ -512,7 +515,38 @@ const Hackathons = () => {
                 { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap, count: liveHackathons.length, live: true },
                 { id: 'upcoming' as HackathonSubView, name: 'Upcoming', icon: Calendar, count: upcomingHackathons.length },
                 { id: 'past-events' as HackathonSubView, name: 'Past Events', icon: Trophy, count: endedHackathons.length },
+                { id: 'daily-challenge' as HackathonSubView, name: "Today's Challenge", icon: Zap, count: 0 },
                 { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award, count: 0 },
+              ].map(ch => (
+                <button
+                  key={ch.id}
+                  onClick={() => setHackathonSubView(ch.id)}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                    hackathonSubView === ch.id
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                      : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                  }`}
+                >
+                  <ch.icon className={`w-4 h-4 ${ch.live ? 'text-[hsl(var(--discord-red))] animate-pulse' : ''}`} />
+                  <span className="flex-1 text-left truncate">{ch.name}</span>
+                  {ch.count > 0 && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      ch.live ? 'bg-[hsl(var(--discord-red))] text-white' : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
+                    }`}>{ch.count}</span>
+                  )}
+                </button>
+              ))}
+
+              {/* Admin Panel — separate passphrase-gated page, not a sub-view */}
+              <button
+                onClick={() => navigate('/admin')}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]"
+              >
+                <Settings2 className="w-4 h-4 text-[#F7941D]" />
+                <span className="flex-1 text-left truncate">Admin Panel</span>
+              </button>
+
+              {[
                 { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0 },
                 { id: 'battle-arena' as HackathonSubView, name: 'Bot Battle', icon: Swords, count: 0 },
               ].map(ch => (
@@ -520,8 +554,8 @@ const Hackathons = () => {
                   key={ch.id}
                   onClick={() => setHackathonSubView(ch.id)}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
-                    hackathonSubView === ch.id 
-                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white' 
+                    hackathonSubView === ch.id
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
                       : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
                   }`}
                 >
@@ -639,6 +673,8 @@ const Hackathons = () => {
                   <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" />
                 ) : hackathonSubView === 'judge' ? (
                   <Shield className="w-5 h-5 text-[#FFD700]" />
+                ) : hackathonSubView === 'daily-challenge' ? (
+                  <Zap className="w-5 h-5 text-[hsl(var(--discord-red))]" />
                 ) : (
                   <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
                 )}

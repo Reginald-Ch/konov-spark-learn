@@ -103,6 +103,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       let resultId: string | null = null;
 
       if (currentProjectId) {
+        // Re-publishing an existing project: leave hackathon_id exactly as it
+        // was set at creation. Re-stamping here would risk silently moving a
+        // project to a different event if the live hackathon changed between
+        // saves (e.g. organizer ended one event and started the next).
         const { data: updateData, error } = await supabase
           .from('ai_projects')
           .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true })
@@ -110,7 +114,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           .eq('author_email', finalEmail)
           .select('id')
           .single();
-        
+
         if (error || !updateData) {
           console.warn('Update failed for project', currentProjectId, ':', error?.message);
           toast.error('Could not update existing project. Please try saving again.');
@@ -120,9 +124,21 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           resultId = currentProjectId;
         }
       } else {
+        // New project: attach it to whichever hackathon is currently live, so
+        // judging and the leaderboard can scope to "this event" instead of
+        // showing every project ever published mixed together. No live event
+        // = a practice/non-event project, left unattached (null).
+        const { data: liveHackathon } = await supabase
+          .from('hackathons')
+          .select('id')
+          .eq('status', 'live')
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true })
+          .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, hackathon_id: liveHackathon?.id || null })
           .select('id')
           .single();
         if (error) throw error;

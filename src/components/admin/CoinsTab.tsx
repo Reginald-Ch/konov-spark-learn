@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Coins, Loader2, Search } from 'lucide-react';
+import { Coins, Loader2, Search, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Registrant {
@@ -16,6 +16,7 @@ interface Registrant {
 export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
   const [registrants, setRegistrants] = useState<Registrant[]>([]);
   const [balances, setBalances] = useState<Record<string, number>>({});
+  const [keys, setKeys] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -27,17 +28,23 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
   const fetchData = useCallback(async () => {
     if (!hackathonId) { setRegistrants([]); setBalances({}); setIsLoading(false); return; }
     setIsLoading(true);
-    const [regRes, coinRes] = await Promise.all([
+    const [regRes, coinRes, keyRes] = await Promise.all([
       supabase.from('hackathon_registrations').select('participant_email, participant_name').eq('hackathon_id', hackathonId),
       supabase.from('point_events').select('participant_email, points').eq('hackathon_id', hackathonId).in('event_type', ['forge_coin_grant', 'forge_coin_adjust']),
+      supabase.from('point_events').select('participant_email, points').eq('hackathon_id', hackathonId).eq('event_type', 'forge_key'),
     ]);
-    if (regRes.error || coinRes.error) toast.error('Failed to load Forge Coin data');
+    if (regRes.error || coinRes.error || keyRes.error) toast.error('Failed to load Forge Coin/Key data');
     setRegistrants((regRes.data as Registrant[]) || []);
     const map: Record<string, number> = {};
     (coinRes.data || []).forEach((row: any) => {
       map[row.participant_email] = (map[row.participant_email] || 0) + row.points;
     });
     setBalances(map);
+    const keyMap: Record<string, number> = {};
+    (keyRes.data || []).forEach((row: any) => {
+      keyMap[row.participant_email] = (keyMap[row.participant_email] || 0) + row.points;
+    });
+    setKeys(keyMap);
     setIsLoading(false);
   }, [hackathonId]);
 
@@ -88,7 +95,7 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-lg font-bold flex items-center gap-2"><Coins className="w-5 h-5 text-amber-500" /> Forge Coins</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2"><Coins className="w-5 h-5 text-amber-500" /> Forge Coins &amp; Keys</h2>
         <div className="relative w-64">
           <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search participants..." className="pl-8" />
@@ -104,7 +111,8 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold flex items-center gap-1"><Coins className="w-4 h-4 text-amber-500" /> {balances[r.participant_email] || 0}</span>
-              <Button size="sm" variant="outline" onClick={() => openAdjust(r)}>Adjust</Button>
+              <span className="text-sm font-bold flex items-center gap-1 text-muted-foreground"><KeyRound className="w-4 h-4" /> {keys[r.participant_email] || 0}</span>
+              <Button size="sm" variant="outline" onClick={() => openAdjust(r)}>Adjust Coins</Button>
             </div>
           </div>
         ))}

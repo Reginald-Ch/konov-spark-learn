@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { callAdminAction } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,7 @@ import { toast } from 'sonner';
 interface RewardBox {
   id: string;
   participant_email: string;
-  box_type: 'issue' | 'magic';
+  box_type: 'issue' | 'mission';
   contents_label: string | null;
   status: 'unopened' | 'opened' | 'fulfilled';
   awarded_at: string;
@@ -23,14 +22,14 @@ export const RewardsTab = ({ hackathonId }: { hackathonId: string }) => {
   const fetchBoxes = useCallback(async () => {
     if (!hackathonId) { setBoxes([]); setIsLoading(false); return; }
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('reward_boxes')
-      .select('id, participant_email, box_type, contents_label, status, awarded_at')
-      .eq('hackathon_id', hackathonId)
-      .order('awarded_at', { ascending: false });
-    if (error) toast.error('Failed to load reward boxes');
-    setBoxes((data as RewardBox[]) || []);
-    setIsLoading(false);
+    try {
+      const data = await callAdminAction<RewardBox[]>('list_reward_boxes', { hackathon_id: hackathonId });
+      setBoxes(data || []);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load reward boxes');
+    } finally {
+      setIsLoading(false);
+    }
   }, [hackathonId]);
 
   useEffect(() => { fetchBoxes(); }, [fetchBoxes]);
@@ -67,11 +66,11 @@ export const RewardsTab = ({ hackathonId }: { hackathonId: string }) => {
         {boxes.map(b => (
           <div key={b.id} className="bg-card rounded-lg border p-4 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              {b.box_type === 'magic' ? <Sparkles className="w-5 h-5 text-amber-500" /> : <Gift className="w-5 h-5 text-muted-foreground" />}
+              {b.box_type === 'mission' ? <Sparkles className="w-5 h-5 text-amber-500" /> : <Gift className="w-5 h-5 text-muted-foreground" />}
               <div>
                 <p className="text-sm font-semibold">{b.participant_email}</p>
                 <p className="text-xs text-muted-foreground">
-                  <Badge variant={b.box_type === 'magic' ? 'default' : 'secondary'} className="mr-1">{b.box_type === 'magic' ? 'Magic Box' : 'Issue Box'}</Badge>
+                  <Badge variant={b.box_type === 'mission' ? 'default' : 'secondary'} className="mr-1">{b.box_type === 'mission' ? 'Mission Bonus' : 'Issue Box'}</Badge>
                   {b.contents_label} — {new Date(b.awarded_at).toLocaleString()}
                 </p>
               </div>

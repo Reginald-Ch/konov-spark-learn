@@ -6,8 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Calendar, Users, Play, AlertTriangle, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Pencil, Trash2, Calendar, Users, Play, AlertTriangle, Loader2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface HackathonSettings {
+  mission_bonus_top_n: number;
+  voting_enabled: boolean;
+  coins_unlock_lessons: boolean;
+}
 
 interface Hackathon {
   id: string;
@@ -22,7 +29,14 @@ interface Hackathon {
   current_participants: number;
   prizes: string | null;
   rules: string | null;
+  settings: HackathonSettings;
 }
+
+const defaultSettings = (): HackathonSettings => ({
+  mission_bonus_top_n: 5,
+  voting_enabled: false,
+  coins_unlock_lessons: true,
+});
 
 const emptyForm = (): Partial<Hackathon> => ({
   title: '',
@@ -34,6 +48,7 @@ const emptyForm = (): Partial<Hackathon> => ({
   max_participants: 100,
   prizes: '',
   rules: '',
+  settings: defaultSettings(),
 });
 
 export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => void }) => {
@@ -45,14 +60,14 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Hackathon | null>(null);
   const [saving, setSaving] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<Hackathon | null>(null);
   const [resetting, setResetting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('hackathons')
-      .select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules')
+      .select('id, title, description, theme, status, start_date, end_date, registration_deadline, max_participants, current_participants, prizes, rules, settings')
       .order('start_date', { ascending: false });
     if (error) toast.error('Failed to load events');
     setHackathons((data as Hackathon[]) || []);
@@ -76,6 +91,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
       max_participants: h.max_participants,
       prizes: h.prizes || '',
       rules: h.rules || '',
+      settings: { ...defaultSettings(), ...(h.settings || {}) },
     });
     setModalOpen(true);
   };
@@ -94,6 +110,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
         max_participants: form.max_participants || 100,
         prizes: form.prizes || null,
         rules: form.rules || null,
+        settings: form.settings || defaultSettings(),
       };
       if (editingId) {
         await callAdminAction('update_hackathon', { id: editingId, ...payload });
@@ -134,11 +151,12 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
   };
 
   const handleResetLeaderboard = async () => {
+    if (!resetTarget) return;
     setResetting(true);
     try {
-      await callAdminAction('reset_leaderboard');
-      toast.success('Leaderboard reset! All SP, Forge Coins, and scores cleared.');
-      setResetConfirmOpen(false);
+      await callAdminAction('reset_leaderboard', { hackathon_id: resetTarget.id });
+      toast.success(`Leaderboard reset for "${resetTarget.title}". Other events are untouched.`);
+      setResetTarget(null);
     } catch (e: any) {
       toast.error(e.message || 'Failed to reset leaderboard');
     } finally {
@@ -177,6 +195,9 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
                 <Button size="sm" onClick={() => handleSetStatus(h.id, 'live')} className="flex-1"><Play className="w-3 h-3 mr-1" /> Restart</Button>
               )}
               <Button size="sm" variant="outline" onClick={() => openEdit(h)}><Pencil className="w-3 h-3 mr-1" /> Edit</Button>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setResetTarget(h)} title="Reset this event's SP, coins, keys, badges & tokens">
+                <AlertTriangle className="w-3 h-3" />
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setDeleteTarget(h)}><Trash2 className="w-3 h-3" /></Button>
             </div>
           </div>
@@ -188,16 +209,6 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
             <Button size="sm" onClick={openCreate}><Plus className="w-3 h-3 mr-1" /> Create Your First Event</Button>
           </div>
         )}
-      </div>
-
-      <div className="bg-destructive/5 rounded-lg border border-destructive/20 p-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h3 className="text-sm font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Reset for New Event</h3>
-            <p className="text-xs text-muted-foreground mt-1">Clear all SP, Forge Coin, and judge scores to start fresh.</p>
-          </div>
-          <Button size="sm" variant="destructive" onClick={() => setResetConfirmOpen(true)}><Trash2 className="w-3 h-3 mr-1" /> Reset Leaderboard</Button>
-        </div>
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -250,6 +261,36 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
               <label className="text-sm font-medium mb-1 block">Rules</label>
               <Textarea value={form.rules || ''} onChange={e => setForm(f => ({ ...f, rules: e.target.value }))} placeholder="1. Teams of 1-5 members..." rows={2} />
             </div>
+
+            <div className="border rounded-lg p-3 space-y-3">
+              <h4 className="text-sm font-bold flex items-center gap-2"><Settings2 className="w-4 h-4" /> Gamification Settings</h4>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Mission Bonus — top N per day</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.settings?.mission_bonus_top_n ?? 5}
+                  onChange={e => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), mission_bonus_top_n: parseInt(e.target.value) || 5 } }))}
+                  className="w-24"
+                />
+                <p className="text-xs text-muted-foreground mt-1">How many top finishers each daily challenge get a Mission Bonus box. Everyone who completes still gets an Issue Box.</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Voting</p>
+                  <p className="text-xs text-muted-foreground">Reserved — participant voting isn't built yet, but this toggle is ready for when it is.</p>
+                </div>
+                <Switch checked={!!form.settings?.voting_enabled} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), voting_enabled: v } }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Coins unlock lessons</p>
+                  <p className="text-xs text-muted-foreground">Reserved — the lesson library isn't built yet, but this toggle is ready for when it is.</p>
+                </div>
+                <Switch checked={!!form.settings?.coins_unlock_lessons} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), coins_unlock_lessons: v } }))} />
+              </div>
+            </div>
+
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setModalOpen(false)} className="flex-1">Cancel</Button>
               <Button onClick={handleSave} disabled={saving} className="flex-1">
@@ -274,17 +315,19 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
         </DialogContent>
       </Dialog>
 
-      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+      <Dialog open={!!resetTarget} onOpenChange={() => setResetTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-destructive" /> Reset Leaderboard</DialogTitle>
-            <DialogDescription>This will permanently delete ALL SP, Forge Coin, and score events across every hackathon. This cannot be undone.</DialogDescription>
+            <DialogDescription>
+              This permanently deletes ALL SP, Forge Coins, Keys, Boost Tokens, badges, and judge scores for <strong>"{resetTarget?.title}"</strong> only — every other hackathon on the platform is untouched. This cannot be undone.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">
-            <Button variant="ghost" onClick={() => setResetConfirmOpen(false)} className="flex-1">Cancel</Button>
+            <Button variant="ghost" onClick={() => setResetTarget(null)} className="flex-1">Cancel</Button>
             <Button variant="destructive" onClick={handleResetLeaderboard} disabled={resetting} className="flex-1">
               {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-              Reset All Scores
+              Reset This Event
             </Button>
           </div>
         </DialogContent>

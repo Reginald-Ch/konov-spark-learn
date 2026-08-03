@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { BookOpen, ExternalLink, Rocket, Brain, Code, Zap, GraduationCap, Palette, Target, Smile, CheckCircle2, Circle, Timer, Trophy } from 'lucide-react';
+import { BookOpen, ExternalLink, Rocket, Brain, Code, Target, Smile, CheckCircle2, Circle, Timer, Trophy, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { LessonsPanel } from './LessonsPanel';
 
 interface LearnTabProps {
   onNavigateToBuild: () => void;
@@ -247,17 +248,6 @@ const buildChallengeSteps = (isAgent: boolean): Array<{
 
 // These are now computed inside the component based on projectType
 const TOTAL_POINTS = 155; // Fixed: sum of all challenge points (same for both templates)
-
-const RESOURCES = [
-  { title: 'Python for AI Beginners', description: 'Learn Python basics: variables, loops, functions, and data structures for AI.', icon: Code, color: '#006600', link: 'https://www.learnpython.org/', level: 'Beginner' },
-  { title: 'Introduction to Machine Learning', description: 'Understand what ML is, how models learn, and supervised vs unsupervised learning.', icon: Brain, color: '#5865F2', link: 'https://developers.google.com/machine-learning/crash-course', level: 'Beginner' },
-  { title: 'Build a Chatbot with LangChain', description: 'Step-by-step guide to building a conversational AI chatbot using LangChain.', icon: Rocket, color: '#F7941D', link: 'https://python.langchain.com/docs/tutorials/', level: 'Intermediate' },
-  { title: 'Streamlit: Build AI Demos Fast', description: 'Create interactive web apps for your AI projects in minutes — no frontend code needed.', icon: Rocket, color: '#C70110', link: 'https://docs.streamlit.io/get-started', level: 'Beginner' },
-  { title: 'Hugging Face Transformers', description: 'Access thousands of pre-trained AI models for text, image, and audio tasks.', icon: Zap, color: '#9B59B6', link: 'https://huggingface.co/docs/transformers', level: 'Intermediate' },
-  { title: 'AI Agents with Tools', description: 'Learn to build AI agents that search the web, calculate, and interact with APIs.', icon: GraduationCap, color: '#3498DB', link: 'https://python.langchain.com/docs/how_to/#agents', level: 'Advanced' },
-];
-
-const LEVEL_COLORS: Record<string, string> = { Beginner: '#006600', Intermediate: '#F7941D', Advanced: '#C70110' };
 
 export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode, projectType }: LearnTabProps) => {
   const [showTutorial, setShowTutorial] = useState(true);
@@ -600,38 +590,8 @@ export const LearnTab = ({ onNavigateToBuild, onNavigateToTemplates, currentCode
         )}
       </motion.div>
 
-      {/* Resources */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="rounded-lg p-5 mb-8 border border-[hsl(var(--discord-blurple)/0.3)]"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), transparent)' }}>
-        <h3 className="text-lg font-semibold text-white mb-2">📚 Learning Resources</h3>
-        <p className="text-sm text-white mb-3">Deepen your AI skills with these curated tutorials and guides.</p>
-      </motion.div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {RESOURCES.map((resource, index) => (
-          <motion.a key={resource.title} href={resource.link} target="_blank" rel="noopener noreferrer"
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + index * 0.05 }}
-            className="bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.2)] rounded-lg p-4 hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group block">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${resource.color}20`, border: `1px solid ${resource.color}40` }}>
-                <resource.icon className="w-5 h-5" style={{ color: resource.color }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-white text-sm group-hover:text-[hsl(var(--discord-blurple))] transition-colors truncate">{resource.title}</h4>
-                  <ExternalLink className="w-3 h-3 text-[hsl(var(--discord-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{
-                  backgroundColor: `${LEVEL_COLORS[resource.level]}20`, color: LEVEL_COLORS[resource.level],
-                }}>{resource.level}</span>
-              </div>
-            </div>
-            <p className="text-xs text-white line-clamp-2">{resource.description}</p>
-          </motion.a>
-        ))}
-      </div>
+      {/* AI & ML Academy — gamified lessons, replaces the old static resource links */}
+      <LessonsPanel />
     </div>
   );
 };

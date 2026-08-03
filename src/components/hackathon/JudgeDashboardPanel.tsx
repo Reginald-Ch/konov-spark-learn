@@ -1,17 +1,37 @@
 import { useState, useEffect, useCallback, memo } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  verifyAdminPassphrase,
+  hasStoredAdminPassphrase,
+  getStoredAdminPassphrase,
+  getStoredAdminRole,
+  clearStoredAdminPassphrase,
+  callAdminAction,
+  type AdminRole,
+} from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
-  Shield, Trophy, ExternalLink, Star, Lock,
-  CheckCircle2, Loader2, Send, Flame, Award, Settings2,
+  Shield, Trophy, ExternalLink, Lock,
+  CheckCircle2, Loader2, Send, Award, LogOut, KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { EventsTab } from '@/components/admin/EventsTab';
+import { ChallengesTab } from '@/components/admin/ChallengesTab';
+import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
+import { RewardsTab } from '@/components/admin/RewardsTab';
+import { CoinsTab } from '@/components/admin/CoinsTab';
 
-const JUDGE_ACCESS_CODE = '2059';
+interface HackathonOption {
+  id: string;
+  title: string;
+  status: string;
+}
 
 interface Project {
   id: string;
@@ -102,40 +122,89 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
 ProjectCard.displayName = 'ProjectCard';
 
 export const JudgeDashboardPanel = () => {
-  const [accessCode, setAccessCode] = useState('');
-  const [authenticated, setAuthenticated] = useState(false);
+  const [passphraseInput, setPassphraseInput] = useState('');
+  const [role, setRole] = useState<AdminRole | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [submittedScores, setSubmittedScores] = useState<Set<string>>(new Set());
   const [judgeName, setJudgeName] = useState('');
+  const [hackathonOptions, setHackathonOptions] = useState<HackathonOption[]>([]);
+  const [selectedHackathonId, setSelectedHackathonId] = useState<string>('');
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem('judge-authenticated');
-    const storedName = sessionStorage.getItem('judge-name');
-    if (stored === 'true') {
-      setAuthenticated(true);
-      if (storedName) setJudgeName(storedName);
-      fetchData();
+  const [passphraseDialogOpen, setPassphraseDialogOpen] = useState(false);
+  const [targetRole, setTargetRole] = useState<AdminRole>('organizer');
+  const [newPassphrase, setNewPassphrase] = useState('');
+  const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [savingPassphrase, setSavingPassphrase] = useState(false);
+
+  const handleSavePassphrase = async () => {
+    if (newPassphrase.length < 6) { toast.error('Passphrase must be at least 6 characters'); return; }
+    if (newPassphrase !== confirmPassphrase) { toast.error("Passphrases don't match"); return; }
+    setSavingPassphrase(true);
+    try {
+      await callAdminAction('set_passphrase', { target_role: targetRole, new_passphrase: newPassphrase });
+      toast.success(`${targetRole === 'organizer' ? 'Organizer' : 'Judge'} passphrase updated`);
+      setPassphraseDialogOpen(false);
+      setNewPassphrase('');
+      setConfirmPassphrase('');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update passphrase');
+    } finally {
+      setSavingPassphrase(false);
     }
-  }, []);
-
-  const handleLogin = () => {
-    if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
-    if (accessCode.trim() !== JUDGE_ACCESS_CODE) { toast.error('Invalid access code'); return; }
-    setAuthenticated(true);
-    sessionStorage.setItem('judge-authenticated', 'true');
-    sessionStorage.setItem('judge-name', judgeName);
-    fetchData();
-    toast.success('Welcome, Judge!');
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchHackathonOptions = useCallback(async () => {
+    const { data } = await supabase.from('hackathons').select('id, title, status').order('start_date', { ascending: false });
+    const options = (data as HackathonOption[]) || [];
+    setHackathonOptions(options);
+    setSelectedHackathonId(prev => {
+      if (prev && options.some(h => h.id === prev)) return prev;
+      const live = options.find(h => h.status === 'live');
+      return live?.id || options[0]?.id || '';
+    });
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const storedName = sessionStorage.getItem('judge-display-name');
+      if (storedName) setJudgeName(storedName);
+      if (hasStoredAdminPassphrase()) {
+        const resolvedRole = getStoredAdminRole() || (await verifyAdminPassphrase(getStoredAdminPassphrase()));
+        setRole(resolvedRole);
+        if (resolvedRole) fetchHackathonOptions();
+      }
+    })();
+  }, [fetchHackathonOptions]);
+
+  const handleLogin = async () => {
+    if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
+    if (!passphraseInput.trim()) { toast.error('Please enter the passphrase'); return; }
+    setVerifying(true);
+    const resolvedRole = await verifyAdminPassphrase(passphraseInput.trim());
+    setVerifying(false);
+    if (!resolvedRole) { toast.error('Invalid passphrase'); return; }
+    setRole(resolvedRole);
+    sessionStorage.setItem('judge-display-name', judgeName);
+    fetchHackathonOptions();
+    toast.success(`Welcome, ${judgeName}!`);
+  };
+
+  const handleLogout = () => {
+    clearStoredAdminPassphrase();
+    setRole(null);
+    setPassphraseInput('');
+  };
+
+  const fetchData = useCallback(async (hackathonId: string) => {
+    if (!hackathonId) { setProjects([]); setIsLoading(false); return; }
     setIsLoading(true);
     try {
       const [projectsRes, existingScores] = await Promise.all([
-        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').order('created_at', { ascending: false }).limit(100),
+        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
         supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score').limit(500),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
@@ -159,6 +228,10 @@ export const JudgeDashboardPanel = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (role && selectedHackathonId) fetchData(selectedHackathonId);
+  }, [role, selectedHackathonId, fetchData]);
+
   const handleSubmitScore = useCallback(async (project: Project) => {
     const score = scores[project.id];
     if (score === undefined || score < 0 || score > 70) {
@@ -166,30 +239,14 @@ export const JudgeDashboardPanel = () => {
       return;
     }
     try {
-      // Delete any existing judge score for this specific project first (prevents score inflation)
-      await supabase
-        .from('point_events')
-        .delete()
-        .eq('event_type', 'judge_score')
-        .eq('participant_email', project.author_email)
-        .filter('metadata->>project_id', 'eq', project.id);
-
-      const { error } = await supabase.from('point_events').insert({
+      await callAdminAction('submit_gallery_score', {
+        project_id: project.id,
         participant_email: project.author_email,
-        event_type: 'judge_score',
         points: score,
-        metadata: {
-          project_id: project.id,
-          project_name: project.project_name,
-          judge_name: judgeName,
-          feedback: feedback[project.id] || '',
-        },
+        project_name: project.project_name,
+        judge_name: judgeName,
+        feedback: feedback[project.id] || '',
       });
-      if (error) {
-        console.error('Score insert error:', error);
-        toast.error(`Failed to submit score: ${error.message}`);
-        return;
-      }
       setSubmittedScores(prev => new Set([...prev, project.id]));
       toast.success(`Score submitted for ${project.project_name}`);
     } catch (e: any) {
@@ -199,13 +256,12 @@ export const JudgeDashboardPanel = () => {
   }, [scores, feedback, judgeName]);
 
   const handleTogglePublish = useCallback(async (project: Project) => {
+    const newStatus = !project.is_published;
     try {
-      const newStatus = !project.is_published;
-      const { error } = await supabase.from('ai_projects').update({ is_published: newStatus }).eq('id', project.id);
-      if (error) throw error;
+      await callAdminAction('toggle_project_publish', { project_id: project.id, is_published: newStatus });
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
-    } catch (e) { toast.error('Failed to update project status'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to update project status'); }
   }, []);
 
   const handleScoreChange = useCallback((id: string, val: number) => {
@@ -216,7 +272,7 @@ export const JudgeDashboardPanel = () => {
     setFeedback(prev => ({ ...prev, [id]: val }));
   }, []);
 
-  if (!authenticated) {
+  if (!role) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="bg-[hsl(var(--discord-darker))] rounded-xl border border-[hsl(var(--discord-light)/0.3)] max-w-sm w-full p-6">
@@ -225,15 +281,15 @@ export const JudgeDashboardPanel = () => {
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white">Judge Dashboard</h2>
-            <p className="text-sm text-[hsl(var(--discord-text-muted))]">Enter access code to continue</p>
+            <p className="text-sm text-[hsl(var(--discord-text-muted))]">Enter your name and the judge passphrase to continue</p>
           </div>
           <div className="space-y-3">
             <Input value={judgeName} onChange={e => setJudgeName(e.target.value)} placeholder="Your name"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            <Input value={accessCode} onChange={e => setAccessCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="Access code" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            <Button onClick={handleLogin} className="w-full bg-secondary hover:bg-secondary/90">
-              <Lock className="w-4 h-4 mr-2" /> Enter Dashboard
+            <Input value={passphraseInput} onChange={e => setPassphraseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="Judge passphrase" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+            <Button onClick={handleLogin} disabled={verifying} className="w-full bg-secondary hover:bg-secondary/90">
+              {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />} Enter Dashboard
             </Button>
           </div>
         </div>
@@ -254,55 +310,139 @@ export const JudgeDashboardPanel = () => {
             <p className="text-xs text-[hsl(var(--discord-text-muted))]">Welcome, {judgeName}</p>
           </div>
         </div>
-        <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
-      </div>
-
-      {/* Event setup, daily challenges, Forge Coins, and reward boxes now live in the
-          passphrase-gated Admin Panel — this view stays focused on scoring submitted projects. */}
-      <Link to="/admin" className="flex items-center justify-between gap-3 bg-[hsl(var(--discord-darker))] rounded-lg p-4 border border-[hsl(var(--discord-light)/0.2)] hover:border-[hsl(var(--discord-light)/0.4)] transition-colors">
         <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-[#F7941D]" />
-          <span className="text-sm text-white">Manage events, daily challenges, Forge Coins & reward boxes</span>
+          <Select value={selectedHackathonId} onValueChange={setSelectedHackathonId}>
+            <SelectTrigger className="w-56 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white">
+              <SelectValue placeholder="Select a hackathon" />
+            </SelectTrigger>
+            <SelectContent>
+              {hackathonOptions.map(h => (
+                <SelectItem key={h.id} value={h.id}>{h.title} ({h.status})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
+          {role === 'organizer' && (
+            <Button size="sm" variant="outline" onClick={() => setPassphraseDialogOpen(true)}
+              className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
+              <KeyRound className="w-3.5 h-3.5 mr-1" /> Passphrases
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={handleLogout}
+            className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
+            <LogOut className="w-3.5 h-3.5 mr-1" /> Log out
+          </Button>
         </div>
-        <span className="text-xs text-[hsl(var(--discord-text-muted))]">Open Admin Panel →</span>
-      </Link>
-
-      {/* Projects to Score */}
-      <div>
-        <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-          <Award className="w-5 h-5 text-[#FFD700]" /> Projects to Score
-          <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
-        </h2>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--discord-blurple))]" />
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-12 text-[hsl(var(--discord-text-muted))]">
-            <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No published projects yet</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {projects.map(project => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
-                isScored={submittedScores.has(project.id)}
-                score={scores[project.id]}
-                feedbackText={feedback[project.id] || ''}
-                onScoreChange={handleScoreChange}
-                onFeedbackChange={handleFeedbackChange}
-                onSubmitScore={handleSubmitScore}
-                onTogglePublish={handleTogglePublish}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
+      {/* Everything the Admin Panel had lives here now too — one place for
+          organizers (and, for grading, judges) instead of a separate page. */}
+      <Tabs defaultValue="gallery">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="gallery">Gallery Judging</TabsTrigger>
+          <TabsTrigger value="submissions">Daily Submissions</TabsTrigger>
+          {role === 'organizer' && (
+            <>
+              <TabsTrigger value="events">Events</TabsTrigger>
+              <TabsTrigger value="challenges">Daily Challenges</TabsTrigger>
+              <TabsTrigger value="rewards">Reward Boxes</TabsTrigger>
+              <TabsTrigger value="coins">Forge Coins</TabsTrigger>
+            </>
+          )}
+        </TabsList>
+
+        <TabsContent value="gallery" className="mt-4">
+          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <Award className="w-5 h-5 text-[#FFD700]" /> Projects to Score
+            <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
+          </h2>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--discord-blurple))]" />
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="text-center py-12 text-[hsl(var(--discord-text-muted))]">
+              <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No published projects yet</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {projects.map(project => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
+                  isScored={submittedScores.has(project.id)}
+                  score={scores[project.id]}
+                  feedbackText={feedback[project.id] || ''}
+                  onScoreChange={handleScoreChange}
+                  onFeedbackChange={handleFeedbackChange}
+                  onSubmitScore={handleSubmitScore}
+                  onTogglePublish={handleTogglePublish}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="submissions" className="mt-4">
+          <SubmissionsTab hackathonId={selectedHackathonId} role={role} />
+        </TabsContent>
+
+        {role === 'organizer' && (
+          <>
+            <TabsContent value="events" className="mt-4">
+              <EventsTab onHackathonsChanged={fetchHackathonOptions} />
+            </TabsContent>
+            <TabsContent value="challenges" className="mt-4">
+              <ChallengesTab hackathonId={selectedHackathonId} />
+            </TabsContent>
+            <TabsContent value="rewards" className="mt-4">
+              <RewardsTab hackathonId={selectedHackathonId} />
+            </TabsContent>
+            <TabsContent value="coins" className="mt-4">
+              <CoinsTab hackathonId={selectedHackathonId} />
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
+
+      <Dialog open={passphraseDialogOpen} onOpenChange={setPassphraseDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Set Passphrase</DialogTitle>
+            <DialogDescription>Rotate the organizer or judge login. No Supabase access needed.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Which login</label>
+              <Select value={targetRole} onValueChange={v => setTargetRole(v as AdminRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="organizer">Organizer</SelectItem>
+                  <SelectItem value="judge">Judge</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">New passphrase</label>
+              <Input type="password" value={newPassphrase} onChange={e => setNewPassphrase(e.target.value)} placeholder="At least 6 characters" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Confirm</label>
+              <Input type="password" value={confirmPassphrase} onChange={e => setConfirmPassphrase(e.target.value)} />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setPassphraseDialogOpen(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleSavePassphrase} disabled={savingPassphrase} className="flex-1">
+                {savingPassphrase ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
