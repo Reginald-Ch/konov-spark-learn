@@ -551,6 +551,124 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_progress: {
+        Row: {
+          attempts: number
+          best_score: number
+          completed_at: string | null
+          id: string
+          lesson_id: string
+          participant_email: string
+          passed: boolean
+          unlocked_at: string
+        }
+        Insert: {
+          attempts?: number
+          best_score?: number
+          completed_at?: string | null
+          id?: string
+          lesson_id: string
+          participant_email: string
+          passed?: boolean
+          unlocked_at?: string
+        }
+        Update: {
+          attempts?: number
+          best_score?: number
+          completed_at?: string | null
+          id?: string
+          lesson_id?: string
+          participant_email?: string
+          passed?: boolean
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_quiz_questions: {
+        Row: {
+          correct_index: number
+          explanation: string | null
+          id: string
+          lesson_id: string
+          options: Json
+          order_index: number
+          question: string
+        }
+        Insert: {
+          correct_index: number
+          explanation?: string | null
+          id?: string
+          lesson_id: string
+          options: Json
+          order_index: number
+          question: string
+        }
+        Update: {
+          correct_index?: number
+          explanation?: string | null
+          id?: string
+          lesson_id?: string
+          options?: Json
+          order_index?: number
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_quiz_questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          coin_cost: number
+          content: Json | null
+          created_at: string
+          id: string
+          is_published: boolean
+          module_number: number
+          order_index: number
+          slug: string
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          coin_cost?: number
+          content?: Json | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          module_number: number
+          order_index: number
+          slug: string
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          coin_cost?: number
+          content?: Json | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          module_number?: number
+          order_index?: number
+          slug?: string
+          summary?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       newsletter_signups: {
         Row: {
           created_at: string
@@ -1019,6 +1137,25 @@ export type Database = {
     }
     Functions: {
       acquire_ai_slot: { Args: { p_ttl_seconds?: number }; Returns: number }
+      get_my_lesson_progress: {
+        Args: { p_participant_email: string }
+        Returns: {
+          attempts: number
+          best_score: number
+          completed_at: string | null
+          id: string
+          lesson_id: string
+          participant_email: string
+          passed: boolean
+          unlocked_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lesson_progress"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_my_reward_boxes: {
         Args: { p_hackathon_id: string; p_participant_email: string }
         Returns: {
@@ -1048,6 +1185,32 @@ export type Database = {
       set_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
         Returns: undefined
+      }
+      submit_lesson_quiz: {
+        Args: {
+          p_answers: number[]
+          p_hackathon_id: string
+          p_lesson_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          correct_flags: boolean[]
+          key_awarded: boolean
+          passed: boolean
+          score: number
+          total: number
+        }[]
+      }
+      unlock_lesson: {
+        Args: {
+          p_hackathon_id: string
+          p_lesson_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          message: string
+          ok: boolean
+        }[]
       }
       verify_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
