@@ -215,6 +215,41 @@ export type Database = {
           },
         ]
       }
+      community_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          participant_email: string
+          participant_name: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          participant_email: string
+          participant_name: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          participant_email?: string
+          participant_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "community_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_messages: {
         Row: {
           channel_id: string
@@ -255,6 +290,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_quest_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          participant_email: string
+          participant_name: string
+          quest_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          participant_email: string
+          participant_name: string
+          quest_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          participant_email?: string
+          participant_name?: string
+          quest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_quest_completions_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "community_quests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_quests: {
+        Row: {
+          action_channel_name: string | null
+          action_url: string | null
+          badge_emoji: string
+          badge_label: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          order_index: number
+          quest_type: string
+          title: string
+        }
+        Insert: {
+          action_channel_name?: string | null
+          action_url?: string | null
+          badge_emoji: string
+          badge_label: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          quest_type: string
+          title: string
+        }
+        Update: {
+          action_channel_name?: string | null
+          action_url?: string | null
+          badge_emoji?: string
+          badge_label?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          quest_type?: string
+          title?: string
+        }
+        Relationships: []
       }
       community_staff: {
         Row: {
@@ -839,6 +948,8 @@ export type Database = {
           endpoint: string
           id: string
           p256dh: string
+          participant_email: string | null
+          topics: string[]
           waitlist_signup_id: string | null
         }
         Insert: {
@@ -847,6 +958,8 @@ export type Database = {
           endpoint: string
           id?: string
           p256dh: string
+          participant_email?: string | null
+          topics?: string[]
           waitlist_signup_id?: string | null
         }
         Update: {
@@ -855,6 +968,8 @@ export type Database = {
           endpoint?: string
           id?: string
           p256dh?: string
+          participant_email?: string | null
+          topics?: string[]
           waitlist_signup_id?: string | null
         }
         Relationships: [
@@ -1184,6 +1299,19 @@ export type Database = {
     }
     Functions: {
       acquire_ai_slot: { Args: { p_ttl_seconds?: number }; Returns: number }
+      claim_community_quest: {
+        Args: {
+          p_participant_email: string
+          p_participant_name: string
+          p_quest_id: string
+        }
+        Returns: {
+          badge_emoji: string
+          badge_label: string
+          message: string
+          ok: boolean
+        }[]
+      }
       get_lesson_content: {
         Args: { p_lesson_id: string; p_participant_email: string }
         Returns: Json
