@@ -256,6 +256,33 @@ export type Database = {
           },
         ]
       }
+      community_staff: {
+        Row: {
+          added_at: string
+          badge_emoji: string
+          display_name: string
+          participant_email: string
+          role_label: string
+          staff_pin_hash: string | null
+        }
+        Insert: {
+          added_at?: string
+          badge_emoji?: string
+          display_name: string
+          participant_email: string
+          role_label?: string
+          staff_pin_hash?: string | null
+        }
+        Update: {
+          added_at?: string
+          badge_emoji?: string
+          display_name?: string
+          participant_email?: string
+          role_label?: string
+          staff_pin_hash?: string | null
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -1215,6 +1242,18 @@ export type Database = {
         Returns: undefined
       }
       release_ai_slot: { Args: { p_slot_id: number }; Returns: undefined }
+      send_staff_message: {
+        Args: {
+          p_channel_id: string
+          p_content: string
+          p_participant_email: string
+          p_pin: string
+        }
+        Returns: {
+          message: string
+          ok: boolean
+        }[]
+      }
       set_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
         Returns: undefined
@@ -1245,6 +1284,16 @@ export type Database = {
           message: string
           ok: boolean
         }[]
+      }
+      upsert_community_staff: {
+        Args: {
+          p_badge_emoji: string
+          p_display_name: string
+          p_participant_email: string
+          p_pin: string
+          p_role_label: string
+        }
+        Returns: undefined
       }
       verify_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
