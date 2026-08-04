@@ -256,142 +256,6 @@ export type Database = {
           },
         ]
       }
-      community_message_reactions: {
-        Row: {
-          created_at: string
-          emoji: string
-          id: string
-          message_id: string
-          participant_email: string
-          participant_name: string
-        }
-        Insert: {
-          created_at?: string
-          emoji: string
-          id?: string
-          message_id: string
-          participant_email: string
-          participant_name: string
-        }
-        Update: {
-          created_at?: string
-          emoji?: string
-          id?: string
-          message_id?: string
-          participant_email?: string
-          participant_name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "community_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_staff: {
-        Row: {
-          added_at: string
-          badge_emoji: string
-          display_name: string
-          participant_email: string
-          role_label: string
-          staff_pin_hash: string | null
-        }
-        Insert: {
-          added_at?: string
-          badge_emoji?: string
-          display_name: string
-          participant_email: string
-          role_label?: string
-          staff_pin_hash?: string | null
-        }
-        Update: {
-          added_at?: string
-          badge_emoji?: string
-          display_name?: string
-          participant_email?: string
-          role_label?: string
-          staff_pin_hash?: string | null
-        }
-        Relationships: []
-      }
-      community_quests: {
-        Row: {
-          action_channel_name: string | null
-          action_url: string | null
-          badge_emoji: string
-          badge_label: string
-          created_at: string
-          description: string
-          id: string
-          is_active: boolean
-          order_index: number
-          quest_type: string
-          title: string
-        }
-        Insert: {
-          action_channel_name?: string | null
-          action_url?: string | null
-          badge_emoji: string
-          badge_label: string
-          created_at?: string
-          description: string
-          id?: string
-          is_active?: boolean
-          order_index?: number
-          quest_type: string
-          title: string
-        }
-        Update: {
-          action_channel_name?: string | null
-          action_url?: string | null
-          badge_emoji?: string
-          badge_label?: string
-          created_at?: string
-          description?: string
-          id?: string
-          is_active?: boolean
-          order_index?: number
-          quest_type?: string
-          title?: string
-        }
-        Relationships: []
-      }
-      community_quest_completions: {
-        Row: {
-          completed_at: string
-          id: string
-          participant_email: string
-          participant_name: string
-          quest_id: string
-        }
-        Insert: {
-          completed_at?: string
-          id?: string
-          participant_email: string
-          participant_name: string
-          quest_id: string
-        }
-        Update: {
-          completed_at?: string
-          id?: string
-          participant_email?: string
-          participant_name?: string
-          quest_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_quest_completions_quest_id_fkey"
-            columns: ["quest_id"]
-            isOneToOne: false
-            referencedRelation: "community_quests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -948,8 +812,6 @@ export type Database = {
           endpoint: string
           id: string
           p256dh: string
-          participant_email: string | null
-          topics: string[]
           waitlist_signup_id: string | null
         }
         Insert: {
@@ -958,8 +820,6 @@ export type Database = {
           endpoint: string
           id?: string
           p256dh: string
-          participant_email?: string | null
-          topics?: string[]
           waitlist_signup_id?: string | null
         }
         Update: {
@@ -968,8 +828,6 @@ export type Database = {
           endpoint?: string
           id?: string
           p256dh?: string
-          participant_email?: string | null
-          topics?: string[]
           waitlist_signup_id?: string | null
         }
         Relationships: [
@@ -1391,18 +1249,6 @@ export type Database = {
       verify_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
         Returns: boolean
-      }
-      claim_community_quest: {
-        Args: { p_participant_email: string; p_participant_name: string; p_quest_id: string }
-        Returns: { ok: boolean; message: string; badge_emoji: string | null; badge_label: string | null }[]
-      }
-      send_staff_message: {
-        Args: { p_participant_email: string; p_pin: string; p_channel_id: string; p_content: string }
-        Returns: { ok: boolean; message: string }[]
-      }
-      upsert_community_staff: {
-        Args: { p_participant_email: string; p_display_name: string; p_role_label: string; p_badge_emoji: string; p_pin: string }
-        Returns: undefined
       }
     }
     Enums: {
