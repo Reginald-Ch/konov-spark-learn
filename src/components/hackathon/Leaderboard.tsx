@@ -3,13 +3,22 @@ import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
+import { stripLineComment } from './editorFeatures';
+import { isSafeExternalUrl } from '@/lib/utils';
 
-// Scoring criteria derived from project fields
+// Scoring criteria derived from project fields.
+// "Creativity & Personality" (5 pts, keyed off demo_url) used to live here
+// but was structurally unearnable — nothing in the publish flow
+// (PublishModal, save_own_project) ever sets demo_url to anything but
+// null, so the points — and "Perfect Score" — could never actually be
+// achieved through the app. Cut rather than rushed into a new demo-URL
+// input + RPC parameter I can't test live, matching how this session
+// already handled other reward mechanics with no real way to earn them
+// (Forge Keys, Boost Tokens).
 const SCORING_CRITERIA = [
   { key: 'system_message', points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt (code length > 200 chars)' },
   { key: 'knowledge_accuracy', points: 10, tier: 2, label: 'Knowledge Accuracy', icon: '📚', desc: 'Project is published & deployed' },
   { key: 'conversation_quality', points: 5, tier: 2, label: 'Conversation Quality', icon: '💬', desc: 'Project has a description' },
-  { key: 'creativity', points: 5, tier: 3, label: 'Creativity & Personality', icon: '🎨', desc: 'Project has a demo URL' },
   { key: 'judge_score', points: 70, tier: 4, label: 'Judge Score', icon: '⭐', desc: 'Scored by judges' },
 ] as const;
 
@@ -18,14 +27,13 @@ type ScoringKey = typeof SCORING_CRITERIA[number]['key'];
 const TIER_META = [
   { tier: 1, name: 'System Message', max: 10, textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
   { tier: 2, name: 'Knowledge & Conversation', max: 15, textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
-  { tier: 3, name: 'Creativity', max: 5, textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/15', borderColor: 'border-emerald-500/30' },
   { tier: 4, name: 'Judge Score', max: 70, textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
 ];
 
-const MAX_SCORE = 100;
+const MAX_SCORE = 95;
 
 interface ParticipantScore {
-  email: string;
+  authorKey: string;
   name: string;
   projectName: string;
   demoUrl: string | null;
@@ -42,8 +50,20 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
   const achieved = new Set<ScoringKey>();
   let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0;
 
-  // 🧠 System Message Quality: code is substantial (>200 chars)
-  if (project.code && project.code.length > 200) {
+  // 🧠 System Message Quality: code is substantial (>200 meaningful chars).
+  // Measuring raw project.code.length let anyone pad with whitespace or
+  // comments to clear the bar for free — strip both before measuring so
+  // the threshold reflects actual written code, not padding. This used to
+  // strip "//" (C-style) comments, but every project here is Python
+  // (# comments) — the exploit this was meant to close (pad main.py with
+  // filler comment lines) was still wide open. stripLineComment is the
+  // same quote-aware stripper the editor's own linter uses, so a "#"
+  // inside a string (a hex color, a hashtag) isn't wrongly treated as a
+  // comment either.
+  const meaningfulCodeLength = project.code
+    ? project.code.split('\n').map(stripLineComment).join('\n').replace(/\s+/g, ' ').trim().length
+    : 0;
+  if (meaningfulCodeLength > 200) {
     achieved.add('system_message');
     tier1 = 10;
   }
@@ -57,11 +77,6 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
     achieved.add('conversation_quality');
     tier2 += 5;
   }
-  // 🎨 Creativity & Personality: has a demo URL
-  if (project.demo_url && project.demo_url.trim().length > 0) {
-    achieved.add('creativity');
-    tier3 = 5;
-  }
   // ⭐ Judge Score
   if (judgePoints > 0) {
     achieved.add('judge_score');
@@ -69,12 +84,14 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
   }
 
   const points = tier1 + tier2 + tier3 + tier4;
-  const displayName = (project.author_name && !project.author_name.startsWith('Student-'))
-    ? project.author_name
-    : project.author_email.split('@')[0].replace(/^student-/, '');
+  // Used to prettify a "Student-XXXX" placeholder name using the local part
+  // of author_email, but that email is no longer fetched to the client at
+  // all (see get_hackathon_leaderboard_projects) — the placeholder name
+  // itself is shown instead, which isn't sensitive.
+  const displayName = project.author_name || 'A FORGE Builder';
 
   return {
-    email: project.author_email,
+    authorKey: project.author_key,
     name: displayName,
     projectName: project.project_name,
     demoUrl: project.demo_url || null,
@@ -94,7 +111,7 @@ interface LeaderboardProps {
 export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hackathonId }, ref) => {
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -107,19 +124,19 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
     }
     try {
       setError(null);
+      // Routed through SECURITY DEFINER RPCs instead of raw table selects —
+      // author_email/participant_email never leave the server this way.
+      // author_email in particular is the bearer credential every
+      // ownership RPC (save/delete/publish) checks, so broadcasting it to
+      // every leaderboard viewer would let anyone harvest a classmate's
+      // email and hijack their project through those RPCs directly. Both
+      // RPCs hash email the same way, so the author_key/participant_key
+      // join below still works exactly like the old email-keyed one.
       const [projectsRes, judgeEventsRes] = await Promise.all([
         supabase
-          .from('ai_projects')
-          .select('id, author_email, author_name, project_name, code, description, is_published, demo_url')
-          .eq('is_published', true)
-          .eq('hackathon_id', hackathonId)
-          .limit(500),
+          .rpc('get_hackathon_leaderboard_projects', { p_hackathon_id: hackathonId }),
         supabase
-          .from('point_events')
-          .select('participant_email, points, metadata')
-          .eq('event_type', 'judge_score')
-          .eq('hackathon_id', hackathonId)
-          .limit(500),
+          .rpc('get_hackathon_judge_scores', { p_hackathon_id: hackathonId }),
       ]);
 
       if (!isMountedRef.current) return;
@@ -130,30 +147,32 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
         return;
       }
 
-      // Build judge score map keyed by project_id (prevents inflation from duplicate inserts)
-      // Falls back to email-keyed map for legacy events without project_id in metadata
-      const judgeByProject = new Map<string, number>(); // project_id -> points
-      const judgeByEmail = new Map<string, number>();   // email -> points (fallback)
+      // Multiple judges can now independently score the same project (the
+      // judge role is shared by several people) — average their scores per
+      // project instead of taking the max, so no single lenient judge
+      // dominates and no project is penalized for attracting more judges.
+      // Falls back to key-keyed map for legacy events without project_id in metadata
+      const judgeByProject = new Map<string, number[]>(); // project_id -> points[]
+      const judgeByKey = new Map<string, number[]>();     // participant_key -> points[] (fallback)
       (judgeEventsRes.data || []).forEach((evt: any) => {
         const projectId = evt.metadata?.project_id;
         if (projectId) {
-          const prev = judgeByProject.get(projectId) || 0;
-          if (evt.points > prev) judgeByProject.set(projectId, evt.points);
+          (judgeByProject.get(projectId) || judgeByProject.set(projectId, []).get(projectId)!).push(evt.points);
         } else {
-          const prev = judgeByEmail.get(evt.participant_email) || 0;
-          if (evt.points > prev) judgeByEmail.set(evt.participant_email, evt.points);
+          (judgeByKey.get(evt.participant_key) || judgeByKey.set(evt.participant_key, []).get(evt.participant_key)!).push(evt.points);
         }
       });
+      const average = (arr: number[] | undefined) => (arr && arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
       // One entry per author (keep best project if multiple submitted)
       const authorMap = new Map<string, ParticipantScore>();
       (projectsRes.data || []).forEach((project: any) => {
-        // Prefer project-linked score, fall back to email-linked score
-        const judgePoints = judgeByProject.get(project.id) ?? judgeByEmail.get(project.author_email) ?? 0;
+        // Prefer project-linked score, fall back to key-linked score
+        const judgePoints = average(judgeByProject.get(project.id) ?? judgeByKey.get(project.author_key));
         const scored = scoreProject(project, judgePoints);
-        const existing = authorMap.get(project.author_email);
+        const existing = authorMap.get(project.author_key);
         if (!existing || scored.points > existing.points) {
-          authorMap.set(project.author_email, { ...scored, rank: 0 });
+          authorMap.set(project.author_key, { ...scored, rank: 0 });
         }
       });
 
@@ -178,11 +197,16 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
   useEffect(() => {
     isMountedRef.current = true;
     fetchLeaderboardData();
+    if (!hackathonId) return;
 
+    // Scoped to this hackathon specifically — previously subscribed to
+    // every ai_projects/point_events change across every hackathon in the
+    // app, triggering a refetch here for activity completely unrelated to
+    // whatever event is actually being viewed.
     const channel = supabase
-      .channel('leaderboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => debouncedFetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, () => debouncedFetch())
+      .channel(`leaderboard-updates-${hackathonId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
       .subscribe();
 
     return () => {
@@ -215,7 +239,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
       {participant.projectName && (
         <div className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text-muted))] mb-1">
           <span className="text-white font-medium truncate">{participant.projectName}</span>
-          {participant.demoUrl && (
+          {participant.demoUrl && isSafeExternalUrl(participant.demoUrl) && (
             <a href={participant.demoUrl} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
               className="flex items-center gap-1 text-[hsl(var(--discord-blurple))] hover:underline flex-shrink-0"
@@ -333,9 +357,9 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
           <div className="space-y-2">
             {participants.map((p, index) => (
               <div
-                key={p.email}
-                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedEmail === p.email ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
-                onClick={() => setSelectedEmail(selectedEmail === p.email ? null : p.email)}
+                key={p.authorKey}
+                className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedKey === p.authorKey ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
+                onClick={() => setSelectedKey(selectedKey === p.authorKey ? null : p.authorKey)}
               >
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
@@ -365,7 +389,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
                     <Progress value={(p.points / MAX_SCORE) * 100} className="h-1 w-16 mt-1" />
                   </div>
                 </div>
-                {selectedEmail === p.email && (
+                {selectedKey === p.authorKey && (
                   <div className="px-3 pb-3">
                     <TierBreakdown participant={p} />
                   </div>

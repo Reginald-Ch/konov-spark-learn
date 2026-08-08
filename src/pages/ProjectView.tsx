@@ -128,26 +128,27 @@ const ProjectView = () => {
     if (!id) return;
     const fetchProject = async () => {
       try {
-        // First try published
+        // Explicit column list — author_email is the app's entire ownership
+        // credential for the save/delete/publish RPCs, so it must never be
+        // sent to this public, unauthenticated page.
         const { data, error } = await supabase
           .from('ai_projects')
-          .select('*')
+          .select('id, project_name, description, code, author_name, template_id, created_at, demo_url, points_earned')
           .eq('id', id)
           .eq('is_published', true)
           .single();
         if (!error && data) {
           setProject(data as Project);
-        } else {
-          // Check if project exists but is unpublished
-          const { data: unpub } = await supabase
-            .from('ai_projects')
-            .select('id')
-            .eq('id', id)
-            .single();
-          if (unpub) {
-            setProject({ ...unpub, _unpublished: true } as any);
-          }
         }
+        // No fallback "check if it exists but is unpublished" query here —
+        // ai_projects' SELECT policy is is_published=true only, so that
+        // query would always return nothing for a genuinely-private
+        // project regardless of whether it exists. It can't distinguish
+        // "doesn't exist" from "exists but private" any more than this
+        // query already can't, so it was silently dead code — every visit
+        // to an unpublished link showed generic "not found" already, this
+        // just stops pretending otherwise. Not distinguishing the two
+        // cases is also the more privacy-preserving default anyway.
       } catch (e) {
         console.error('Failed to fetch project:', e);
       } finally {
@@ -168,9 +169,75 @@ const ProjectView = () => {
     }
   }, [chatMessages.length]);
 
+  // Strips `#` comments (reusing the same string/triple-quote-aware
+  // tokenizeLine already used for syntax highlighting above) before any
+  // config extraction below runs. Every FORGE scaffold shows a commented
+  // teaching example of each variable's assignment ABOVE the real one
+  // (e.g. the chatbot template's Challenge 5 comment shows an unescaped
+  // `SYSTEM_MESSAGE = """..."""` example right above the real, single-quoted
+  // assignment) — without stripping comments first, a published bot whose
+  // author never deleted that comment serves garbled placeholder text
+  // (Chef Kofi's example prompt, literal "#" characters and all) to real
+  // visitors instead of the system prompt the student actually wrote.
+  const stripComments = (raw: string): string => {
+    const lines = raw.split('\n');
+    let inMultiLineString = false;
+    let multiLineDelim = '"""';
+    return lines.map((line) => {
+      if (inMultiLineString) {
+        const closeIdx = line.indexOf(multiLineDelim);
+        if (closeIdx === -1) return line;
+        inMultiLineString = false;
+        const stringPart = line.slice(0, closeIdx + multiLineDelim.length);
+        const rest = line.slice(closeIdx + multiLineDelim.length);
+        const restStripped = tokenizeLine(rest).filter(t => t.type !== 'comment').map(t => t.value).join('');
+        return stringPart + restStripped;
+      }
+      const strippedLine = tokenizeLine(line).filter(t => t.type !== 'comment').map(t => t.value).join('');
+      const tripleDoubleCount = (strippedLine.match(/"""/g) || []).length;
+      const tripleSingleCount = (strippedLine.match(/'''/g) || []).length;
+      if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+      else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+      return strippedLine;
+    }).join('\n');
+  };
+
+  // Locates the opening bracket (openChar) immediately after `fromIndex`
+  // and its correctly-matching closing bracket, skipping over quoted-string
+  // contents — used instead of a lazy \[...\] regex, which stops at the
+  // first literal closing bracket anywhere, including one sitting inside an
+  // item's own text, silently truncating or emptying the extracted list/dict.
+  const findBalancedBracket = (text: string, openChar: string, closeChar: string, fromIndex: number): { start: number; end: number } | null => {
+    const openIdx = text.indexOf(openChar, fromIndex);
+    if (openIdx === -1) return null;
+    let depth = 0;
+    let i = openIdx;
+    let inString: string | null = null;
+    while (i < text.length) {
+      const ch = text[i];
+      if (inString) {
+        if (ch === '\\') { i += 2; continue; }
+        if (ch === inString) inString = null;
+        i++;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inString = ch; i++; continue; }
+      if (ch === openChar) depth++;
+      else if (ch === closeChar) {
+        depth--;
+        if (depth === 0) return { start: openIdx, end: i };
+      }
+      i++;
+    }
+    return null;
+  };
+
+  const unescapeQuoted = (s: string) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
   // Extract all config variables from the student's Python code
   // Supports both SCREAMING_CASE and snake_case variable names
-  const extractConfigFromCode = (code: string) => {
+  const extractConfigFromCode = (rawCode: string) => {
+    const code = stripComments(rawCode);
     const extract = (fallback: string, ...varNames: string[]) => {
       for (const name of varNames) {
         const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
@@ -184,72 +251,84 @@ const ProjectView = () => {
     };
     const extractNumber = (fallback: number, ...varNames: string[]) => {
       for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
+        const match = code.match(new RegExp(`${name}\\s*=\\s*["']?(-?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?)["']?`));
         if (match) return parseFloat(match[1]);
       }
       return fallback;
     };
     const extractBool = (fallback: boolean, ...varNames: string[]) => {
       for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
-        if (match) return match[1] === 'True';
+        const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`, 'i'));
+        if (match) return match[1].toLowerCase() === 'true';
       }
       return fallback;
     };
     const extractList = (...varNames: string[]): string[] => {
       for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
-        if (!match) continue;
+        const varMatch = code.match(new RegExp(`${name}\\s*=\\s*`));
+        if (!varMatch || varMatch.index === undefined) continue;
+        const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+        if (!bracket) continue;
+        const inner = code.slice(bracket.start + 1, bracket.end);
         const items: string[] = [];
-        const regex = /["']([^"']+)["']/g;
+        const regex = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g;
         let m;
-        while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+        while ((m = regex.exec(inner)) !== null) items.push(unescapeQuoted(m[1] ?? m[2]));
         return items;
       }
       return [];
     };
     const extractDict = (...varNames: string[]): Record<string, string> => {
       for (const name of varNames) {
-        const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
-        if (!match) continue;
+        const varMatch = code.match(new RegExp(`${name}\\s*=\\s*`));
+        if (!varMatch || varMatch.index === undefined) continue;
+        const bracket = findBalancedBracket(code, '{', '}', varMatch.index + varMatch[0].length);
+        if (!bracket) continue;
+        const inner = code.slice(bracket.start + 1, bracket.end);
         const result: Record<string, string> = {};
-        const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+        const regex = /(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
         let m;
-        while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+        while ((m = regex.exec(inner)) !== null) result[unescapeQuoted(m[1] ?? m[2])] = unescapeQuoted(m[3] ?? m[4]);
         return result;
       }
       return {};
     };
     const extractQAPairs = (): Array<{q: string; a: string}> => {
-      const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
-      if (!match) return [];
+      const varMatch = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*/);
+      if (!varMatch || varMatch.index === undefined) return [];
+      const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+      if (!bracket) return [];
+      const inner = code.slice(bracket.start + 1, bracket.end);
       const pairs: Array<{q: string; a: string}> = [];
-      const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      const regex = /\{\s*["']q["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*,\s*["']a["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\}/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+      while ((m = regex.exec(inner)) !== null) pairs.push({ q: unescapeQuoted(m[1] ?? m[2]), a: unescapeQuoted(m[3] ?? m[4]) });
       return pairs;
     };
     const extractFewShotExamples = (): Array<{input: string; output: string}> => {
-      const match = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*\[([\s\S]*?)\]/);
-      if (!match) return [];
+      const varMatch = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*/);
+      if (!varMatch || varMatch.index === undefined) return [];
+      const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+      if (!bracket) return [];
+      const inner = code.slice(bracket.start + 1, bracket.end);
       const examples: Array<{input: string; output: string}> = [];
-      const regex = /\{\s*["']input["']\s*:\s*["']([^"']+)["']\s*,\s*["']output["']\s*:\s*["']([^"']+)["']\s*\}/g;
+      const regex = /\{\s*["']input["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*,\s*["']output["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\}/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
+      while ((m = regex.exec(inner)) !== null) examples.push({ input: unescapeQuoted(m[1] ?? m[2]), output: unescapeQuoted(m[3] ?? m[4]) });
       return examples;
     };
     // Extract if/elif/else conditional blocks that set a target variable
     const extractConditionalVar = (targetVar: string): Record<string, string> => {
       const result: Record<string, string> = {};
       const blockRegex = new RegExp(
-        `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+        `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
         'g'
       );
       let m;
       while ((m = blockRegex.exec(code)) !== null) {
         result[m[1]] = m[2];
       }
-      const elseRegex = new RegExp(`else\\s*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
+      const elseRegex = new RegExp(`else\\s*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
       const elseMatch = code.match(elseRegex);
       if (elseMatch) result['__else__'] = elseMatch[1];
       return result;
@@ -732,18 +811,13 @@ const ProjectView = () => {
     );
   }
 
-  if (!project || (project as any)._unpublished) {
-    const isUnpublished = (project as any)?._unpublished;
+  if (!project) {
     return (
       <div className="min-h-screen bg-ide-bg flex items-center justify-center text-center p-6">
         <div>
-          <h1 className="text-2xl font-bold text-ide-text mb-2">
-            {isUnpublished ? '🔒 Project Not Published Yet' : 'Project not found'}
-          </h1>
+          <h1 className="text-2xl font-bold text-ide-text mb-2">Project not found</h1>
           <p className="text-ide-text-muted mb-4">
-            {isUnpublished
-              ? 'This project has been saved but hasn\'t been published yet. The author needs to click "Submit Project" to make it public.'
-              : 'This project may not exist or the link is incorrect.'}
+            This project may not exist, the link is incorrect, or it hasn't been published yet — ask the author to click "Submit Project" if it's theirs.
           </p>
           <Link to="/hackathons">
             <Button className="bg-ide-accent text-ide-bg-deep">

@@ -2,36 +2,42 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trophy, Crown, Medal, Flame, Users } from 'lucide-react';
-import { ParticipantStatsPanel } from './ParticipantStatsPanel';
-import { MedalIcon } from './MedalIcon';
+import { GraduationCap, Crown, Medal, Users } from 'lucide-react';
+import { CoinIcon } from './CoinIcon';
 
-interface RankedParticipant {
+interface RankedLearner {
   email: string;
   name: string;
-  sp: number;
-  badges: { gold: number; silver: number; bronze: number };
-  onTimeCount: number;
+  coins: number;
+  lessonsPassed: number;
   rank: number;
 }
 
-export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) => {
-  const [participants, setParticipants] = useState<RankedParticipant[]>([]);
+// Mirrors SPLeaderboard's structure exactly, but ranks by lesson_coin
+// totals instead of daily_challenge_sp — kept as a separate leaderboard on
+// purpose rather than folded into either SPLeaderboard or the main
+// project-quality Leaderboard, since "how much of the course have you
+// done" is a different axis from "how good is your submitted project" or
+// "how many daily challenges have you cleared." Each of the three tracks
+// its own point_events event_type independently.
+export const LessonsLeaderboard = ({ hackathonId }: { hackathonId: string | null }) => {
+  const [learners, setLearners] = useState<RankedLearner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   const fetchLeaderboard = useCallback(async () => {
-    if (!hackathonId) { setParticipants([]); setIsLoading(false); return; }
+    if (!hackathonId) { setLearners([]); setIsLoading(false); return; }
     try {
-      const [spRes, badgeRes, regRes, onTimeRes] = await Promise.all([
-        supabase.from('point_events').select('participant_email, points').eq('hackathon_id', hackathonId).eq('event_type', 'daily_challenge_sp'),
-        supabase.from('point_events').select('participant_email, metadata').eq('hackathon_id', hackathonId).eq('event_type', 'badge_award'),
+      // The coins query is deliberately NOT scoped to hackathonId — lesson
+      // coins are a lifetime learning total (matching lesson_progress,
+      // which has never been per-event), not a per-event competition score
+      // like SP or Project Score. Only WHO shows up on this board is
+      // event-scoped (this event's registered participants); each of
+      // their coin totals reflects everything they've ever earned.
+      const [coinRes, regRes] = await Promise.all([
+        supabase.from('point_events').select('participant_email, points').eq('event_type', 'lesson_coin'),
         supabase.from('hackathon_registrations').select('participant_email, participant_name').eq('hackathon_id', hackathonId),
-        // On Time badge count — replaces the old Boost Token currency. Reads
-        // the timeliness component that's already part of auto_score instead
-        // of tracking a separate reward, so it can't double-count SP.
-        supabase.from('challenge_submissions').select('participant_email, submission_scores(auto_breakdown)').eq('hackathon_id', hackathonId),
       ]);
 
       if (!isMountedRef.current) return;
@@ -39,41 +45,26 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       const nameMap = new Map<string, string>();
       (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_email, r.participant_name));
 
-      const spMap = new Map<string, number>();
-      (spRes.data || []).forEach((row: any) => {
-        spMap.set(row.participant_email, (spMap.get(row.participant_email) || 0) + row.points);
+      const coinMap = new Map<string, number>();
+      const countMap = new Map<string, number>();
+      (coinRes.data || []).forEach((row: any) => {
+        if (!nameMap.has(row.participant_email)) return; // not registered for this event
+        coinMap.set(row.participant_email, (coinMap.get(row.participant_email) || 0) + row.points);
+        countMap.set(row.participant_email, (countMap.get(row.participant_email) || 0) + 1);
       });
 
-      const badgeMap = new Map<string, { gold: number; silver: number; bronze: number }>();
-      (badgeRes.data || []).forEach((row: any) => {
-        const tier = row.metadata?.tier as 'gold' | 'silver' | 'bronze';
-        if (!tier) return;
-        const existing = badgeMap.get(row.participant_email) || { gold: 0, silver: 0, bronze: 0 };
-        existing[tier] += 1;
-        badgeMap.set(row.participant_email, existing);
-      });
-
-      const onTimeMap = new Map<string, number>();
-      (onTimeRes.data || []).forEach((row: any) => {
-        const score = Array.isArray(row.submission_scores) ? row.submission_scores[0] : row.submission_scores;
-        if (score?.auto_breakdown?.timeliness !== 10) return;
-        onTimeMap.set(row.participant_email, (onTimeMap.get(row.participant_email) || 0) + 1);
-      });
-
-      const emails = new Set([...spMap.keys(), ...badgeMap.keys(), ...onTimeMap.keys()]);
-      const ranked = [...emails]
+      const ranked = [...coinMap.keys()]
         .map(email => ({
           email,
           name: nameMap.get(email) || email.split('@')[0],
-          sp: spMap.get(email) || 0,
-          badges: badgeMap.get(email) || { gold: 0, silver: 0, bronze: 0 },
-          onTimeCount: onTimeMap.get(email) || 0,
+          coins: coinMap.get(email) || 0,
+          lessonsPassed: countMap.get(email) || 0,
           rank: 0,
         }))
-        .sort((a, b) => b.sp - a.sp || a.name.localeCompare(b.name))
+        .sort((a, b) => b.coins - a.coins || a.name.localeCompare(b.name))
         .map((p, i) => ({ ...p, rank: i + 1 }));
 
-      if (isMountedRef.current) setParticipants(ranked);
+      if (isMountedRef.current) setLearners(ranked);
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -89,7 +80,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
     fetchLeaderboard();
     if (!hackathonId) return;
     const channel = supabase
-      .channel(`sp-leaderboard-${hackathonId}`)
+      .channel(`lessons-leaderboard-${hackathonId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
       .subscribe();
     return () => {
@@ -122,27 +113,25 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary">
-            <Trophy className="w-6 h-6 text-white" />
+            <GraduationCap className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
-            <p className="text-[hsl(var(--discord-text-muted))] text-sm">Daily Challenge SP · accumulates every day of the event</p>
+            <h2 className="text-2xl font-bold text-white">Learning Leaderboard</h2>
+            <p className="text-[hsl(var(--discord-text-muted))] text-sm">Ranked by lesson coins — 10 per lesson passed. Lifetime total, not just this event.</p>
           </div>
         </div>
       </div>
 
-      <ParticipantStatsPanel hackathonId={hackathonId} />
-
       {!hackathonId ? (
         <div className="text-center py-12">
-          <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50 text-[hsl(var(--discord-text-muted))]" />
+          <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50 text-[hsl(var(--discord-text-muted))]" />
           <p className="text-[hsl(var(--discord-text-muted))]">No hackathon is live right now — the leaderboard will populate once one starts.</p>
         </div>
       ) : (
         <div className="mb-4">
           <div className="bg-[hsl(var(--discord-darker))] rounded-lg p-3 border border-[hsl(var(--discord-light)/0.2)] inline-flex items-center gap-2">
             <Users className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
-            <span className="text-sm text-white font-semibold">{participants.length}</span>
+            <span className="text-sm text-white font-semibold">{learners.length}</span>
             <span className="text-xs text-[hsl(var(--discord-text-muted))]">ranked</span>
           </div>
         </div>
@@ -153,17 +142,17 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : participants.length === 0 ? (
+        ) : learners.length === 0 ? (
           hackathonId && (
             <div className="text-center py-12">
-              <Flame className="w-12 h-12 mx-auto mb-3 opacity-50 text-[hsl(var(--discord-text-muted))]" />
-              <p className="text-[hsl(var(--discord-text-muted))]">No SP earned yet today — complete a daily challenge to get on the board!</p>
+              <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50 text-[hsl(var(--discord-text-muted))]" />
+              <p className="text-[hsl(var(--discord-text-muted))]">No lessons passed yet today — finish one in the AI &amp; ML Academy to get on the board!</p>
             </div>
           )
         ) : (
           <div className="space-y-2">
             <AnimatePresence initial={false}>
-              {participants.map((p, index) => (
+              {learners.map((p, index) => (
                 <motion.div
                   key={p.email}
                   layout
@@ -180,19 +169,11 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
-                    {(p.badges.gold + p.badges.silver + p.badges.bronze + p.onTimeCount) > 0 && (
-                      <div className="flex items-center gap-2 text-[11px] text-[hsl(var(--discord-text-muted))]">
-                        {p.badges.gold > 0 && <span className="inline-flex items-center gap-0.5"><MedalIcon tier="gold" size={11} />×{p.badges.gold}</span>}
-                        {p.badges.silver > 0 && <span className="inline-flex items-center gap-0.5"><MedalIcon tier="silver" size={11} />×{p.badges.silver}</span>}
-                        {p.badges.bronze > 0 && <span className="inline-flex items-center gap-0.5"><MedalIcon tier="bronze" size={11} />×{p.badges.bronze}</span>}
-                        {p.onTimeCount > 0 && <span className="inline-flex items-center gap-0.5">⚡×{p.onTimeCount}</span>}
-                      </div>
-                    )}
+                    <p className="text-[11px] text-[hsl(var(--discord-text-muted))]">{p.lessonsPassed} lesson{p.lessonsPassed === 1 ? '' : 's'} passed</p>
                   </div>
-                  <div className="flex items-center gap-1 text-[hsl(var(--discord-yellow))] flex-shrink-0">
-                    <Flame className="w-4 h-4" />
-                    <span className="font-bold">{p.sp}</span>
-                    <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">SP</span>
+                  <div className="flex items-center gap-1 text-amber-400 flex-shrink-0">
+                    <CoinIcon size={14} />
+                    <span className="font-bold">{p.coins}</span>
                   </div>
                 </motion.div>
               ))}

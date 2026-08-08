@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { callAdminAction } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Crown, Loader2, Trash2 } from 'lucide-react';
+import { Crown, Loader2, Trash2, Copy, Check, Link as LinkIcon, CircleCheck, CircleDashed } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface StaffMember {
@@ -11,18 +11,24 @@ interface StaffMember {
   role_label: string;
   badge_emoji: string;
   added_at: string;
+  token_redeemed_at: string | null;
 }
 
 export const CommunityStaffTab = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [regeneratingEmail, setRegeneratingEmail] = useState<string | null>(null);
 
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [roleLabel, setRoleLabel] = useState('Team');
   const [badgeEmoji, setBadgeEmoji] = useState('👑');
-  const [pin, setPin] = useState('');
+
+  // Shown once right after minting — the token is only ever stored hashed,
+  // so this is the only chance to copy the link before it's gone for good.
+  const [pendingInvite, setPendingInvite] = useState<{ name: string; url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchStaff = useCallback(async () => {
     setIsLoading(true);
@@ -38,32 +44,62 @@ export const CommunityStaffTab = () => {
 
   useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
+  const buildInviteUrl = (token: string) => `${window.location.origin}/hackathons?staff_invite=${token}`;
+
   const handleAdd = async () => {
     if (!email.trim() || !displayName.trim()) {
       toast.error('Email and display name are required');
       return;
     }
-    if (!pin.trim() || pin.trim().length < 4) {
-      toast.error('Set a PIN of at least 4 characters — the staff member enters this in chat to prove it is really them');
-      return;
-    }
     setSaving(true);
     try {
-      await callAdminAction('add_community_staff', {
+      const result = await callAdminAction<{ invite_token: string }>('add_community_staff', {
         participant_email: email.trim(),
         display_name: displayName.trim(),
         role_label: roleLabel.trim() || 'Team',
         badge_emoji: badgeEmoji.trim() || '👑',
-        pin: pin.trim(),
       });
-      toast.success(`${displayName} can now verify with their PIN in chat to show the staff badge`);
-      setEmail(''); setDisplayName(''); setRoleLabel('Team'); setBadgeEmoji('👑'); setPin('');
+      if (result?.invite_token) {
+        setPendingInvite({ name: displayName.trim(), url: buildInviteUrl(result.invite_token) });
+        setCopied(false);
+      }
+      toast.success(`${displayName} is authorized — copy their invite link below`);
+      setEmail(''); setDisplayName(''); setRoleLabel('Team'); setBadgeEmoji('👑');
       fetchStaff();
     } catch (e: any) {
       toast.error(e.message || 'Failed to add staff member');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleRegenerate = async (member: StaffMember) => {
+    setRegeneratingEmail(member.participant_email);
+    try {
+      const result = await callAdminAction<{ invite_token: string }>('add_community_staff', {
+        participant_email: member.participant_email,
+        display_name: member.display_name,
+        role_label: member.role_label,
+        badge_emoji: member.badge_emoji,
+      });
+      if (result?.invite_token) {
+        setPendingInvite({ name: member.display_name, url: buildInviteUrl(result.invite_token) });
+        setCopied(false);
+      }
+      toast.success(`New link generated for ${member.display_name} — any old link they had stops working now`);
+      fetchStaff(); // rotation also resets verified status to "not opened yet" server-side
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to regenerate invite link');
+    } finally {
+      setRegeneratingEmail(null);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!pendingInvite) return;
+    await navigator.clipboard.writeText(pendingInvite.url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRemove = async (member: StaffMember) => {
@@ -82,10 +118,28 @@ export const CommunityStaffTab = () => {
         <h2 className="text-lg font-bold flex items-center gap-2"><Crown className="w-5 h-5 text-amber-500" /> Community Staff</h2>
         <p className="text-sm text-muted-foreground">
           Anyone on this list gets a gold role badge next to their name whenever they chat in the community —
-          not just in #announcements. The PIN is what actually protects the badge: they type it once in chat to
-          prove they really are that person, so a participant can't just type someone's email and steal their badge.
+          not just in #announcements. Adding someone here mints a one-time invite link; whoever opens it on their
+          browser is verified as that person from then on, so a participant can't just type someone's email and
+          steal their badge.
         </p>
       </div>
+
+      {pendingInvite && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-2">
+          <p className="text-sm font-semibold flex items-center gap-1.5"><LinkIcon className="w-4 h-4 text-amber-500" /> Invite link for {pendingInvite.name}</p>
+          <p className="text-xs text-muted-foreground">Send this to them directly (Slack DM, text, etc). It only shows once — copy it now.</p>
+          <div className="flex items-center gap-2">
+            <Input readOnly value={pendingInvite.url} className="text-xs font-mono" onFocus={(e) => e.target.select()} />
+            <Button size="sm" variant="outline" onClick={handleCopy} className="flex-shrink-0">
+              {copied ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+          <button onClick={() => setPendingInvite(null)} className="text-xs text-muted-foreground hover:text-foreground underline">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="bg-card rounded-lg border p-4 space-y-3">
         <div className="grid sm:grid-cols-2 gap-3">
@@ -104,11 +158,6 @@ export const CommunityStaffTab = () => {
           <div>
             <label className="text-sm font-medium mb-1 block">Badge Emoji</label>
             <Input value={badgeEmoji} onChange={e => setBadgeEmoji(e.target.value)} placeholder="👑" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-medium mb-1 block">Staff PIN (min 4 characters)</label>
-            <Input value={pin} onChange={e => setPin(e.target.value)} placeholder="Share this privately with them" type="text" />
-            <p className="text-xs text-muted-foreground mt-1">Re-adding an existing email rotates their PIN.</p>
           </div>
         </div>
         <Button onClick={handleAdd} disabled={saving} className="w-full sm:w-auto">
@@ -129,10 +178,25 @@ export const CommunityStaffTab = () => {
                   <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">{m.role_label}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">{m.participant_email}</p>
+                {m.token_redeemed_at ? (
+                  <p className="text-xs text-emerald-500 flex items-center gap-1 mt-0.5">
+                    <CircleCheck className="w-3 h-3" /> Verified {new Date(m.token_redeemed_at).toLocaleDateString()}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <CircleDashed className="w-3 h-3" /> Invite link not opened yet
+                  </p>
+                )}
               </div>
-              <Button size="sm" variant="outline" onClick={() => handleRemove(m)}>
-                <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => handleRegenerate(m)} disabled={regeneratingEmail === m.participant_email}>
+                  {regeneratingEmail === m.participant_email ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <LinkIcon className="w-3.5 h-3.5 mr-1" />}
+                  New link
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleRemove(m)}>
+                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                </Button>
+              </div>
             </div>
           ))}
           {staff.length === 0 && (

@@ -267,8 +267,28 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  // This function takes fully free-form title/body/url and fans out real
+  // push notifications (phishing-shaped or otherwise) to every matching
+  // subscriber, with no content bounds at all — unlike notify-mention,
+  // which only ever re-sends content it fetched itself from a real
+  // message. Supabase's platform verify_jwt check alone doesn't gate this:
+  // it accepts ANY valid JWT, including the public anon key already
+  // shipped in the frontend bundle, so "requires a JWT" is not "requires
+  // authorization." Both legitimate callers (admin-actions.ts,
+  // notify-mention/index.ts) already invoke this with the service-role
+  // key — require exactly that here too, closing it to everyone else.
+  const authHeader = req.headers.get("authorization") || "";
+  if (authHeader !== `Bearer ${serviceRoleKey}`) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
-    const { title, body, url, icon, topic } = await req.json();
+    const { title, body, url, icon, topic, participant_email } = await req.json();
 
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "title and body are required" }), {
@@ -278,14 +298,17 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Without a topic, broadcast to every subscriber (legacy waitlist behavior).
     // With a topic (e.g. "community"), only notify subscribers who opted into it —
     // a community announcement should never spam an unrelated waitlist subscriber.
+    // participant_email narrows further to one specific person (e.g. a
+    // @mention notification) — mutually exclusive with topic in practice,
+    // but both filters can combine harmlessly if ever passed together.
     let query = supabase.from("push_subscriptions").select("endpoint, p256dh, auth");
     if (topic) query = query.contains("topics", [topic]);
+    if (participant_email) query = query.eq("participant_email", participant_email);
     const { data: subscriptions, error } = await query;
 
     if (error) throw error;

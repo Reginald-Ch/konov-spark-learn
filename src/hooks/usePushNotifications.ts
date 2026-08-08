@@ -98,5 +98,25 @@ export function usePushNotifications() {
     }
   };
 
-  return { subscribe, isSubscribing, isSubscribed, isSupported };
+  // The bell button used to only ever go one direction — once subscribed it
+  // disabled itself permanently, with no way to turn notifications back off.
+  const unsubscribe = async () => {
+    if (!isSupported) return false;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      const existing = await registration?.pushManager.getSubscription();
+      if (existing) {
+        const endpoint = existing.endpoint;
+        await existing.unsubscribe();
+        await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+      }
+      setIsSubscribed(false);
+      return true;
+    } catch (err) {
+      console.error("Push unsubscribe failed:", err);
+      return false;
+    }
+  };
+
+  return { subscribe, unsubscribe, isSubscribing, isSubscribed, isSupported };
 }

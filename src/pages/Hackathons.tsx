@@ -5,6 +5,8 @@ import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
 
 import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SPLeaderboard } from '@/components/hackathon/SPLeaderboard';
+import { Leaderboard as ProjectLeaderboard } from '@/components/hackathon/Leaderboard';
+import { LessonsLeaderboard } from '@/components/hackathon/LessonsLeaderboard';
 import { DailyChallengePanel } from '@/components/hackathon/DailyChallengePanel';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
@@ -19,6 +21,7 @@ import { JudgeDashboardPanel } from '@/components/hackathon/JudgeDashboardPanel'
 import { BotBattleArena } from '@/components/hackathon/BotBattleArena';
 import { LiveReactionFeed } from '@/components/hackathon/LiveReactionFeed';
 import { supabase } from '@/integrations/supabase/client';
+import { useCommunityUnread } from '@/hooks/useCommunityUnread';
 import { 
   Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
@@ -45,7 +48,7 @@ interface Hackathon {
   prizes: string | null;
 }
 
-type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn';
+type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn' | 'community';
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'daily-challenge' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
 
 const ACCESS_CODE = 'Forge2039';
@@ -60,7 +63,6 @@ const Hackathons = () => {
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   
   const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
-  const [communityChatOpen, setCommunityChatOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Access code gate
@@ -71,6 +73,29 @@ const Hackathons = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<MainTab>('templates');
   const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
+  // Two genuinely different rankings live under "Leaderboard" — Daily SP
+  // tracks daily-challenge grinding, Project Score is a 100-point tiered
+  // score (system prompt quality, published status, judge score) that had
+  // a fully-built component sitting unreferenced anywhere in the app.
+  const [leaderboardView, setLeaderboardView] = useState<'sp' | 'project' | 'lessons'>('sp');
+  const { unreadCount: communityUnread, latestPreview: communityPreview, dismissPreview: dismissCommunityPreview } = useCommunityUnread(activeTab === 'community');
+
+  // A staff invite link (?staff_invite=<token>) can land here before the
+  // access gate is unlocked — this state survives that transition (it's the
+  // same mounted component, just a different branch of the render), so once
+  // unlocked we jump straight to Community and let it redeem the token.
+  const [pendingStaffInviteToken, setPendingStaffInviteToken] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('staff_invite')
+  );
+  useEffect(() => {
+    if (pendingStaffInviteToken && isUnlocked) setActiveTab('community');
+  }, [pendingStaffInviteToken, isUnlocked]);
+  const clearStaffInviteToken = () => {
+    setPendingStaffInviteToken(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('staff_invite');
+    window.history.replaceState({}, '', url.toString());
+  };
   
   // Build tab state
   const [buildCode, setBuildCode] = useState<string | undefined>(undefined);
@@ -179,7 +204,51 @@ const Hackathons = () => {
       case 'daily-challenge':
         return <DailyChallengePanel hackathonId={liveHackathons[0]?.id || null} />;
       case 'leaderboard':
-        return <SPLeaderboard hackathonId={liveHackathons[0]?.id || null} />;
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-5">
+              <button
+                onClick={() => setLeaderboardView('sp')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  leaderboardView === 'sp' ? 'bg-primary text-white' : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.15)]'
+                }`}
+              >
+                Daily SP
+              </button>
+              <button
+                onClick={() => setLeaderboardView('project')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  leaderboardView === 'project' ? 'bg-primary text-white' : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.15)]'
+                }`}
+              >
+                Project Score
+              </button>
+              <button
+                onClick={() => setLeaderboardView('lessons')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  leaderboardView === 'lessons' ? 'bg-primary text-white' : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.15)]'
+                }`}
+              >
+                Lessons
+              </button>
+            </div>
+            {/* These are three genuinely different rankings, not a bug where
+                the same "rank" disagrees with itself — without this, seeing
+                a different position in each tab reads as broken. */}
+            <p className="text-xs text-[hsl(var(--discord-text-muted))] -mt-3 mb-4">
+              {leaderboardView === 'sp'
+                ? 'Ranked by SP earned from daily challenges — this resets and accumulates fresh each event day.'
+                : leaderboardView === 'project'
+                ? 'Ranked by your published project — system prompt quality, description, demo link, and judge score, out of 100.'
+                : 'Ranked by lesson coins — 10 per lesson passed in the AI & ML Academy. Lifetime total, unlike SP and Project Score which are scoped to this event.'}
+            </p>
+            {leaderboardView === 'sp'
+              ? <SPLeaderboard hackathonId={liveHackathons[0]?.id || null} />
+              : leaderboardView === 'project'
+              ? <ProjectLeaderboard hackathonId={liveHackathons[0]?.id || null} />
+              : <LessonsLeaderboard hackathonId={liveHackathons[0]?.id || null} />}
+          </div>
+        );
       case 'getting-started':
         return <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />;
       case 'faq':
@@ -478,12 +547,21 @@ const Hackathons = () => {
           {/* Community & Quick Submit */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                onClick={() => setCommunityChatOpen(true)}
-                className="w-12 h-12 rounded-[24px] bg-primary flex items-center justify-center cursor-pointer"
+                onClick={() => setActiveTab('community')}
+                className={`w-12 h-12 rounded-[24px] flex items-center justify-center cursor-pointer relative transition-all ${activeTab === 'community' ? 'rounded-[16px]' : ''}`}
+                style={{ backgroundColor: activeTab === 'community' ? 'hsl(var(--primary))' : 'hsl(var(--discord-light))' }}
               >
-                <MessageSquare className="w-5 h-5 text-white" />
+                <MessageSquare className={`w-5 h-5 ${activeTab === 'community' ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}`} />
+                {communityUnread > 0 && activeTab !== 'community' && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(var(--discord-red))] text-white text-[10px] font-bold flex items-center justify-center border-2 border-[hsl(var(--discord-darker))]">
+                    {communityUnread > 9 ? '9+' : communityUnread}
+                  </span>
+                )}
+                {activeTab === 'community' && (
+                  <motion.div layoutId="activeTab" className="absolute -left-[6px] w-1 h-8 rounded-r-full bg-white" />
+                )}
               </motion.div>
             </TooltipTrigger>
             <TooltipContent side="right"><p className="font-semibold">Community</p></TooltipContent>
@@ -664,6 +742,13 @@ const Hackathons = () => {
             </div>
           )}
 
+          {/* COMMUNITY TAB — full page now, not a modal */}
+          {activeTab === 'community' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <CommunityChat pendingStaffInviteToken={pendingStaffInviteToken} onInviteConsumed={clearStaffInviteToken} />
+            </div>
+          )}
+
           {/* HACKATHONS TAB — instant sub-view switching */}
           {activeTab === 'hackathons' && (
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -710,11 +795,34 @@ const Hackathons = () => {
           onClose={() => setQuickSubmitOpen(false)}
           onSuccess={fetchHackathons}
         />
-        <CommunityChat
-          isOpen={communityChatOpen}
-          onClose={() => setCommunityChatOpen(false)}
-        />
       </div>
+
+      {/* Cross-page community notification — visible from anywhere,
+          including mid-build in the IDE, since Community is a full page now
+          and no longer docks over whatever you're doing. */}
+      <AnimatePresence>
+        {communityPreview && activeTab !== 'community' && (
+          <motion.button
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            onClick={() => { setActiveTab('community'); dismissCommunityPreview(); }}
+            className="fixed bottom-4 right-4 z-50 max-w-xs bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-blurple)/0.4)] rounded-xl shadow-2xl p-3 text-left hover:border-[hsl(var(--discord-blurple))] transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <MessageSquare className="w-3.5 h-3.5 text-[hsl(var(--discord-blurple))]" />
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--discord-blurple))]">New in Community</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); dismissCommunityPreview(); }}
+                className="ml-auto text-[hsl(var(--discord-text-muted))] hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <p className="text-xs text-white truncate"><span className="font-semibold">{communityPreview.sender_name}:</span> {communityPreview.content}</p>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </TooltipProvider>
   );
 };

@@ -19,6 +19,8 @@ interface PublishModalProps {
   prefillAuthorName?: string;
   currentProjectId?: string | null;
   onProjectIdUpdate?: (id: string) => void;
+  lastKnownUpdatedAt?: string | null;
+  onUpdatedAtChange?: (updatedAt: string | null) => void;
 }
 
 type DeployStep = 'form' | 'deploying' | 'deployed';
@@ -32,7 +34,7 @@ const DEPLOY_MESSAGES = [
   '✅ Running final checks...',
 ];
 
-export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate }, ref) => {
+export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate, lastKnownUpdatedAt, onUpdatedAtChange }, ref) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -86,7 +88,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
   const handlePublish = async () => {
     if (!projectName.trim()) { toast.error('Give your project a name!'); return; }
     const finalName = authorName.trim() || prefillAuthorName || 'Student';
-    const finalEmail = authorEmail.trim() || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`;
+    // Lowercase — matches every other identity-aware surface (registration,
+    // Lessons, Community, Daily Challenges). Inconsistent casing here would
+    // fragment this author's projects/points from the rest of their identity.
+    const finalEmail = (authorEmail.trim() || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`).toLowerCase();
     
     if (finalName && !finalName.startsWith('Student-')) {
       localStorage.setItem('forge-student-name', finalName);
@@ -107,14 +112,28 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         // was set at creation. Re-stamping here would risk silently moving a
         // project to a different event if the live hackathon changed between
         // saves (e.g. organizer ended one event and started the next).
-        const { data: updateData, error } = await supabase
-          .from('ai_projects')
-          .update({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, demo_url: null, is_published: true })
-          .eq('id', currentProjectId)
-          .eq('author_email', finalEmail)
-          .select('id')
-          .single();
+        // Routed through the owner-checked RPC — the open UPDATE policy this
+        // used to rely on let anyone publish/overwrite anyone's project.
+        // p_expected_updated_at guards Go Live the same way ProjectEditor's
+        // own Save already does — without it, publishing from a stale tab
+        // could silently overwrite a newer save made elsewhere.
+        const { data: updateData, error } = await supabase.rpc('save_own_project', {
+          p_project_id: currentProjectId,
+          p_participant_email: finalEmail,
+          p_project_name: projectName,
+          p_description: description,
+          p_code: code,
+          p_template_id: templateId,
+          p_author_name: finalName,
+          p_publish: true,
+          p_expected_updated_at: lastKnownUpdatedAt,
+        });
 
+        if (error?.message?.includes('CONFLICT')) {
+          toast.error('This project changed elsewhere since you last loaded it. Reload the page to see the latest version before going live.', { duration: 10000 });
+          setDeployStep('form');
+          return;
+        }
         if (error || !updateData) {
           console.warn('Update failed for project', currentProjectId, ':', error?.message);
           toast.error('Could not update existing project. Please try saving again.');
@@ -122,6 +141,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           return;
         } else {
           resultId = currentProjectId;
+          // Keep the editor's save-conflict baseline in sync — without this,
+          // the very next "Save Checkpoint" after publishing would compare
+          // against the pre-publish timestamp and false-positive a conflict.
+          if (onUpdatedAtChange) onUpdatedAtChange(updateData.updated_at ?? null);
         }
       } else {
         // New project: attach it to whichever hackathon is currently live, so
@@ -139,33 +162,23 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         const { data, error } = await supabase
           .from('ai_projects')
           .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, hackathon_id: liveHackathon?.id || null })
-          .select('id')
+          .select('id, updated_at')
           .single();
         if (error) throw error;
         resultId = data?.id || null;
         if (resultId) {
           if (onProjectIdUpdate) onProjectIdUpdate(resultId);
           localStorage.setItem('forge-current-project-id', resultId);
+          if (onUpdatedAtChange) onUpdatedAtChange(data?.updated_at ?? null);
         }
       }
 
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
-
-      const milestones = [
-        { event_type: 'project_deployed', points: 10, metadata: { project: projectName } },
-        { event_type: 'submitted_on_time', points: 5, metadata: { project: projectName } },
-      ];
-      for (const m of milestones) {
-        const key = `forge-scored-${m.event_type}-${finalEmail}`;
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, 'true');
-          supabase.from('point_events').insert({ participant_email: finalEmail, ...m }).then(({ error }) => {
-            if (error) console.warn(`point_events ${m.event_type} insert failed:`, error);
-          });
-        }
-      }
+      // Used to also insert 'project_deployed'/'submitted_on_time' point_events
+      // here — confirmed dead: nothing anywhere sums or displays them, pure
+      // ledger noise. Removed rather than left generating rows forever.
     } catch (e) {
       console.error(e);
       toast.error('Deploy failed. Try again!');
@@ -314,13 +327,22 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 </DialogDescription>
               </DialogHeader>
 
-              {showNameInput && (
+              {/* Always shown, not just when the cached name "looks" auto-generated —
+                  on a shared computer the cached identity could be a previous
+                  student's REAL name/email, which looked legitimate enough to
+                  stay hidden and get submitted to judges under their name. */}
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-medium text-white/70 mb-1 block">Your Name</label>
                   <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
-                    className="h-9 bg-black/30 border-[#30363d] text-white text-sm" autoFocus />
+                    className="h-9 bg-black/30 border-[#30363d] text-white text-sm" autoFocus={showNameInput} />
                 </div>
-              )}
+                <div>
+                  <label className="text-xs font-medium text-white/70 mb-1 block">Your Email</label>
+                  <Input value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="you@example.com" type="email"
+                    className="h-9 bg-black/30 border-[#30363d] text-white text-sm" />
+                </div>
+              </div>
 
               <div>
                 <label className="text-xs font-medium text-white/70 mb-1 block">Project Name</label>

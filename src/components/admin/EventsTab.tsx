@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 interface HackathonSettings {
   mission_bonus_top_n: number;
   voting_enabled: boolean;
-  coins_unlock_lessons: boolean;
 }
 
 interface Hackathon {
@@ -35,7 +34,6 @@ interface Hackathon {
 const defaultSettings = (): HackathonSettings => ({
   mission_bonus_top_n: 5,
   voting_enabled: false,
-  coins_unlock_lessons: true,
 });
 
 const emptyForm = (): Partial<Hackathon> => ({
@@ -282,13 +280,6 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
                 </div>
                 <Switch checked={!!form.settings?.voting_enabled} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), voting_enabled: v } }))} />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Coins unlock lessons</p>
-                  <p className="text-xs text-muted-foreground">Reserved — the lesson library isn't built yet, but this toggle is ready for when it is.</p>
-                </div>
-                <Switch checked={!!form.settings?.coins_unlock_lessons} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), coins_unlock_lessons: v } }))} />
-              </div>
             </div>
 
             <div className="flex gap-2 pt-2">
@@ -306,7 +297,12 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-destructive" /> Delete Event</DialogTitle>
-            <DialogDescription>Are you sure you want to delete "{deleteTarget?.title}"? This will remove all associated data.</DialogDescription>
+            <DialogDescription>
+              {deleteTarget?.status === 'live' && (
+                <span className="block font-semibold text-destructive mb-1">⚠️ This event is currently LIVE — participants may be actively using it right now.</span>
+              )}
+              Are you sure you want to delete "{deleteTarget?.title}"? This permanently removes every registration, challenge, submission, and community channel tied to it — this cannot be undone.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">
             <Button variant="ghost" onClick={() => setDeleteTarget(null)} className="flex-1">Cancel</Button>
@@ -320,7 +316,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-destructive" /> Reset Leaderboard</DialogTitle>
             <DialogDescription>
-              This permanently deletes ALL SP, Forge Coins, Keys, Boost Tokens, badges, and judge scores for <strong>"{resetTarget?.title}"</strong> only — every other hackathon on the platform is untouched. This cannot be undone.
+              This permanently deletes ALL SP, Forge Coins, badges, and judge scores for <strong>"{resetTarget?.title}"</strong> only — every other hackathon on the platform is untouched. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">

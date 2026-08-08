@@ -366,6 +366,70 @@ for pair in QA_PAIRS:
     TOPIC_KEYWORDS.append(pair["q"].split()[0])
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 27: List Comprehension (Build a List in One Line)
+# A comprehension builds a whole new list by transforming every
+# item in an existing one — like the loop in Challenge 26, but
+# in a single line. It's one of Python's most-used shortcuts.
+#
+#   PHRASE_IDEAS = ["nice one", "let's go", "love that"]
+#   HYPE_PHRASES = [idea.title() + "!" for idea in PHRASE_IDEAS]
+#
+# 🧪 TEST: Add more ideas to PHRASE_IDEAS and re-run — HYPE_PHRASES
+#          should grow to match, capitalized and excited.
+# ═══════════════════════════════════════════════
+PHRASE_IDEAS = []
+HYPE_PHRASES = [idea.title() + "!" for idea in PHRASE_IDEAS]
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 28: A Function That Takes Input (Parameters)
+# Challenge 25's function always said the same thing. This one
+# takes an INPUT (a parameter) and uses it to build a different
+# output every time — the core idea behind reusable functions.
+#
+#   def make_intro(name):
+#       return f"Hey, I'm {name} — nice to meet you!"
+#
+# 🧪 TEST: Change what make_intro returns, and PERSONALIZED_INTRO
+#          below updates to match.
+# ═══════════════════════════════════════════════
+def make_intro(name):
+    return f"Hey, I'm {name} — nice to meet you!"
+
+PERSONALIZED_INTRO = make_intro(BOT_NAME)
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 29: Safe Dictionary Lookup (.get())
+# Challenge 15's MOOD_RESPONSES only works if the mood you ask for
+# is actually a key in the dict — looking up a missing key with
+# [ ] crashes your program! .get() lets you give a safe fallback
+# instead, so nothing breaks.
+#
+#   MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "Just be helpful and friendly.")
+#
+# 🧪 TEST: Set MOOD to something NOT in MOOD_RESPONSES — with
+#          .get() it won't crash, it just uses your fallback text.
+# ═══════════════════════════════════════════════
+MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "Just be helpful and friendly.")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 30: Counting With a Loop (Accumulator Pattern)
+# Not every loop builds a list — this one just counts. RULE_COUNT
+# starts at 0, and += adds 1 for every rule you wrote in
+# Challenge 9. This "accumulator" pattern shows up everywhere in
+# real programs: totals, scores, tallies.
+#
+#   RULE_COUNT = 0
+#   for rule in RULES:
+#       RULE_COUNT += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 and re-run —
+#          RULE_COUNT should track the total automatically.
+# ═══════════════════════════════════════════════
+RULE_COUNT = 0
+for rule in RULES:
+    RULE_COUNT += 1
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -410,6 +474,10 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 24. VOICE_GENDER — "female", "male", or "default"
 # ☐ 25. FALLBACK_MESSAGE — Write your own function's return text!
 # ☐ 26. TOPIC_KEYWORDS — For-loop over QA_PAIRS, no typing by hand
+# ☐ 27. HYPE_PHRASES — List comprehension, built in one line
+# ☐ 28. PERSONALIZED_INTRO — A function that takes an input
+# ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
+# ☐ 30. RULE_COUNT — A loop that counts instead of collects
 # ═══════════════════════════════════════════════
 
 
@@ -735,6 +803,70 @@ for pair in QA_PAIRS:
     TOPIC_KEYWORDS.append(pair["q"].split()[0])
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 27: List Comprehension (Build a List in One Line)
+# A comprehension builds a whole new list by transforming every
+# item in an existing one — like the loop in Challenge 26, but
+# in a single line. It's one of Python's most-used shortcuts.
+#
+#   PHRASE_IDEAS = ["nice one", "let's go", "love that"]
+#   HYPE_PHRASES = [idea.title() + "!" for idea in PHRASE_IDEAS]
+#
+# 🧪 TEST: Add more ideas to PHRASE_IDEAS and re-run — HYPE_PHRASES
+#          should grow to match, capitalized and excited.
+# ═══════════════════════════════════════════════
+PHRASE_IDEAS = []
+HYPE_PHRASES = [idea.title() + "!" for idea in PHRASE_IDEAS]
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 28: A Function That Takes Input (Parameters)
+# Challenge 25's function always said the same thing. This one
+# takes an INPUT (a parameter) and uses it to build a different
+# output every time — the core idea behind reusable functions.
+#
+#   def make_intro(name):
+#       return f"Hey, I'm {name} — nice to meet you!"
+#
+# 🧪 TEST: Change what make_intro returns, and PERSONALIZED_INTRO
+#          below updates to match.
+# ═══════════════════════════════════════════════
+def make_intro(name):
+    return f"Hey, I'm {name} — nice to meet you!"
+
+PERSONALIZED_INTRO = make_intro(BOT_NAME)
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 29: Safe Dictionary Lookup (.get())
+# Challenge 15's MOOD_RESPONSES only works if the mood you ask for
+# is actually a key in the dict — looking up a missing key with
+# [ ] crashes your program! .get() lets you give a safe fallback
+# instead, so nothing breaks.
+#
+#   MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "Just be helpful and friendly.")
+#
+# 🧪 TEST: Set MOOD to something NOT in MOOD_RESPONSES — with
+#          .get() it won't crash, it just uses your fallback text.
+# ═══════════════════════════════════════════════
+MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "Just be helpful and friendly.")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 30: Counting With a Loop (Accumulator Pattern)
+# Not every loop builds a list — this one just counts. RULE_COUNT
+# starts at 0, and += adds 1 for every rule you wrote in
+# Challenge 9. This "accumulator" pattern shows up everywhere in
+# real programs: totals, scores, tallies.
+#
+#   RULE_COUNT = 0
+#   for rule in RULES:
+#       RULE_COUNT += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 and re-run —
+#          RULE_COUNT should track the total automatically.
+# ═══════════════════════════════════════════════
+RULE_COUNT = 0
+for rule in RULES:
+    RULE_COUNT += 1
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -792,6 +924,10 @@ TOOL_INSTRUCTIONS = {
 # ☐ 24. VOICE_GENDER — "female", "male", or "default"
 # ☐ 25. FALLBACK_MESSAGE — Write your own function's return text!
 # ☐ 26. TOPIC_KEYWORDS — For-loop over QA_PAIRS, no typing by hand
+# ☐ 27. HYPE_PHRASES — List comprehension, built in one line
+# ☐ 28. PERSONALIZED_INTRO — A function that takes an input
+# ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
+# ☐ 30. RULE_COUNT — A loop that counts instead of collects
 # ═══════════════════════════════════════════════
 
 

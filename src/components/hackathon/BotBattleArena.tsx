@@ -20,6 +20,19 @@ interface BattleMessage {
   content: string;
 }
 
+// Renders **bold** segments as real React elements — never dangerouslySetInnerHTML.
+// Battle message content is AI-generated from a participant-controlled system
+// prompt, so it's attacker-influenceable; raw HTML injection here was a real
+// stored/reflected XSS vector visible to every spectator of a public battle.
+const renderBoldText = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') && part.length > 4
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  );
+};
+
 export const BotBattleArena = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [bot1, setBot1] = useState<Project | null>(null);
@@ -34,15 +47,28 @@ export const BotBattleArena = () => {
 
   useEffect(() => {
     const fetchProjects = async () => {
+      // Raised from 50 — with no pagination or "showing N of M" indicator,
+      // a hard cap silently made older published bots permanently
+      // unselectable for battles once >50 existed, with nothing telling
+      // anyone that's what happened. Not unlimited (this fetches full
+      // `code` per row), but 200 covers realistic cohort sizes.
       const { data } = await supabase
         .from('ai_projects')
         .select('id, project_name, author_name, code, template_id')
         .eq('is_published', true)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
       if (data) setProjects(data);
     };
     fetchProjects();
+
+    // Without this, a project published/unpublished/deleted elsewhere
+    // never showed up here until you navigated away and back.
+    const channel = supabase
+      .channel('battle-arena-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => fetchProjects())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
@@ -280,7 +306,7 @@ export const BotBattleArena = () => {
                     {!isAnnouncement && (
                       <p className="text-[10px] font-bold mb-1" style={{ color: isBot1 ? '#5865F2' : '#ED4245' }}>{botName}</p>
                     )}
-                    <p className="text-sm text-white/90" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                    <p className="text-sm text-white/90">{renderBoldText(msg.content)}</p>
                   </div>
                 </motion.div>
               );

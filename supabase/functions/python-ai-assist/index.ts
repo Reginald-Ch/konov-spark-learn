@@ -467,11 +467,11 @@ CRITICAL: Read their code and generate realistic terminal output showing:
 2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs, forbidden words, etc.)
 3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
 4. Challenge completion count (how many of 24 challenges are customized)
-5. Final status: "✅ All systems ready!"
+5. Final status: if the config looks complete and internally consistent, "✅ All systems ready!" — if something is clearly broken or contradictory (e.g. a variable that's empty when it's clearly meant to hold something, or values that conflict), say so plainly and specifically instead of claiming success anyway. Being encouraging about an incomplete-but-valid config is good; papering over an actually broken one is not — the student already made it past real syntax checking to get here, this is the one place left that can tell them something's off.
 
-NEVER show API key errors. FORGE handles everything. Always show SUCCESS.
+Never fabricate irrelevant backend/API-key errors that have nothing to do with the student's own code — if the code itself is fine, say so plainly.
 Format as plain terminal text with emojis. Under 300 words.`;
-      userPrompt = `Simulate loading this FORGE config (show SUCCESSFUL output):\n\n${code}`;
+      userPrompt = `Simulate loading this FORGE config and report what you actually see — success if it's genuinely in good shape, a plain specific note if something's clearly broken:\n\n${code}`;
     } else if (action === "test-agent") {
       // ── Real tool calling for agent projects ──
       let toolResultsContext = "";
@@ -574,22 +574,21 @@ RULES:
 - Reference the 24-challenge system.
 
 PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
-PROMPT: "${systemPrompt || 'not set'}"
+PROMPT: "${systemPrompt || 'not set'}"`;
 
-CURRENT CODE:
-\`\`\`python
-${code}
-\`\`\``;
-      
       if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         extraMessages = conversationHistory.slice(0, -1).map((m: { role: string; content: string }) => ({
           role: m.role === 'assistant' ? 'assistant' : 'user',
           content: m.content,
         }));
       }
-      userPrompt = conversationHistory && conversationHistory.length > 0 
-        ? conversationHistory[conversationHistory.length - 1].content 
+      const latestQuestion = conversationHistory && conversationHistory.length > 0
+        ? conversationHistory[conversationHistory.length - 1].content
         : code;
+      // The student's code is untrusted content, not a trusted instruction —
+      // keep it in the user role like review/explain/suggest do, instead of
+      // folding it into sysPrompt where it'd carry system-level authority.
+      userPrompt = `CURRENT CODE:\n\`\`\`python\n${code}\n\`\`\`\n\n${latestQuestion}`;
     } else if (action === "generate") {
       sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;

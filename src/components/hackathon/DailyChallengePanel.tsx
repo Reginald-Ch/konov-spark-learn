@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { CalendarDays, Send, CheckCircle2, Clock, Loader2, Trophy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { isSafeExternalUrl } from '@/lib/utils';
 
 interface Challenge {
   id: string;
@@ -24,6 +25,7 @@ interface Challenge {
 interface ScoreRow {
   total_sp: number;
   status: string;
+  auto_breakdown: { timeliness?: number } | null;
 }
 
 interface MySubmission {
@@ -65,8 +67,11 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
         .eq('hackathon_id', hackathonId)
         .neq('status', 'draft')
         .order('day_number', { ascending: true }),
+      // ai_projects' public SELECT policy is published-only now — draft
+      // projects (which is most of them, until "Go Live") need the owner-
+      // checked RPC instead of a raw table read.
       email
-        ? supabase.from('ai_projects').select('id, project_name').eq('author_email', email).order('created_at', { ascending: false })
+        ? supabase.rpc('get_my_projects', { p_participant_email: email })
         : Promise.resolve({ data: [] as MyProject[] }),
     ]);
     const chs = (challengesRes.data as Challenge[]) || [];
@@ -76,7 +81,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     if (email && chs.length > 0) {
       const { data: subs } = await supabase
         .from('challenge_submissions')
-        .select('id, challenge_id, content_url, notes, project_id, submission_scores(total_sp, status)')
+        .select('id, challenge_id, content_url, notes, project_id, submission_scores(total_sp, status, auto_breakdown)')
         .in('challenge_id', chs.map(c => c.id))
         .eq('participant_email', email);
       const map: Record<string, MySubmission> = {};
@@ -106,10 +111,14 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     setSubmitting(true);
     try {
       const existing = submissions[activeChallenge.id];
+      // Lowercase — matches every other identity-aware surface (registration,
+      // Lessons, Community). Inconsistent casing here would fragment this
+      // participant's challenge history from their coin/lesson identity.
+      const normalizedEmail = email.trim().toLowerCase();
       const payload = {
         challenge_id: activeChallenge.id,
         hackathon_id: hackathonId,
-        participant_email: email.trim(),
+        participant_email: normalizedEmail,
         project_id: projectId || null,
         content_url: contentUrl.trim() || null,
         notes: notes.trim() || null,
@@ -119,7 +128,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
         : await supabase.from('challenge_submissions').insert(payload);
       if (error) throw error;
 
-      localStorage.setItem('forge-student-email', email.trim());
+      localStorage.setItem('forge-student-email', normalizedEmail);
       localStorage.setItem('forge-student-name', name.trim());
       toast.success(existing ? 'Submission updated!' : 'Submitted — good luck! 🚀');
       setActiveChallenge(null);
@@ -189,11 +198,14 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                     ) : sub ? (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="w-3 h-3" /> Submitted — awaiting grading</Badge>
                     ) : null}
+                    {score?.auto_breakdown?.timeliness === 10 && (
+                      <Badge variant="outline" className="gap-1 text-amber-400 border-amber-400/40">⚡ On Time</Badge>
+                    )}
                     {c.status === 'live' ? (
                       <Button size="sm" onClick={() => openSubmit(c)}>
                         <Send className="w-3 h-3 mr-1" /> {sub ? 'Edit Submission' : 'Submit'}
                       </Button>
-                    ) : sub?.content_url ? (
+                    ) : sub?.content_url && isSafeExternalUrl(sub.content_url) ? (
                       <a href={sub.content_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
                         <ExternalLink className="w-3 h-3" /> Your submission
                       </a>

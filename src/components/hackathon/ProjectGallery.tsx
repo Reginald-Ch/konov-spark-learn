@@ -13,7 +13,6 @@ interface Project {
   project_name: string;
   description: string | null;
   author_name: string;
-  author_email: string;
   template_id: string | null;
   code: string;
   points_earned: number;
@@ -35,6 +34,10 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Which of the fetched projects belong to the current student, so the
+  // Delete button can be shown without ever needing author_email on the
+  // client — see fetchProjects below for why that column is off-limits.
+  const [myProjectIds, setMyProjectIds] = useState<Set<string>>(new Set());
 
   const currentEmail = localStorage.getItem('forge-student-email') || '';
 
@@ -42,12 +45,36 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    if (!currentEmail) { setMyProjectIds(new Set()); return; }
+    supabase.rpc('get_my_projects', { p_participant_email: currentEmail }).then(({ data }) => {
+      if (data) setMyProjectIds(new Set((data as { id: string }[]).map(p => p.id)));
+    });
+  }, [currentEmail]);
+
+  // Without this, republishing/unpublishing/deleting a project elsewhere
+  // never showed up here until you navigated away and back — this gallery
+  // isn't scoped to one hackathon (fetchProjects has no hackathon_id
+  // filter), so the subscription below isn't either.
+  useEffect(() => {
+    const channel = supabase
+      .channel('project-gallery-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => fetchProjects())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const fetchProjects = async () => {
     setIsLoading(true);
     try {
+      // Explicit column list — author_email must never reach the client here.
+      // It's the app's entire ownership credential for save/delete/publish
+      // RPCs (see save_own_project's migration), so broadcasting it to every
+      // visitor of a public gallery would let anyone harvest a classmate's
+      // email and hijack their projects through those RPCs directly.
       const { data, error } = await supabase
         .from('ai_projects')
-        .select('*')
+        .select('id, project_name, description, author_name, template_id, code, points_earned, created_at')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
@@ -67,10 +94,15 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('ai_projects')
-        .delete()
-        .eq('id', deleteTarget.id);
+      // Routed through the owner-checked RPC — the open DELETE policy this
+      // used to rely on let anyone delete anyone's project by id; the UI's
+      // currentEmail === project.author_email check above was the only
+      // thing actually stopping that, and it's trivially bypassed via
+      // devtools/a raw API call.
+      const { error } = await supabase.rpc('delete_own_project', {
+        p_project_id: deleteTarget.id,
+        p_participant_email: currentEmail,
+      });
       if (error) throw error;
       setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
       toast.success('Project deleted');
@@ -163,7 +195,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                        {new Date(project.created_at).toLocaleDateString()}
                      </span>
                      <div className="flex gap-2">
-                       {currentEmail && currentEmail === project.author_email && (
+                       {myProjectIds.has(project.id) && (
                          <Button 
                            size="sm" 
                            variant="outline"

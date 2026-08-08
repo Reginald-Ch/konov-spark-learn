@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ExternalLink, Loader2, Gift, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { isSafeExternalUrl } from '@/lib/utils';
 
 interface Challenge {
   id: string;
@@ -139,7 +140,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
     if (!selectedChallengeId) return;
     setAutoGrading(true);
     try {
-      const result = await callAdminAction<{ graded: number; skipped: number; errors: { submission_id: string; error: string }[] }>('auto_grade_challenge', {
+      const result = await callAdminAction<{ graded: number; skipped: number; errors: { submission_id: string; error: string }[]; warnings: { submission_id: string; warning: string }[] }>('auto_grade_challenge', {
         challenge_id: selectedChallengeId,
       });
       if (result.errors.length > 0) {
@@ -147,6 +148,13 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
         console.error('Auto-grade errors:', result.errors);
       } else {
         toast.success(`Auto-graded ${result.graded} submission(s). ${result.skipped} already had an auto score.`);
+      }
+      // Successful grades that still carry a caveat worth a human look —
+      // e.g. no benchmark tests configured for this challenge, or a
+      // submission that looked like an attempt to manipulate the grader.
+      if (result.warnings?.length > 0) {
+        toast.warning(`${result.warnings.length} grade(s) flagged for review (see console)`);
+        console.warn('Auto-grade warnings:', result.warnings);
       }
       fetchSubmissions();
     } catch (e: any) {
@@ -223,11 +231,26 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
                     <span className="font-semibold text-sm">{s.participant_email}</span>
                     {isFinalized && <Badge className="gap-1"><CheckCircle2 className="w-3 h-3" /> {score.total_sp} SP</Badge>}
                     {!isFinalized && score?.auto_score != null && <Badge variant="outline">Auto-graded: {score.auto_score} — awaiting judge</Badge>}
+                    {/* Replaces the old Boost Token currency — same
+                        achievement (submitted before the challenge closed),
+                        shown as a badge instead of a second thing to track. */}
+                    {score?.auto_breakdown?.timeliness === 10 && (
+                      <Badge variant="outline" className="gap-1 text-amber-500 border-amber-500/40">⚡ On Time</Badge>
+                    )}
                   </div>
                   {s.content_url && (
-                    <a href={s.content_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
-                      <ExternalLink className="w-3 h-3" /> {s.content_url}
-                    </a>
+                    isSafeExternalUrl(s.content_url) ? (
+                      <a href={s.content_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
+                        <ExternalLink className="w-3 h-3" /> {s.content_url}
+                      </a>
+                    ) : (
+                      // Not http(s) — e.g. a javascript: URI a submission tried to
+                      // sneak past a grader clicking through submissions. Shown as
+                      // inert text, never rendered as a clickable/navigable href.
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> {s.content_url} (unsafe link — not opened)
+                      </p>
+                    )
                   )}
                   {s.notes && <p className="text-xs text-muted-foreground mt-1">{s.notes}</p>}
                 </div>

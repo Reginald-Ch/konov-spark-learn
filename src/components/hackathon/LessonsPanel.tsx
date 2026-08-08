@@ -10,12 +10,16 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import {
-  GraduationCap, Lock, CheckCircle2, Coins, KeyRound, Loader2, Sparkles,
+  GraduationCap, Lock, CheckCircle2, Loader2, Sparkles,
   Lightbulb, Brain, Wand2, PartyPopper, ChevronRight, ChevronLeft, RotateCcw,
-  ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown,
+  ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown, Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lintPython } from './editorFeatures';
+import { getStoredAdminRole, callAdminAction } from '@/lib/adminClient';
+import { MilestoneCelebration } from './ForgeWalkthrough';
+import { getYouTubeEmbedUrl } from '@/lib/utils';
+import { CoinIcon } from './CoinIcon';
 
 interface Lesson {
   id: string;
@@ -24,7 +28,6 @@ interface Lesson {
   title: string;
   slug: string;
   summary: string | null;
-  coin_cost: number;
   is_published: boolean;
 }
 
@@ -56,6 +59,7 @@ interface CodePractice {
 
 interface LessonContent {
   hook?: string;
+  video_url?: string;
   explanation?: string;
   code?: string;
   analogy?: string;
@@ -85,7 +89,7 @@ interface QuizResult {
   score: number;
   total: number;
   passed: boolean;
-  key_awarded: boolean;
+  bonus_coins_awarded: number;
   correct_flags: boolean[];
   explanations: string[];
 }
@@ -102,6 +106,111 @@ const MODULE_META: Record<number, { name: string; color: string }> = {
 
 type Phase = 'content' | 'quiz' | 'results';
 
+const CurrencyBadge = ({ icon, value, className }: { icon: React.ReactNode; value: number; className: string }) => {
+  const prevValueRef = useRef(value);
+  const [pulse, setPulse] = useState<'gain' | 'spend' | false>(false);
+  const [delta, setDelta] = useState<{ amount: number; id: number } | null>(null);
+
+  useEffect(() => {
+    if (value !== prevValueRef.current) {
+      const amount = value - prevValueRef.current;
+      const kind = amount > 0 ? 'gain' : 'spend';
+      setDelta({ amount, id: Date.now() });
+      setPulse(kind);
+      const t1 = setTimeout(() => setPulse(false), 650);
+      const t2 = setTimeout(() => setDelta(null), 1200);
+      prevValueRef.current = value;
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    prevValueRef.current = value;
+  }, [value]);
+
+  return (
+    <motion.div
+      className="relative"
+      animate={pulse === 'gain' ? { scale: [1, 1.12, 1] } : pulse === 'spend' ? { x: [0, -3, 3, -3, 0] } : { scale: 1, x: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Badge className={`gap-1 ${className}`}>
+        {/* perspective has to live on this wrapper, not the spinning icon
+            itself, or rotateY just squashes flat instead of foreshortening
+            into an actual coin-toss look — same gotcha as the Mission Bonus
+            tilt. */}
+        <span className="inline-flex" style={{ perspective: 200 }}>
+          <motion.span className="inline-flex" animate={pulse === 'gain' ? { rotateY: [0, 360] } : {}} transition={{ duration: 0.6 }}>
+            {icon}
+          </motion.span>
+        </span>
+        {value}
+      </Badge>
+      <AnimatePresence>
+        {delta && (
+          <motion.span
+            key={delta.id}
+            initial={{ opacity: 0, y: 2, scale: 0.6 }}
+            animate={{ opacity: 1, y: -16, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className={`absolute -top-1 -right-1 text-[10px] font-extrabold ${delta.amount > 0 ? 'text-amber-300' : 'text-red-400'}`}
+            style={{ textShadow: '0 0 8px currentColor' }}
+          >
+            {delta.amount > 0 ? '+' : ''}{delta.amount}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+const ProgressRing = ({ value, total, size = 42, stroke = 4, color }: { value: number; total: number; size?: number; stroke?: number; color: string }) => {
+  const pct = total > 0 ? Math.min(1, value / total) : 0;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={false}
+          animate={{ strokeDashoffset: circumference * (1 - pct) }}
+          transition={{ type: 'spring', stiffness: 70, damping: 16 }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+        <span className="text-[10px] font-extrabold text-white">{value}/{total}</span>
+      </div>
+    </div>
+  );
+};
+
+const MiniBurst = ({ burstId }: { burstId: number }) => (
+  <AnimatePresence>
+    {burstId > 0 && (
+      <div className="absolute inset-0 pointer-events-none overflow-visible">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <motion.span
+            key={`${burstId}-${i}`}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
+            animate={{
+              x: (Math.random() - 0.5) * 140,
+              y: (Math.random() - 0.5) * 100 - 20,
+              opacity: 0,
+              scale: 1,
+              rotate: Math.random() * 360,
+            }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="absolute left-1/2 top-1/2 text-sm"
+          >
+            {['✨', '⭐', '💫', '🎉'][i % 4]}
+          </motion.span>
+        ))}
+      </div>
+    )}
+  </AnimatePresence>
+);
+
 export const LessonsPanel = () => {
   const [hackathonId, setHackathonId] = useState<string | null>(null);
   const [email, setEmail] = useState(localStorage.getItem('forge-student-email') || '');
@@ -111,10 +220,10 @@ export const LessonsPanel = () => {
   const [editingIdentity, setEditingIdentity] = useState(!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Record<string, Progress>>({});
-  const [coinBalance, setCoinBalance] = useState(0);
-  const [keyBalance, setKeyBalance] = useState(0);
+  // Lessons are free now — this is a lifetime-earned total (10 coins per
+  // lesson passed), not a spendable balance, so it only ever goes up.
+  const [lessonCoinsEarned, setLessonCoinsEarned] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [activeContent, setActiveContent] = useState<LessonContent | null>(null);
@@ -126,11 +235,33 @@ export const LessonsPanel = () => {
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [practicePick, setPracticePick] = useState<number | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewQuiz, setPreviewQuiz] = useState<(QuizQuestion & { correct_index: number; explanation: string | null })[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const isOrganizer = getStoredAdminRole() === 'organizer';
+  // Bumped every time a lesson/preview/quiz-content fetch starts; each fetch
+  // captures its own value and checks it's still current before applying its
+  // result. Without this, opening lesson A then quickly opening lesson B
+  // before A's content finished loading could let A's late response land
+  // AFTER B's and silently overwrite B's dialog with A's content — title
+  // and summary would say B, but the body (hook/explanation/code/practice)
+  // would be A's.
+  const contentRequestRef = useRef(0);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [collapsedModules, setCollapsedModules] = useState<Record<number, boolean>>({});
   const autoCollapsedRef = useRef(false);
+  const [celebrationMsg, setCelebrationMsg] = useState<string | null>(null);
+  const prevCompleteModulesRef = useRef<Set<number>>(new Set());
+  const moduleBaselinedRef = useRef(false);
+  // Same staleness problem as contentRequestRef above, but for fetchAll
+  // itself — editing the identity fields quickly re-triggers this via the
+  // effect below, and an older in-flight call finishing after a newer one
+  // could otherwise clobber fresh lessons/progress/lessonCoinsEarned with
+  // stale data for whatever email was typed a moment before.
+  const fetchAllRequestRef = useRef(0);
 
   const fetchAll = useCallback(async () => {
+    const requestId = ++fetchAllRequestRef.current;
     setIsLoading(true);
 
     // Resolve "this student's" hackathon from their own registration first —
@@ -154,42 +285,44 @@ export const LessonsPanel = () => {
       const { data: live } = await supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle();
       hId = live?.id || null;
     }
+    if (requestId !== fetchAllRequestRef.current) return; // superseded by a newer fetchAll
     setHackathonId(hId);
 
     const { data: lessonRows, error: lessonErr } = await supabase
       .from('lessons')
-      .select('id, module_number, order_index, title, slug, summary, coin_cost, is_published')
+      .select('id, module_number, order_index, title, slug, summary, is_published')
       .order('order_index', { ascending: true });
     if (lessonErr) {
       toast.error('Could not load lessons — the database may not be migrated yet.');
       console.error('lessons fetch error:', lessonErr);
     }
+    if (requestId !== fetchAllRequestRef.current) return;
     setLessons((lessonRows as Lesson[]) || []);
 
     if (email) {
-      const [{ data: prog }, { data: coinRows }, { data: keyRows }] = await Promise.all([
+      // Deliberately NOT scoped to hId, unlike the balance query this
+      // replaced. lesson_progress (what's unlocked/passed) has always been
+      // global per participant, with no hackathon_id at all — but coins
+      // were still tagged and filtered per-event, so a returning student's
+      // earned total silently reset every time they joined a new event
+      // even though everything they'd already learned stayed exactly where
+      // they left it. Lessons are a learning record, not a per-event
+      // competition score (that's what SP and Project Score are for), so
+      // the coin total now follows the same lifetime scope progress does.
+      const [{ data: prog }, { data: coinRows }] = await Promise.all([
         supabase.rpc('get_my_lesson_progress', { p_participant_email: email }),
-        hId
-          ? supabase.from('point_events').select('points').eq('hackathon_id', hId).eq('participant_email', email).in('event_type', ['forge_coin_grant', 'forge_coin_adjust'])
-          : Promise.resolve({ data: [] as { points: number }[] }),
-        // Forge Keys earned from lessons (every 3rd passed) AND from the hackathon
-        // (daily challenges) share the same event_type — summing this ledger is
-        // the combined total, which is what certificate-unlock checks need.
-        hId
-          ? supabase.from('point_events').select('points').eq('hackathon_id', hId).eq('participant_email', email).eq('event_type', 'forge_key')
-          : Promise.resolve({ data: [] as { points: number }[] }),
+        supabase.from('point_events').select('points').eq('participant_email', email).eq('event_type', 'lesson_coin'),
       ]);
+      if (requestId !== fetchAllRequestRef.current) return;
       const map: Record<string, Progress> = {};
       (prog || []).forEach((p: any) => { map[p.lesson_id] = p; });
       setProgress(map);
-      setCoinBalance((coinRows || []).reduce((s: number, r: any) => s + r.points, 0));
-      setKeyBalance((keyRows || []).reduce((s: number, r: any) => s + r.points, 0));
+      setLessonCoinsEarned((coinRows || []).reduce((s: number, r: any) => s + r.points, 0));
     } else {
       setProgress({});
-      setCoinBalance(0);
-      setKeyBalance(0);
+      setLessonCoinsEarned(0);
     }
-    setIsLoading(false);
+    if (requestId === fetchAllRequestRef.current) setIsLoading(false);
   }, [email]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -202,10 +335,62 @@ export const LessonsPanel = () => {
 
   const passedCount = Object.values(progress).filter(p => p.passed).length;
 
+  // The one lesson that's always reachable with no progress row at all —
+  // matches get_lesson_content/get_quiz_questions's own bootstrap check
+  // server-side (lowest order_index among published lessons).
+  const firstLessonId = useMemo(() => {
+    const published = lessons.filter(l => l.is_published).sort((a, b) => a.order_index - b.order_index);
+    return published[0]?.id ?? null;
+  }, [lessons]);
+  const isLessonAvailable = (lesson: Lesson) => lesson.id === firstLessonId || !!progress[lesson.id];
+
+  // Fires a full-screen celebration the moment a module flips to 100% —
+  // but never on initial load (moduleBaselinedRef skips the first pass so
+  // returning students don't get "congratulated" for old progress).
+  //
+  // Gated on !isLoading, not just lessons.length > 0 — fetchAll commits
+  // `lessons` and `progress` in two SEPARATE renders (a real await gap sits
+  // between them while it fetches progress/coins), so lessons.length > 0
+  // used to be true for a render where progress was still {}. That premature
+  // render baselined this ref against empty progress, so a returning
+  // student's already-completed modules looked "newly done" the moment real
+  // progress landed a moment later — a false celebration on every return
+  // visit, exactly what this ref exists to prevent.
+  useEffect(() => {
+    if (isLoading || lessons.length === 0) return;
+    const nowComplete = new Set<number>();
+    Object.entries(grouped).forEach(([modNumStr, modLessons]) => {
+      const modNum = Number(modNumStr);
+      const done = modLessons.filter(l => progress[l.id]?.passed).length;
+      if (modLessons.length > 0 && done === modLessons.length) nowComplete.add(modNum);
+    });
+    if (moduleBaselinedRef.current) {
+      // All modules that flipped complete since the last check, not just the
+      // first — .find() used to silently drop the rest if progress ever
+      // jumped by more than one module between two fetches (e.g. an
+      // organizer manually granting credit, or several modules finishing in
+      // the same batch of quiz submissions).
+      const newlyDone = [...nowComplete].filter(m => !prevCompleteModulesRef.current.has(m));
+      if (newlyDone.length === 1) {
+        setCelebrationMsg(`🚀 Module ${newlyDone[0]} Complete: ${MODULE_META[newlyDone[0]]?.name}!`);
+      } else if (newlyDone.length > 1) {
+        const names = newlyDone.map(m => MODULE_META[m]?.name).filter(Boolean).join(', ');
+        setCelebrationMsg(`🚀 ${newlyDone.length} Modules Complete: ${names}!`);
+      }
+    } else {
+      moduleBaselinedRef.current = true;
+    }
+    prevCompleteModulesRef.current = nowComplete;
+  }, [progress, grouped, lessons.length, isLoading]);
+
   // Auto-collapse modules the student has already 100% finished — once, on
   // first load only, so a manual toggle afterward is never overridden.
+  // Same isLoading gate as above and for the same reason — without it, this
+  // one-shot ref got consumed on the premature "lessons loaded, progress
+  // still empty" render, so nothing ever got collapsed once real progress
+  // arrived a moment later.
   useEffect(() => {
-    if (autoCollapsedRef.current || lessons.length === 0) return;
+    if (autoCollapsedRef.current || isLoading || lessons.length === 0) return;
     autoCollapsedRef.current = true;
     const initial: Record<number, boolean> = {};
     Object.entries(grouped).forEach(([modNumStr, modLessons]) => {
@@ -214,7 +399,7 @@ export const LessonsPanel = () => {
       if (modLessons.length > 0 && done === modLessons.length) initial[modNum] = true;
     });
     setCollapsedModules(initial);
-  }, [lessons, progress, grouped]);
+  }, [lessons, progress, grouped, isLoading]);
 
   const jumpToModule = (modNum: number) => {
     setCollapsedModules(c => ({ ...c, [modNum]: false }));
@@ -225,28 +410,22 @@ export const LessonsPanel = () => {
 
   const openLesson = async (lesson: Lesson) => {
     if (!name.trim() || !email.trim()) { toast.error('Enter your name and email first'); return; }
-    const existing = progress[lesson.id];
 
-    if (!existing) {
-      if (!lesson.is_published) { toast.info("This lesson isn't available yet — check back soon!"); return; }
-      setUnlockingId(lesson.id);
-      const { data, error } = await supabase.rpc('unlock_lesson', {
-        p_participant_email: email.trim(),
-        p_hackathon_id: hackathonId,
-        p_lesson_id: lesson.id,
-      });
-      setUnlockingId(null);
-      const result = Array.isArray(data) ? data[0] : data;
-      if (error || !result?.ok) {
-        toast.error(result?.message || error?.message || 'Failed to unlock lesson');
-        return;
-      }
-      localStorage.setItem('forge-student-email', email.trim().toLowerCase());
-      localStorage.setItem('forge-student-name', name.trim());
-      toast.success(`Unlocked "${lesson.title}"!`);
-      await fetchAll();
+    // Lessons are free — access is gated purely by sequence now. The first
+    // published lesson is always reachable; every other one only gets a
+    // lesson_progress row (making isLessonAvailable true) once
+    // submit_lesson_quiz auto-unlocks it on passing the one before it. The
+    // card's own disabled state already prevents this in the normal click
+    // path; this is just the same check again in case openLesson is ever
+    // reached another way.
+    if (!isLessonAvailable(lesson)) {
+      toast.error(lesson.is_published ? 'Complete the previous lesson to unlock this one.' : "This lesson isn't available yet — check back soon!");
+      return;
     }
+    localStorage.setItem('forge-student-email', email.trim().toLowerCase());
+    localStorage.setItem('forge-student-name', name.trim());
 
+    const requestId = ++contentRequestRef.current;
     setActiveLesson(lesson);
     setPhase('content');
     setQuizResult(null);
@@ -259,6 +438,7 @@ export const LessonsPanel = () => {
       p_participant_email: email.trim(),
       p_lesson_id: lesson.id,
     });
+    if (requestId !== contentRequestRef.current) return; // superseded by a newer open
     setContentLoading(false);
     if (contentErr) {
       toast.error(contentErr.message || 'Failed to load lesson content');
@@ -267,14 +447,55 @@ export const LessonsPanel = () => {
     setActiveContent((content as LessonContent) || null);
   };
 
+  // Organizer-only: view a lesson's content and quiz (with answers) without
+  // spending coins or needing it unlocked — goes through admin-actions
+  // (service role), not the participant unlock/progress path.
+  const openPreview = async (lesson: Lesson) => {
+    const requestId = ++contentRequestRef.current;
+    setActiveLesson(lesson);
+    setPreviewMode(true);
+    setPhase('content');
+    setQuizResult(null);
+    setAnswers({});
+    setQIdx(0);
+    setPracticePick(null);
+    setActiveContent(null);
+    setPreviewQuiz([]);
+    setPreviewLoading(true);
+    try {
+      const data = await callAdminAction<{ content: LessonContent | null; quiz: (QuizQuestion & { correct_index: number; explanation: string | null })[] }>('preview_lesson', { lesson_id: lesson.id });
+      if (requestId !== contentRequestRef.current) return; // superseded by a newer open
+      setActiveContent(data.content || null);
+      setPreviewQuiz(data.quiz || []);
+    } catch (e: any) {
+      if (requestId !== contentRequestRef.current) return;
+      toast.error(e.message || 'Failed to load preview');
+    } finally {
+      if (requestId === contentRequestRef.current) setPreviewLoading(false);
+    }
+  };
+
   const startQuiz = async () => {
     if (!activeLesson) return;
+    const requestId = contentRequestRef.current; // no new "open" here, just piggyback the current one
     const { data, error } = await supabase.rpc('get_quiz_questions', {
       p_participant_email: email.trim(),
       p_lesson_id: activeLesson.id,
     });
+    if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
     if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
-    setQuizQuestions((data as any as QuizQuestion[]) || []);
+    const questions = (data as any as QuizQuestion[]) || [];
+    // A published, unlockable lesson with no quiz questions authored yet
+    // used to still flip phase to 'quiz' here — the render guard requires
+    // quizQuestions.length > 0, so nothing in the content/quiz/results
+    // blocks matched and the dialog just went blank with no way to close it
+    // except Escape, landing on a "Leave the quiz?" confirmation over an
+    // empty screen. Stay on the content phase and say so instead.
+    if (questions.length === 0) {
+      toast.error("This lesson's quiz isn't ready yet — check back soon!");
+      return;
+    }
+    setQuizQuestions(questions);
     setAnswers({});
     setQIdx(0);
     setPhase('quiz');
@@ -295,6 +516,13 @@ export const LessonsPanel = () => {
       const result = Array.isArray(data) ? data[0] : data;
       setQuizResult(result as QuizResult);
       setPhase('results');
+      if (result?.passed) {
+        setCelebrationMsg(
+          result.score === result.total
+            ? `🏆 Perfect Score! ${activeLesson.title}`
+            : `🎉 Lesson Complete! ${activeLesson.title}`
+        );
+      }
       await fetchAll();
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit quiz');
@@ -303,7 +531,7 @@ export const LessonsPanel = () => {
     }
   };
 
-  const closeDialog = () => { setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); };
+  const closeDialog = () => { setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setPreviewMode(false); setPreviewQuiz([]); };
   const requestCloseDialog = () => {
     if (phase === 'quiz') { setConfirmCloseOpen(true); return; }
     closeDialog();
@@ -315,23 +543,32 @@ export const LessonsPanel = () => {
 
   return (
     <div>
+      <MilestoneCelebration show={!!celebrationMsg} message={celebrationMsg || ''} onComplete={() => setCelebrationMsg(null)} />
+
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-lg p-5 mb-6 border border-[hsl(var(--discord-blurple)/0.3)]"
+        className="relative rounded-lg p-5 mb-6 border border-[hsl(var(--discord-blurple)/0.3)] overflow-hidden"
         style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.15), transparent)' }}>
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[hsl(var(--discord-blurple)/0.25)] blur-3xl animate-pulse-glow pointer-events-none" />
+        <div className="relative flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-[hsl(var(--discord-blurple))]">
+            <motion.div
+              className="w-11 h-11 rounded-xl flex items-center justify-center bg-[hsl(var(--discord-blurple))]"
+              animate={{ boxShadow: ['0 0 0px hsl(var(--discord-blurple))', '0 0 18px hsl(var(--discord-blurple)/0.7)', '0 0 0px hsl(var(--discord-blurple))'] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            >
               <GraduationCap className="w-6 h-6 text-white" />
-            </div>
+            </motion.div>
             <div>
               <h3 className="text-lg font-bold text-white">AI &amp; ML Academy</h3>
-              <p className="text-xs text-white/70">{lessons.length} lessons — unlock with Forge Coins, pass the quiz, earn a Forge Key every 3 lessons.</p>
+              <p className="text-xs text-white/70">{lessons.length} lessons, free and in order — finish one to unlock the next, earn 10 coins per lesson.</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className="gap-1 bg-amber-500/20 text-amber-400 border-amber-500/30"><Coins className="w-3 h-3" /> {coinBalance}</Badge>
-            <Badge className="gap-1 bg-[hsl(var(--discord-blurple)/0.2)] text-[hsl(var(--discord-blurple))] border-[hsl(var(--discord-blurple)/0.3)]"><KeyRound className="w-3 h-3" /> {keyBalance}</Badge>
-            <Badge variant="outline" className="text-white/70">{passedCount}/{lessons.length} lessons</Badge>
+          <div className="flex items-center gap-3">
+            <CurrencyBadge icon={<CoinIcon size={12} />} value={lessonCoinsEarned} className="bg-amber-500/20 text-amber-400 border-amber-500/30" />
+            <div className="flex items-center gap-1.5">
+              <ProgressRing value={passedCount} total={lessons.length} color="#00B894" />
+              <span className="text-[9px] text-white/50 uppercase tracking-wide">lessons</span>
+            </div>
           </div>
         </div>
         {editingIdentity ? (
@@ -374,7 +611,7 @@ export const LessonsPanel = () => {
             <button key={modNum} onClick={() => jumpToModule(modNum)}
               className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full text-white transition-opacity hover:opacity-80 flex items-center gap-1"
               style={{ backgroundColor: meta.color, opacity: complete ? 0.55 : 1 }}>
-              {complete && <CheckCircle2 className="w-3 h-3" />}
+              {complete && <CheckCircle2 className="w-3 h-3 animate-bounce-in" />}
               M{modNum}
             </button>
           );
@@ -404,54 +641,57 @@ export const LessonsPanel = () => {
               <div className="grid gap-2 md:grid-cols-2">
                 {modLessons.map((lesson, i) => {
                   const p = progress[lesson.id];
-                  const locked = !p && !lesson.is_published;
-                  const unlockable = !p && lesson.is_published;
-                  const canAfford = coinBalance >= lesson.coin_cost;
+                  const available = isLessonAvailable(lesson);
                   return (
+                    <div key={lesson.id} className="relative">
+                    {isOrganizer && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openPreview(lesson); }}
+                        title="Preview content (organizer only)"
+                        className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-black/50 hover:bg-black/70 text-white/70 hover:text-white transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <motion.button
-                      key={lesson.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
                       onClick={() => openLesson(lesson)}
-                      disabled={locked || unlockingId === lesson.id || (unlockable && !canAfford)}
-                      title={unlockable && !canAfford ? `You need ${lesson.coin_cost - coinBalance} more Forge Coins` : undefined}
-                      className={`text-left rounded-lg p-3 border transition-all ${
+                      disabled={!available}
+                      title={!available && lesson.is_published ? 'Complete the previous lesson to unlock this one' : undefined}
+                      className={`w-full text-left rounded-lg p-3 border transition-all ${
                         p?.passed
                           ? 'bg-green-500/10 border-green-500/30 hover:border-green-500/50'
-                          : locked || (unlockable && !canAfford)
+                          : !available
                           ? 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.1)] opacity-60 cursor-not-allowed'
                           : 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] hover:border-[hsl(var(--discord-blurple)/0.5)]'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         {p?.passed ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                        ) : locked ? (
-                          <Lock className="w-4 h-4 text-white/30 flex-shrink-0" />
-                        ) : p ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 animate-bounce-in" />
+                        ) : available ? (
                           <Sparkles className="w-4 h-4 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
                         ) : (
-                          <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <Lock className="w-4 h-4 text-white/30 flex-shrink-0" />
                         )}
                         <span className="text-sm font-medium text-white truncate flex-1">{lesson.order_index}. {lesson.title}</span>
-                        {unlockingId === lesson.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/60" />}
                       </div>
                       {lesson.summary && <p className="text-[11px] text-white/50 mt-1 line-clamp-1">{lesson.summary}</p>}
                       <div className="mt-1.5">
                         {p?.passed ? (
-                          <span className="text-[10px] font-bold text-green-400">Completed — {p.best_score}/7</span>
-                        ) : unlockable && !canAfford ? (
-                          <span className="text-[10px] font-bold text-white/40 flex items-center gap-1"><Coins className="w-3 h-3" /> Need {lesson.coin_cost - coinBalance} more coins</span>
-                        ) : unlockable ? (
-                          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1"><Coins className="w-3 h-3" /> Unlock for {lesson.coin_cost}</span>
-                        ) : p ? (
-                          <span className="text-[10px] font-bold text-[hsl(var(--discord-blurple))]">Continue →</span>
+                          <span className="text-[10px] font-bold text-green-400">Completed — {p.best_score} correct</span>
+                        ) : available ? (
+                          <span className="text-[10px] font-bold text-[hsl(var(--discord-blurple))] flex items-center gap-1"><CoinIcon size={12} /> {p ? 'Continue →' : 'Start — earn 10 coins →'}</span>
+                        ) : lesson.is_published ? (
+                          <span className="text-[10px] font-bold text-white/40">🔒 Finish the previous lesson</span>
                         ) : (
                           <span className="text-[10px] text-white/40">Coming soon</span>
                         )}
                       </div>
                     </motion.button>
+                    </div>
                   );
                 })}
               </div>
@@ -466,15 +706,23 @@ export const LessonsPanel = () => {
           {activeLesson && phase === 'content' && (
             <>
               <DialogHeader>
-                <DialogTitle>{activeLesson.order_index}. {activeLesson.title}</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  {activeLesson.order_index}. {activeLesson.title}
+                  {previewMode && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[hsl(var(--discord-blurple)/0.2)] text-[hsl(var(--discord-blurple))] border border-[hsl(var(--discord-blurple)/0.4)]">
+                      Preview — no coins spent
+                    </span>
+                  )}
+                </DialogTitle>
                 <DialogDescription>{activeLesson.summary}</DialogDescription>
               </DialogHeader>
               <div className="space-y-3 mt-2">
-                {contentLoading ? (
+                {(previewMode ? previewLoading : contentLoading) ? (
                   <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-white/60" /></div>
                 ) : activeContent ? (
                   <>
                     <ContentBlock icon={<Lightbulb className="w-4 h-4" />} color="#F7941D" text={activeContent.hook} delay={0} />
+                    <VideoBlock videoUrl={activeContent.video_url} delay={0.03} />
                     <ContentBlock icon={<Brain className="w-4 h-4" />} color="#5865F2" text={activeContent.explanation} delay={0.05} />
                     <CodeBlock code={activeContent.code} delay={0.07} />
                     <VisualBlock visual={activeContent.visual} delay={0.08} />
@@ -489,11 +737,33 @@ export const LessonsPanel = () => {
                 ) : (
                   <p className="text-sm text-muted-foreground">Content coming soon.</p>
                 )}
+
+                {previewMode && previewQuiz.length > 0 && (
+                  <div className="rounded-lg p-3 border bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-white/50">Quiz preview — {previewQuiz.length} questions</p>
+                    {previewQuiz.map((q, qi) => (
+                      <div key={q.id} className="text-xs border-t border-white/5 pt-2 first:border-t-0 first:pt-0">
+                        <p className="font-medium text-white/90">{qi + 1}. {q.question}</p>
+                        <ul className="mt-1 space-y-0.5">
+                          {q.options.map((opt, oi) => (
+                            <li key={oi} className={oi === q.correct_index ? 'text-green-400 font-semibold' : 'text-white/50'}>
+                              {oi === q.correct_index ? '✅ ' : '· '}{opt}
+                            </li>
+                          ))}
+                        </ul>
+                        {q.explanation && <p className="text-white/40 mt-1 italic">{q.explanation}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   <Button variant="ghost" onClick={closeDialog} className="flex-1">Close</Button>
-                  <Button onClick={startQuiz} className="flex-1" disabled={!activeContent}>
-                    {progress[activeLesson.id]?.passed ? <><RotateCcw className="w-4 h-4 mr-1" /> Retake Quiz</> : <>Take the Quiz <ChevronRight className="w-4 h-4 ml-1" /></>}
-                  </Button>
+                  {!previewMode && (
+                    <Button onClick={startQuiz} className="flex-1" disabled={!activeContent}>
+                      {progress[activeLesson.id]?.passed ? <><RotateCcw className="w-4 h-4 mr-1" /> Retake Quiz</> : <>Take the Quiz <ChevronRight className="w-4 h-4 ml-1" /></>}
+                    </Button>
+                  )}
                 </div>
               </div>
             </>
@@ -552,6 +822,36 @@ const ContentBlock = ({ icon, color, text, label, delay }: { icon: React.ReactNo
   );
 };
 
+// Optional per-lesson video. getYouTubeEmbedUrl validates the stored
+// video_url and returns OUR OWN constructed youtube-nocookie.com embed URL
+// (or null) — it never reflects the stored string straight into an iframe
+// src, so a malformed/malicious value just makes the block not render
+// rather than becoming an XSS or arbitrary-origin-embed vector. No
+// autoplay, so a student opening a lesson never gets audio/video starting
+// without choosing to press play.
+const VideoBlock = ({ videoUrl, delay }: { videoUrl?: string; delay: number }) => {
+  const embedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+  if (!embedUrl) return null;
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      className="rounded-lg overflow-hidden border border-[hsl(var(--discord-light)/0.15)]">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] border-b border-white/5">
+        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wide">📺 Watch</span>
+      </div>
+      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+        <iframe
+          src={embedUrl}
+          title="Lesson video"
+          className="absolute inset-0 w-full h-full"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    </motion.div>
+  );
+};
+
 const CodeBlock = ({ code, delay }: { code?: string; delay: number }) => {
   if (!code) return null;
   return (
@@ -568,29 +868,92 @@ const CodeBlock = ({ code, delay }: { code?: string; delay: number }) => {
   );
 };
 
+// Animates the diagram as a signal traveling node-to-node — an "activation"
+// pulse that lights each step in sequence, like data flowing through a
+// pipeline (or a neuron firing down a layer), instead of a static row of
+// emoji cards. Reuses the same visual.steps content every lesson already
+// authors — no schema change, so all existing diagrams get real motion.
 const VisualBlock = ({ visual, delay }: { visual?: VisualDiagram; delay: number }) => {
+  const [playKey, setPlayKey] = useState(0);
+  const [activeStep, setActiveStep] = useState(-1);
+  const [finished, setFinished] = useState(false);
+
+  useEffect(() => {
+    if (!visual || !visual.steps?.length) return;
+    setActiveStep(-1);
+    setFinished(false);
+    const startMs = delay * 1000 + 250;
+    const stepMs = 550;
+    const timers = visual.steps.map((_, i) => setTimeout(() => setActiveStep(i), startMs + i * stepMs));
+    timers.push(setTimeout(() => setFinished(true), startMs + visual.steps.length * stepMs));
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visual, playKey]);
+
   if (!visual || !visual.steps?.length) return null;
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
       className="rounded-lg p-3 border bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)]">
-      {visual.caption && (
-        <p className="text-[10px] font-bold uppercase tracking-wide text-white/50 mb-2">{visual.caption}</p>
-      )}
-      <div className="flex items-center gap-1.5 flex-wrap justify-center">
-        {visual.steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: delay + i * 0.08 }}
-              className="flex flex-col items-center text-center w-20 rounded-lg p-2 bg-[hsl(var(--discord-blurple)/0.1)] border border-[hsl(var(--discord-blurple)/0.25)]"
+      <div className="flex items-center gap-2 mb-2 min-h-[14px]">
+        {visual.caption && (
+          <p className="text-[10px] font-bold uppercase tracking-wide text-white/50">{visual.caption}</p>
+        )}
+        <AnimatePresence>
+          {finished && (
+            <motion.button
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setPlayKey(k => k + 1)}
+              className="flex items-center gap-1 text-[10px] font-semibold text-[hsl(var(--discord-blurple))] hover:text-white transition-colors ml-auto"
             >
-              <span className="text-2xl leading-none mb-1">{step.emoji}</span>
-              <span className="text-[10px] font-semibold text-white leading-tight">{step.label}</span>
-              {step.caption && <span className="text-[9px] text-white/50 leading-tight mt-0.5">{step.caption}</span>}
-            </motion.div>
-            {i < visual.steps.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />}
-          </div>
-        ))}
+              <RotateCcw className="w-3 h-3" /> Replay
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+        {visual.steps.map((step, i) => {
+          const lit = activeStep >= i;
+          const firing = activeStep === i;
+          const isLastLit = finished && i === visual.steps.length - 1;
+          return (
+            <div key={`${playKey}-${i}`} className="flex items-center gap-1.5">
+              <motion.div
+                animate={{
+                  opacity: lit ? 1 : 0.3,
+                  scale: firing ? [1, 1.18, 1] : lit ? 1 : 0.88,
+                  boxShadow: lit ? '0 0 16px hsl(var(--discord-blurple)/0.6)' : '0 0 0px transparent',
+                }}
+                transition={{ duration: firing ? 0.5 : 0.3 }}
+                className="relative flex flex-col items-center text-center w-20 rounded-lg p-2 border"
+                style={{
+                  background: lit ? 'hsl(var(--discord-blurple)/0.18)' : 'hsl(var(--discord-blurple)/0.06)',
+                  borderColor: lit ? 'hsl(var(--discord-blurple)/0.55)' : 'hsl(var(--discord-blurple)/0.2)',
+                }}
+              >
+                {isLastLit && (
+                  <motion.div
+                    className="absolute inset-0 rounded-lg pointer-events-none"
+                    animate={{ opacity: [0.25, 0.65, 0.25] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{ boxShadow: '0 0 20px hsl(var(--discord-blurple)/0.7)' }}
+                  />
+                )}
+                <span className="text-2xl leading-none mb-1">{step.emoji}</span>
+                <span className="text-[10px] font-semibold text-white leading-tight">{step.label}</span>
+                {step.caption && <span className="text-[9px] text-white/50 leading-tight mt-0.5">{step.caption}</span>}
+              </motion.div>
+              {i < visual.steps.length - 1 && (
+                <motion.div
+                  animate={{ x: firing ? [0, 5, 0] : 0, opacity: activeStep > i ? 1 : 0.25 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <ArrowRight className="w-3.5 h-3.5 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
+                </motion.div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -601,9 +964,11 @@ const PracticeBlock = ({ practice, picked, onPick, delay }: {
 }) => {
   if (!practice) return null;
   const revealed = picked !== null;
+  const burstId = revealed && picked === practice.correct_index ? 1 : 0;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="rounded-lg p-3 border bg-[hsl(var(--discord-blurple)/0.08)] border-[hsl(var(--discord-blurple)/0.3)]">
+      className="relative rounded-lg p-3 border bg-[hsl(var(--discord-blurple)/0.08)] border-[hsl(var(--discord-blurple)/0.3)]">
+      <MiniBurst burstId={burstId} />
       <div className="flex items-center gap-2 mb-1.5">
         <ListChecks className="w-4 h-4 text-[hsl(var(--discord-blurple))]" />
         <span className="text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--discord-blurple))]">Quick practice</span>
@@ -649,14 +1014,17 @@ const CodePracticeCell = ({ practice, delay }: { practice: CodePractice; delay: 
   const [passed, setPassed] = useState(false);
   const [lintErrors, setLintErrors] = useState<ReturnType<typeof lintPython>>([]);
   const [showHint, setShowHint] = useState(false);
+  const [burstId, setBurstId] = useState(0);
 
   const runCheck = () => {
     const errors = lintPython(code);
     setLintErrors(errors);
     let ok = false;
     try { ok = new RegExp(practice.check_pattern, 'i').test(code); } catch { ok = false; }
-    setPassed(ok && errors.filter(e => e.severity === 'error').length === 0);
+    const nowPassed = ok && errors.filter(e => e.severity === 'error').length === 0;
+    setPassed(nowPassed);
     setChecked(true);
+    if (nowPassed) setBurstId(id => id + 1);
   };
 
   const reset = () => { setCode(practice.starter); setChecked(false); setPassed(false); setLintErrors([]); setShowHint(false); };
@@ -698,7 +1066,8 @@ const CodePracticeCell = ({ practice, delay }: { practice: CodePractice; delay: 
         <AnimatePresence>
           {checked && (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className={`rounded-md px-2.5 py-2 text-xs font-medium ${passed ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'}`}>
+              className={`relative rounded-md px-2.5 py-2 text-xs font-medium ${passed ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'}`}>
+              <MiniBurst burstId={burstId} />
               {passed ? `✅ ${practice.success_message}` : "Not quite yet — check the hint above and try again!"}
             </motion.div>
           )}
@@ -762,17 +1131,19 @@ const ResultsStep = ({ result, lessonTitle, questions, onReview, onClose }: {
     <p className="text-sm text-white/70 mb-4">{lessonTitle} — you scored {result.score}/{result.total}</p>
 
     {!result.passed && (
-      <p className="text-xs text-amber-400 mb-4">You need 5/7 to pass — review the lesson and try again, no penalty for retaking!</p>
+      <p className="text-xs text-amber-400 mb-4">
+        You need {Math.ceil(result.total * 5 / 7)}/{result.total} to pass — review the lesson and try again, no penalty for retaking!
+      </p>
     )}
 
     <AnimatePresence>
-      {result.key_awarded && (
+      {result.bonus_coins_awarded > 0 && (
         <motion.div initial={{ opacity: 0, scale: 0.7, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.3 }}
           className="bg-gradient-to-r from-[#FFD700]/15 to-[#F7941D]/15 border border-[#FFD700]/30 rounded-lg p-4 mb-4">
-          <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 0.6, delay: 0.5 }} className="text-3xl mb-1">🔑</motion.div>
-          <p className="text-sm font-bold text-white">Forge Key earned!</p>
-          <p className="text-xs text-white/60">3 lessons passed — keys unlock your certificate at the end.</p>
+          <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 0.6, delay: 0.5 }} className="mb-1 flex justify-center"><CoinIcon size={36} /></motion.div>
+          <p className="text-sm font-bold text-white">+{result.bonus_coins_awarded} bonus Forge Coins!</p>
+          <p className="text-xs text-white/60">Every 3rd lesson passed earns a coin bonus — keep going to unlock more.</p>
         </motion.div>
       )}
     </AnimatePresence>

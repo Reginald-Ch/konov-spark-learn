@@ -165,17 +165,29 @@ export const MilestoneCelebration = ({
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
+  // Depends on `message` too, not just `show` — a caller can swap the
+  // message while still showing (e.g. Lessons: a passed quiz sets "Lesson
+  // Complete!", then the resulting fetchAll can immediately detect the
+  // module also just hit 100% and overwrite it with "Module Complete!").
+  // Without this, `show` never toggled false in between, so the timer from
+  // the FIRST message kept counting down and fired early against whatever
+  // time was left — the second celebration got whatever remained of the
+  // first one's 4 seconds instead of its own full duration.
   useEffect(() => {
     if (show) {
       const timer = setTimeout(() => onCompleteRef.current(), 4000);
       return () => clearTimeout(timer);
     }
-  }, [show]);
+  }, [show, message]);
 
   return (
     <AnimatePresence>
       {show && (
-        <CelebrationOverlay key="celebration" message={message} onDismiss={() => onCompleteRef.current()} />
+        // Keyed by message (not a static string) so AnimatePresence treats a
+        // message swap while still showing as an exit+re-enter, replaying
+        // the entrance animation instead of silently mutating the text of
+        // the still-mounted overlay.
+        <CelebrationOverlay key={message} message={message} onDismiss={() => onCompleteRef.current()} />
       )}
     </AnimatePresence>
   );

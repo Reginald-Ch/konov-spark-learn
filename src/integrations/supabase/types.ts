@@ -64,6 +64,7 @@ export type Database = {
           points_earned: number
           project_name: string
           template_id: string | null
+          updated_at: string
         }
         Insert: {
           author_email: string
@@ -78,6 +79,7 @@ export type Database = {
           points_earned?: number
           project_name: string
           template_id?: string | null
+          updated_at?: string
         }
         Update: {
           author_email?: string
@@ -92,6 +94,7 @@ export type Database = {
           points_earned?: number
           project_name?: string
           template_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1369,23 +1372,12 @@ export type Database = {
           p_participant_email: string
         }
         Returns: {
+          bonus_coins_awarded: number
           correct_flags: boolean[]
           explanations: string[]
-          key_awarded: boolean
           passed: boolean
           score: number
           total: number
-        }[]
-      }
-      unlock_lesson: {
-        Args: {
-          p_hackathon_id: string
-          p_lesson_id: string
-          p_participant_email: string
-        }
-        Returns: {
-          message: string
-          ok: boolean
         }[]
       }
       verify_admin_credential: {

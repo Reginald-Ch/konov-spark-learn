@@ -52,10 +52,11 @@ const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   agent: { icon: '🧠', label: 'Agent' },
 };
 
-const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
+const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
   project: Project;
   meta: { icon: string; label: string };
   isScored: boolean;
+  otherScores: { judgeName: string; points: number }[];
   score: number | undefined;
   feedbackText: string;
   onScoreChange: (id: string, val: number) => void;
@@ -96,6 +97,11 @@ const ProjectCard = memo(({ project, meta, isScored, score, feedbackText, onScor
       </div>
 
       <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
+        {otherScores.length > 0 && (
+          <p className="text-[10px] text-[hsl(var(--discord-text-muted))]">
+            Already scored by {otherScores.map(s => `${s.judgeName} (${s.points})`).join(', ')} — your score is independent and won't overwrite theirs.
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-70)</label>
           {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />}
@@ -130,10 +136,52 @@ export const JudgeDashboardPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
-  const [submittedScores, setSubmittedScores] = useState<Set<string>>(new Set());
+  // Every judge's score per project — multiple judges can independently
+  // score the same project now, so this is no longer "last submission wins".
+  const [judgeScoresByProject, setJudgeScoresByProject] = useState<Record<string, { judgeName: string; points: number }[]>>({});
   const [judgeName, setJudgeName] = useState('');
   const [hackathonOptions, setHackathonOptions] = useState<HackathonOption[]>([]);
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>('');
+
+  // Roster of judge names the organizer has approved — submit_gallery_score
+  // now rejects any judge_name not on this list server-side (closes the
+  // "log in as Judge A, B, C..." score-inflation exploit); fetched here so
+  // the UI can warn *before* a submission fails instead of only after.
+  const [judgeRoster, setJudgeRoster] = useState<string[]>([]);
+  const [newJudgeName, setNewJudgeName] = useState('');
+  const [savingJudge, setSavingJudge] = useState(false);
+
+  const fetchJudgeRoster = useCallback(async () => {
+    const { data } = await supabase.from('gallery_judges').select('judge_name').order('judge_name');
+    setJudgeRoster((data || []).map((r: any) => r.judge_name));
+  }, []);
+
+  useEffect(() => { fetchJudgeRoster(); }, [fetchJudgeRoster]);
+
+  const handleAddJudge = async () => {
+    if (!newJudgeName.trim()) return;
+    setSavingJudge(true);
+    try {
+      await callAdminAction('add_gallery_judge', { judge_name: newJudgeName.trim() });
+      toast.success(`"${newJudgeName.trim()}" added to the judge roster`);
+      setNewJudgeName('');
+      fetchJudgeRoster();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add judge');
+    } finally {
+      setSavingJudge(false);
+    }
+  };
+
+  const handleRemoveJudge = async (name: string) => {
+    try {
+      await callAdminAction('remove_gallery_judge', { judge_name: name });
+      toast.success(`"${name}" removed from the judge roster`);
+      fetchJudgeRoster();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to remove judge');
+    }
+  };
 
   const [passphraseDialogOpen, setPassphraseDialogOpen] = useState(false);
   const [targetRole, setTargetRole] = useState<AdminRole>('organizer');
@@ -210,16 +258,23 @@ export const JudgeDashboardPanel = () => {
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (existingScores.data) {
-        const scored = new Set<string>();
-        const scoreMap: Record<string, number> = {};
+        const byProject: Record<string, { judgeName: string; points: number }[]> = {};
         (existingScores.data as any[]).forEach((evt: any) => {
-          if (evt.metadata?.project_id) {
-            scored.add(evt.metadata.project_id);
-            scoreMap[evt.metadata.project_id] = evt.points;
-          }
+          const pid = evt.metadata?.project_id;
+          if (!pid) return;
+          (byProject[pid] ||= []).push({ judgeName: evt.metadata?.judge_name || 'Unknown judge', points: evt.points });
         });
-        setSubmittedScores(scored);
-        setScores(prev => ({ ...prev, ...scoreMap }));
+        setJudgeScoresByProject(byProject);
+        // Pre-fill the score picker with THIS judge's own prior score (if
+        // any) — not whichever judge happened to submit most recently.
+        if (judgeName) {
+          const mine: Record<string, number> = {};
+          Object.entries(byProject).forEach(([pid, entries]) => {
+            const own = entries.find(e => e.judgeName === judgeName);
+            if (own) mine[pid] = own.points;
+          });
+          setScores(prev => ({ ...prev, ...mine }));
+        }
       }
     } catch (e) {
       console.error('Failed to fetch data:', e);
@@ -227,7 +282,7 @@ export const JudgeDashboardPanel = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [judgeName]);
 
   useEffect(() => {
     if (role && selectedHackathonId) fetchData(selectedHackathonId);
@@ -248,7 +303,10 @@ export const JudgeDashboardPanel = () => {
         judge_name: judgeName,
         feedback: feedback[project.id] || '',
       });
-      setSubmittedScores(prev => new Set([...prev, project.id]));
+      setJudgeScoresByProject(prev => {
+        const existing = (prev[project.id] || []).filter(e => e.judgeName !== judgeName);
+        return { ...prev, [project.id]: [...existing, { judgeName, points: score }] };
+      });
       toast.success(`Score submitted for ${project.project_name}`);
     } catch (e: any) {
       console.error('Score submit exception:', e);
@@ -349,6 +407,7 @@ export const JudgeDashboardPanel = () => {
               <TabsTrigger value="rewards">Reward Boxes</TabsTrigger>
               <TabsTrigger value="coins">Forge Coins</TabsTrigger>
               <TabsTrigger value="community-staff">Community Staff</TabsTrigger>
+              <TabsTrigger value="judges">Judges</TabsTrigger>
             </>
           )}
         </TabsList>
@@ -358,6 +417,12 @@ export const JudgeDashboardPanel = () => {
             <Award className="w-5 h-5 text-[#FFD700]" /> Projects to Score
             <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
           </h2>
+          {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.includes(judgeName.trim()) && (
+            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2 mb-3">
+              "{judgeName}" isn't on the approved judge roster — scores will be rejected until an organizer adds you
+              {role === 'organizer' ? ' (Judges tab, above).' : '.'}
+            </p>
+          )}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -375,7 +440,8 @@ export const JudgeDashboardPanel = () => {
                   key={project.id}
                   project={project}
                   meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
-                  isScored={submittedScores.has(project.id)}
+                  isScored={(judgeScoresByProject[project.id] || []).some(e => e.judgeName === judgeName)}
+                  otherScores={(judgeScoresByProject[project.id] || []).filter(e => e.judgeName !== judgeName)}
                   score={scores[project.id]}
                   feedbackText={feedback[project.id] || ''}
                   onScoreChange={handleScoreChange}
@@ -408,6 +474,38 @@ export const JudgeDashboardPanel = () => {
             </TabsContent>
             <TabsContent value="community-staff" className="mt-4">
               <CommunityStaffTab />
+            </TabsContent>
+            <TabsContent value="judges" className="mt-4">
+              <div className="max-w-md space-y-4">
+                <div>
+                  <h2 className="text-lg font-bold text-white mb-1">Judge Roster</h2>
+                  <p className="text-xs text-[hsl(var(--discord-text-muted))]">
+                    Only names on this list can submit gallery scores — add anyone (including yourself) who'll be judging.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Input value={newJudgeName} onChange={e => setNewJudgeName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddJudge()}
+                    placeholder="Judge's name" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+                  <Button onClick={handleAddJudge} disabled={savingJudge || !newJudgeName.trim()}>
+                    {savingJudge ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  {judgeRoster.length === 0 && (
+                    <p className="text-xs text-[hsl(var(--discord-text-muted))]">No judges added yet.</p>
+                  )}
+                  {judgeRoster.map(name => (
+                    <div key={name} className="flex items-center justify-between bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.2)] rounded-md px-3 py-2">
+                      <span className="text-sm text-white">{name}</span>
+                      <Button size="sm" variant="outline" onClick={() => handleRemoveJudge(name)}
+                        className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10">
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </TabsContent>
           </>
         )}

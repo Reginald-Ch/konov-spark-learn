@@ -71,7 +71,15 @@ const AdminPanel = () => {
       return;
     }
     setHackathons(data || []);
-    setSelectedHackathonId(prev => (prev && data?.some(h => h.id === prev) ? prev : data?.[0]?.id || ''));
+    // Prefer the live event, not just whichever sorts first by start_date —
+    // creating a new upcoming/draft event while another is already live
+    // (e.g. setting up next week's hackathon) would otherwise silently land
+    // the organizer on the wrong event's challenges/submissions/coins.
+    setSelectedHackathonId(prev => {
+      if (prev && data?.some(h => h.id === prev)) return prev;
+      const live = data?.find(h => h.status === 'live');
+      return live?.id || data?.[0]?.id || '';
+    });
   }, []);
 
   useEffect(() => {

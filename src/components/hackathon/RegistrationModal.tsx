@@ -55,12 +55,19 @@ export const RegistrationModal = ({
       const validated = registrationSchema.parse(formData);
       setIsSubmitting(true);
 
+      // Lowercase at the source — every other identity-aware surface (Lessons,
+      // Community, Daily Challenges) normalizes email this way before
+      // matching, so registering with mixed case here would otherwise make
+      // this exact registration invisible to those lookups, silently
+      // breaking coin balance / hackathon resolution for that participant.
+      const normalizedEmail = validated.participant_email.toLowerCase();
+
       const { error } = await supabase
         .from('hackathon_registrations')
         .insert({
           hackathon_id: hackathonId,
           participant_name: validated.participant_name,
-          participant_email: validated.participant_email,
+          participant_email: normalizedEmail,
           participant_phone: validated.participant_phone || null,
           skills: validated.skills || null,
           experience_level: validated.experience_level || null,

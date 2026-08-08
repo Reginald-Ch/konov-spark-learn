@@ -9,6 +9,7 @@ import { LevelBadge, AchievementGrid, getForgeLevel } from './AchievementBadges'
 import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAIEndpoint } from '@/lib/aiFetch';
+import { isSafeExternalUrl } from '@/lib/utils';
 import {
   Code, Play, Send, X, Copy, Check, Trash2,
   Rocket, Loader2, Save, Bot, Brain, Clock,
@@ -16,12 +17,12 @@ import {
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
   Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock,
-  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Wand2, GraduationCap
+  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Wand2, GraduationCap, XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import { ProjectType, PROJECT_SCAFFOLDS, CAPABILITY_OPTIONS } from './projectScaffolds';
+import { ProjectType, PROJECT_SCAFFOLDS } from './projectScaffolds';
 import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, type LintError, type AutocompleteItem, type SearchMatch } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
@@ -40,6 +41,12 @@ interface ChatMessage {
 }
 
 interface QAPair {
+  // Local-only React key, never written to or read from the generated
+  // code (the write-sync effect only ever emits q/a) — fixes deleting a
+  // middle Q&A pair jumping focus to the wrong input, since array-index
+  // keys made React reuse/reassign DOM nodes across a shifted list
+  // instead of tracking each pair by its own identity.
+  id: string;
   q: string;
   a: string;
 }
@@ -178,9 +185,109 @@ const TOKEN_COLORS: Record<Token['type'], string> = {
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// Every challenge's teaching comment shows an example value BEFORE the
+// real code (e.g. "#   RULES = [...]" as documentation, then the actual
+// `RULES = []` a few lines later) — every extractor below does a plain
+// text-search match, with no notion of "this is inside a # comment," so
+// it was matching the commented EXAMPLE first, not the student's real
+// answer. A completely untouched starter file would already read as
+// "done" for RULES, CATCHPHRASES, etc. Stripping comments first (reusing
+// the same tokenizer + multi-line-string tracking the syntax highlighter
+// already uses, so a "#" inside a triple-quoted string isn't mistaken for
+// a comment) fixes every existing and new extractor in this function at
+// once, since they all close over `code` from this scope.
+const stripComments = (raw: string): string => {
+  const lines = raw.split('\n');
+  let inMultiLineString = false;
+  let multiLineDelim = '"""';
+  return lines.map((line) => {
+    if (inMultiLineString) {
+      const closeIdx = line.indexOf(multiLineDelim);
+      if (closeIdx === -1) return line;
+      inMultiLineString = false;
+      const stringPart = line.slice(0, closeIdx + multiLineDelim.length);
+      const rest = line.slice(closeIdx + multiLineDelim.length);
+      const restStripped = tokenizeLine(rest).filter(t => t.type !== 'comment').map(t => t.value).join('');
+      return stringPart + restStripped;
+    }
+    // Counted on the COMMENT-STRIPPED line, not the raw one — a "'''" or
+    // '"""' that only ever appears inside a # comment (e.g. a teaching
+    // comment showing `#   SYSTEM_MESSAGE = """` as documentation) must
+    // never flip this into multi-line-string mode. Counting on the raw
+    // line was the bug: it treated every comment line mentioning a triple
+    // quote as if it opened a real string.
+    const strippedLine = tokenizeLine(line).filter(t => t.type !== 'comment').map(t => t.value).join('');
+    const tripleDoubleCount = (strippedLine.match(/"""/g) || []).length;
+    const tripleSingleCount = (strippedLine.match(/'''/g) || []).length;
+    if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+    else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+    return strippedLine;
+  }).join('\n');
+};
+
+// Comment-aware find-and-replace for the sidebar<->code sync effects below
+// (Knowledge Base, Q&A, System Prompt, Theme). Every FORGE scaffold shows a
+// teaching example of the real assignment inside a `#` comment BEFORE the
+// actual variable — e.g. the chatbot template's Challenge 5 comment shows
+// `#   SYSTEM_MESSAGE = """..."""` right above the real
+// `SYSTEM_MESSAGE = "..."` line. A plain regex.replace(code, ...) matches
+// whichever occurrence comes first — the comment — and either reads garbled
+// comment text into the sidebar, or (worse) rewrites the comment in place
+// while leaving the real variable untouched, so the student's edit
+// silently "doesn't stick." This locates the match against comment-stripped
+// text first, then replaces starting from that line in the original code —
+// so an earlier comment occurrence is structurally excluded, since the
+// slice searched for the replace no longer contains it.
+const replaceOutsideComments = (code: string, regex: RegExp, replacement: string): string | null => {
+  const stripped = stripComments(code);
+  const m = stripped.match(regex);
+  if (!m || m.index === undefined) return null;
+  const startLine = stripped.slice(0, m.index).split('\n').length - 1;
+  const rawLines = code.split('\n');
+  const before = rawLines.slice(0, startLine).join('\n');
+  const from = rawLines.slice(startLine).join('\n');
+  if (!regex.test(from)) return null;
+  const replaced = from.replace(regex, replacement);
+  return (startLine > 0 ? before + '\n' : '') + replaced;
+};
+
+// Locates the `[`/`{` immediately after `fromIndex` and its correctly-
+// matching closing bracket, skipping over the contents of quoted strings —
+// used by the list/dict extractors below instead of a lazy `\[...\]` regex,
+// which stops at the FIRST literal `]`/`}` anywhere, including one sitting
+// inside an item's own text (e.g. RULES = ["Use [brackets] carefully"]),
+// silently truncating or entirely emptying the extracted list/dict.
+const findBalancedBracket = (text: string, openChar: string, closeChar: string, fromIndex: number): { start: number; end: number } | null => {
+  const openIdx = text.indexOf(openChar, fromIndex);
+  if (openIdx === -1) return null;
+  let depth = 0;
+  let i = openIdx;
+  let inString: string | null = null;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') { i += 2; continue; }
+      if (ch === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'") { inString = ch; i++; continue; }
+    if (ch === openChar) depth++;
+    else if (ch === closeChar) {
+      depth--;
+      if (depth === 0) return { start: openIdx, end: i };
+    }
+    i++;
+  }
+  return null;
+};
+
+const unescapeQuoted = (s: string) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
 // Extract all config variables from the student's Python code
 // Supports both SCREAMING_CASE and snake_case variable names — pure function at module scope
-const extractConfigFromCode = (code: string) => {
+const extractConfigFromCode = (rawCode: string) => {
+  const code = stripComments(rawCode);
   const extract = (fallback: string, ...varNames: string[]) => {
     for (const name of varNames) {
       const tripleMatch = code.match(new RegExp(`${name}\\s*=\\s*"""([\\s\\S]*?)"""`));
@@ -194,72 +301,111 @@ const extractConfigFromCode = (code: string) => {
   };
   const extractNumber = (fallback: number, ...varNames: string[]) => {
     for (const name of varNames) {
-      const match = code.match(new RegExp(`${name}\\s*=\\s*([\\d.]+)`));
+      // Optional surrounding quotes and scientific notation — a student who
+      // quoted a numeric value (TEMPERATURE = "0.9", easy to do by muscle
+      // memory from every OTHER field being a string) used to fail this
+      // match entirely and silently fall through to `fallback`, with
+      // nothing to indicate their real value was ignored.
+      const match = code.match(new RegExp(`${name}\\s*=\\s*["']?(-?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?)["']?`));
       if (match) return parseFloat(match[1]);
     }
     return fallback;
   };
   const extractBool = (fallback: boolean, ...varNames: string[]) => {
     for (const name of varNames) {
-      const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`));
-      if (match) return match[1] === 'True';
+      // Case-insensitive — a student writing lowercase `true`/`false` (easy
+      // muscle memory from JS/most other languages) used to match nothing
+      // and silently fall back to the default with no signal the toggle
+      // didn't take effect.
+      const match = code.match(new RegExp(`${name}\\s*=\\s*(True|False)`, 'i'));
+      if (match) return match[1].toLowerCase() === 'true';
     }
     return fallback;
   };
+  // Quote-aware string matching: `"([^"]+)"|'([^']+)'` instead of a single
+  // `["']([^"']+)["']` — the latter excludes BOTH quote characters
+  // regardless of which one actually opened the string, so a double-quoted
+  // item containing an apostrophe ("let's go") gets truncated at the
+  // apostrophe as if it were the closing quote. Same bug class as the
+  // Challenge 28 f-string fix above, here in every list/dict extractor.
   const extractList = (...varNames: string[]): string[] => {
     for (const name of varNames) {
-      const match = code.match(new RegExp(`${name}\\s*=\\s*\\[([\\s\\S]*?)\\]`));
-      if (!match) continue;
+      const varMatch = code.match(new RegExp(`${name}\\s*=\\s*`));
+      if (!varMatch || varMatch.index === undefined) continue;
+      const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+      if (!bracket) continue;
+      const inner = code.slice(bracket.start + 1, bracket.end);
       const items: string[] = [];
-      const regex = /["']([^"']+)["']/g;
+      const regex = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) items.push(m[1]);
+      while ((m = regex.exec(inner)) !== null) items.push(unescapeQuoted(m[1] ?? m[2]));
       return items;
     }
     return [];
   };
   const extractDict = (...varNames: string[]): Record<string, string> => {
     for (const name of varNames) {
-      const match = code.match(new RegExp(`${name}\\s*=\\s*\\{([\\s\\S]*?)\\}`));
-      if (!match) continue;
+      const varMatch = code.match(new RegExp(`${name}\\s*=\\s*`));
+      if (!varMatch || varMatch.index === undefined) continue;
+      const bracket = findBalancedBracket(code, '{', '}', varMatch.index + varMatch[0].length);
+      if (!bracket) continue;
+      const inner = code.slice(bracket.start + 1, bracket.end);
       const result: Record<string, string> = {};
-      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
+      const regex = /(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
       let m;
-      while ((m = regex.exec(match[1])) !== null) result[m[1]] = m[2];
+      while ((m = regex.exec(inner)) !== null) result[unescapeQuoted(m[1] ?? m[2])] = unescapeQuoted(m[3] ?? m[4]);
       return result;
     }
     return {};
   };
   const extractQAPairs = (): Array<{q: string; a: string}> => {
-    const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
-    if (!match) return [];
+    const varMatch = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*/);
+    if (!varMatch || varMatch.index === undefined) return [];
+    const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+    if (!bracket) return [];
+    const inner = code.slice(bracket.start + 1, bracket.end);
     const pairs: Array<{q: string; a: string}> = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    // (?:[^"\\]|\\.)* — string content that allows escaped characters —
+    // not just [^"]+, which stopped at a LITERAL quote character even when
+    // it was backslash-escaped. Q&A text gets written with internal "
+    // escaped as \" (e.g. an answer containing She said "hi"), so the old
+    // pattern truncated the match there and dropped the pair entirely —
+    // same failure shape as the already-fixed apostrophe bug.
+    const regex = /\{\s*["']q["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*,\s*["']a["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\}/g;
     let m;
-    while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+    while ((m = regex.exec(inner)) !== null) pairs.push({ q: unescapeQuoted(m[1] ?? m[2]), a: unescapeQuoted(m[3] ?? m[4]) });
     return pairs;
   };
   const extractFewShotExamples = (): Array<{input: string; output: string}> => {
-    const match = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*\[([\s\S]*?)\]/);
-    if (!match) return [];
+    const varMatch = code.match(/(?:FEW_SHOT_EXAMPLES|few_shot_examples)\s*=\s*/);
+    if (!varMatch || varMatch.index === undefined) return [];
+    const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+    if (!bracket) return [];
+    const inner = code.slice(bracket.start + 1, bracket.end);
     const examples: Array<{input: string; output: string}> = [];
-    const regex = /\{\s*["']input["']\s*:\s*["']([^"']+)["']\s*,\s*["']output["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    const regex = /\{\s*["']input["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*,\s*["']output["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\}/g;
     let m;
-    while ((m = regex.exec(match[1])) !== null) examples.push({ input: m[1], output: m[2] });
+    while ((m = regex.exec(inner)) !== null) examples.push({ input: unescapeQuoted(m[1] ?? m[2]), output: unescapeQuoted(m[3] ?? m[4]) });
     return examples;
   };
   // Extract if/elif/else conditional blocks that set a target variable
   const extractConditionalVar = (targetVar: string): Record<string, string> => {
     const result: Record<string, string> = {};
+    // Bounded multi-line gap (not just [^\n]* on the SAME line) — a student
+    // adding a debug print (or a comment, or a blank line) between the
+    // `if:` and the real assignment is completely valid, working code, but
+    // used to make that one branch's value silently vanish, with the bug
+    // "randomly" only affecting whichever branch happened to have the extra
+    // line.
     const blockRegex = new RegExp(
-      `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+      `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
       'g'
     );
     let m;
     while ((m = blockRegex.exec(code)) !== null) {
       result[m[1]] = m[2];
     }
-    const elseRegex = new RegExp(`else\\s*:[^\\n]*\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
+    const elseRegex = new RegExp(`else\\s*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`);
     const elseMatch = code.match(elseRegex);
     if (elseMatch) result['__else__'] = elseMatch[1];
     return result;
@@ -272,9 +418,41 @@ const extractConfigFromCode = (code: string) => {
     const defMatch = code.match(new RegExp(`def\\s+${funcName}\\s*\\([^)]*\\)\\s*:[\\s\\S]*?return\\s+f?["'](.*)["']`));
     return defMatch ? defMatch[1] : '';
   };
-  // Challenge 26: detect a for-loop that builds TOPIC_KEYWORDS from QA_PAIRS
+  // Challenge 26: detect a for-loop that builds TOPIC_KEYWORDS from QA_PAIRS.
+  // The window was 200 chars, tuned to the boilerplate one-liner the
+  // scaffold ships — but the challenge explicitly invites elaborating on it
+  // (pulling keywords from both q and a, filtering short/duplicate words),
+  // and a natural, fully-correct version of that easily runs 300-500+ chars
+  // between the `for` line and `.append`. It was silently marking a
+  // student's improved, working solution as "✗ missing".
   const extractHasTopicKeywordsLoop = (): boolean =>
-    /for\s+\w+\s+in\s+QA_PAIRS\s*:[\s\S]{0,200}?TOPIC_KEYWORDS\.append/.test(code);
+    /for\s+\w+\s+in\s+QA_PAIRS\s*:[\s\S]{0,600}?TOPIC_KEYWORDS\.append/.test(code);
+  // Challenge 29: the fallback (2nd) argument of a `targetVar = dict.get(key, "...")`
+  // call — same greedy-then-backtrack quote matching as extractFunctionReturn,
+  // so an apostrophe inside the fallback text doesn't break the match.
+  const extractGetFallback = (targetVar: string): string => {
+    const m = code.match(new RegExp(`${targetVar}\\s*=\\s*\\w+\\.get\\([^,]+,\\s*["'](.*)["']\\s*\\)`));
+    return m ? m[1] : '';
+  };
+  // Challenge 27: a [...] containing `for X in Y` with no nested {}/[] —
+  // distinguishes a real list comprehension from a list-of-dicts literal
+  // like QA_PAIRS.
+  const extractHasListComprehension = (): boolean =>
+    /\[[^[\]{}]*\bfor\b\s+\w+\s+in\s+\w+[^[\]{}]*\]/.test(code);
+  // Challenge 28: a function taking a parameter whose return is an f-string
+  // that actually uses it — distinct from Challenge 25's no-argument function.
+  // Matched per-quote-style (not a single [^"'] exclusion) since a
+  // double-quoted f-string containing an apostrophe — "I'm", "let's" — is
+  // completely normal English and would otherwise break the match.
+  const extractHasParameterizedFunction = (): boolean =>
+    /def\s+\w+\s*\(\s*(\w+)[^)]*\)\s*:[\s\S]{0,300}?return\s+f(?:"[^"]*\{\1\}[^"]*"|'[^']*\{\1\}[^']*')/.test(code);
+  // Challenge 29: a safe dict lookup with a fallback (.get(key, default)).
+  const extractHasSafeDictLookup = (): boolean =>
+    /\.get\(\s*\w+\s*,\s*["']/.test(code);
+  // Challenge 30: an accumulator loop — a for-loop whose body increments a
+  // counter with += — distinct from Challenge 26's .append()-building loop.
+  const extractHasAccumulatorLoop = (): boolean =>
+    /for\s+\w+\s+in\s+\w+\s*:[\s\S]{0,150}?\w+\s*\+=\s*\d/.test(code);
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -316,6 +494,13 @@ const extractConfigFromCode = (code: string) => {
     responseToneConditional: extractConditionalVar('RESPONSE_TONE'),
     fallbackMessage: extractFunctionReturn('FALLBACK_MESSAGE'),
     hasTopicKeywordsLoop: extractHasTopicKeywordsLoop(),
+    hasListComprehension: extractHasListComprehension(),
+    phraseIdeas: extractList('PHRASE_IDEAS'),
+    hasParameterizedFunction: extractHasParameterizedFunction(),
+    personalizedIntro: extractFunctionReturn('PERSONALIZED_INTRO'),
+    hasSafeDictLookup: extractHasSafeDictLookup(),
+    moodInstruction: extractGetFallback('MOOD_INSTRUCTION'),
+    hasAccumulatorLoop: extractHasAccumulatorLoop(),
   };
 };
 
@@ -428,11 +613,15 @@ const CountdownWidget = ({ hackathonStartDate, hackathonStatus }: { hackathonSta
     let startTime: number;
     if (hackathonStartDate) {
       startTime = new Date(hackathonStartDate).getTime();
-      // Sanity: if start_date is in the future, show 00:00:00
-      if (startTime > Date.now()) {
-        setElapsed({ h: 0, m: 0, s: 0 });
-        return;
-      }
+      // No early return for a future start_date — tick() below already
+      // clamps to 0 via Math.max(0, Date.now() - startTime) and will
+      // naturally start counting up the moment real time passes it, AS
+      // LONG AS the interval further down actually gets registered.
+      // Returning early here used to skip that registration entirely, so
+      // nothing ever re-checked the clock: a student who opened Build
+      // Studio before the event started would see the widget freeze at
+      // 00:00:00 and stay stuck there indefinitely, even well after the
+      // hackathon had actually gone live.
     } else {
       // Fallback to localStorage only if no hackathon data
       const stored = localStorage.getItem('forge-session-start');
@@ -484,7 +673,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [projectType, setProjectType] = useState<ProjectType>(initialType || 'chatbot');
   const [projectName, setProjectName] = useState('My AI Project');
   const [systemPrompt, setSystemPrompt] = useState(PROJECT_SCAFFOLDS[initialType || 'chatbot'].systemPrompt);
-  const [capabilities, setCapabilities] = useState<string[]>(PROJECT_SCAFFOLDS[initialType || 'chatbot'].capabilities);
   const [showConfig, setShowConfig] = useState(() => !isMobile && window.innerWidth >= 1024);
   const [showPreview, setShowPreview] = useState(!isMobile);
   const [configTab, setConfigTab] = useState<ConfigTab>('settings');
@@ -492,8 +680,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Knowledge base state
   const [knowledgeBase, setKnowledgeBase] = useState(() => localStorage.getItem('forge-knowledge-base') || '');
   const [qaData, setQaData] = useState<QAPair[]>(() => {
-    try { const stored = localStorage.getItem('forge-qa-data'); return stored ? JSON.parse(stored) : []; }
-    catch { return []; }
+    try {
+      const stored = localStorage.getItem('forge-qa-data');
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      // Backfill id for pairs saved before that field existed — a
+      // returning student's localStorage predates it entirely, and every
+      // pair sharing the same `undefined` key would break React's list
+      // reconciliation for the whole sidebar, not just the new bug this id
+      // was added to fix.
+      return (Array.isArray(parsed) ? parsed : []).map((p: any) => ({ id: p?.id ?? crypto.randomUUID(), q: p?.q ?? '', a: p?.a ?? '' }));
+    } catch { return []; }
   });
 
   // Theme state
@@ -502,13 +699,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (stored) { try { return JSON.parse(stored); } catch {} }
     return THEMES[0];
   });
-  const [welcomeMessage, setWelcomeMessage] = useState(() => localStorage.getItem('forge-welcome-msg') || 'Hi! Ask me anything.');
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('forge-logo-url') || '');
-  const [quickReplies, setQuickReplies] = useState<string[]>(() => {
-    try { const stored = localStorage.getItem('forge-quick-replies'); return stored ? JSON.parse(stored) : ['Hello!', 'What can you do?', 'Help me with something']; }
-    catch { return ['Hello!', 'What can you do?', 'Help me with something']; }
-  });
-  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(['welcome', 'branding', 'codeview']);
 
   // File state
   const [activeFile, setActiveFile] = useState<FileTab>('main.py');
@@ -527,6 +718,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return Object.keys(files).some(key => files[key as FileTab] !== savedFiles[key]);
   }, [files, savedFiles]);
 
+  // isDirty was already tracked (drives the "Save" button, the autosave
+  // countdown reset, etc.) but nothing ever warned before closing/
+  // navigating away with it still true — a ref so the listener always
+  // checks the CURRENT value instead of whatever isDirty was when the
+  // effect first registered.
+  const isDirtyForUnloadRef = useRef(isDirty);
+  isDirtyForUnloadRef.current = isDirty;
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isDirtyForUnloadRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'system', content: '⚡ Project initialized. Click "Run Tests" or type a message to test your AI.' },
   ]);
@@ -537,6 +745,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Voice assistant state
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // Mirrors isSpeaking for recognition.onresult below, which is set up once
+  // per listening session (long-lived, not re-created every render) and
+  // would otherwise see whatever isSpeaking was at that moment forever.
+  const isSpeakingRef = useRef(false);
+  useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [voiceConversationMode, setVoiceConversationMode] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -545,6 +758,42 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const wakeWordRef = useRef<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => localStorage.getItem('forge-current-project-id'));
+  // Baseline version for save-conflict detection — updated on load and after
+  // every successful save; a stale value here means another tab/device saved
+  // in between, and save_own_project will reject the write instead of
+  // silently clobbering it.
+  const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState<string | null>(null);
+  // Without this, autosave (every 2 minutes) re-hits the same CONFLICT and
+  // re-shows the toast indefinitely once one occurs, since nothing else
+  // updates lastKnownUpdatedAt until the student actually reloads or saves
+  // successfully. Reset on a successful save; deliberately NOT fed by the
+  // is_published poll below — silently adopting a newer timestamp there
+  // would defeat the whole point of conflict detection by making the next
+  // save's stale-check pass even though the local edits are still stale.
+  const conflictAlertedRef = useRef(false);
+  // ── Publish-state visibility — a judge/organizer taking a project
+  // offline (toggle_project_publish) used to be completely invisible in
+  // Build Studio: nothing here tracked is_published at all, so the "Go
+  // Live" button looked identical whether the project was live or had
+  // just been pulled. Polled (not realtime) for the same reason
+  // reward_boxes polls instead of subscribing — RLS on ai_projects is
+  // published-only, so realtime can't reliably push the exact transition
+  // this needs to catch. ──
+  const [isPublished, setIsPublished] = useState(false);
+  const [takenOfflineNotice, setTakenOfflineNotice] = useState(false);
+  const publishBaselinedRef = useRef(false);
+  const applyPublishState = useCallback((nowPublished: boolean) => {
+    setIsPublished(prevPublished => {
+      // Only warn on a TRUE -> false transition, once a baseline is
+      // established — a brand-new, never-published project is also
+      // is_published === false, and that's normal, not a "taken offline".
+      if (publishBaselinedRef.current && prevPublished && !nowPublished) {
+        setTakenOfflineNotice(true);
+      }
+      publishBaselinedRef.current = true;
+      return nowPublished;
+    });
+  }, []);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [authorEmail, setAuthorEmail] = useState(() => {
     const stored = localStorage.getItem('forge-student-email');
@@ -594,6 +843,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [showReplace, setShowReplace] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // ── Problems panel — clickable list of lint issues, not just a count ──
+  const [problemsPanelOpen, setProblemsPanelOpen] = useState(false);
 
   // ── Autocomplete state ──
   const [autocompleteItems, setAutocompleteItems] = useState<AutocompleteItem[]>([]);
@@ -636,32 +887,96 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (initialCode) return; // Fresh template selected — don't overwrite with old project
     const savedId = localStorage.getItem('forge-current-project-id');
-    if (!savedId) return;
-    supabase.from('ai_projects').select('id, code, template_id, project_name, description').eq('id', savedId).maybeSingle().then(({ data, error }) => {
+    // forge-editor-code is tagged with the project id it was written for
+    // (see updateFile) — only ever trust it for the project it actually
+    // matches, so a leftover draft from a different/earlier project can't
+    // silently bleed into whatever loads next.
+    const readDraft = (): { projectId: string | null; code: string } | null => {
+      const raw = localStorage.getItem('forge-editor-code');
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.code === 'string') return { projectId: parsed.projectId ?? null, code: parsed.code };
+        return null;
+      } catch {
+        return { projectId: null, code: raw }; // pre-tagging format: a bare code string
+      }
+    };
+    if (!savedId) {
+      // Nothing checkpointed to the DB yet, but every keystroke already
+      // writes to 'forge-editor-code' (see updateFile) — without this, a
+      // student who types for 20 minutes and refreshes/closes the tab
+      // before their FIRST "Save Checkpoint" loses everything, despite the
+      // code visibly appearing to persist on every keystroke.
+      // Deliberately does NOT touch savedFiles — this draft was never
+      // actually saved server-side, so isDirty should (correctly) still
+      // read true and prompt them to save it for real.
+      const draft = readDraft();
+      if (draft && draft.projectId === null && draft.code.trim()) {
+        setFiles(prev => ({ ...prev, 'main.py': draft.code }));
+        if (textareaRef.current) textareaRef.current.value = draft.code;
+      }
+      return;
+    }
+    // ai_projects' public SELECT policy is published-only — an in-progress
+    // (unpublished) draft needs the owner-checked RPC, not a raw table read.
+    supabase.rpc('get_own_project_by_id', { p_project_id: savedId, p_participant_email: authorEmail }).then(({ data, error }) => {
+      const draft = readDraft();
+      const localDraftForThisProject = draft && draft.projectId === savedId ? draft.code : null;
       if (error || !data) {
         localStorage.removeItem('forge-current-project-id');
+        // Server copy is unreachable/gone, but a same-project local draft is
+        // still real, unsaved work sitting right there — losing it on top of
+        // a fetch failure would be the worst version of this bug.
+        if (localDraftForThisProject && localDraftForThisProject.trim()) {
+          setFiles(prev => ({ ...prev, 'main.py': localDraftForThisProject }));
+          if (textareaRef.current) textareaRef.current.value = localDraftForThisProject;
+        }
         return;
       }
       setCurrentProjectId(data.id);
+      setLastKnownUpdatedAt(data.updated_at ?? null);
       if (data.code) {
-        setFiles(prev => ({ ...prev, 'main.py': data.code }));
+        // A local draft for this exact project that differs from the server
+        // copy is, by construction, an edit made sometime after the last
+        // successful save (updateFile writes it on every keystroke) — server
+        // data used to win unconditionally here, silently discarding newer
+        // unsaved work on every reload after a project's first save.
+        // savedFiles still baselines to the server copy (not the draft), so
+        // isDirty correctly keeps prompting to save it for real.
+        const effectiveCode = (localDraftForThisProject && localDraftForThisProject !== data.code) ? localDraftForThisProject : data.code;
+        setFiles(prev => ({ ...prev, 'main.py': effectiveCode }));
         setSavedFiles(prev => ({ ...prev, 'main.py': data.code }));
-        if (textareaRef.current) textareaRef.current.value = data.code;
+        if (textareaRef.current) textareaRef.current.value = effectiveCode;
       }
       if (data.template_id && (data.template_id === 'chatbot' || data.template_id === 'agent')) {
         setProjectType(data.template_id as ProjectType);
       }
       if (data.project_name) setProjectName(data.project_name);
+      applyPublishState(!!data.is_published);
     });
   }, []);
+
+  // Light poll for is_published flipping true -> false out from under the
+  // student (a judge/organizer took the project offline mid-session) — see
+  // applyPublishState above for why this is polling, not realtime.
+  useEffect(() => {
+    if (!currentProjectId) return;
+    const checkPublishState = () => {
+      supabase.rpc('get_own_project_by_id', { p_project_id: currentProjectId, p_participant_email: authorEmail }).then(({ data }) => {
+        if (data) applyPublishState(!!data.is_published);
+      });
+    };
+    checkPublishState();
+    const id = setInterval(checkPublishState, 25000);
+    return () => clearInterval(id);
+  }, [currentProjectId, authorEmail, applyPublishState]);
 
   // Persist knowledge/QA/theme to localStorage AND sync to code
   useEffect(() => { localStorage.setItem('forge-knowledge-base', knowledgeBase); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem('forge-qa-data', JSON.stringify(qaData)); }, [qaData]);
   useEffect(() => { localStorage.setItem('forge-theme', JSON.stringify(selectedTheme)); }, [selectedTheme]);
-  useEffect(() => { localStorage.setItem('forge-welcome-msg', welcomeMessage); }, [welcomeMessage]);
   useEffect(() => { localStorage.setItem('forge-logo-url', logoUrl); }, [logoUrl]);
-  useEffect(() => { localStorage.setItem('forge-quick-replies', JSON.stringify(quickReplies)); }, [quickReplies]);
 
   // Sync sidebar Knowledge Base text → code's KNOWLEDGE_BASE variable
   const prevKnowledgeRef = useRef(knowledgeBase);
@@ -672,69 +987,129 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const code = prev['main.py'];
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
-      const varName = code.match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
-      if (tripleRegex.test(code)) {
-        return { ...prev, 'main.py': code.replace(tripleRegex, `${varName} = """${knowledgeBase}"""`) };
-      } else if (singleRegex.test(code)) {
+      const varName = stripComments(code).match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
+      let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${knowledgeBase}"""`);
+      if (updated === null) {
         if (knowledgeBase.includes('\n')) {
-          return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = """${knowledgeBase}"""`) };
+          updated = replaceOutsideComments(code, singleRegex, `${varName} = """${knowledgeBase}"""`);
         } else {
           const escaped = knowledgeBase.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          return { ...prev, 'main.py': code.replace(singleRegex, `${varName} = "${escaped}"`) };
+          updated = replaceOutsideComments(code, singleRegex, `${varName} = "${escaped}"`);
         }
       }
-      return prev;
+      return updated !== null ? { ...prev, 'main.py': updated } : prev;
     });
   }, [knowledgeBase]);
 
   // Read knowledge base from code when code changes (skip during typing)
   useEffect(() => {
     if (isTypingRef.current) return;
-    const code = files['main.py'];
+    // stripComments first — every FORGE scaffold shows a commented teaching
+    // example of this assignment ABOVE the real one (e.g. the chatbot
+    // template's Challenge 6 comment), and a plain match() against raw code
+    // would find that example first and read garbled comment text into the
+    // sidebar on a completely untouched project.
+    const code = stripComments(files['main.py']);
     const tripleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/);
     const match = tripleMatch || singleMatch;
-    if (match && match[1] !== prevKnowledgeRef.current) {
-      prevKnowledgeRef.current = match[1];
-      setKnowledgeBase(match[1]);
+    if (match) {
+      // Same unescape the System Prompt read-back already does (line
+      // ~955) — the write effect above escapes \ and " when building the
+      // single-line form, but this read-back never undid it, so typing a
+      // quote into Knowledge Base round-tripped as a literal backslash and
+      // re-escaped further on every subsequent edit.
+      const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      if (unescaped !== prevKnowledgeRef.current) {
+        prevKnowledgeRef.current = unescaped;
+        setKnowledgeBase(unescaped);
+      }
     }
   }, [files['main.py']]);
 
-  // Sync sidebar Q&A pairs → code's QA_PAIRS variable
-  const prevQARef = useRef(JSON.stringify(qaData));
+  // Sync sidebar Q&A pairs → code's QA_PAIRS variable. prevQARef is shared
+  // with the read-back effect below (both directions need one consistent
+  // "last known content" baseline to avoid a write->read->write loop) — it
+  // deliberately compares q/a content only, never `id`, since id is a
+  // local-only React key that's meaningless to either sync direction.
+  const prevQARef = useRef(JSON.stringify(qaData.map(p => ({ q: p.q, a: p.a }))));
   useEffect(() => {
-    const serialized = JSON.stringify(qaData);
+    const serialized = JSON.stringify(qaData.map(p => ({ q: p.q, a: p.a })));
     if (prevQARef.current === serialized) return;
     prevQARef.current = serialized;
     const validPairs = qaData.filter(p => p.q.trim() && p.a.trim());
     setFiles(prev => {
       const code = prev['main.py'];
-      const qaRegex = /(?:QA_PAIRS|qa_pairs)\s*=\s*\[[\s\S]*?\]/;
-      const varName = code.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
-      if (qaRegex.test(code)) {
-        const pairsStr = validPairs.length === 0 
-          ? '[]' 
-          : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
-        return { ...prev, 'main.py': code.replace(qaRegex, `${varName} = ${pairsStr}`) };
-      }
-      return prev;
+      const stripped = stripComments(code);
+      const varName = stripped.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
+      const pairsStr = validPairs.length === 0
+        ? '[]'
+        : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
+      // Comment-anchored (like replaceOutsideComments) AND balanced-bracket-
+      // aware for the END boundary — a lazy \[...\] regex here would stop
+      // replacing at the first closing bracket inside an EXISTING pair's
+      // answer text (e.g. "[S02E05]"), leaving a corrupted trailing fragment
+      // of the old list appended after the new one instead of a clean
+      // replacement.
+      const varMatch = stripped.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*/);
+      if (!varMatch || varMatch.index === undefined) return prev;
+      const startLine = stripped.slice(0, varMatch.index).split('\n').length - 1;
+      const rawLines = code.split('\n');
+      const before = rawLines.slice(0, startLine).join('\n');
+      const from = rawLines.slice(startLine).join('\n');
+      const fromVarMatch = from.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*/);
+      if (!fromVarMatch || fromVarMatch.index === undefined) return prev;
+      const bracket = findBalancedBracket(from, '[', ']', fromVarMatch.index + fromVarMatch[0].length);
+      if (!bracket) return prev;
+      const updatedFrom = from.slice(0, fromVarMatch.index) + `${varName} = ${pairsStr}` + from.slice(bracket.end + 1);
+      const updated = (startLine > 0 ? before + '\n' : '') + updatedFrom;
+      return { ...prev, 'main.py': updated };
     });
   }, [qaData]);
 
   // Read Q&A pairs from code when code changes (skip during typing)
   useEffect(() => {
     if (isTypingRef.current) return;
-    const code = files['main.py'];
-    const match = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*\[([\s\S]*?)\]/);
-    if (!match) return;
-    const pairs: QAPair[] = [];
-    const regex = /\{\s*["']q["']\s*:\s*["']([^"']+)["']\s*,\s*["']a["']\s*:\s*["']([^"']+)["']\s*\}/g;
+    // stripComments first — the chatbot scaffold's Challenge 7 comment shows
+    // a two-pair QA_PAIRS example above the real (empty) `QA_PAIRS = []`;
+    // matching raw code read those placeholder pairs into the sidebar as if
+    // the student had already answered them.
+    const code = stripComments(files['main.py']);
+    const varMatch = code.match(/(?:QA_PAIRS|qa_pairs)\s*=\s*/);
+    if (!varMatch || varMatch.index === undefined) return;
+    // Balanced-bracket-aware, not a lazy \[...\] regex — the latter stops at
+    // the first closing bracket character it finds anywhere, including one
+    // sitting inside a pair's own answer text (e.g. "Check out episode
+    // [S02E05]!"), which silently dropped every pair from that point on,
+    // not just the one containing a bracket.
+    const bracket = findBalancedBracket(code, '[', ']', varMatch.index + varMatch[0].length);
+    if (!bracket) return;
+    const inner = code.slice(bracket.start + 1, bracket.end);
+    // q/a only — id gets assigned fresh below, ONLY when content actually
+    // changed, so an unrelated re-run of this effect (e.g. a code edit
+    // elsewhere in the file) doesn't regenerate every pair's id and
+    // needlessly remount the whole sidebar list.
+    const pairs: { q: string; a: string }[] = [];
+    // Quote-aware (matches extractQAPairs above) — the single-exclusion
+    // ["']([^"']+)["'] this used to be truncates at the first apostrophe,
+    // which made the whole {...} fail to match and silently DROPPED the
+    // pair from qaData on every keystroke for any answer containing "I'm",
+    // "don't", etc. — the student would watch their own answer vanish
+    // from the sidebar as they typed it.
+    // (?:[^"\\]|\\.)* — string content that allows escaped characters —
+    // not just [^"]+, which stopped at a LITERAL quote character even when
+    // it was backslash-escaped. Q&A text gets written with internal "
+    // escaped as \" (e.g. an answer containing She said "hi"), so the old
+    // pattern truncated the match there and dropped the pair entirely —
+    // same failure shape as the already-fixed apostrophe bug.
+    const regex = /\{\s*["']q["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*,\s*["']a["']\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*\}/g;
+    const unescapeQA = (s: string) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
     let m;
-    while ((m = regex.exec(match[1])) !== null) pairs.push({ q: m[1], a: m[2] });
+    while ((m = regex.exec(inner)) !== null) pairs.push({ q: unescapeQA(m[1] ?? m[2]), a: unescapeQA(m[3] ?? m[4]) });
     const newSerialized = JSON.stringify(pairs);
     if (newSerialized !== prevQARef.current) {
       prevQARef.current = newSerialized;
-      setQaData(pairs);
+      setQaData(pairs.map(p => ({ id: crypto.randomUUID(), ...p })));
     }
   }, [files['main.py']]);
 
@@ -746,19 +1121,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setFiles(prev => {
       const code = prev['main.py'];
       const regex = /(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/;
-      if (regex.test(code)) {
-        const varName = code.match(/APP_THEME\s*=/) ? 'APP_THEME' : 'app_theme';
-        const updated = code.replace(regex, `${varName} = "${selectedTheme.id}"`);
-        if (updated !== code) return { ...prev, 'main.py': updated };
-      }
-      return prev;
+      const varName = stripComments(code).match(/APP_THEME\s*=/) ? 'APP_THEME' : 'app_theme';
+      const updated = replaceOutsideComments(code, regex, `${varName} = "${selectedTheme.id}"`);
+      return updated !== null && updated !== code ? { ...prev, 'main.py': updated } : prev;
     });
   }, [selectedTheme.id]);
 
   // Read theme from code when code changes (skip during typing)
   useEffect(() => {
     if (isTypingRef.current) return;
-    const code = files['main.py'];
+    const code = stripComments(files['main.py']);
     const match = code.match(/(?:APP_THEME|app_theme)\s*=\s*["']([^"']*)["']/);
     if (match && match[1] && match[1] !== themeSyncRef.current) {
       const found = THEMES.find(t => t.id === match[1]);
@@ -818,22 +1190,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // Support SYSTEM_MESSAGE, system_message, SYSTEM_PROMPT
         const tripleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/;
         const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
-        const varName = code.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : code.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-        if (tripleRegex.test(code)) {
-          const updated = code.replace(tripleRegex, `${varName} = """${systemPrompt}"""`);
-          return { ...prev, 'main.py': updated };
-        } else if (singleRegex.test(code)) {
+        const strippedForName = stripComments(code);
+        const varName = strippedForName.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : strippedForName.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
+        let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${systemPrompt}"""`);
+        if (updated === null) {
           const needsTriple = systemPrompt.includes('\n');
           if (needsTriple) {
-            const updated = code.replace(singleRegex, `${varName} = """${systemPrompt}"""`);
-            return { ...prev, 'main.py': updated };
+            updated = replaceOutsideComments(code, singleRegex, `${varName} = """${systemPrompt}"""`);
           } else {
             const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            const updated = code.replace(singleRegex, `${varName} = "${escaped}"`);
-            return { ...prev, 'main.py': updated };
+            updated = replaceOutsideComments(code, singleRegex, `${varName} = "${escaped}"`);
           }
         }
-        return prev;
+        return updated !== null ? { ...prev, 'main.py': updated } : prev;
       });
       prevSystemPromptRef.current = systemPrompt;
     }
@@ -842,7 +1211,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Read system prompt from code when code changes (skip during typing)
   useEffect(() => {
     if (isTypingRef.current) return;
-    const code = files['main.py'];
+    // stripComments first — the chatbot scaffold's Challenge 5 comment shows
+    // an unescaped triple-quoted SYSTEM_MESSAGE example directly above the
+    // real single-quoted assignment; matching raw code read that comment's
+    // placeholder text (literal "#" characters included) into the sidebar
+    // System Prompt field on a completely untouched project.
+    const code = stripComments(files['main.py']);
     const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
     const match = tripleMatch || singleMatch;
@@ -859,7 +1233,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const scaffold = PROJECT_SCAFFOLDS[type];
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
-    setCapabilities(scaffold.capabilities);
     setFiles({
       'main.py': scaffold.main,
       'config.json': scaffold.config,
@@ -881,14 +1254,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Clear project ID to prevent cross-template overwrites on save
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
+    // Also drop the old draft — otherwise a reload before the next keystroke
+    // could resurrect the pre-switch code (it was tagged projectId: null too).
+    localStorage.removeItem('forge-editor-code');
+    // A pending debounced snapshot from typing right before switching would
+    // otherwise fire after this and push the pre-switch content back onto
+    // lastSnapshotRef, letting a later Undo resurrect the discarded template.
+    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
     setKnowledgeBase('');
     setQaData([]);
     // Reset Design tab state to avoid leaking across templates
     setSelectedTheme(THEMES[0]);
-    setWelcomeMessage('Hi! Ask me anything.');
     setLogoUrl('');
-    setQuickReplies(['Hello!', 'What can you do?', 'Help me with something']);
-    setEnabledWidgets(['welcome', 'branding', 'codeview']);
     // Reset refs
     prevSystemPromptRef.current = scaffold.systemPrompt;
     prevKnowledgeRef.current = '';
@@ -910,6 +1287,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const scaffold = PROJECT_SCAFFOLDS[projectType];
     const confirmMsg = 'Reset to original template? Your current edits will be lost.';
     if (!window.confirm(confirmMsg)) return;
+    // window.confirm blocks the event loop long enough for a pending
+    // debounced snapshot (from typing right before Reset) to still be
+    // queued — left running, it fires right after this completes and sets
+    // lastSnapshotRef back to the pre-reset text, letting Ctrl+Z resurrect
+    // code this action explicitly says is not undoable.
+    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
     // Clear undo/redo stacks — reset is not undoable (prevents stale state restoration)
     undoStackRef.current = [];
     redoStackRef.current = [];
@@ -933,12 +1316,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Clear project ID on reset so next save creates a fresh project
     setCurrentProjectId(null);
     localStorage.removeItem('forge-current-project-id');
+    // Also drop the old draft — otherwise a reload before the next keystroke
+    // could resurrect the pre-reset code (it was tagged projectId: null too).
+    localStorage.removeItem('forge-editor-code');
     toast.success('🔄 Code reset to original template');
   }, [projectType, files]);
-
-  const toggleCapability = (cap: string) => {
-    setCapabilities(prev => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap]);
-  };
 
   const updateFile = (content: string) => {
     // Mark as typing to suppress read-back effects
@@ -946,43 +1328,65 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(() => { isTypingRef.current = false; }, 800);
 
-    // Snapshot for undo: debounce to avoid storing every keystroke
-    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
-    snapshotTimerRef.current = setTimeout(() => {
-      if (lastSnapshotRef.current !== content) {
-        undoStackRef.current.push(lastSnapshotRef.current);
-        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
-        redoStackRef.current = [];
-        lastSnapshotRef.current = content;
-      }
-    }, 500);
+    // Snapshot for undo: debounce to avoid storing every keystroke. Scoped
+    // to main.py only — undoStackRef/redoStackRef/lastSnapshotRef and
+    // handleUndo/handleRedo all assume "main.py" unconditionally. Pushing a
+    // snapshot while config.json/requirements.txt is the active tab used to
+    // silently corrupt that stack with the wrong file's text, so pressing
+    // Ctrl+Z back on main.py could overwrite a student's code with JSON.
+    if (activeFile === 'main.py') {
+      if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = setTimeout(() => {
+        if (lastSnapshotRef.current !== content) {
+          undoStackRef.current.push(lastSnapshotRef.current);
+          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+          redoStackRef.current = [];
+          lastSnapshotRef.current = content;
+        }
+      }, 500);
+    }
 
     // Update state immediately — isTypingRef guards prevent effect cascade
     setFiles(prev => ({ ...prev, [activeFile]: content }));
 
-    // Sync to localStorage immediately (lightweight)
+    // Sync to localStorage immediately (lightweight). Tagged with the
+    // project id it belongs to (or null pre-first-save) — a bare code
+    // string here couldn't tell "unsaved edits on THIS project" apart from
+    // stale leftovers from a different project that happened to be open
+    // last, which risked bleeding one project's draft into another's on
+    // load (see the mount-restore effect below).
     if (activeFile === 'main.py') {
-      localStorage.setItem('forge-editor-code', content);
+      localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: content }));
     }
   };
 
   const handleUndo = useCallback(() => {
-    if (undoStackRef.current.length === 0) return;
+    // Defensive — the stack itself is now only ever populated while on
+    // main.py (see updateFile), but guard here too in case Undo is
+    // triggered via keyboard shortcut while another tab is active.
+    if (activeFile !== 'main.py' || undoStackRef.current.length === 0) return;
+    // A pending 500ms-debounced snapshot from updateFile can still be queued
+    // right after a fast keystroke — left running, it fires after this undo
+    // completes, pushes the just-undone (stale) content back onto the undo
+    // stack, and wipes redoStackRef, silently breaking Redo for this edit.
+    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
     const prev = undoStackRef.current.pop()!;
     redoStackRef.current.push(files['main.py']);
     lastSnapshotRef.current = prev;
     setFiles(f => ({ ...f, 'main.py': prev }));
     if (textareaRef.current) textareaRef.current.value = prev;
-  }, [files]);
+  }, [files, activeFile]);
 
   const handleRedo = useCallback(() => {
-    if (redoStackRef.current.length === 0) return;
+    if (activeFile !== 'main.py' || redoStackRef.current.length === 0) return;
+    // Same stale-timer race as handleUndo above.
+    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
     const next = redoStackRef.current.pop()!;
     undoStackRef.current.push(files['main.py']);
     lastSnapshotRef.current = next;
     setFiles(f => ({ ...f, 'main.py': next }));
     if (textareaRef.current) textareaRef.current.value = next;
-  }, [files]);
+  }, [files, activeFile]);
 
   // ── Global keyboard shortcuts (handled by ref-based handler at line ~1818) ──
 
@@ -1008,6 +1412,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (!file) return;
     if (!file.name.endsWith('.py')) {
       toast.error('Please upload a .py file');
+      return;
+    }
+    if (file.size > 256 * 1024) {
+      toast.error('That file is too large — main.py should be well under 256KB');
       return;
     }
     const reader = new FileReader();
@@ -1188,16 +1596,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         return `<span class="${TOKEN_COLORS.string}">${escapeHtml(line)}</span>`;
       }
       
-      const tripleDoubleCount = (line.match(/"""/g) || []).length;
-      const tripleSingleCount = (line.match(/'''/g) || []).length;
-      
       const tokens = tokenizeLine(line);
       let result = tokens.map(t => {
         const escaped = escapeHtml(t.value);
         if (t.type === 'text') return escaped;
         return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
       }).join('');
-      
+
+      // Counted on the non-comment tokens only — a triple-quote that only
+      // ever appears inside a # comment (e.g. a teaching comment showing
+      // `#   SYSTEM_MESSAGE = """` as documentation) must never flip this
+      // into multi-line-string mode, or every comment line after it
+      // renders solid green as if it were string content. Counting on the
+      // raw line was the bug.
+      const codeOnly = tokens.filter(t => t.type !== 'comment').map(t => t.value).join('');
+      const tripleDoubleCount = (codeOnly.match(/"""/g) || []).length;
+      const tripleSingleCount = (codeOnly.match(/'''/g) || []).length;
       if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
       else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
 
@@ -1240,10 +1654,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [tutorialActive, tutorialStep, files['main.py']]);
 
 
-  const addQA = () => setQaData(prev => [...prev, { q: '', a: '' }]);
-  const removeQA = (idx: number) => setQaData(prev => prev.filter((_, i) => i !== idx));
-  const updateQA = (idx: number, field: 'q' | 'a', value: string) => {
-    setQaData(prev => prev.map((pair, i) => i === idx ? { ...pair, [field]: value } : pair));
+  const addQA = () => setQaData(prev => [...prev, { id: crypto.randomUUID(), q: '', a: '' }]);
+  const removeQA = (id: string) => setQaData(prev => prev.filter(p => p.id !== id));
+  const updateQA = (id: string, field: 'q' | 'a', value: string) => {
+    setQaData(prev => prev.map(pair => pair.id === id ? { ...pair, [field]: value } : pair));
   };
 
   // Abort ref for cancelling in-flight chat/mentor requests
@@ -1251,6 +1665,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Stream AI response helper
   const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal): Promise<string> => {
+    // The sidebar shows "AI Calls: X / Limit: 40 per session" — until now
+    // that "Limit" was purely decorative, since nothing anywhere ever read
+    // aiCallCount to stop a call. This is still just a per-tab soft guard
+    // (a refresh resets it, and the real backstop is the shared
+    // acquire_ai_slot concurrency semaphore server-side), but at least the
+    // number on screen now means what it says within one session.
+    if (aiCallCount >= 40) {
+      throw new Error("You've hit this session's 40 AI-call guide rail. Reload the page to reset it, or take a short break — your code and saves are unaffected.");
+    }
     const controller = new AbortController();
     const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -1381,6 +1804,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // Reset retry counter on any successful recognition result
       retryCountRef.current = 0;
 
+      // Without headphones, the mic can pick up the bot's own spoken reply
+      // mid-playback and resubmit it as if the student said it — the bot
+      // ends up talking to itself. isStreaming was already false by the
+      // time speakText() plays (the AI response has already finished
+      // streaming), so that alone didn't cover this window.
+      if (isSpeakingRef.current) return;
+
       if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
           waitingForWakeWordRef.current = false;
@@ -1498,11 +1928,36 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, []);
 
   const handleRun = async () => {
+    if (isRunning) return; // Prevent concurrent runs (Ctrl+Enter can bypass the button's disabled state)
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
     setIsRunning(true);
     setShowBottomPanel(true);
     setBottomTab('terminal');
-    
+
+    // Real Python refuses to run a script with a syntax error — this used
+    // to unconditionally simulate a chat response regardless of whether
+    // the code was even valid, so a missing colon or an unclosed bracket
+    // still printed "✅ All tests passed!". Call lintPython directly here
+    // (not the memoized `lintErrors`, which returns [] whenever a
+    // different file tab happens to be active) so this check always
+    // reflects main.py's actual current content.
+    const syntaxErrors = lintPython(files['main.py']).filter(e => e.severity === 'error');
+    if (syntaxErrors.length > 0) {
+      setTerminalOutput(prev => [
+        ...prev.slice(-150),
+        `$ python main.py  [${projectType}]`,
+        ``,
+        `Traceback (most recent call last):`,
+        ...syntaxErrors.slice(0, 5).map(e => `  File "main.py", line ${e.line + 1}\n    ${e.message}`),
+        ``,
+        `❌ ${syntaxErrors.length} syntax error${syntaxErrors.length !== 1 ? 's' : ''} — fix ${syntaxErrors.length !== 1 ? 'these' : 'this'} before your bot can run.`,
+        `💡 Tip: the red markers in your code (and the issue count below the editor) point to exactly where.`,
+      ]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `❌ Can't run — ${syntaxErrors.length} syntax error${syntaxErrors.length !== 1 ? 's' : ''} in your code. Check the terminal for details.` }]);
+      setIsRunning(false);
+      return;
+    }
+
     // First, do a local config analysis
     const config = extractConfigFromCode(files['main.py']);
     const isAgent = projectType === 'agent';
@@ -1512,10 +1967,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
       : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
     const defaultSystemMsg = scaffold.systemPrompt;
-    const defaultKB = isAgent 
+    const defaultKB = isAgent
       ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
       : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
-    
+    // Same starter text in both scaffolds (Challenges 27-30) — one default
+    // per challenge, no isAgent branch needed.
+    const defaultPersonalizedIntro = "Hey, I'm {name} — nice to meet you!";
+    const defaultMoodInstruction = "Just be helpful and friendly.";
+
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
       { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
@@ -1543,6 +2002,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
       { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, isAgent), val: config.fallbackMessage ? '✓ set' : '✗ default' },
       { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > 0, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
+      { label: 'HYPE_PHRASES', ok: config.hasListComprehension && config.phraseIdeas.length > 0, val: `${config.phraseIdeas.length} ideas` },
+      { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaultPersonalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
+      { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaultMoodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
+      { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > 0, val: `${config.conversationRules.length} rules counted` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1553,12 +2016,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 26 challenges...`,
+      `📋 Scanning 30 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/26 challenges completed (${Math.round(completedCount / 26 * 100)}%)`,
+      `📊 Progress: ${completedCount}/30 challenges completed (${Math.round(completedCount / 30 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Mood: ${config.mood} | Length: ${config.maxResponseLength}`,
@@ -1591,14 +2054,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/26 challenges done.` }]);
-      if (authorEmail) {
-        const runKey = `forge-scored-first_run_success-${authorEmail}`;
-        if (!localStorage.getItem(runKey)) {
-          localStorage.setItem(runKey, 'true');
-          supabase.from('point_events').insert({ participant_email: authorEmail, event_type: 'first_run_success', points: 5, metadata: { project: projectName } }).then(({ error }) => { if (error) console.warn('point_events insert failed:', error); });
-        }
-      }
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/30 challenges done.` }]);
+      // Used to also insert a 'first_run_success' point_event here —
+      // confirmed dead: nothing anywhere sums or displays it, pure ledger
+      // noise. Removed rather than left generating rows forever.
     } catch (e: any) {
       setTerminalOutput(prev => [...prev, `❌ Error: ${e.message}`, '', '💡 Tip: Check your code for syntax errors, or try again in a moment.']);
       setChatMessages(prev => [...prev, { role: 'system', content: `❌ ${e.message}` }]);
@@ -1627,6 +2086,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const defaultKBAgent = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
     const defaultKBChatbot = "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
     const defaultKB = isAgent ? defaultKBAgent : defaultKBChatbot;
+    const defaultPersonalizedIntro = "Hey, I'm {name} — nice to meet you!";
+    const defaultMoodInstruction = "Just be helpful and friendly.";
     return [
       cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
       cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
@@ -1654,6 +2115,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.voiceGender !== 'default',
       isFallbackMessageCustomized(cfg.fallbackMessage, isAgent),
       cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > 0,
+      cfg.hasListComprehension && cfg.phraseIdeas.length > 0,
+      cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaultPersonalizedIntro,
+      cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaultMoodInstruction,
+      cfg.hasAccumulatorLoop && cfg.conversationRules.length > 0,
     ].filter(Boolean).length;
   }, []);
 
@@ -1689,14 +2154,31 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // Use memoized config — always reflects latest code edits
     const config = liveConfig;
     const lowerMsg = userMsg.toLowerCase();
+    // Case-insensitive already, but still required whitespace and trailing
+    // punctuation to match exactly — a student typing the trigger with a
+    // trailing period, an extra space, or a "?" silently got no easter
+    // egg despite getting the actual phrase right.
+    const normalizeTrigger = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.!?,;:]+$/, '');
+    const normalizedMsg = normalizeTrigger(userMsg);
+    // FORBIDDEN_WORDS is passed to the AI as an instruction, but secret
+    // responses and Q&A answers below are canned student-authored text
+    // that bypasses the AI entirely — nothing was ever scrubbing those,
+    // so a forbidden word typed into an easter egg or Q&A answer just
+    // came straight back out.
+    const scrubForbidden = (text: string) => config.forbiddenWords.reduce((acc, word) => {
+      const w = word.trim();
+      if (!w) return acc;
+      const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return acc.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '***');
+    }, text);
 
-    // 1. Check for secret responses FIRST (client-side, EXACT match only)
+    // 1. Check for secret responses FIRST (client-side, near-exact match)
     for (const [trigger, response] of Object.entries(config.secretResponses)) {
-      if (lowerMsg === trigger.toLowerCase()) {
+      if (normalizedMsg === normalizeTrigger(trigger)) {
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
-          { role: 'assistant', content: `${response}` },
+          { role: 'assistant', content: scrubForbidden(`${response}`) },
         ]);
         return;
       }
@@ -1709,35 +2191,68 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const sidebarQs = new Set(sidebarPairs.map(p => p.q.toLowerCase().trim()));
     const codePairs = config.qaPairsFromCode.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
     const mergedQA = [...sidebarPairs, ...codePairs];
+    // Generic filler words carry no topic signal — without excluding them,
+    // a message as thin as "can you help" bidirectional-overlap-matched
+    // ANY Q&A pair that happened to also contain those three words,
+    // regardless of actual subject (e.g. an unrelated math Q&A pair).
+    const QA_STOP_WORDS = new Set(['can', 'you', 'the', 'and', 'for', 'are', 'that', 'this', 'with', 'what', 'how', 'does', 'did', 'was', 'were', 'have', 'has', 'just', 'please', 'your', 'like', 'want', 'need', 'tell', 'know', 'get', 'got', 'not', 'but', 'all', 'any', 'out', 'who', 'why', 'when', 'where', 'about', 'me']);
+    const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
+    // Scan every pair and keep the strongest match instead of acting on
+    // whichever happened to come first in the array — an exact substring
+    // match later in the list used to lose to a weaker fuzzy match earlier.
+    let bestQA: { pair: (typeof mergedQA)[number]; score: number } | null = null;
     for (const pair of mergedQA) {
       const qLower = pair.q.toLowerCase().trim();
+      if (!qLower) continue;
+      // The full question appearing inside what the user typed is a strong
+      // signal regardless of length. The reverse — the user's message being
+      // a substring of the question — is only reliable when that message
+      // carries real content; otherwise a generic filler phrase like "can
+      // you help" is trivially a substring of "can you help me with math
+      // homework" and would match on nothing meaningful.
+      const isSupersetOfQ = lowerMsg.includes(qLower);
+      const isGenericSubstringOfQ = userWords.length >= 2 && qLower.includes(lowerMsg);
+      if (isSupersetOfQ || isGenericSubstringOfQ) {
+        const score = 1000 + qLower.length; // exact/substring always beats a fuzzy match
+        if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+        continue;
+      }
       // Bug 2: Tighter fuzzy matching — require bidirectional overlap ≥60%
-      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
-      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
+      const qWords = qLower.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
       const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
       const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
-      const fuzzyMatch = userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6;
-      if (qLower && (lowerMsg.includes(qLower) || qLower.includes(lowerMsg) || fuzzyMatch)) {
-        // Build the answer with bot personality
-        let answer = pair.a;
-        if (config.catchphrases.length > 0) {
-          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
-        }
-        if (config.signOff) {
-          answer += `\n\n${config.signOff}`;
-        }
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: userMsg },
-          { role: 'assistant', content: answer },
-        ]);
-        return;
+      if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
+        const score = userInQ + qInUser;
+        if (!bestQA || score > bestQA.score) bestQA = { pair, score };
       }
+    }
+    if (bestQA) {
+      // Build the answer with bot personality
+      let answer = bestQA.pair.a;
+      if (config.catchphrases.length > 0) {
+        answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+      }
+      if (config.signOff) {
+        answer += `\n\n${config.signOff}`;
+      }
+      setChatMessages(prev => [
+        ...prev,
+        { role: 'user', content: userMsg },
+        { role: 'assistant', content: scrubForbidden(answer) },
+      ]);
+      return;
     }
 
     // 3. Check for blocked topics client-side
+    // Word-boundary match, not raw substring — a blocked topic like "sex" or "ass"
+    // used to trip on unrelated words like "Sussex" or "assessment".
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const topicMatches = (topic: string) => {
+      const t = topic.trim();
+      return t.length > 0 && new RegExp(`\\b${escapeRegex(t)}\\b`, 'i').test(userMsg);
+    };
     for (const topic of config.blockedTopics) {
-      if (lowerMsg.includes(topic.toLowerCase())) {
+      if (topicMatches(topic)) {
         let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
         if (config.signOff) refusal += `\n\n${config.signOff}`;
         setChatMessages(prev => [
@@ -1750,10 +2265,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
 
     // 4. For everything else, send to AI with full config context
-    const history = chatMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .filter(m => m.content !== '...')
-      .map(m => ({ role: m.role, content: m.content }));
+    // MEMORY_ENABLED / REMEMBER_NAME toggled off used to have zero runtime
+    // effect — full chat history was sent to the AI regardless, so a
+    // student who explicitly turned memory off would never see it matter.
+    // With it off, only the current message goes out, so the bot really
+    // does forget everything between turns.
+    const history = config.rememberName
+      ? chatMessages
+          .filter(m => m.role === 'user' || m.role === 'assistant')
+          .filter(m => m.content !== '...')
+          .map(m => ({ role: m.role, content: m.content }))
+      : [];
     history.push({ role: 'user', content: userMsg });
     setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsStreaming(true);
@@ -1848,21 +2370,46 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     try {
       const codePayload = files['main.py'];
       if (currentProjectId) {
-        const { error } = await supabase
-          .from('ai_projects')
-          .update({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: authorName })
-          .eq('id', currentProjectId)
-          .eq('author_email', email);
-        if (error) throw error;
+        // Routed through the owner-checked RPC — the open UPDATE policy
+        // this used to rely on let anyone edit anyone's project by id.
+        // p_expected_updated_at guards against a second tab/device having
+        // saved since we last loaded — a stale baseline gets rejected
+        // instead of silently overwriting whatever they wrote.
+        const { data, error } = await supabase.rpc('save_own_project', {
+          p_project_id: currentProjectId,
+          p_participant_email: email,
+          p_project_name: projectName,
+          p_description: systemPrompt,
+          p_code: codePayload,
+          p_template_id: projectType,
+          p_author_name: authorName,
+          p_expected_updated_at: lastKnownUpdatedAt,
+        });
+        if (error) {
+          if (error.message?.includes('CONFLICT')) {
+            if (!conflictAlertedRef.current) {
+              conflictAlertedRef.current = true;
+              toast.error("This project was changed in another tab or device. Reload to see the latest version before saving — your local edits are still here, just not saved yet.", {
+                duration: 10000,
+                action: { label: 'Reload', onClick: () => window.location.reload() },
+              });
+            }
+            return;
+          }
+          throw error;
+        }
+        conflictAlertedRef.current = false;
+        if (data?.updated_at) setLastKnownUpdatedAt(data.updated_at);
       } else {
         const { data, error } = await supabase
           .from('ai_projects')
           .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
-          .select('id')
+          .select('id, updated_at')
           .single();
         if (error) throw error;
         const newId = data?.id || null;
         setCurrentProjectId(newId);
+        setLastKnownUpdatedAt(data?.updated_at ?? null);
         if (newId) localStorage.setItem('forge-current-project-id', newId);
       }
       setSavedFiles({ ...files });
@@ -1885,17 +2432,30 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   };
 
   const handleAiAssist = async (action: string) => {
+    if (isAiLoading) return; // Prevent concurrent Review/Explain/Suggest requests
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
     setIsAiLoading(true);
     setActiveAiAction(action);
     setAiOutput('');
+    // This wipes the visible transcript — clear the mentor-chat context that
+    // drives follow-ups too, or a student's next question would silently
+    // pull in a conversation they can no longer see on screen.
+    setMentorHistory([]);
     setShowBottomPanel(true);
     setBottomTab('ai-mentor');
     try {
+      let reply = '';
       await streamFromEdgeFunction(
         { code: files['main.py'], model: projectType, action, systemPrompt, projectName, projectType },
-        (text) => setAiOutput(text)
+        (text) => { reply = text; setAiOutput(text); }
       );
+      // An empty reply rendered identically to never having asked at all —
+      // nothing told the student their click actually went through and
+      // came back with nothing.
+      if (!reply.trim()) {
+        toast.error('AI Mentor came back empty — try again or rephrase your code.');
+        setAiOutput('_No response came back. Try clicking again._');
+      }
       // No points for mentor usage — scoring is milestone-based only
     } catch (e: any) { toast.error(e.message); }
     finally { setIsAiLoading(false); setActiveAiAction(null); }
@@ -1951,6 +2511,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     setPublishOpen(true);
   };
 
+  // authorEmail/authorName are cached in localStorage with no expiry and no
+  // visible "who am I" indicator anywhere in the UI — on a shared/lab
+  // computer, the next student to open Build Studio silently inherits the
+  // previous student's identity, and since author_email is the bearer
+  // credential every save/delete/publish RPC checks, saving as "them"
+  // quietly overwrites their real project. This is the one explicit,
+  // discoverable way to notice and back out before that happens.
+  const handleSwitchIdentity = () => {
+    if (!window.confirm("Switch to a different student? This clears the cached name, email, and any unsaved draft on THIS BROWSER. Your own saved projects stay safe on the server either way.")) return;
+    localStorage.removeItem('forge-student-email');
+    localStorage.removeItem('forge-student-name');
+    localStorage.removeItem('forge-current-project-id');
+    localStorage.removeItem('forge-editor-code');
+    window.location.reload();
+  };
+
   const dismissOnboarding = () => {
     setOnboardingStep(null);
     localStorage.setItem('buildstudio-onboarded', 'true');
@@ -1978,12 +2554,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
+      // Undo/redo/find only make sense as CODE-editor shortcuts — outside the
+      // code textarea (Project Name, System Prompt, Knowledge Base, chat
+      // input, even the search box itself) the user almost certainly wants
+      // that field's own native undo or the browser's native find, not to
+      // have main.py silently mutate or a search widget hijack their Ctrl+F.
+      // Save/Run/toggle-sidebar don't touch the focused field's content, so
+      // those stay global regardless of where focus is.
+      const target = e.target as HTMLElement | null;
+      const isElsewhere = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) && target !== textareaRef.current;
       if (mod && e.key === 's') { e.preventDefault(); handleSaveRef.current(); }
       if (mod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current(); }
       if (mod && e.key === 'b') { e.preventDefault(); setShowConfig(v => !v); }
-      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndoRef.current(); }
-      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); handleRedoRef.current(); }
-      if (mod && e.key === 'f') { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
+      if (mod && e.key === 'z' && !e.shiftKey && !isElsewhere) { e.preventDefault(); handleUndoRef.current(); }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey)) && !isElsewhere) { e.preventDefault(); handleRedoRef.current(); }
+      if (mod && e.key === 'f' && !isElsewhere) { e.preventDefault(); setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); }
       if (e.key === 'Escape' && showSearch) { setShowSearch(false); setSearchTerm(''); setReplaceTerm(''); }
     };
     window.addEventListener('keydown', handler);
@@ -2002,7 +2587,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     autoSaveIntervalRef.current = setInterval(() => {
       setAutoSaveCountdown(prev => {
-        if (prev <= 1) {
+        // <= 0, not <= 1 — the old version jumped straight from displaying
+        // 0:01 to 2:00, skipping 0:00 entirely, which read as "did that
+        // actually save?" to anyone watching the counter tick down.
+        if (prev <= 0) {
           if (isDirtyRef.current && currentProjectIdRef.current && !isSavingRef.current) {
             handleSaveRef.current();
           }
@@ -2099,6 +2687,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         </div>
       </div>
 
+      {takenOfflineNotice && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/15 border-b border-red-500/30 text-[11px] text-red-300 flex-shrink-0">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>A judge or organizer took this project offline — it's no longer publicly visible.</span>
+          <Button size="sm" onClick={handleGoLive} disabled={!hasLiveEvent}
+            className="h-5 text-[10px] font-bold ml-1 bg-red-500/25 text-red-200 hover:bg-red-500/35">
+            Go Live to republish
+          </Button>
+          <button onClick={() => setTakenOfflineNotice(false)} className="ml-auto text-red-300/70 hover:text-red-200 flex-shrink-0">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ── Main 3-Panel Layout ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* LEFT: Config Sidebar */}
@@ -2142,6 +2744,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 {/* ── Settings Tab ── */}
                 {configTab === 'settings' && (
                   <>
+                    <div className="rounded-md border border-ide-border bg-ide-editor/50 p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted mb-0.5">Signed in as</p>
+                          <p className="text-xs text-ide-text truncate">{authorName}</p>
+                          <p className="text-[10px] text-ide-text-muted truncate">{authorEmail}</p>
+                        </div>
+                        <button onClick={handleSwitchIdentity} className="text-[10px] text-ide-accent hover:underline flex-shrink-0 whitespace-nowrap">
+                          Not you?
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-ide-text-muted/70 mt-1">On a shared computer, switch before you start — otherwise you may load or overwrite the last person's project.</p>
+                    </div>
+
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
                       <Input value={projectName} onChange={e => setProjectName(e.target.value)}
@@ -2203,20 +2819,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <p className={`text-[10px] mt-0.5 ${systemPrompt.length < 20 ? 'text-ide-orange' : systemPrompt.length > 500 ? 'text-ide-orange' : 'text-ide-text-muted'}`}>
                         {systemPrompt.length} chars {systemPrompt.length < 20 ? '— try to be more descriptive!' : systemPrompt.length > 500 ? '— consider being more concise' : ''}
                       </p>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">Capabilities (Tools)</label>
-                      <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">The same idea agent frameworks like LangChain call "tools" — extra powers your bot can call on.</p>
-                      <div className="space-y-0.5">
-                        {CAPABILITY_OPTIONS[projectType].map(cap => (
-                          <label key={cap} className="flex items-center gap-2 text-xs cursor-pointer p-1.5 rounded transition-colors text-ide-text hover:bg-ide-border/30">
-                            <input type="checkbox" checked={capabilities.includes(cap)} onChange={() => toggleCapability(cap)}
-                              className="rounded accent-ide-accent" />
-                            {cap}
-                          </label>
-                        ))}
-                      </div>
                     </div>
 
                     {/* ── Mission Progress Bar ── */}
@@ -2296,6 +2898,28 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             ))}
                           </div>
                         </div>
+                      );
+                    })()}
+
+                    {/* ── Achievements ── */}
+                    {/* AchievementGrid was fully built but never mounted anywhere
+                        — the whole badge system was dead code the student could
+                        never actually see. */}
+                    {(() => {
+                      const config = liveConfig;
+                      const isAgent = projectType === 'agent';
+                      const defaultName = isAgent ? 'Research Agent' : 'Spark';
+                      return (
+                        <AchievementGrid stats={{
+                          challengeCount: getChallengeCount(config, projectType),
+                          hasCustomName: config.botName !== defaultName && config.botName !== 'AI Bot',
+                          hasKnowledge: config.knowledgeBaseFromCode.trim() !== '',
+                          hasQAPairs: config.qaPairsFromCode.length > 0,
+                          hasRules: config.conversationRules.length > 0,
+                          hasTested: terminalOutput.length > 0,
+                          hasSaved: !!currentProjectId,
+                          codeLength: files['main.py'].length,
+                        }} />
                       );
                     })()}
 
@@ -2400,24 +3024,24 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                       <div className="space-y-2">
                         {qaData.map((pair, idx) => (
-                          <div key={idx} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
+                          <div key={pair.id} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold text-ide-accent">Intent {idx + 1}</span>
-                              <button onClick={() => removeQA(idx)} className="text-ide-text-muted hover:text-red-400">
+                              <button onClick={() => removeQA(pair.id)} className="text-ide-text-muted hover:text-red-400">
                                 <Minus className="w-3 h-3" />
                               </button>
                             </div>
-                            <Input 
-                              value={pair.q} 
-                              onChange={e => updateQA(idx, 'q', e.target.value)}
+                            <Input
+                              value={pair.q}
+                              onChange={e => updateQA(pair.id, 'q', e.target.value)}
                               placeholder="Q: What is Pythagoras theorem?"
-                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
+                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
                             />
-                            <Input 
-                              value={pair.a} 
-                              onChange={e => updateQA(idx, 'a', e.target.value)}
+                            <Input
+                              value={pair.a}
+                              onChange={e => updateQA(pair.id, 'a', e.target.value)}
                               placeholder="A: a² + b² = c² for right triangles"
-                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent" 
+                              className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
                             />
                           </div>
                         ))}
@@ -2471,26 +3095,29 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       />
                     </div>
 
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">👋 Welcome Message</label>
-                      <Textarea 
-                        value={welcomeMessage} 
-                        onChange={e => setWelcomeMessage(e.target.value)}
-                        rows={2}
-                        placeholder="Hi! I'm your AI assistant. Ask me anything!"
-                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
-                      />
-                    </div>
-
+                    {/* Welcome Message, Quick Reply Buttons, and UI Widgets were
+                        removed from here — all three were fully disconnected:
+                        never synced to code, never saved, never rendered
+                        anywhere (not even in this file's own live preview
+                        below). Welcome message and quick-reply buttons were
+                        also flat-out redundant with variables that ALREADY
+                        do the same job for real: AI_MESSAGE (Challenge 3)
+                        is the actual greeting shown here and in the
+                        published app, and CONVERSATION_STARTERS
+                        (Challenge 10) is the actual clickable-starter-button
+                        list — both edited via main.py, both already working.
+                        Rather than build a second, competing mechanism for
+                        the same two things, this just points at the real one. */}
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🖼️ Logo</label>
+                      <p className="text-[10px] text-ide-text-muted mb-1.5">Shown here in Build Studio's preview — not yet part of the published app.</p>
                       <div className="space-y-2">
                         <div className="flex gap-1.5">
-                          <Input 
-                            value={logoUrl} 
+                          <Input
+                            value={logoUrl}
                             onChange={e => setLogoUrl(e.target.value)}
                             placeholder="Paste URL or upload below"
-                            className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1" 
+                            className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1"
                           />
                           <input
                             ref={logoInputRef}
@@ -2519,76 +3146,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             Upload
                           </Button>
                         </div>
-                        {logoUrl && (
+                        {logoUrl && (isSafeExternalUrl(logoUrl) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(logoUrl) ? (
                           <div className="flex items-center gap-2">
                             <img src={logoUrl} alt="Logo preview" className="w-8 h-8 rounded object-contain bg-ide-bg" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             <span className="text-[10px] text-ide-green">Logo loaded</span>
                             <button onClick={() => setLogoUrl('')} className="text-[10px] text-ide-text-muted hover:text-red-400 ml-auto">Remove</button>
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">💬 Quick Reply Buttons</label>
-                      <p className="text-[10px] text-ide-text-muted mb-2">Preset questions visitors can click to start chatting.</p>
-                      <div className="space-y-1.5">
-                        {quickReplies.map((reply, idx) => (
-                          <div key={idx} className="flex items-center gap-1">
-                            <Input
-                              value={reply}
-                              onChange={e => {
-                                const updated = [...quickReplies];
-                                updated[idx] = e.target.value;
-                                setQuickReplies(updated);
-                              }}
-                              placeholder={`Button ${idx + 1}`}
-                              className="h-7 text-[11px] border-0 bg-ide-editor text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
-                            />
-                            <button onClick={() => setQuickReplies(prev => prev.filter((_, i) => i !== idx))} className="text-ide-text-muted hover:text-red-400 p-0.5">
-                              <Minus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        {quickReplies.length < 5 && (
-                          <button onClick={() => setQuickReplies(prev => [...prev, ''])} className="w-full p-1.5 rounded border border-dashed border-ide-border text-ide-text-muted text-[10px] hover:border-ide-accent hover:text-ide-accent transition-colors">
-                            + Add button
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🧩 UI Widgets</label>
-                      <div className="space-y-1.5">
-                        {[
-                          { id: 'welcome', label: 'Welcome Banner', desc: 'Show greeting at the top' },
-                          { id: 'branding', label: 'Custom Header', desc: 'Logo + project name' },
-                          { id: 'codeview', label: 'View Source Code', desc: 'Let visitors see your code' },
-                        ].map(widget => (
-                          <label key={widget.id} className="flex items-start gap-2 text-xs cursor-pointer p-2 rounded transition-colors text-ide-text hover:bg-ide-border/30 bg-ide-editor border border-ide-border/50">
-                            <input 
-                              type="checkbox" 
-                              checked={enabledWidgets.includes(widget.id)}
-                              onChange={() => {
-                                setEnabledWidgets(prev => 
-                                  prev.includes(widget.id) ? prev.filter(w => w !== widget.id) : [...prev, widget.id]
-                                );
-                              }}
-                              className="rounded accent-ide-accent mt-0.5" 
-                            />
-                            <div>
-                              <span className="font-medium block">{widget.label}</span>
-                              <span className="text-[10px] text-ide-text-muted">{widget.desc}</span>
-                            </div>
-                          </label>
+                        ) : (
+                          <p className="text-[10px] text-red-400">That doesn't look like a safe image URL — paste a real http(s) link or use Upload.</p>
                         ))}
                       </div>
                     </div>
 
                     <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20">
                       <p className="text-[10px] text-ide-text leading-relaxed">
-                        <strong className="text-ide-accent">💡 Preview:</strong> Theme, welcome message, logo, and quick replies will appear in your deployed app. Go Live to see the result!
+                        <strong className="text-ide-accent">💡 Preview:</strong> Theme color applies to your published app. Logo previews here in Build Studio for now. Edit AI_MESSAGE and CONVERSATION_STARTERS in your code for the greeting and starter buttons visitors see. Go Live to see the result!
                       </p>
                     </div>
                   </>
@@ -2746,15 +3318,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           if (searchMatches.length === 0) return;
                           const match = searchMatches[currentMatchIndex];
                           if (!match) return;
-                          // Create undo snapshot before replace
+                          // Create undo snapshot before replace — only the
+                          // main.py stack exists (see updateFile); pushing
+                          // another tab's text onto it here was the same
+                          // cross-tab corruption bug.
                           const oldCode = files[activeFile];
-                          undoStackRef.current.push(oldCode);
-                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
-                          redoStackRef.current = [];
+                          if (activeFile === 'main.py') {
+                            undoStackRef.current.push(oldCode);
+                            if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                            redoStackRef.current = [];
+                          }
                           const codeLines = oldCode.split('\n');
                           codeLines[match.line] = codeLines[match.line].substring(0, match.startCol) + replaceTerm + codeLines[match.line].substring(match.endCol);
                           const newCode = codeLines.join('\n');
-                          lastSnapshotRef.current = newCode;
+                          if (activeFile === 'main.py') lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
@@ -2762,16 +3339,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 px-2"
                         onClick={() => {
                           if (!searchTerm) return;
-                          // Create undo snapshot before replace all
+                          // Create undo snapshot before replace all (same
+                          // main.py-only scoping as the single Replace above)
                           const oldCode = files[activeFile];
-                          undoStackRef.current.push(oldCode);
-                          if (undoStackRef.current.length > 50) undoStackRef.current.shift();
-                          redoStackRef.current = [];
+                          if (activeFile === 'main.py') {
+                            undoStackRef.current.push(oldCode);
+                            if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+                            redoStackRef.current = [];
+                          }
                           const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                           const regex = new RegExp(escaped, 'gi');
                           const newCode = oldCode.replace(regex, replaceTerm);
                           const count = (oldCode.match(regex) || []).length;
-                          lastSnapshotRef.current = newCode;
+                          if (activeFile === 'main.py') lastSnapshotRef.current = newCode;
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
@@ -2799,6 +3379,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         Step {tutorialStep + 1}/{CHATBOT_TUTORIAL_STEPS.length}: {CHATBOT_TUTORIAL_STEPS[tutorialStep].variableName}
                       </p>
                       <p className="text-[10px] text-ide-text truncate">{CHATBOT_TUTORIAL_STEPS[tutorialStep].instruction}</p>
+                      {tutorialTargetLine === -1 && (
+                        <p className="text-[9px] text-ide-orange">
+                          ⚠️ Can't find {CHATBOT_TUTORIAL_STEPS[tutorialStep].variableName} in your code — did you rename or delete it? Restore it, or hit Next to skip.
+                        </p>
+                      )}
                     </div>
                     <span className="text-[9px] font-mono text-ide-text-muted bg-ide-border rounded px-1.5 py-0.5 flex-shrink-0">
                       {CHATBOT_TUTORIAL_STEPS[tutorialStep].example}
@@ -2826,12 +3411,44 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               )}
             </AnimatePresence>
 
-            {/* ── Error Summary Bar ── */}
+            {/* ── Problems panel — click a row to jump to that line ── */}
             {lintErrors.length > 0 && activeFile === 'main.py' && (
-              <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border-b border-red-500/20">
-                <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                <span className="text-[10px] text-red-300">{lintErrors.length} issue{lintErrors.length !== 1 ? 's' : ''} found</span>
-                <span className="text-[10px] text-ide-text-muted">— Line{lintErrors.length > 1 ? 's' : ''} {lintErrors.slice(0, 5).map(e => e.line + 1).join(', ')}{lintErrors.length > 5 ? '...' : ''}</span>
+              <div className="flex-shrink-0 bg-red-500/10 border-b border-red-500/20">
+                <button
+                  onClick={() => setProblemsPanelOpen(o => !o)}
+                  className="w-full flex items-center gap-1.5 px-3 py-1 text-left hover:bg-red-500/15"
+                >
+                  <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-[10px] text-red-300">{lintErrors.length} issue{lintErrors.length !== 1 ? 's' : ''} found</span>
+                  <span className="text-[10px] text-ide-text-muted">— Line{lintErrors.length > 1 ? 's' : ''} {lintErrors.slice(0, 5).map(e => e.line + 1).join(', ')}{lintErrors.length > 5 ? '...' : ''}</span>
+                  <ChevronDown className={`w-3 h-3 ml-auto text-ide-text-muted transition-transform flex-shrink-0 ${problemsPanelOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {problemsPanelOpen && (
+                  <div className="max-h-32 overflow-y-auto border-t border-red-500/20">
+                    {lintErrors.map((err, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          // Same jump mechanism Find/Replace already uses —
+                          // scroll the line into view via the shared scroll
+                          // container (not the textarea itself).
+                          if (textareaRef.current) {
+                            const lineHeight = 24;
+                            const scrollContainer = textareaRef.current.closest('.overflow-auto');
+                            if (scrollContainer) scrollContainer.scrollTop = Math.max(0, err.line * lineHeight - 80);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1 text-left hover:bg-red-500/15 border-t border-red-500/10 first:border-t-0"
+                      >
+                        {err.severity === 'error'
+                          ? <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                          : <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                        <span className="text-[10px] text-ide-text-muted font-mono flex-shrink-0">L{err.line + 1}</span>
+                        <span className="text-[10px] text-ide-text truncate">{err.message}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -2952,7 +3569,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         if (e.key === 'Escape') { setAutocompleteItems([]); return; }
                       }
 
-                      if (e.key === 'Tab' && autocompleteItems.length === 0) {
+                      // Ctrl/Cmd+Tab is the browser's tab-switch shortcut — without this
+                      // check it got preventDefault()-ed and 4 spaces were inserted into
+                      // the code instead of switching tabs.
+                      if (e.key === 'Tab' && autocompleteItems.length === 0 && !e.ctrlKey && !e.metaKey) {
                         e.preventDefault();
                         const target = e.target as HTMLTextAreaElement;
                         const start = target.selectionStart;
@@ -3029,7 +3649,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           }
                         }
                       }
-                      if (e.key === 'Enter' && autocompleteItems.length === 0) {
+                      // Ctrl/Cmd+Enter is the Run shortcut (handled by the global keydown
+                      // listener) — without this check, this local auto-indent handler fired
+                      // FIRST (this component is mounted below `window` in the bubble chain)
+                      // and inserted a stray newline into the code on every keyboard-triggered
+                      // Run, before the global handler even got a chance to run it.
+                      if (e.key === 'Enter' && autocompleteItems.length === 0 && !e.ctrlKey && !e.metaKey) {
                         e.preventDefault();
                         const target = e.target as HTMLTextAreaElement;
                         const pos = target.selectionStart;
@@ -3037,9 +3662,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
                         const currentLine = value.slice(lineStart, pos);
                         const indent = currentLine.match(/^(\s*)/)?.[1] || '';
-                        const trimmedLine = currentLine.trimEnd();
-                        const extraIndent = trimmedLine.endsWith(':') ? '    ' : '';
-                        const insertion = '\n' + indent + extraIndent;
+                        // Quote-aware comment stripping (tokenizeLine, same
+                        // approach used elsewhere in this file) — a naive
+                        // trailing-comment check would miss "if x:  # note"
+                        // entirely (endsWith(':') is false because the raw
+                        // line actually ends in the comment text), and would
+                        // also mis-fire on a "#" that's really inside a
+                        // string like `return "#FF0000"`.
+                        const codeOnly = tokenizeLine(currentLine).filter(t => t.type !== 'comment').map(t => t.value).join('');
+                        const codeTrimmed = codeOnly.trim();
+                        let nextIndent = indent;
+                        if (codeTrimmed.endsWith(':')) {
+                          nextIndent = indent + '    ';
+                        } else if (/^(return|pass|break|continue|raise)\b/.test(codeTrimmed) && indent.length >= 4) {
+                          // These statements end this branch's active code —
+                          // the next line almost always belongs one level
+                          // back out, not still nested under the same block.
+                          nextIndent = indent.slice(0, -4);
+                        }
+                        const insertion = '\n' + nextIndent;
                         const newValue = value.substring(0, pos) + insertion + value.substring(target.selectionEnd);
                         target.value = newValue;
                         updateFile(newValue);
@@ -3220,7 +3861,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
               : 'You are a helpful AI assistant that answers questions clearly and concisely.';
             
-            const totalChallenges = 26;
+            const totalChallenges = 30;
             const activeCount = getChallengeCount(cfg, projectType);
 
             return (
@@ -3244,8 +3885,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center">
-                  <span className="text-2xl">{liveConfig.botEmoji}</span>
+                <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center overflow-hidden">
+                  {logoUrl && (isSafeExternalUrl(logoUrl) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(logoUrl)) ? (
+                    <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <span className="text-2xl">{liveConfig.botEmoji}</span>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs font-medium text-ide-text mb-1">{liveConfig.botName}</p>
@@ -3452,6 +4097,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         prefillAuthorName={authorName}
         currentProjectId={currentProjectId}
         onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
+        lastKnownUpdatedAt={lastKnownUpdatedAt}
+        onUpdatedAtChange={setLastKnownUpdatedAt}
       />
 
       {/* Walkthrough guide for new users */}
