@@ -1579,6 +1579,7 @@ export type Database = {
           p_participant_email: string
         }
         Returns: {
+          bonus_coins_awarded: number
           correct_flags: boolean[]
           explanations: string[]
           key_awarded: boolean
