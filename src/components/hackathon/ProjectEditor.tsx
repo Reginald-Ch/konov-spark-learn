@@ -920,7 +920,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
     // ai_projects' public SELECT policy is published-only — an in-progress
     // (unpublished) draft needs the owner-checked RPC, not a raw table read.
-    supabase.rpc('get_own_project_by_id', { p_project_id: savedId, p_participant_email: authorEmail }).then(({ data, error }) => {
+    supabase.rpc('get_own_project_by_id', { p_project_id: savedId, p_participant_email: authorEmail }).then(({ data: rawData, error }) => {
+      const data = rawData as any;
       const draft = readDraft();
       const localDraftForThisProject = draft && draft.projectId === savedId ? draft.code : null;
       if (error || !data) {
@@ -2399,7 +2400,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           throw error;
         }
         conflictAlertedRef.current = false;
-        if (data?.updated_at) setLastKnownUpdatedAt(data.updated_at);
+        if ((data as any)?.updated_at) setLastKnownUpdatedAt((data as any).updated_at);
       } else {
         const { data, error } = await supabase
           .from('ai_projects')

@@ -375,7 +375,6 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
                       {p.achieved.has('system_message') && <span className="text-[10px]">🧠</span>}
                       {p.achieved.has('knowledge_accuracy') && <span className="text-[10px]">📚</span>}
                       {p.achieved.has('conversation_quality') && <span className="text-[10px]">💬</span>}
-                      {p.achieved.has('creativity') && <span className="text-[10px]">🎨</span>}
                       {p.achieved.has('judge_score') && <span className="text-[10px]">⭐</span>}
                       {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
                     </div>
