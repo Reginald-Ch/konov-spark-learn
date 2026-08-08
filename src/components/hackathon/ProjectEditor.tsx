@@ -965,7 +965,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (!currentProjectId) return;
     const checkPublishState = () => {
       supabase.rpc('get_own_project_by_id', { p_project_id: currentProjectId, p_participant_email: authorEmail }).then(({ data }) => {
-        if (data) applyPublishState(!!data.is_published);
+        if (data) applyPublishState(!!(data as any).is_published);
       });
     };
     checkPublishState();
