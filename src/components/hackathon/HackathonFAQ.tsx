@@ -16,7 +16,7 @@ export const HackathonFAQ = () => {
     },
     {
       question: 'How does a FORGE hackathon work?',
-      answer: 'Once a judge sets an event to "Live", the Build Studio (IDE) and Templates unlock. You pick a template (AI Chatbot or AI Agent), write Python code in the browser editor, test your AI in Live Preview, and deploy it with "Go Live". The whole event runs for about 90 minutes. Points are awarded automatically as you hit milestones — from setting up your project to deploying it live!'
+      answer: 'Once an organizer sets an event to "Live", the Build Studio (IDE) and Templates unlock. You pick a template (AI Chatbot or AI Agent), write Python code in the browser editor, test your AI in Live Preview, and deploy it with "Go Live". Each event\'s length is set by its organizer — check the event\'s start and end time on its card. Points are awarded automatically as you hit milestones — from setting up your project to deploying it live!'
     },
     {
       question: 'Do I need to install anything?',

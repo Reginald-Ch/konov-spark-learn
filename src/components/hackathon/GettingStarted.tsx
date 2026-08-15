@@ -22,23 +22,23 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     {
       number: 2,
       title: 'Join or Create a Team',
-      description: 'Team up with other  AI enthusiasts! Join an existing team or create your own and recruit teammates with complementary skills in ML, data science, or frontend.',
+      description: 'Team up with other AI enthusiasts! Join an existing team or create your own and recruit teammates with complementary skills in ML, data science, or frontend.',
       icon: Users,
       color: '#F7941D',
       action: { label: 'Find Teams', channel: 'all-events' }
     },
     {
       number: 3,
-      title: 'Select a project template ',
-      description: 'Want to create a cool chatbot or agent?',
+      title: 'Select a Project Template',
+      description: 'Want to build a chatbot or an AI agent? Pick a starting template and customize its system prompt, knowledge base, and behavior.',
       icon: Brain,
       color: '#006600',
-      action: { label: 'Forge your AI Ideas', channel: 'project-ideas' }
+      action: { label: 'Browse Templates', channel: 'templates' }
     },
     {
       number: 4,
       title: 'Submit & Win',
-      description: 'Submit your Python AI project before the deadline. .',
+      description: 'Submit your Python AI project before the deadline.',
       icon: Trophy,
       color: '#5865F2',
       action: { label: 'View Leaderboard', channel: 'leaderboard' }
@@ -46,13 +46,13 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
   ];
 
   const tips = [
-    { icon: Lightbulb, text: 'Start with SYSTEM_MESSAGES, spend at least 10 minutes on the.' },
-    { icon: Zap, text: 'one edit one test' },
-    { icon: Lightbulb, text: 'Be specific in KNOWLEDGE_BASE' },
-    { icon: CheckCircle2, text: 'Pick thematic Easter Egg Keyword' },
-    { icon: MessageSquare, text: 'Add follow-up questions to system' },
-    { icon: MessageSquare, text: 'Save checkpoint often every 5 minutes at least' },
-    { icon: Rocket, text: 'Submit early to avoid last-minute issues' }
+    { icon: Lightbulb, text: 'Start with SYSTEM_MESSAGE — spend at least 10 minutes getting the personality right.' },
+    { icon: Zap, text: 'Make one edit, then test it, before making the next.' },
+    { icon: Lightbulb, text: 'Be specific in your KNOWLEDGE_BASE — vague entries give vague answers.' },
+    { icon: CheckCircle2, text: 'Pick a thematic Easter Egg keyword users will enjoy discovering.' },
+    { icon: MessageSquare, text: 'Add follow-up questions to keep the conversation going.' },
+    { icon: MessageSquare, text: 'Save a checkpoint at least every 5 minutes.' },
+    { icon: Rocket, text: 'Submit early to avoid last-minute issues.' }
   ];
 
   return (

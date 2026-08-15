@@ -1,0 +1,25 @@
+-- Daily Challenges audit: there are two independent ways to set a challenge's
+-- status to 'closed' — the plain draft/live/closed dropdown in ChallengesTab
+-- (a raw update_challenge call, nothing more), and "Close & Award Boxes" in
+-- SubmissionsTab (close_challenge_and_award_boxes, which ALSO computes and
+-- distributes Issue/Mission boxes, badges, and bonus coins). The award
+-- function's atomic anti-double-award claim is `UPDATE ... WHERE status !=
+-- 'closed'` — so if an organizer uses the (more obviously-placed, no-warning)
+-- status dropdown to close a challenge first, "Close & Award Boxes" can never
+-- run for it again: the claim always matches 0 rows, the function returns a
+-- 409, and the SubmissionsTab button is even disabled with the label
+-- "Already Closed" — which reads as "rewards were handled" when they were
+-- never computed at all. No error surfaces anywhere a participant or
+-- organizer would see it; the day's boxes/badges/bonus coins just silently
+-- never exist. This is a completely plausible real operator mistake, not a
+-- contrived edge case — closing via the dropdown to stop submissions, intending
+-- to award boxes afterward, is a natural sequence.
+--
+-- Fix: track "have rewards been distributed for this challenge" as its own
+-- column, independent of the lifecycle status field that also gates
+-- submissions. The atomic claim now keys off boxes_awarded_at instead of
+-- status, so it works correctly no matter which path closed the challenge
+-- first, and re-running is still safe (same idempotency guarantee, just on
+-- the right column).
+
+ALTER TABLE public.daily_challenges ADD COLUMN IF NOT EXISTS boxes_awarded_at TIMESTAMPTZ;

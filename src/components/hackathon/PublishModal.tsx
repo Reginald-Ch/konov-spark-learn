@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Rocket, Trophy, Loader2, CheckCircle2, Copy, Check, ExternalLink, Share2, Globe, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureHackathonRegistration } from '@/lib/identity';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -98,6 +99,18 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     }
     if (finalEmail) {
       localStorage.setItem('forge-student-email', finalEmail);
+    }
+
+    // Seeds the organizer's roster (CoinsTab, LessonsLeaderboard) for
+    // whoever's publishing right now, even if they skipped "Register for
+    // Hackathon" and came straight to Templates -> Build -> Publish — the
+    // default flow most students actually take. Only for a genuine
+    // identity (not the auto-generated Student-XXXX / *@forge.local
+    // fallback), so this never pollutes the roster with ghost accounts.
+    // Fire-and-forget — never blocks the publish flow on it.
+    if (finalName && !finalName.startsWith('Student-') && finalEmail && !finalEmail.endsWith('@forge.local')) {
+      supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle()
+        .then(({ data }) => ensureHackathonRegistration(finalEmail, finalName, data?.id || null));
     }
 
     setDeployStep('deploying');

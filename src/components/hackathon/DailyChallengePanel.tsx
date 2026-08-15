@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { CalendarDays, Send, CheckCircle2, Clock, Loader2, Trophy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSafeExternalUrl } from '@/lib/utils';
+import { ensureHackathonRegistration } from '@/lib/identity';
 
 interface Challenge {
   id: string;
@@ -39,6 +40,7 @@ interface MySubmission {
 interface MyProject {
   id: string;
   project_name: string;
+  hackathon_id: string | null;
 }
 
 const singleScore = (s: MySubmission['submission_scores']) => (Array.isArray(s) ? s[0] : s);
@@ -46,6 +48,15 @@ const singleScore = (s: MySubmission['submission_scores']) => (Array.isArray(s) 
 export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | null }) => {
   const [email, setEmail] = useState(localStorage.getItem('forge-student-email') || '');
   const [name, setName] = useState(localStorage.getItem('forge-student-name') || '');
+  // Same per-email TOFU bearer credential Community Chat mints/checks —
+  // shared localStorage key, so an identity already claimed on this
+  // browser via chat (or vice versa) doesn't need proving twice.
+  const [deviceToken, setDeviceTokenState] = useState(() => localStorage.getItem('forge-device-token') || '');
+  const setDeviceToken = (value: string) => {
+    setDeviceTokenState(value);
+    if (value) localStorage.setItem('forge-device-token', value);
+    else localStorage.removeItem('forge-device-token');
+  };
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [submissions, setSubmissions] = useState<Record<string, MySubmission>>({});
   const [myProjects, setMyProjects] = useState<MyProject[]>([]);
@@ -76,7 +87,14 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     ]);
     const chs = (challengesRes.data as Challenge[]) || [];
     setChallenges(chs);
-    setMyProjects((projectsRes.data as MyProject[]) || []);
+    // get_my_projects is shared with ProjectGallery (which legitimately
+    // wants every project a user has ever made, across all events), so it
+    // isn't itself scoped to a hackathon — filter here instead. Without
+    // this, the "link a project" dropdown showed every project the
+    // participant has ever built in ANY past hackathon, not just this one,
+    // which is confusing at best (old, unrelated projects cluttering the
+    // list for a challenge that has nothing to do with them).
+    setMyProjects(((projectsRes.data as MyProject[]) || []).filter(p => p.hackathon_id === hackathonId));
 
     if (email && chs.length > 0) {
       const { data: subs } = await supabase
@@ -95,6 +113,33 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Previously fetch-once-on-mount only — a challenge opening/closing, or a
+  // submission getting graded, never appeared while this page was actually
+  // open; you had to manually reload to see it. daily_challenges,
+  // challenge_submissions, and submission_scores are all already in the
+  // realtime publication (SPLeaderboard already relies on the same
+  // publication for point_events), so this just wires up the subscription
+  // that was missing. Debounced since a grading run or a challenge close
+  // can touch many rows in quick succession.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!hackathonId) return;
+    const debouncedRefetch = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchAll(), 600);
+    };
+    const channel = supabase
+      .channel(`daily-challenges-${hackathonId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_challenges', filter: `hackathon_id=eq.${hackathonId}` }, debouncedRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_submissions', filter: `hackathon_id=eq.${hackathonId}` }, debouncedRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'submission_scores' }, debouncedRefetch)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [hackathonId, fetchAll]);
+
   const openSubmit = (challenge: Challenge) => {
     const existing = submissions[challenge.id];
     setActiveChallenge(challenge);
@@ -108,28 +153,39 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     if (!name.trim() || !email.trim()) { toast.error('Enter your name and email first'); return; }
     if (!contentUrl.trim() && !notes.trim() && !projectId) { toast.error('Add a link, some notes, or link a project'); return; }
 
+    const existing = submissions[activeChallenge.id];
     setSubmitting(true);
     try {
-      const existing = submissions[activeChallenge.id];
       // Lowercase — matches every other identity-aware surface (registration,
       // Lessons, Community). Inconsistent casing here would fragment this
       // participant's challenge history from their coin/lesson identity.
       const normalizedEmail = email.trim().toLowerCase();
-      const payload = {
-        challenge_id: activeChallenge.id,
-        hackathon_id: hackathonId,
-        participant_email: normalizedEmail,
-        project_id: projectId || null,
-        content_url: contentUrl.trim() || null,
-        notes: notes.trim() || null,
-      };
-      const { error } = existing
-        ? await supabase.from('challenge_submissions').update(payload).eq('id', existing.id)
-        : await supabase.from('challenge_submissions').insert(payload);
+      // Routed through an RPC (not a raw insert/update) so submitting or
+      // editing as someone else's email requires the same device token
+      // Community Chat requires — the old USING(true) policy let anyone
+      // submit-as or silently overwrite any registered participant's entry
+      // just by knowing their email, sabotaging a real competitor's shot
+      // at the day's SP/rewards with zero proof of identity required.
+      const { data, error } = await supabase.rpc('submit_challenge_entry', {
+        p_challenge_id: activeChallenge.id,
+        p_hackathon_id: hackathonId,
+        p_participant_email: normalizedEmail,
+        p_device_token: deviceToken || null,
+        p_project_id: projectId || null,
+        p_content_url: contentUrl.trim() || null,
+        p_notes: notes.trim() || null,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
       if (error) throw error;
+      if (!result?.ok) throw new Error(result?.message || 'Failed to submit');
+      if (result.new_device_token) setDeviceToken(result.new_device_token);
 
       localStorage.setItem('forge-student-email', normalizedEmail);
       localStorage.setItem('forge-student-name', name.trim());
+      // Defensive — the enforce_submission_integrity trigger already
+      // requires registration before a submission is even accepted, so
+      // this is normally a no-op success, not a new registration.
+      ensureHackathonRegistration(normalizedEmail, name.trim(), hackathonId);
       toast.success(existing ? 'Submission updated!' : 'Submitted — good luck! 🚀');
       setActiveChallenge(null);
       fetchAll();

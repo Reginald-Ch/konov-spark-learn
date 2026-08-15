@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node 'C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Dell-Desktop-konov-konov-spark-learn\\\\bb3b077b-e94c-4a75-8f1c-1df170d2ef95\\\\scratchpad\\\\balance_check.js' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\hackathon\\\\CommunityChat.tsx')",
+      "Bash(node 'C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Dell-Desktop-konov-konov-spark-learn\\\\bb3b077b-e94c-4a75-8f1c-1df170d2ef95\\\\scratchpad\\\\balance_check.js' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\admin\\\\SubmissionsTab.tsx' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\hackathon\\\\DailyChallengePanel.tsx')",
+      "Bash(node 'C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Dell-Desktop-konov-konov-spark-learn\\\\bb3b077b-e94c-4a75-8f1c-1df170d2ef95\\\\scratchpad\\\\balance_check.js' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\pages\\\\Hackathons.tsx' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\hackathon\\\\HackathonCard.tsx')",
+      "Bash(xargs -I{} basename {})"
+    ]
+  }
+}

@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { SEO } from '@/components/SEO';
 import { HackathonCard } from '@/components/hackathon/HackathonCard';
 import { RegistrationModal } from '@/components/hackathon/RegistrationModal';
-
-import { SubmissionModal } from '@/components/hackathon/SubmissionModal';
 import { SPLeaderboard } from '@/components/hackathon/SPLeaderboard';
 import { Leaderboard as ProjectLeaderboard } from '@/components/hackathon/Leaderboard';
 import { LessonsLeaderboard } from '@/components/hackathon/LessonsLeaderboard';
@@ -11,7 +9,6 @@ import { DailyChallengePanel } from '@/components/hackathon/DailyChallengePanel'
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
 import { ProjectEditor, ProjectType } from '@/components/hackathon/ProjectEditor';
-import { QuickSubmitModal } from '@/components/hackathon/QuickSubmitModal';
 import { CommunityChat } from '@/components/hackathon/CommunityChat';
 import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
 import { AIModelsTab } from '@/components/hackathon/AIModelsTab';
@@ -25,7 +22,7 @@ import { useCommunityUnread } from '@/hooks/useCommunityUnread';
 import { 
   Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, Terminal, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords, Settings2
+  Users, MessageSquare, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords, Settings2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -59,10 +56,6 @@ const Hackathons = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  
-  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-  
-  const [quickSubmitOpen, setQuickSubmitOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Access code gate
@@ -149,11 +142,6 @@ const Hackathons = () => {
     if (hackathon) { setSelectedHackathon(hackathon); setRegistrationModalOpen(true); }
   };
 
-
-  const handleSubmitProject = (hackathonId: string) => {
-    const hackathon = hackathons.find(h => h.id === hackathonId);
-    if (hackathon) { setSelectedHackathon(hackathon); setSubmissionModalOpen(true); }
-  };
 
   const liveHackathons = hackathons.filter(h => h.status === 'live');
   const upcomingHackathons = hackathons.filter(h => h.status === 'upcoming');
@@ -250,7 +238,23 @@ const Hackathons = () => {
           </div>
         );
       case 'getting-started':
-        return <GettingStarted onNavigate={(ch) => setHackathonSubView(ch as HackathonSubView)} />;
+        return (
+          <GettingStarted
+            onNavigate={(ch) => {
+              // 'templates' is a top-level MainTab (project template
+              // picker), not a HackathonSubView — this used to route
+              // 'project-ideas' into setHackathonSubView, which isn't a
+              // member of that union, so the CTA silently fell through to
+              // the default hackathon-browse view instead of taking a new
+              // user to actually start building.
+              if (ch === 'templates') {
+                setActiveTab('templates');
+                return;
+              }
+              setHackathonSubView(ch as HackathonSubView);
+            }}
+          />
+        );
       case 'faq':
         return <HackathonFAQ />;
       case 'judge':
@@ -315,7 +319,6 @@ const Hackathons = () => {
                     key={hackathon.id}
                     hackathon={hackathon}
                     onRegister={handleRegister}
-                    onSubmitProject={handleSubmitProject}
                   />
                 ))}
               </div>
@@ -566,19 +569,6 @@ const Hackathons = () => {
             </TooltipTrigger>
             <TooltipContent side="right"><p className="font-semibold">Community</p></TooltipContent>
           </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <motion.div 
-                whileHover={{ scale: 1.1, borderRadius: '16px' }}
-                onClick={() => setQuickSubmitOpen(true)}
-                className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-green))] flex items-center justify-center cursor-pointer"
-              >
-                <Terminal className="w-5 h-5 text-white" />
-              </motion.div>
-            </TooltipTrigger>
-            <TooltipContent side="right"><p className="font-semibold">Quick Submit</p></TooltipContent>
-          </Tooltip>
         </div>
 
         {/* Hackathons Sub-sidebar (only for hackathons tab) */}
@@ -781,18 +771,6 @@ const Hackathons = () => {
           hackathonTitle={selectedHackathon?.title || ''}
           isOpen={registrationModalOpen}
           onClose={() => setRegistrationModalOpen(false)}
-          onSuccess={fetchHackathons}
-        />
-        <SubmissionModal
-          hackathonId={selectedHackathon?.id || null}
-          hackathonTitle={selectedHackathon?.title || ''}
-          isOpen={submissionModalOpen}
-          onClose={() => setSubmissionModalOpen(false)}
-          onSuccess={fetchHackathons}
-        />
-        <QuickSubmitModal
-          isOpen={quickSubmitOpen}
-          onClose={() => setQuickSubmitOpen(false)}
           onSuccess={fetchHackathons}
         />
       </div>

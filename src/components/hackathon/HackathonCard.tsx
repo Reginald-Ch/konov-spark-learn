@@ -20,10 +20,9 @@ interface HackathonCardProps {
     prizes: string | null;
   };
   onRegister: (hackathonId: string) => void;
-  onSubmitProject: (hackathonId: string) => void;
 }
 
-export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps>(({ hackathon, onRegister, onSubmitProject }, ref) => {
+export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps>(({ hackathon, onRegister }, ref) => {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
@@ -197,10 +196,28 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
           </Badge>
         )}
         {hackathon.status === 'live' && (
-          <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
-            <Zap className="w-3 h-3 mr-1 animate-pulse" />
-            Live — Build in IDE
-          </Badge>
+          <>
+            <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
+              <Zap className="w-3 h-3 mr-1 animate-pulse" />
+              Live — Build in IDE
+            </Badge>
+            {/* Live status alone let you build (the editor doesn't check
+                registration), but skipping this meant you never showed up
+                on the organizer's roster, Forge Coins tab, or Lessons
+                leaderboard — there was previously no in-app way to
+                register at all once an event went live. */}
+            {spotsLeft > 0 && (
+              <Button
+                onClick={() => onRegister(hackathon.id)}
+                variant="outline"
+                size="sm"
+                className="flex-1 text-white font-medium border-green-500/40 hover:bg-green-500/10"
+              >
+                Join Event
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+          </>
         )}
         {hackathon.status === 'ended' && (
           <Badge className="flex-1 justify-center py-2 bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]">

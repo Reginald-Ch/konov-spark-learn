@@ -1385,6 +1385,21 @@ export type Database = {
           ok: boolean
         }[]
       }
+      send_community_message: {
+        Args: {
+          p_participant_email: string
+          p_participant_name: string
+          p_device_token: string | null
+          p_channel_id: string
+          p_content: string
+        }
+        Returns: {
+          ok: boolean
+          message: string
+          new_device_token: string | null
+          message_id: string | null
+        }[]
+      }
       set_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
         Returns: undefined

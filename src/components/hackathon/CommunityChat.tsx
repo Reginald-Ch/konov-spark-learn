@@ -147,6 +147,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (value) localStorage.setItem('forge-staff-token', value);
     else localStorage.removeItem('forge-staff-token');
   };
+  // Trust-on-first-use device token for REGULAR (non-staff) messages —
+  // same idea as staffToken above, minted server-side by
+  // send_community_message the first time this email ever sends, then
+  // required on every send after that. Closes the sender-email-spoofing
+  // hole a plain insert-as-yourself policy could never actually enforce.
+  const [deviceToken, setDeviceTokenState] = useState(() => localStorage.getItem('forge-device-token') || '');
+  const setDeviceToken = (value: string) => {
+    setDeviceTokenState(value);
+    if (value) localStorage.setItem('forge-device-token', value);
+    else localStorage.removeItem('forge-device-token');
+  };
   const [claimingQuestId, setClaimingQuestId] = useState<string | null>(null);
   const [isPostingAnnouncement, setIsPostingAnnouncement] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -198,6 +209,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [isMuting, setIsMuting] = useState(false);
   const [mutedUntil, setMutedUntil] = useState<string | null>(null);
 
+  // Muted-users roster — mute_community_user existed with no way to see
+  // who's currently muted or lift it early; an organizer had to wait out
+  // the timer or mute someone with 1 minute left as a workaround.
+  const [mutedUsersDialogOpen, setMutedUsersDialogOpen] = useState(false);
+  const [mutedUsersList, setMutedUsersList] = useState<{ participant_email: string; muted_until: string; reason: string | null }[]>([]);
+  const [loadingMutedUsers, setLoadingMutedUsers] = useState(false);
+  const [unmutingEmail, setUnmutingEmail] = useState<string | null>(null);
+
   // Pinned messages — organizers could only "pin" something by posting to
   // the separate #announcements channel; nothing could be pinned in place.
   // Fetched independently of the regular paginated message list (not
@@ -230,8 +249,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       const { inVoice, channelId, email } = voicePresenceRef.current;
       if (!inVoice || !channelId || !email) return;
       // fire-and-forget — component is unmounting/page is closing, nothing
-      // to await. Supabase's delete still issues a real HTTP request.
-      supabase.from('voice_room_participants').delete().eq('channel_id', channelId).eq('participant_email', email).then(() => {});
+      // to await. Supabase's rpc call still issues a real HTTP request.
+      // Reads localStorage directly rather than a ref — this closure is
+      // created once per effect run, so a ref would need its own
+      // keep-in-sync effect just to avoid going stale the same way
+      // voicePresenceRef's own doc comment already warns about.
+      const token = localStorage.getItem('forge-device-token') || null;
+      supabase.rpc('leave_voice_room', { p_channel_id: channelId, p_participant_email: email, p_device_token: token }).then(() => {});
     };
     window.addEventListener('beforeunload', leaveVoiceBeacon);
     return () => {
@@ -655,7 +679,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeChannel || isSending) return;
+    // isPostingAnnouncement guards the Send button's disabled state but not
+    // the Enter-key path below, which called this function directly — a
+    // fast double-Enter while an announcement post was still in flight
+    // fired two overlapping post_community_announcement calls.
+    if (!newMessage.trim() || !activeChannel || isSending || isPostingAnnouncement) return;
 
     if (activeChannel.channel_type === 'announcement') {
       if (!isOrganizer) {
@@ -717,34 +745,34 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
     setIsSending(true);
     const trimmedContent = newMessage.trim();
-    const { data: inserted, error } = await supabase
-      .from('community_messages')
-      .insert({
-        channel_id: activeChannel.id,
-        sender_name: userName,
-        sender_email: userEmail,
-        content: trimmedContent,
-        message_type: 'text',
-      })
-      .select('id')
-      .single();
+    const { data, error } = await supabase.rpc('send_community_message', {
+      p_participant_email: userEmail,
+      p_participant_name: userName,
+      p_device_token: deviceToken || null,
+      p_channel_id: activeChannel.id,
+      p_content: trimmedContent,
+    });
+    const result = Array.isArray(data) ? data[0] : data;
 
-    if (error) {
+    if (error || !result?.ok) {
       toast({
-        title: 'Error',
-        description: 'Failed to send message.',
+        title: 'Could not send',
+        description: result?.message || error?.message || 'Failed to send message.',
         variant: 'destructive',
       });
     } else {
+      // Only set on this browser's first-ever send as this email — the RPC
+      // omits it on every later call once the identity is already claimed.
+      if (result.new_device_token) setDeviceToken(result.new_device_token);
       setNewMessage('');
       // Best-effort only — a mention still "worked" (the highlighted pill
       // renders regardless) even if the push fan-out fails or the mentioned
       // person never enabled notifications in the first place.
-      if (inserted?.id && /@\[[^\]]+\]\([^)]+\)/.test(trimmedContent)) {
+      if (result.message_id && /@\[[^\]]+\]\([^)]+\)/.test(trimmedContent)) {
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-mention`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          body: JSON.stringify({ message_id: inserted.id }),
+          body: JSON.stringify({ message_id: result.message_id }),
         }).catch(() => {});
       }
     }
@@ -847,17 +875,36 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const existing = (messageReactions[messageId] || []).find(r => r.emoji === emoji);
     const alreadyReacted = existing?.emails.includes(userEmail);
 
+    // Routed through RPCs (not a raw insert/delete) so reacting/un-reacting
+    // as someone else's email requires the same device token messages do —
+    // the old USING(true) policies let anyone impersonate a reaction or
+    // wipe out someone else's with zero ownership check.
     if (alreadyReacted) {
-      await supabase
-        .from('community_message_reactions')
-        .delete()
-        .eq('message_id', messageId)
-        .eq('emoji', emoji)
-        .eq('participant_email', userEmail);
+      const { data, error } = await supabase.rpc('remove_community_reaction', {
+        p_message_id: messageId,
+        p_participant_email: userEmail,
+        p_device_token: deviceToken || null,
+        p_emoji: emoji,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error || !result?.ok) {
+        toast({ title: 'Could not remove reaction', description: result?.message || error?.message, variant: 'destructive' });
+        return;
+      }
     } else {
-      await supabase
-        .from('community_message_reactions')
-        .insert({ message_id: messageId, emoji, participant_email: userEmail, participant_name: userName });
+      const { data, error } = await supabase.rpc('add_community_reaction', {
+        p_message_id: messageId,
+        p_participant_email: userEmail,
+        p_participant_name: userName,
+        p_device_token: deviceToken || null,
+        p_emoji: emoji,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error || !result?.ok) {
+        toast({ title: 'Could not react', description: result?.message || error?.message, variant: 'destructive' });
+        return;
+      }
+      if (result.new_device_token) setDeviceToken(result.new_device_token);
     }
     // Realtime subscription (below) will also refresh this, but update now for snappy feedback.
     fetchReactionsForMessages(messages.map(m => m.id));
@@ -889,6 +936,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       p_message_id: editingMessageId,
       p_participant_email: userEmail,
       p_content: editingContent.trim(),
+      p_device_token: deviceToken || null,
     });
     setIsSavingEdit(false);
     if (error) {
@@ -908,6 +956,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const { error } = await supabase.rpc('delete_own_community_message', {
       p_message_id: messageId,
       p_participant_email: userEmail,
+      p_device_token: deviceToken || null,
     });
     setDeletingMessageId(null);
     if (error) {
@@ -953,6 +1002,35 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       toast({ title: 'Could not mute', description: e.message || 'Something went wrong.', variant: 'destructive' });
     } finally {
       setIsMuting(false);
+    }
+  };
+
+  const openMutedUsersDialog = async () => {
+    setMutedUsersDialogOpen(true);
+    setLoadingMutedUsers(true);
+    try {
+      const data = await callAdminAction<{ participant_email: string; muted_until: string; reason: string | null }[]>('list_muted_community_users');
+      // Expired mutes still have a row (unmute_community_user is the only
+      // delete path) — filter them out here rather than showing a stale
+      // "muted" entry for someone who can post again.
+      setMutedUsersList((data || []).filter(m => new Date(m.muted_until) > new Date()));
+    } catch (e: any) {
+      toast({ title: 'Could not load muted users', description: e.message || 'Something went wrong.', variant: 'destructive' });
+    } finally {
+      setLoadingMutedUsers(false);
+    }
+  };
+
+  const handleUnmute = async (email: string) => {
+    setUnmutingEmail(email);
+    try {
+      await callAdminAction('unmute_community_user', { participant_email: email });
+      setMutedUsersList(prev => prev.filter(m => m.participant_email !== email));
+      toast({ title: `Unmuted ${email}` });
+    } catch (e: any) {
+      toast({ title: 'Could not unmute', description: e.message || 'Something went wrong.', variant: 'destructive' });
+    } finally {
+      setUnmutingEmail(null);
     }
   };
 
@@ -1056,19 +1134,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (!activeChannel || isJoiningVoice) return;
     setIsJoiningVoice(true);
 
-    const { error } = await supabase
-      .from('voice_room_participants')
-      .insert({
-        channel_id: activeChannel.id,
-        participant_name: userName,
-        participant_email: userEmail,
-      });
+    // Routed through an RPC (not a raw insert) so joining as someone else's
+    // email requires the same device token messages/reactions do — the old
+    // USING(true) policy let anyone insert a fake "in voice" row for anyone.
+    const { data, error } = await supabase.rpc('join_voice_room', {
+      p_channel_id: activeChannel.id,
+      p_participant_email: userEmail,
+      p_participant_name: userName,
+      p_device_token: deviceToken || null,
+    });
+    const result = Array.isArray(data) ? data[0] : data;
 
-    if (error) {
+    if (error || !result?.ok) {
       setIsJoiningVoice(false);
-      toast({ title: 'Could not join', description: 'Something went wrong joining this voice channel — try again.', variant: 'destructive' });
+      toast({ title: 'Could not join', description: result?.message || 'Something went wrong joining this voice channel — try again.', variant: 'destructive' });
       return;
     }
+    if (result.new_device_token) setDeviceToken(result.new_device_token);
     // Set together so the very first render showing the Jitsi container
     // already shows the "Connecting…" spinner too, instead of a blank
     // frame before the effect below fires and flips this on.
@@ -1083,11 +1165,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (!target) return;
 
     disposeJitsi();
-    await supabase
-      .from('voice_room_participants')
-      .delete()
-      .eq('channel_id', target.id)
-      .eq('participant_email', userEmail);
+    await supabase.rpc('leave_voice_room', {
+      p_channel_id: target.id,
+      p_participant_email: userEmail,
+      p_device_token: deviceToken || null,
+    });
 
     setIsInVoice(false);
   };
@@ -1357,6 +1439,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     <Circle className="w-2 h-2 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
                     <span>{onlineCount || 1} online</span>
                   </div>
+                  {isOrganizer && (
+                    <button
+                      onClick={openMutedUsersDialog}
+                      className="mt-2 flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors"
+                    >
+                      <VolumeX className="w-3 h-3" /> Muted users
+                    </button>
+                  )}
                 </div>
 
                 {/* Text Channels */}
@@ -2229,6 +2319,43 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 Mute
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Muted users roster — the other half of moderation that had no UI
+            at all: mute_community_user could put someone in timeout, but
+            nothing showed who was currently muted or let an organizer lift
+            it early short of re-muting for 1 minute as a workaround. */}
+        <Dialog open={mutedUsersDialogOpen} onOpenChange={setMutedUsersDialogOpen}>
+          <DialogContent className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
+            <DialogHeader>
+              <DialogTitle>Muted Users</DialogTitle>
+              <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
+                Currently muted participants across all channels.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {loadingMutedUsers ? (
+                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-[hsl(var(--discord-text-muted))]" /></div>
+              ) : mutedUsersList.length === 0 ? (
+                <p className="text-sm text-[hsl(var(--discord-text-muted))] text-center py-6">No one is currently muted.</p>
+              ) : (
+                mutedUsersList.map(m => (
+                  <div key={m.participant_email} className="flex items-center justify-between gap-2 p-2 rounded bg-[hsl(var(--discord-dark))]">
+                    <div className="min-w-0">
+                      <p className="text-sm truncate">{m.participant_email}</p>
+                      <p className="text-xs text-[hsl(var(--discord-text-muted))]">
+                        Until {new Date(m.muted_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {m.reason ? ` — ${m.reason}` : ''}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" disabled={unmutingEmail === m.participant_email} onClick={() => handleUnmute(m.participant_email)}>
+                      {unmutingEmail === m.participant_email ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Unmute'}
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
           </DialogContent>
         </Dialog>
     </div>

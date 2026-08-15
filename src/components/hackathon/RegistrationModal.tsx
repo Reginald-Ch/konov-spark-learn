@@ -87,6 +87,15 @@ export const RegistrationModal = ({
         return;
       }
 
+      // Registering used to have zero effect on "who you are" anywhere
+      // else in the app — Build Studio, Lessons, and Community all read
+      // forge-student-email/name independently, so a student could
+      // register here and still show up as a fresh auto-generated ghost
+      // identity the moment they opened the IDE. This is what actually
+      // connects the two.
+      localStorage.setItem('forge-student-email', normalizedEmail);
+      localStorage.setItem('forge-student-name', validated.participant_name);
+
       toast({
         title: '🎉 Registration Successful!',
         description: 'You have been registered for the hackathon.',

@@ -23,7 +23,23 @@ async function resolveRole(supabase: ReturnType<typeof createClient>, passphrase
 }
 
 // Everything not listed here is organizer-only.
-const JUDGE_ALLOWED_ACTIONS = new Set(["verify", "grade_submission", "submit_gallery_score", "toggle_project_publish"]);
+//
+// auto_grade_challenge: judges only get the judge_score half of
+// grade_submission — auto_score can only ever come from here or an
+// organizer manually entering it. If grading is delegated entirely to
+// judges without an organizer separately running this, no submission for
+// that challenge ever finalizes (merge_submission_score requires BOTH
+// halves) and the whole SP/leaderboard/reward pipeline silently stalls
+// with no error shown anywhere. It only writes auto_score/auto_breakdown
+// (never judge_score, never publish state, never coins directly) using
+// the challenge's own already-configured benchmark tests, so a judge
+// running it can't do anything an organizer wouldn't also let them do by
+// handing them the button.
+//
+// toggle_project_publish removed — it let any judge-passphrase holder
+// take ANY project (not just ones they're actively judging) offline or
+// live, a griefing vector with no relationship to actually judging.
+const JUDGE_ALLOWED_ACTIONS = new Set(["verify", "grade_submission", "submit_gallery_score", "auto_grade_challenge"]);
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const GRADING_MODEL = "google/gemini-3-flash-preview";
@@ -71,6 +87,8 @@ async function mergeAndUpsertScore(
     judgeScore?: number | null;
     judgeBreakdown?: unknown;
     onTime?: boolean;
+    judgeName?: string | null;
+    confirmOverride?: boolean;
   }
 ) {
   const { data, error } = await supabase.rpc("merge_submission_score", {
@@ -83,10 +101,18 @@ async function mergeAndUpsertScore(
     p_judge_score: args.judgeScore === undefined ? null : args.judgeScore,
     p_judge_breakdown: args.judgeBreakdown === undefined ? null : args.judgeBreakdown,
     p_on_time: !!args.onTime,
+    p_judge_name: args.judgeName || null,
+    p_confirm_override: !!args.confirmOverride,
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
-  return { autoScore: row.auto_score, judgeScore: row.judge_score, totalSp: row.total_sp, status: row.status };
+  return {
+    autoScore: row.auto_score,
+    judgeScore: row.judge_score,
+    totalSp: row.total_sp,
+    status: row.status,
+    conflictingJudgeName: row.conflicting_judge_name as string | null,
+  };
 }
 
 async function acquireSlot(supabase: ReturnType<typeof createClient>, ttlSeconds = 60): Promise<number | null> {
@@ -355,7 +381,7 @@ Deno.serve(async (req) => {
       // ---------------- Grading ----------------
 
       case "grade_submission": {
-        const { submission_id, auto_score, auto_breakdown, judge_score, judge_breakdown } = payload;
+        const { submission_id, auto_score, auto_breakdown, judge_score, judge_breakdown, judge_name, confirm_override } = payload;
 
         const { data: submission, error: subErr } = await supabase
           .from("challenge_submissions")
@@ -386,8 +412,15 @@ Deno.serve(async (req) => {
           judgeScore: judge_score !== undefined ? clamp(Number(judge_score) || 0, 0, challenge.judge_max_points) : undefined,
           judgeBreakdown: judge_breakdown !== undefined ? judge_breakdown : undefined,
           onTime,
+          judgeName: typeof judge_name === "string" ? judge_name.trim().slice(0, 80) : null,
+          confirmOverride: !!confirm_override,
         });
 
+        // result.conflictingJudgeName set means the RPC refused to write
+        // anything — a different named judge already holds this
+        // submission's judge_score and confirm_override wasn't set. The
+        // client checks this field to prompt "overwrite {name}'s score?"
+        // instead of assuming a normal save happened.
         return json({ ok: true, data: result });
       }
 
@@ -519,23 +552,35 @@ Deno.serve(async (req) => {
       case "close_challenge_and_award_boxes": {
         const { challenge_id, mission_box_label, issue_box_label, mission_bonus_coin_value } = payload;
 
-        // Atomic claim: only one concurrent call (a double-click, a retried
-        // request) can flip status from non-closed to closed. The loser gets
-        // 0 affected rows and bails out before touching any box/badge/coin
-        // insert below — the existing per-row "already awarded" guards
-        // further down protect a *re-open-then-reclose*, but they can't stop
-        // two truly simultaneous first-time calls from both computing the
-        // same award list before either one has inserted anything.
+        // Deliberately NOT gated on "has this ever run before" — re-running
+        // (e.g. after a reopen-then-reclose, or a late finalizer) is a real,
+        // supported use case, not just an accident to block. Safety against
+        // double-awarding comes from the per-row "already awarded" guards
+        // further down (existingKeys/alreadyBadged/alreadyGranted, each
+        // checked fresh per run) plus real DB unique constraints on
+        // reward_boxes/point_events as a backstop — not from a one-time gate
+        // here. An earlier version of this claim tried to gate on `status !=
+        // 'closed'`, which broke the moment an organizer closed a challenge
+        // via the plain draft/live/closed dropdown first (unrelated to
+        // rewards) — this one never blocks re-running for that or any other
+        // reason. boxes_awarded_at is purely an informational "last run at"
+        // timestamp for the admin UI now, not a lock.
+        //
+        // A true simultaneous double-click (two organizers clicking at the
+        // same instant) is not fully serialized here, but the SubmissionsTab
+        // button already disables itself for the duration of one in-flight
+        // request (the common case), and the unique constraints mean even a
+        // genuine race fails one side with a constraint error rather than
+        // silently double-awarding anyone.
         const { data: claimedChallenge, error: claimErr } = await supabase
           .from("daily_challenges")
-          .update({ status: "closed" })
+          .update({ status: "closed", boxes_awarded_at: new Date().toISOString() })
           .eq("id", challenge_id)
-          .neq("status", "closed")
           .select("id, hackathon_id")
           .maybeSingle();
         if (claimErr) throw claimErr;
         if (!claimedChallenge) {
-          return json({ ok: false, error: "This challenge was already closed (possibly by another request just now)." }, 409);
+          return json({ ok: false, error: "Challenge not found." }, 404);
         }
         const challenge = claimedChallenge;
 
@@ -652,7 +697,17 @@ Deno.serve(async (req) => {
           }
         }
 
-        return json({ ok: true, data: { awarded: newRows.length, topWinners: [...topNSet] } });
+        // Submissions that never finalized (missing an auto score, a judge
+        // score, or both) get no box, no badge, no mission bonus — and
+        // until now, no warning either. A challenge graded only by judges
+        // who never ran Auto-Grade, or where a few submissions just never
+        // got picked up, would close out looking successful while quietly
+        // shutting out real participants. Surfaced here so the organizer
+        // sees it at the moment it matters, not by noticing missing boxes
+        // later.
+        const excludedCount = (submissions || []).length - finalized.length;
+
+        return json({ ok: true, data: { awarded: newRows.length, topWinners: [...topNSet], excludedCount } });
       }
 
       // ---------------- Project gallery judging (organizer + judge) ----------------

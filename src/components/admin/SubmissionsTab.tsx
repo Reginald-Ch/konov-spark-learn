@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { callAdminAction, type AdminRole } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink, Loader2, Gift, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSafeExternalUrl } from '@/lib/utils';
@@ -17,6 +18,7 @@ interface Challenge {
   auto_max_points: number;
   judge_max_points: number;
   status: string;
+  boxes_awarded_at: string | null;
 }
 
 interface ScoreRow {
@@ -26,6 +28,7 @@ interface ScoreRow {
   judge_score: number | null;
   auto_breakdown: any;
   judge_breakdown: any;
+  last_judge_name: string | null;
 }
 
 interface Submission {
@@ -64,6 +67,13 @@ const normalizeJudgeBreakdown = (b: any) => ({
 
 export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonId: string; role?: AdminRole | null }) => {
   const isOrganizer = role === 'organizer';
+  const isJudge = role === 'judge';
+
+  // Reuses the same sessionStorage key JudgeDashboardPanel (gallery
+  // judging) writes to, so a judge who works both surfaces only ever
+  // types their name once per browser session.
+  const [judgeName, setJudgeName] = useState(() => (typeof window !== 'undefined' ? sessionStorage.getItem('judge-display-name') || '' : ''));
+  const [conflictInfo, setConflictInfo] = useState<{ name: string } | null>(null);
 
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string>('');
@@ -73,18 +83,28 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [bonusCoinValue, setBonusCoinValue] = useState('');
   const [autoGrading, setAutoGrading] = useState(false);
+  // auto_grade_challenge has always supported a force flag to re-grade
+  // submissions that already have an auto score — the warning it returns
+  // when no benchmark tests are configured even tells the organizer to
+  // "re-grade with force:true if that's not intentional" — but nothing in
+  // this UI ever sent it. Fixing a benchmark test after an initial Auto-
+  // Grade run had no way to actually apply to already-graded submissions
+  // short of manually re-typing every score by hand or calling the API
+  // directly outside the app.
+  const [forceRegrade, setForceRegrade] = useState(false);
 
   const [gradingSubmission, setGradingSubmission] = useState<Submission | null>(null);
   const [autoBreakdown, setAutoBreakdown] = useState(emptyAutoBreakdown());
   const [judgeBreakdown, setJudgeBreakdown] = useState(emptyJudgeBreakdown());
   const [autoRationale, setAutoRationale] = useState<string>('');
+  const [autoSuspicious, setAutoSuspicious] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   const selectedChallenge = challenges.find(c => c.id === selectedChallengeId);
 
   const fetchChallenges = useCallback(async () => {
     if (!hackathonId) { setChallenges([]); return; }
-    const { data } = await supabase.from('daily_challenges').select('id, day_number, title, auto_max_points, judge_max_points, status').eq('hackathon_id', hackathonId).order('day_number');
+    const { data } = await supabase.from('daily_challenges').select('id, day_number, title, auto_max_points, judge_max_points, status, boxes_awarded_at').eq('hackathon_id', hackathonId).order('day_number');
     setChallenges((data as Challenge[]) || []);
     setSelectedChallengeId(prev => (prev && data?.some(c => c.id === prev) ? prev : data?.[0]?.id || ''));
   }, [hackathonId]);
@@ -94,7 +114,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
     setIsLoading(true);
     const { data, error } = await supabase
       .from('challenge_submissions')
-      .select('id, participant_email, content_url, notes, submitted_at, submission_scores(total_sp, status, auto_score, judge_score, auto_breakdown, judge_breakdown)')
+      .select('id, participant_email, content_url, notes, submitted_at, submission_scores(total_sp, status, auto_score, judge_score, auto_breakdown, judge_breakdown, last_judge_name)')
       .eq('challenge_id', selectedChallengeId)
       .order('submitted_at', { ascending: true });
     if (error) toast.error('Failed to load submissions');
@@ -105,29 +125,69 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
   useEffect(() => { fetchChallenges(); }, [fetchChallenges]);
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
+  // Previously fetch-once-per-challenge-select only — a new submission
+  // coming in, or another judge's grade landing, never appeared until the
+  // organizer/judge manually reselected the day dropdown. submission_scores
+  // has no challenge_id column, so that half subscribes globally and
+  // relies on the debounce to stay cheap.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!selectedChallengeId) return;
+    const debouncedRefetch = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchSubmissions(), 600);
+    };
+    const channel = supabase
+      .channel(`submissions-tab-${selectedChallengeId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_submissions', filter: `challenge_id=eq.${selectedChallengeId}` }, debouncedRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'submission_scores' }, debouncedRefetch)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [selectedChallengeId, fetchSubmissions]);
+
   const autoTotal = useMemo(() => Object.values(autoBreakdown).reduce((a, b) => a + (b || 0), 0), [autoBreakdown]);
   const judgeTotal = useMemo(() => Object.values(judgeBreakdown).reduce((a, b) => a + (b || 0), 0), [judgeBreakdown]);
 
   const openGrade = (s: Submission) => {
     setGradingSubmission(s);
+    setConflictInfo(null);
     const existing = singleScore(s.submission_scores);
     setAutoBreakdown(normalizeAutoBreakdown(existing?.auto_breakdown));
     setJudgeBreakdown(normalizeJudgeBreakdown(existing?.judge_breakdown));
     setAutoRationale(existing?.auto_breakdown?.rationale || '');
+    setAutoSuspicious(existing?.auto_breakdown?.suspicious_content || '');
   };
 
-  const handleGrade = async () => {
+  const handleGrade = async (confirmOverride = false) => {
     if (!gradingSubmission) return;
+    if (isJudge && !judgeName.trim()) {
+      toast.error('Enter your name so other judges can see who graded this');
+      return;
+    }
+    if (isJudge) sessionStorage.setItem('judge-display-name', judgeName.trim());
     setSaving(true);
     try {
-      await callAdminAction('grade_submission', {
+      const result = await callAdminAction<{ conflictingJudgeName?: string | null }>('grade_submission', {
         submission_id: gradingSubmission.id,
         ...(isOrganizer ? { auto_score: autoTotal, auto_breakdown: { timeliness: autoBreakdown.timeliness, benchmark: autoBreakdown.benchmark, response_quality: { followsPrompt: autoBreakdown.followsPrompt, correctness: autoBreakdown.correctness, characterConsistency: autoBreakdown.characterConsistency, safety: autoBreakdown.safety, knowledgeBase: autoBreakdown.knowledgeBase } } } : {}),
         judge_score: judgeTotal,
         judge_breakdown: judgeBreakdown,
+        judge_name: isJudge ? judgeName.trim() : null,
+        confirm_override: confirmOverride,
       });
+      // A different named judge already holds this submission's
+      // judge_score — the RPC refused to write anything. Ask before
+      // clobbering instead of silently overwriting their grade.
+      if (result.conflictingJudgeName) {
+        setConflictInfo({ name: result.conflictingJudgeName });
+        return;
+      }
       toast.success('Score submitted');
       setGradingSubmission(null);
+      setConflictInfo(null);
       fetchSubmissions();
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit score');
@@ -142,6 +202,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
     try {
       const result = await callAdminAction<{ graded: number; skipped: number; errors: { submission_id: string; error: string }[]; warnings: { submission_id: string; warning: string }[] }>('auto_grade_challenge', {
         challenge_id: selectedChallengeId,
+        force: forceRegrade,
       });
       if (result.errors.length > 0) {
         toast.warning(`Auto-graded ${result.graded}, ${result.errors.length} failed (see console)`);
@@ -168,13 +229,19 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
     if (!selectedChallengeId) return;
     setClosing(true);
     try {
-      const result = await callAdminAction<{ awarded: number; topWinners: string[] }>('close_challenge_and_award_boxes', {
+      const result = await callAdminAction<{ awarded: number; topWinners: string[]; excludedCount: number }>('close_challenge_and_award_boxes', {
         challenge_id: selectedChallengeId,
         issue_box_label: 'Issue Box',
         mission_box_label: 'Mission Bonus',
         mission_bonus_coin_value: parseInt(bonusCoinValue, 10) || 0,
       });
       toast.success(`Challenge closed. ${result.awarded} reward box(es) awarded — top winners: ${result.topWinners.join(', ') || 'none'}`);
+      // Not finalized (missing an auto score, judge score, or both) means
+      // no box/badge/bonus for that submission — worth a loud, separate
+      // warning since it silently zeroes out real participants otherwise.
+      if (result.excludedCount > 0) {
+        toast.warning(`${result.excludedCount} submission(s) were never fully graded and got no reward — check for missing auto or judge scores.`);
+      }
       setCloseDialogOpen(false);
       setBonusCoinValue('');
       fetchChallenges();
@@ -202,17 +269,34 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
               ))}
             </SelectContent>
           </Select>
+          {/* Auto-Grade only writes auto_score/auto_breakdown using the
+              challenge's own already-configured benchmark tests — never
+              judge_score, publish state, or coins directly — so it's safe
+              for judges too. It used to be organizer-only, which meant a
+              judge who was handed all daily-challenge grading had no way
+              to populate this half at all: merge_submission_score requires
+              BOTH halves to finalize, so every submission silently never
+              earned SP with no error shown anywhere. Close & Award Boxes
+              stays organizer-only — that's a real finalization/reward step. */}
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none" title="Without this, submissions that already have an auto score are skipped — the only way to apply a benchmark-test fix retroactively is to check this and re-run.">
+            <Checkbox checked={forceRegrade} onCheckedChange={(v) => setForceRegrade(!!v)} className="h-3.5 w-3.5" />
+            Re-grade already-graded
+          </label>
+          <Button size="sm" variant="outline" disabled={!selectedChallengeId || autoGrading} onClick={handleAutoGrade}>
+            {autoGrading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}
+            Auto-Grade All
+          </Button>
           {isOrganizer && (
-            <>
-              <Button size="sm" variant="outline" disabled={!selectedChallengeId || autoGrading} onClick={handleAutoGrade}>
-                {autoGrading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}
-                Auto-Grade All
-              </Button>
-              <Button size="sm" variant="outline" disabled={!selectedChallengeId || selectedChallenge?.status === 'closed' || closing} onClick={() => setCloseDialogOpen(true)}>
-                {closing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Gift className="w-4 h-4 mr-1" />}
-                {selectedChallenge?.status === 'closed' ? 'Already Closed' : 'Close & Award Boxes'}
-              </Button>
-            </>
+            // Never permanently disabled by prior runs — re-running is safe
+            // and sometimes necessary (a reopened challenge picking up late
+            // finalizers), protected by per-participant idempotency checks
+            // server-side rather than a one-time lock here. `closing` still
+            // disables it for the duration of one in-flight request, which
+            // covers the common accidental-double-click case.
+            <Button size="sm" variant="outline" disabled={!selectedChallengeId || closing} onClick={() => setCloseDialogOpen(true)}>
+              {closing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Gift className="w-4 h-4 mr-1" />}
+              {selectedChallenge?.boxes_awarded_at ? 'Re-run Close & Award Boxes' : 'Close & Award Boxes'}
+            </Button>
           )}
         </div>
       </div>
@@ -236,6 +320,22 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
                         shown as a badge instead of a second thing to track. */}
                     {score?.auto_breakdown?.timeliness === 10 && (
                       <Badge variant="outline" className="gap-1 text-amber-500 border-amber-500/40">⚡ On Time</Badge>
+                    )}
+                    {score?.last_judge_name && (
+                      <Badge variant="outline" className="gap-1">Judged by {score.last_judge_name}</Badge>
+                    )}
+                    {/* Computed and saved by auto_grade_challenge on every
+                        run, but previously only ever shown in a one-time
+                        toast + console log right after grading — anyone
+                        judging this submission later (possibly a different
+                        person, possibly days afterward) had no way to know
+                        it had ever been flagged as a possible attempt to
+                        manipulate the auto-grader. It was sitting in the
+                        data the whole time; this just displays it. */}
+                    {score?.auto_breakdown?.suspicious_content && (
+                      <Badge variant="outline" className="gap-1 text-destructive border-destructive/40" title={score.auto_breakdown.suspicious_content}>
+                        ⚠ Flagged — possible grading manipulation
+                      </Badge>
                     )}
                   </div>
                   {s.content_url && (
@@ -271,6 +371,24 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
             <DialogDescription>{gradingSubmission?.participant_email}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
+            {isJudge && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Your name (shown to other judges)</label>
+                <Input value={judgeName} onChange={e => { setJudgeName(e.target.value); setConflictInfo(null); }} placeholder="e.g. Alex" className="h-8 text-sm" />
+              </div>
+            )}
+            {conflictInfo && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <p className="font-medium">{conflictInfo.name} already scored this submission.</p>
+                <p className="text-xs text-muted-foreground mt-1">Submitting again will overwrite their judge score with yours.</p>
+              </div>
+            )}
+            {autoSuspicious && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <p className="font-medium text-destructive">⚠ This submission was flagged by the auto-grader</p>
+                <p className="text-xs text-muted-foreground mt-1">Possible attempt to manipulate grading: {autoSuspicious}. The automated score above still reflects what was computed — review this one by hand before trusting it.</p>
+              </div>
+            )}
             <div>
               <h4 className="text-sm font-bold mb-2">
                 Automated SP — {autoTotal} / {selectedChallenge?.auto_max_points ?? 70}
@@ -297,10 +415,17 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setGradingSubmission(null)} className="flex-1">Cancel</Button>
-              <Button onClick={handleGrade} disabled={saving} className="flex-1">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                Submit Score ({autoTotal + judgeTotal} SP)
-              </Button>
+              {conflictInfo ? (
+                <Button variant="destructive" onClick={() => handleGrade(true)} disabled={saving} className="flex-1">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Overwrite {conflictInfo.name}'s Score
+                </Button>
+              ) : (
+                <Button onClick={() => handleGrade(false)} disabled={saving} className="flex-1">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Submit Score ({autoTotal + judgeTotal} SP)
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -312,6 +437,11 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
             <DialogTitle>Close Challenge &amp; Award Boxes</DialogTitle>
             <DialogDescription>
               Everyone finalized gets an Issue Box. The top finishers (per this hackathon's Mission Bonus setting) also get a Mission Bonus box, plus Gold/Silver/Bronze badges for the top 3.
+              {selectedChallenge?.boxes_awarded_at && (
+                <span className="block mt-1.5 text-amber-500">
+                  Already run once, at {new Date(selectedChallenge.boxes_awarded_at).toLocaleString()} — safe to run again, only newly-eligible participants (e.g. after a reopen) will get anything new.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">

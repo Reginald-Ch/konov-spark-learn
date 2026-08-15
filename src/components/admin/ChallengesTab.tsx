@@ -28,6 +28,7 @@ interface Challenge {
   judge_max_points: number;
   status: 'draft' | 'live' | 'closed';
   benchmark_tests: BenchmarkTest[];
+  boxes_awarded_at: string | null;
 }
 
 const emptyBenchmarkTest = (): BenchmarkTest => ({ label: '', input: '', expected_contains: '' });
@@ -110,8 +111,12 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
         description: form.description || null,
         opens_at: form.opens_at ? new Date(form.opens_at).toISOString() : null,
         closes_at: form.closes_at ? new Date(form.closes_at).toISOString() : null,
-        auto_max_points: form.auto_max_points ?? 70,
-        judge_max_points: form.judge_max_points ?? 30,
+        // Always the fixed rubric total, never organizer-editable — see the
+        // "Scoring" note in the dialog below. Sending these explicitly
+        // (rather than omitting them) also self-heals any challenge that
+        // was misconfigured with a different value before this fix.
+        auto_max_points: 70,
+        judge_max_points: 30,
         status: form.status || 'draft',
         benchmark_tests: (form.benchmark_tests || []).filter(t => t.label.trim() || t.input.trim()),
       };
@@ -180,6 +185,15 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
               })()}
               <p className="text-xs text-muted-foreground mt-1">Auto {c.auto_max_points} SP + Judge {c.judge_max_points} SP = {c.auto_max_points + c.judge_max_points} SP max</p>
               <p className="text-xs text-muted-foreground">{c.benchmark_tests?.length || 0} benchmark test(s) defined</p>
+              {/* Closing here only stops submissions — it does NOT award
+                  Issue/Mission boxes, badges, or bonus coins. That's a
+                  separate step ("Close & Award Boxes") on the Submissions
+                  tab. Closing here first doesn't block that step anymore,
+                  but it's easy to assume this dropdown is the whole
+                  "close the day" action, so call it out explicitly. */}
+              {c.status === 'closed' && !c.boxes_awarded_at && (
+                <p className="text-xs text-amber-500 mt-1">⚠ Closed, but rewards not yet awarded — use "Close & Award Boxes" on the Submissions tab.</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Select value={c.status} onValueChange={(v) => handleStatusChange(c, v as Challenge['status'])}>
@@ -207,7 +221,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Edit Challenge' : 'New Daily Challenge'}</DialogTitle>
-            <DialogDescription>Each challenge is scored out of {(form.auto_max_points ?? 70) + (form.judge_max_points ?? 30)} SP: automated checks + judge rubric.</DialogDescription>
+            <DialogDescription>Every challenge is scored out of the same fixed 100 SP: automated checks + judge rubric.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-3">
@@ -245,14 +259,25 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
                 <Input type="datetime-local" value={form.closes_at || ''} onChange={e => setForm(f => ({ ...f, closes_at: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Automated SP (max)</label>
-                <Input type="number" min={0} value={form.auto_max_points ?? 70} onChange={e => setForm(f => ({ ...f, auto_max_points: parseInt(e.target.value) || 0 }))} />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Judge SP (max)</label>
-                <Input type="number" min={0} value={form.judge_max_points ?? 30} onChange={e => setForm(f => ({ ...f, judge_max_points: parseInt(e.target.value) || 0 }))} />
+            {/* Not editable — the auto-grader and the manual grading form
+                both use a fixed point breakdown internally (see
+                SubmissionsTab's ScoreFields). An earlier version let this
+                be typed in freely, but changing it never actually rescaled
+                anything — it only clamped the final total, silently
+                truncating scores or doing nothing depending on the value,
+                while still promising participants a max that couldn't be
+                reached. Shown here as fixed info so nobody is misled again. */}
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm font-medium mb-1.5">Scoring (fixed for every challenge)</p>
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div>
+                  <p className="font-medium text-foreground mb-0.5">Automated — 70 SP</p>
+                  <p>10 timeliness + 20 benchmark + 40 response quality</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-0.5">Judge — 30 SP</p>
+                  <p>10 creativity + 10 problem-solving + 10 impact</p>
+                </div>
               </div>
             </div>
             <div>

@@ -19,6 +19,7 @@ import { lintPython } from './editorFeatures';
 import { getStoredAdminRole, callAdminAction } from '@/lib/adminClient';
 import { MilestoneCelebration } from './ForgeWalkthrough';
 import { getYouTubeEmbedUrl } from '@/lib/utils';
+import { ensureHackathonRegistration } from '@/lib/identity';
 import { CoinIcon } from './CoinIcon';
 
 interface Lesson {
@@ -581,11 +582,17 @@ export const LessonsPanel = () => {
               <Button
                 size="sm"
                 onClick={() => {
-                  localStorage.setItem('forge-student-name', name.trim());
-                  localStorage.setItem('forge-student-email', email.trim().toLowerCase());
-                  setName(name.trim());
-                  setEmail(email.trim().toLowerCase());
+                  const trimmedName = name.trim();
+                  const normalizedEmail = email.trim().toLowerCase();
+                  localStorage.setItem('forge-student-name', trimmedName);
+                  localStorage.setItem('forge-student-email', normalizedEmail);
+                  setName(trimmedName);
+                  setEmail(normalizedEmail);
                   setEditingIdentity(false);
+                  // Seeds the organizer's roster (CoinsTab, this leaderboard)
+                  // even for students who never opened "Register for
+                  // Hackathon" and came straight here instead.
+                  ensureHackathonRegistration(normalizedEmail, trimmedName, hackathonId);
                 }}
                 className="col-span-2 h-8 text-xs"
               >
