@@ -515,7 +515,7 @@ export const LessonsPanel = () => {
       });
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
-      setQuizResult(result as QuizResult);
+      setQuizResult(result as unknown as QuizResult);
       setPhase('results');
       if (result?.passed) {
         setCelebrationMsg(

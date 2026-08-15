@@ -32,6 +32,24 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_failed_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string
+        }
+        Relationships: []
+      }
       ai_gateway_slots: {
         Row: {
           expires_at: string | null
@@ -258,8 +276,11 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string
+          edited_at: string | null
           id: string
           message_type: string
+          pinned_at: string | null
+          pinned_by: string | null
           sender_email: string
           sender_name: string
           updated_at: string
@@ -268,8 +289,11 @@ export type Database = {
           channel_id: string
           content: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           message_type?: string
+          pinned_at?: string | null
+          pinned_by?: string | null
           sender_email: string
           sender_name: string
           updated_at?: string
@@ -278,8 +302,11 @@ export type Database = {
           channel_id?: string
           content?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           message_type?: string
+          pinned_at?: string | null
+          pinned_by?: string | null
           sender_email?: string
           sender_name?: string
           updated_at?: string
@@ -293,6 +320,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_muted_users: {
+        Row: {
+          created_at: string
+          muted_by: string | null
+          muted_until: string
+          participant_email: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          muted_by?: string | null
+          muted_until: string
+          participant_email: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          muted_by?: string | null
+          muted_until?: string
+          participant_email?: string
+          reason?: string | null
+        }
+        Relationships: []
       }
       community_quest_completions: {
         Row: {
@@ -373,25 +424,31 @@ export type Database = {
           added_at: string
           badge_emoji: string
           display_name: string
+          invite_token_hash: string | null
           participant_email: string
           role_label: string
           staff_pin_hash: string | null
+          token_redeemed_at: string | null
         }
         Insert: {
           added_at?: string
           badge_emoji?: string
           display_name: string
+          invite_token_hash?: string | null
           participant_email: string
           role_label?: string
           staff_pin_hash?: string | null
+          token_redeemed_at?: string | null
         }
         Update: {
           added_at?: string
           badge_emoji?: string
           display_name?: string
+          invite_token_hash?: string | null
           participant_email?: string
           role_label?: string
           staff_pin_hash?: string | null
+          token_redeemed_at?: string | null
         }
         Relationships: []
       }
@@ -480,6 +537,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gallery_judges: {
+        Row: {
+          created_at: string
+          judge_name: string
+        }
+        Insert: {
+          created_at?: string
+          judge_name: string
+        }
+        Update: {
+          created_at?: string
+          judge_name?: string
+        }
+        Relationships: []
       }
       hackathon_registrations: {
         Row: {
@@ -1315,6 +1387,48 @@ export type Database = {
           ok: boolean
         }[]
       }
+      count_recent_admin_failures: { Args: { p_ip: string }; Returns: number }
+      delete_own_community_message: {
+        Args: { p_message_id: string; p_participant_email: string }
+        Returns: undefined
+      }
+      delete_own_project: {
+        Args: { p_participant_email: string; p_project_id: string }
+        Returns: undefined
+      }
+      edit_own_community_message: {
+        Args: {
+          p_content: string
+          p_message_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          content: string
+          edited_at: string
+        }[]
+      }
+      get_hackathon_judge_scores: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          metadata: Json
+          participant_key: string
+          points: number
+        }[]
+      }
+      get_hackathon_leaderboard_projects: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          author_key: string
+          author_name: string
+          code: string
+          created_at: string
+          demo_url: string
+          description: string
+          id: string
+          is_published: boolean
+          project_name: string
+        }[]
+      }
       get_lesson_content: {
         Args: { p_lesson_id: string; p_participant_email: string }
         Returns: Json
@@ -1338,6 +1452,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_projects: {
+        Args: { p_participant_email: string }
+        Returns: {
+          id: string
+          is_published: boolean
+          project_name: string
+          updated_at: string
+        }[]
+      }
       get_my_reward_boxes: {
         Args: { p_hackathon_id: string; p_participant_email: string }
         Returns: {
@@ -1359,6 +1482,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_own_project_by_id: {
+        Args: { p_participant_email: string; p_project_id: string }
+        Returns: Json
+      }
       get_quiz_questions: {
         Args: { p_lesson_id: string; p_participant_email: string }
         Returns: {
@@ -1368,17 +1495,61 @@ export type Database = {
           question: string
         }[]
       }
+      merge_submission_score: {
+        Args: {
+          p_auto_breakdown?: Json
+          p_auto_score?: number
+          p_challenge_id: string
+          p_hackathon_id: string
+          p_judge_breakdown?: Json
+          p_judge_score?: number
+          p_on_time?: boolean
+          p_participant_email: string
+          p_submission_id: string
+        }
+        Returns: {
+          auto_score: number
+          judge_score: number
+          status: string
+          total_sp: number
+        }[]
+      }
       open_reward_box: {
         Args: { p_box_id: string; p_participant_email: string }
         Returns: undefined
       }
+      record_failed_admin_attempt: {
+        Args: { p_ip: string }
+        Returns: undefined
+      }
+      redeem_staff_invite: {
+        Args: { p_token: string }
+        Returns: {
+          display_name: string
+          ok: boolean
+          participant_email: string
+        }[]
+      }
       release_ai_slot: { Args: { p_slot_id: number }; Returns: undefined }
+      save_own_project: {
+        Args: {
+          p_author_name: string
+          p_code: string
+          p_description: string
+          p_expected_updated_at?: string
+          p_participant_email: string
+          p_project_id: string
+          p_project_name: string
+          p_template_id: string
+        }
+        Returns: Json
+      }
       send_staff_message: {
         Args: {
           p_channel_id: string
           p_content: string
           p_participant_email: string
-          p_pin: string
+          p_token: string
         }
         Returns: {
           message: string
@@ -1404,6 +1575,17 @@ export type Database = {
         Args: { p_passphrase: string; p_role: string }
         Returns: undefined
       }
+      submit_gallery_score: {
+        Args: {
+          p_feedback?: string
+          p_judge_name: string
+          p_participant_email: string
+          p_points: number
+          p_project_id: string
+          p_project_name: string
+        }
+        Returns: undefined
+      }
       submit_lesson_quiz: {
         Args: {
           p_answers: number[]
@@ -1415,9 +1597,21 @@ export type Database = {
           bonus_coins_awarded: number
           correct_flags: boolean[]
           explanations: string[]
+          key_awarded: boolean
           passed: boolean
           score: number
           total: number
+        }[]
+      }
+      unlock_lesson: {
+        Args: {
+          p_hackathon_id: string
+          p_lesson_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          message: string
+          ok: boolean
         }[]
       }
       upsert_community_staff: {
@@ -1425,10 +1619,11 @@ export type Database = {
           p_badge_emoji: string
           p_display_name: string
           p_participant_email: string
-          p_pin: string
           p_role_label: string
         }
-        Returns: undefined
+        Returns: {
+          invite_token: string
+        }[]
       }
       verify_admin_credential: {
         Args: { p_passphrase: string; p_role: string }

@@ -157,7 +157,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           // Keep the editor's save-conflict baseline in sync — without this,
           // the very next "Save Checkpoint" after publishing would compare
           // against the pre-publish timestamp and false-positive a conflict.
-          if (onUpdatedAtChange) onUpdatedAtChange(updateData.updated_at ?? null);
+          if (onUpdatedAtChange) onUpdatedAtChange((updateData as any).updated_at ?? null);
         }
       } else {
         // New project: attach it to whichever hackathon is currently live, so
