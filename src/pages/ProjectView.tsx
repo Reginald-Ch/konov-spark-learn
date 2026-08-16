@@ -680,6 +680,12 @@ const ProjectView = () => {
             messages: history.slice(0, -1),
             knowledgeBase: mergedKnowledge,
             qaData: mergedQA,
+            // The published bot's real main.py — if it defines a real
+            // respond() that returns a string, the edge function uses that
+            // directly. Same fallback-safe contract as the editor's own
+            // test chat: anything else falls straight through to the
+            // existing AI behavior, unchanged.
+            studentCode: project.code,
             botConfig: {
               botName: config.botName,
               botEmoji: config.botEmoji,

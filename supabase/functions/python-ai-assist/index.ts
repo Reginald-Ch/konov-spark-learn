@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
+import { tryRealPythonReply } from "./realPythonReply.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -288,7 +289,7 @@ serve(async (req) => {
   };
 
   try {
-    const { code, model, action, systemPrompt, messages: conversationHistory, knowledgeBase, qaData, projectType, projectName, botConfig } = await req.json();
+    const { code, model, action, systemPrompt, messages: conversationHistory, knowledgeBase, qaData, projectType, projectName, botConfig, studentCode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -473,6 +474,37 @@ Never fabricate irrelevant backend/API-key errors that have nothing to do with t
 Format as plain terminal text with emojis. Under 300 words.`;
       userPrompt = `Simulate loading this FORGE config and report what you actually see — success if it's genuinely in good shape, a plain specific note if something's clearly broken:\n\n${code}`;
     } else if (action === "test-agent") {
+      // Real Python takes priority over the LLM when main.py defines a real
+      // respond() that returns an actual string — see realPythonReply.ts
+      // for the full contract (None/"" is a deliberate defer-to-AI signal;
+      // any real failure — missing entrypoint, a bug, a timeout — also
+      // falls through to the AI below unchanged, never surfaced to an end
+      // user chatting with someone else's published bot). `code` is
+      // repurposed as the chat message on this action (pre-existing
+      // overload, not something this change introduces).
+      const pyReply = tryRealPythonReply(
+        typeof studentCode === "string" ? studentCode : "",
+        code,
+        Array.isArray(conversationHistory) ? conversationHistory : []
+      );
+      if (pyReply.handled && "reply" in pyReply) {
+        const encoder = new TextEncoder();
+        const sseBody = new ReadableStream<Uint8Array>({
+          start(controller) {
+            const chunk = { choices: [{ delta: { content: pyReply.reply } }] };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            controller.close();
+          },
+        });
+        return new Response(sseBody, {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream", "X-Python-Status": "handled" },
+        });
+      }
+      // handled: false (no code / deferred / N/A for this action) or a
+      // Python-side error — either way, everything below runs exactly as
+      // it did before this change existed.
+
       // ── Real tool calling for agent projects ──
       let toolResultsContext = "";
       let toolsUsedNames: string[] = [];

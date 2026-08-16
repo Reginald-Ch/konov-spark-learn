@@ -38,6 +38,10 @@ interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   _id?: number;
+  // Set when main.py's real respond() actually answered this message
+  // (vs. the AI) — the one visible signal that real Python is genuinely
+  // running, not just accepted and ignored.
+  usedRealPython?: boolean;
 }
 
 interface QAPair {
@@ -1567,7 +1571,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const chatAbortRef = useRef<AbortController | null>(null);
 
   // Stream AI response helper
-  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal): Promise<string> => {
+  // onHeaders is optional and additive — every existing caller that doesn't
+  // pass it behaves exactly as before. Only handleChatSend uses it, to read
+  // the X-Python-Status header and show whether real Python actually
+  // answered this message.
+  const streamFromEdgeFunction = async (body: Record<string, unknown>, onChunk: (text: string) => void, externalSignal?: AbortSignal, onHeaders?: (headers: Headers) => void): Promise<string> => {
     // The sidebar shows "AI Calls: X / Limit: 40 per session" — until now
     // that "Limit" was purely decorative, since nothing anywhere ever read
     // aiCallCount to stop a call. This is still just a per-tab soft guard
@@ -1597,6 +1605,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           signal: controller.signal,
         }
       );
+      onHeaders?.(resp.headers);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         if (resp.status === 401) throw new Error('Authentication error. Please refresh the page.');
@@ -2185,18 +2194,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const placeholderId = Date.now();
     try {
       let assistantReply = '';
+      let usedRealPython = false;
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
       const mergedKnowledge = config.knowledgeBaseFromCode || knowledgeBase || '';
 
       await streamFromEdgeFunction(
-        { 
-          code: userMsg, 
-          model: projectType, 
-          action: 'test-agent', 
-          systemPrompt: config.systemMessage || systemPrompt, 
+        {
+          code: userMsg,
+          model: projectType,
+          action: 'test-agent',
+          systemPrompt: config.systemMessage || systemPrompt,
           messages: history.slice(0, -1),
+          // main.py's raw text — if it defines a real respond() that
+          // returns a string, the edge function uses that directly and
+          // skips the LLM entirely. Empty/no respond()/an error all fall
+          // straight through to the exact same AI behavior as before this
+          // existed.
+          studentCode: files['main.py'],
           knowledgeBase: mergedKnowledge || undefined,
           qaData: mergedQA.length > 0 ? mergedQA : undefined,
           botConfig: {
@@ -2235,11 +2251,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const updated = [...prev];
             const idx = updated.findIndex(m => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId };
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId, usedRealPython };
             return updated;
           });
         },
         abortCtl.signal,
+        (headers) => { usedRealPython = headers.get('X-Python-Status') === 'handled'; },
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
@@ -3838,8 +3855,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         return <ReasoningTrace steps={reasoningSteps} />;
                       }
                       return (
-                        <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <div>
+                          {msg.usedRealPython && (
+                            <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-400 mb-1" title="main.py's respond() answered this message directly — the AI wasn't called.">
+                              🐍 Answered by your Python code
+                            </div>
+                          )}
+                          <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
                         </div>
                       );
                     })()
