@@ -29,12 +29,25 @@ export type Stmt =
   | { kind: 'Assign'; targets: Expr[]; value: Expr; line: number }
   | { kind: 'AugAssign'; target: Expr; op: string; value: Expr; line: number }
   | { kind: 'If'; test: Expr; body: Stmt[]; orelse: Stmt[]; line: number }
-  | { kind: 'For'; target: string; iter: Expr; body: Stmt[]; line: number }
+  // `target` is 1+ names — a plain `for x in ...:` has one, `for k, v in
+  // d.items():` has two. Deliberately NOT general tuple unpacking (no
+  // tuple literals, no unpacking in plain assignment) — scoped narrowly to
+  // just making .items()/enumerate()-style iteration actually usable,
+  // which was a real dead end without this.
+  | { kind: 'For'; target: string[]; iter: Expr; body: Stmt[]; line: number }
   | { kind: 'While'; test: Expr; body: Stmt[]; line: number }
   | { kind: 'FunctionDef'; name: string; params: string[]; body: Stmt[]; line: number }
   | { kind: 'Return'; value: Expr | null; line: number }
   | { kind: 'Pass'; line: number }
   | { kind: 'Break'; line: number }
-  | { kind: 'Continue'; line: number };
+  | { kind: 'Continue'; line: number }
+  // Single except clause only — no exception-type matching (`except
+  // ValueError:`), since the interpreter doesn't model exception types,
+  // only messages. `exceptVar` is the `as e` binding, if present.
+  | { kind: 'Try'; body: Stmt[]; exceptVar: string | null; exceptBody: Stmt[]; line: number }
+  // `import` stays rejected as UnsupportedSyntaxError for everything except
+  // a small explicit allowlist (currently just `random`) — this is that
+  // one carve-out, not general import support.
+  | { kind: 'Import'; module: string; line: number };
 
 export type Program = Stmt[];

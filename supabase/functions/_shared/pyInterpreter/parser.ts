@@ -74,7 +74,54 @@ class Parser {
     if (this.checkName('for')) return this.parseFor();
     if (this.checkName('while')) return this.parseWhile();
     if (this.checkName('def')) return this.parseFunctionDef();
+    if (this.checkName('try')) return this.parseTry();
+    if (this.checkName('import')) return this.parseImport();
     return this.parseSimpleStatement();
+  }
+
+  // Explicit allowlist carve-out from the general "import is unsupported"
+  // rule — random.choice()-style randomness is common enough in real
+  // chatbot logic to be worth the one exception. Anything else still hits
+  // UnsupportedSyntaxError exactly like before.
+  private static readonly SUPPORTED_MODULES = new Set(['random']);
+
+  private parseImport(): Stmt {
+    const line = this.current().line;
+    this.expectName('import');
+    const moduleName = this.expectIdentifier();
+    if (!Parser.SUPPORTED_MODULES.has(moduleName)) {
+      throw new UnsupportedSyntaxError(`import ${moduleName}`, line);
+    }
+    this.expectNewline();
+    return { kind: 'Import', module: moduleName, line };
+  }
+
+  private parseTry(): Stmt {
+    const line = this.current().line;
+    this.expectName('try');
+    this.expectOp(':');
+    const body = this.parseBlock();
+    if (!this.checkName('except')) {
+      throw new PySyntaxError("'try' needs an 'except' block — 'finally' and multiple 'except' clauses aren't supported.", this.current().line);
+    }
+    this.advance();
+    let exceptVar: string | null = null;
+    if (this.checkName('as')) {
+      this.advance();
+      exceptVar = this.expectIdentifier();
+    } else if (!this.checkOp(':')) {
+      // `except SomeError:` — exception-type matching isn't modeled (every
+      // runtime error is just a message, not a typed exception), so this is
+      // parsed and silently ignored rather than rejected: `except Exception:`
+      // and `except ValueError:` behave identically here, both catch
+      // anything. Rejecting it outright would be needlessly strict for code
+      // that's otherwise completely reasonable Python.
+      this.expectIdentifier();
+      if (this.checkName('as')) { this.advance(); exceptVar = this.expectIdentifier(); }
+    }
+    this.expectOp(':');
+    const exceptBody = this.parseBlock();
+    return { kind: 'Try', body, exceptVar, exceptBody, line };
   }
 
   private parseIfOrElif(keyword: 'if' | 'elif'): Stmt {
@@ -97,7 +144,11 @@ class Parser {
   private parseFor(): Stmt {
     const line = this.current().line;
     this.expectName('for');
-    const target = this.expectIdentifier();
+    // One name for `for x in ...:`, or a comma-separated list for
+    // `for k, v in d.items():` — not general tuple unpacking, just enough
+    // to make .items()-style iteration usable.
+    const target = [this.expectIdentifier()];
+    while (this.checkOp(',')) { this.advance(); target.push(this.expectIdentifier()); }
     this.expectName('in');
     const iter = this.parseExpr();
     this.expectOp(':');

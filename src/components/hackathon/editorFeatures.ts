@@ -2,6 +2,107 @@
  * Editor features: diff highlighting, Python linting, autocomplete, tutorial mode
  */
 
+// ── Syntax tokenizer (hoisted from ProjectEditor.tsx — pure, no component
+// dependencies, so both it and the new CodeEditor component can share one
+// implementation instead of drifting into two) ──
+export const KEYWORDS = new Set(['import', 'from', 'as', 'def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'with', 'try', 'except', 'finally', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'global', 'nonlocal', 'assert', 'del', 'True', 'False', 'None', 'async', 'await']);
+
+export interface Token {
+  type: 'keyword' | 'builtin' | 'string' | 'comment' | 'decorator' | 'number' | 'operator' | 'module' | 'function_name' | 'class_name' | 'constant' | 'fstring_prefix' | 'type_hint' | 'text';
+  value: string;
+}
+
+export const BUILTINS = new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'type', 'isinstance', 'input', 'open', 'super', 'self', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'any', 'all', 'abs', 'max', 'min', 'bool', 'bytes', 'object', 'property', 'staticmethod', 'classmethod', 'hasattr', 'getattr', 'setattr', 'round', 'sum', 'repr', 'hash', 'id', 'iter', 'next', 'reversed', 'slice', 'format', 'chr', 'ord', 'hex', 'oct', 'bin', 'pow', 'divmod', 'callable', 'vars', 'dir', 'help', 'breakpoint', 'compile', 'eval', 'exec']);
+
+// Detect SCREAMING_CASE constants (e.g., BOT_NAME, SYSTEM_MESSAGE)
+export const isConstant = (word: string) => /^[A-Z][A-Z0-9_]{2,}$/.test(word);
+
+// Detect f-string prefix
+const isFStringPrefix = (line: string, i: number) => {
+  return (line[i] === 'f' || line[i] === 'F') && i + 1 < line.length && (line[i + 1] === '"' || line[i + 1] === "'");
+};
+
+export const tokenizeLine = (line: string): Token[] => {
+  const tokens: Token[] = [];
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] === '#') { tokens.push({ type: 'comment', value: line.slice(i) }); break; }
+    if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
+      let end = i + 1;
+      while (end < line.length && /[\w.]/.test(line[end])) end++;
+      tokens.push({ type: 'decorator', value: line.slice(i, end) }); i = end; continue;
+    }
+    if ((line[i] === '"' || line[i] === "'")) {
+      const quote = line[i];
+      const triple = line.slice(i, i + 3) === quote.repeat(3);
+      const delim = triple ? quote.repeat(3) : quote;
+      let end = i + delim.length;
+      while (end < line.length) {
+        if (line[end] === '\\') { end += 2; continue; }
+        if (line.slice(end, end + delim.length) === delim) { end += delim.length; break; }
+        end++;
+      }
+      tokens.push({ type: 'string', value: line.slice(i, end) }); i = end; continue;
+    }
+    if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
+      let end = i;
+      while (end < line.length && /[\d.eExXoObBa-fA-F_]/.test(line[end])) end++;
+      tokens.push({ type: 'number', value: line.slice(i, end) }); i = end; continue;
+    }
+    if (/[a-zA-Z_]/.test(line[i])) {
+      let end = i;
+      while (end < line.length && /[\w.]/.test(line[end])) end++;
+      const word = line.slice(i, end);
+      const prevTokens = tokens.map(t => t.value.trim()).filter(Boolean);
+      const lastKeyword = prevTokens.length > 0 ? prevTokens[prevTokens.length - 1] : '';
+      const isAfterImport = lastKeyword === 'from' || lastKeyword === 'import';
+      const isAfterClass = lastKeyword === 'class';
+      if (word === 'self') {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (isAfterClass) {
+        tokens.push({ type: 'class_name', value: word });
+      } else if (word.includes('.') && isAfterImport) {
+        tokens.push({ type: 'module', value: word });
+      } else if (KEYWORDS.has(word)) tokens.push({ type: 'keyword', value: word });
+      else if (BUILTINS.has(word)) tokens.push({ type: 'builtin', value: word });
+      else if (end < line.length && line[end] === '(') tokens.push({ type: 'function_name', value: word });
+      else if (isConstant(word)) tokens.push({ type: 'constant', value: word });
+      else if ((word === 'f' || word === 'F') && isFStringPrefix(line, i)) {
+        // f-string prefix — don't consume it as a word, let string handler get the quote
+        tokens.push({ type: 'fstring_prefix', value: word });
+      }
+      else tokens.push({ type: 'text', value: word });
+      i = end; continue;
+    }
+    if ('=+-*/<>!&|%^~:'.includes(line[i])) {
+      // Arrow annotation ->
+      if (line[i] === '-' && i + 1 < line.length && line[i + 1] === '>') {
+        tokens.push({ type: 'operator', value: '->' }); i += 2; continue;
+      }
+      tokens.push({ type: 'operator', value: line[i] }); i++; continue;
+    }
+    tokens.push({ type: 'text', value: line[i] }); i++;
+  }
+  return tokens;
+};
+
+export const TOKEN_COLORS: Record<Token['type'], string> = {
+  keyword: 'text-ide-purple',
+  builtin: 'text-ide-cyan',
+  string: 'text-ide-green',
+  comment: 'text-ide-text-muted italic',
+  decorator: 'text-ide-purple',
+  number: 'text-ide-orange',
+  operator: 'text-ide-red',
+  module: 'text-ide-yellow',
+  function_name: 'text-ide-accent',
+  class_name: 'text-ide-yellow',
+  constant: 'text-ide-cyan font-semibold',
+  fstring_prefix: 'text-ide-red',
+  type_hint: 'text-ide-yellow italic',
+  text: 'text-ide-text',
+};
+
 // ── Diff Highlighting ──
 export const computeLineDiffs = (currentCode: string, templateCode: string): Set<number> => {
   const currentLines = currentCode.split('\n');

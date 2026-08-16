@@ -13,12 +13,17 @@ export interface PyList { __pytype: 'list'; items: PyValue[] }
 export interface PyDict { __pytype: 'dict'; map: Map<string | number | boolean, PyValue> }
 export interface PyFunction { __pytype: 'function'; name: string; params: string[]; body: Stmt[]; closure: Environment }
 export interface PyBuiltin { __pytype: 'builtin'; name: string; fn: (args: PyValue[], line: number) => PyValue }
-export type PyValue = number | string | boolean | null | PyList | PyDict | PyFunction | PyBuiltin;
+// Backs the `import random` carve-out — attribute access (`random.choice`)
+// dispatches into `methods`, the same shape as callMethod's str/list/dict
+// tables below, just reached via a module value instead of a builtin type.
+export interface PyModule { __pytype: 'module'; name: string; methods: Record<string, (args: PyValue[], line: number) => PyValue> }
+export type PyValue = number | string | boolean | null | PyList | PyDict | PyFunction | PyBuiltin | PyModule;
 
 const isList = (v: PyValue): v is PyList => typeof v === 'object' && v !== null && (v as any).__pytype === 'list';
 const isDict = (v: PyValue): v is PyDict => typeof v === 'object' && v !== null && (v as any).__pytype === 'dict';
 const isFunction = (v: PyValue): v is PyFunction => typeof v === 'object' && v !== null && (v as any).__pytype === 'function';
 const isBuiltin = (v: PyValue): v is PyBuiltin => typeof v === 'object' && v !== null && (v as any).__pytype === 'builtin';
+const isModule = (v: PyValue): v is PyModule => typeof v === 'object' && v !== null && (v as any).__pytype === 'module';
 const isCallable = (v: PyValue): v is PyFunction | PyBuiltin => isFunction(v) || isBuiltin(v);
 const makeList = (items: PyValue[]): PyList => ({ __pytype: 'list', items });
 
@@ -30,6 +35,7 @@ function describeType(v: PyValue): string {
   if (isList(v)) return 'list';
   if (isDict(v)) return 'dict';
   if (isFunction(v) || isBuiltin(v)) return 'function';
+  if (isModule(v)) return 'module';
   return 'object';
 }
 
@@ -69,6 +75,7 @@ function pyStr(v: PyValue): string {
   if (isList(v)) return '[' + v.items.map(pyRepr).join(', ') + ']';
   if (isDict(v)) return '{' + [...v.map.entries()].map(([k, val]) => `${pyRepr(k as PyValue)}: ${pyRepr(val)}`).join(', ') + '}';
   if (isFunction(v) || isBuiltin(v)) return `<function ${v.name}>`;
+  if (isModule(v)) return `<module '${v.name}'>`;
   return String(v);
 }
 
@@ -149,10 +156,31 @@ class Interpreter {
         const iterVal = this.evalExpr(stmt.iter, env, budget, stdout);
         for (const item of this.toIterable(iterVal, stmt.line)) {
           budget.tick();
-          env.set(stmt.target, item);
+          this.bindForTarget(stmt.target, item, env, stmt.line);
           try { this.execStmts(stmt.body, env, budget, stdout); }
           catch (e) { if (e instanceof BreakSignal) break; if (e instanceof ContinueSignal) continue; throw e; }
         }
+        return;
+      }
+      case 'Try': {
+        try {
+          this.execStmts(stmt.body, env, budget, stdout);
+        } catch (e) {
+          // Never catch our own control-flow signals or a timeout — a
+          // try/except that could swallow a timeout would defeat the whole
+          // execution budget (wrap a runaway loop in try/except, ignore the
+          // interrupt, loop forever). Only genuine runtime errors are
+          // catchable, matching what "except:" should mean here.
+          if (e instanceof BreakSignal || e instanceof ContinueSignal || e instanceof ReturnSignal) throw e;
+          if (e instanceof PyError && e.type !== 'runtime_error') throw e;
+          if (!(e instanceof PyError)) throw e;
+          if (stmt.exceptVar) env.set(stmt.exceptVar, e.message);
+          this.execStmts(stmt.exceptBody, env, budget, stdout);
+        }
+        return;
+      }
+      case 'Import': {
+        env.set(stmt.module, createModule(stmt.module, stmt.line));
         return;
       }
       case 'While': {
@@ -291,6 +319,15 @@ class Interpreter {
     throw new PyRuntimeError(`TypeError: '${describeType(v)}' object is not iterable`, line);
   }
 
+  private bindForTarget(target: string[], item: PyValue, env: Environment, line: number): void {
+    if (target.length === 1) { env.set(target[0], item); return; }
+    if (!isList(item) || item.items.length !== target.length) {
+      const got = isList(item) ? String(item.items.length) : `a ${describeType(item)}`;
+      throw new PyRuntimeError(`ValueError: expected ${target.length} values to unpack, got ${got}`, line);
+    }
+    target.forEach((name, i) => env.set(name, item.items[i]));
+  }
+
   private subscriptGet(obj: PyValue, idx: PyValue, line: number): PyValue {
     if (isList(obj)) {
       if (typeof idx !== 'number') throw new PyRuntimeError('TypeError: list indices must be integers', line);
@@ -391,6 +428,11 @@ class Interpreter {
       if (!m) throw new PyRuntimeError(`AttributeError: 'dict' object has no attribute '${attr}'`, line);
       return m(obj, args, line);
     }
+    if (isModule(obj)) {
+      const m = obj.methods[attr];
+      if (!m) throw new PyRuntimeError(`AttributeError: module '${obj.name}' has no attribute '${attr}'`, line);
+      return m(args, line);
+    }
     throw new PyRuntimeError(`AttributeError: '${describeType(obj)}' object has no attribute '${attr}'`, line);
   }
 }
@@ -443,6 +485,33 @@ const DICT_METHODS: Record<string, (d: PyDict, args: PyValue[]) => PyValue> = {
 
 function builtin(name: string, fn: (args: PyValue[], line: number) => PyValue): PyBuiltin {
   return { __pytype: 'builtin', name, fn };
+}
+
+// Only ever called with a name the parser already validated against its own
+// allowlist (see parser.ts's SUPPORTED_MODULES) — the `line 0`/generic
+// ModuleNotFoundError branch here is unreachable in practice, kept only as
+// a defensive fallback if that ever drifts out of sync.
+function createModule(name: string, line: number): PyModule {
+  if (name === 'random') {
+    return {
+      __pytype: 'module',
+      name: 'random',
+      methods: {
+        choice: (args, l) => {
+          if (!isList(args[0]) || args[0].items.length === 0) throw new PyRuntimeError('IndexError: Cannot choose from an empty sequence', l);
+          return args[0].items[Math.floor(Math.random() * args[0].items.length)];
+        },
+        randint: (args, l) => {
+          if (typeof args[0] !== 'number' || typeof args[1] !== 'number') throw new PyRuntimeError('TypeError: randint() requires two numbers', l);
+          const lo = Math.ceil(args[0]);
+          const hi = Math.floor(args[1]);
+          return lo + Math.floor(Math.random() * (hi - lo + 1));
+        },
+        random: () => Math.random(),
+      },
+    };
+  }
+  throw new PyRuntimeError(`ModuleNotFoundError: no module named '${name}'`, line);
 }
 
 function installBuiltins(env: Environment, stdout: string[]): void {

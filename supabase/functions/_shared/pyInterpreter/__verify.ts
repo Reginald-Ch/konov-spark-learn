@@ -314,5 +314,148 @@ def solve(a, b, c):
   check('chained comparison false', runFunction(code, 'solve', [1, 5, 3]).result === false);
 }
 
+// ── New syntax: random module ──
+{
+  const code = `
+import random
+def solve(seed):
+    options = ["a", "b", "c"]
+    pick = random.choice(options)
+    return pick in options
+`;
+  const r = runFunction(code, 'solve', [1]);
+  check('import random + random.choice() works', r.ok && r.result === true, r);
+}
+
+{
+  const code = `
+import random
+def solve():
+    n = random.randint(5, 5)
+    return n
+`;
+  const r = runFunction(code, 'solve', []);
+  check('random.randint(5, 5) is always 5', r.ok && r.result === 5, r);
+}
+
+{
+  const code = `
+def solve():
+    return random.random()
+`;
+  const r = runFunction(code, 'solve', []);
+  check('random module not imported -> NameError, not silently available', !r.ok && r.errorType === 'runtime_error', r);
+}
+
+{
+  const code = `
+import os
+def solve():
+    return 1
+`;
+  const r = runFunction(code, 'solve', []);
+  check('import of a non-allowlisted module still rejected', !r.ok && r.errorType === 'unsupported_syntax', r);
+}
+
+// ── New syntax: for-loop unpacking ──
+{
+  const code = `
+def solve(d):
+    out = []
+    for k, v in d.items():
+        out.append(f"{k}={v}")
+    return out
+`;
+  const r = runFunction(code, 'solve', [{ a: 1, b: 2 }]);
+  check('for k, v in dict.items() unpacking', r.ok && JSON.stringify(r.result) === JSON.stringify(['a=1', 'b=2']), r);
+}
+
+{
+  const code = `
+def solve(pairs):
+    total = 0
+    for a, b in pairs:
+        total += a * b
+    return total
+`;
+  const r = runFunction(code, 'solve', [[[2, 3], [4, 5]]]);
+  check('for a, b in list-of-lists unpacking', r.ok && r.result === 26, r);
+}
+
+{
+  const code = `
+def solve(pairs):
+    for a, b, c in pairs:
+        return a
+`;
+  const r = runFunction(code, 'solve', [[[1, 2]]]);
+  check('unpacking wrong count raises a clean ValueError, not a crash', !r.ok && r.errorType === 'runtime_error' && /unpack/.test(r.errorMessage || ''), r);
+}
+
+// ── New syntax: try/except ──
+{
+  const code = `
+def solve(a, b):
+    try:
+        return a / b
+    except:
+        return -1
+`;
+  check('try/except catches a real runtime error', runFunction(code, 'solve', [10, 0]).result === -1);
+  check('try/except: no error means except is skipped', runFunction(code, 'solve', [10, 2]).result === 5);
+}
+
+{
+  const code = `
+def solve(a, b):
+    try:
+        return a / b
+    except Exception as e:
+        return e
+`;
+  const r = runFunction(code, 'solve', [1, 0]);
+  check('except ... as e binds the error message as a string', r.ok && typeof r.result === 'string' && /ZeroDivision/.test(r.result as string), r);
+}
+
+{
+  // The critical safety property: try/except must NEVER be able to catch a
+  // timeout, or it becomes a way to defeat the whole execution budget.
+  const code = `
+def solve(x):
+    while True:
+        try:
+            x = x + 1
+        except:
+            pass
+    return x
+`;
+  const r = runFunction(code, 'solve', [1], { timeoutMs: 500, maxSteps: 5000000 });
+  check('try/except cannot swallow a timeout (critical safety property)', !r.ok && r.errorType === 'timeout', r);
+}
+
+{
+  const code = `
+def solve(x):
+    try:
+        return x.nonexistent_method()
+    except ValueError:
+        return "caught"
+`;
+  const r = runFunction(code, 'solve', [5]);
+  check('except <AnyName> (untyped matching) still catches', r.ok && r.result === 'caught', r);
+}
+
+{
+  const code = `
+def solve(x):
+    try:
+        return 1 / 0
+    finally:
+        pass
+`;
+  const r = runFunction(code, 'solve', [1]);
+  check('try without except (finally only) is a clean syntax_error, not a crash', !r.ok && r.errorType === 'syntax_error', r);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

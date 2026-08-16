@@ -1195,7 +1195,16 @@ const ResultsStep = ({ result, lessonTitle, questions, wasRetake, onReview, onCl
   <div className="text-center py-2">
     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}
       className="text-5xl mb-3">
-      {result.passed ? '🎉' : '💪'}
+      {/* Pops in with the spring above, then settles into a small idle
+          wobble — a static emoji here reads flat for what's meant to be
+          the headline celebration moment of finishing a lesson. */}
+      <motion.span
+        className="inline-block"
+        animate={{ rotate: [0, -8, 8, -8, 0], scale: [1, 1.08, 1] }}
+        transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.2, delay: 0.6, ease: 'easeInOut' }}
+      >
+        {result.passed ? '🎉' : '💪'}
+      </motion.span>
     </motion.div>
     <h3 className="text-xl font-bold text-white mb-1">{result.passed ? 'Lesson Complete!' : 'So Close!'}</h3>
     <p className="text-sm text-white/70 mb-4">{lessonTitle} — you scored {result.score}/{result.total}</p>
@@ -1229,7 +1238,13 @@ const ResultsStep = ({ result, lessonTitle, questions, wasRetake, onReview, onCl
             <motion.div key={q.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
               className={`rounded-lg p-2.5 border text-xs ${correct ? 'bg-green-500/10 border-green-500/25' : 'bg-red-500/10 border-red-500/25'}`}>
               <div className="flex items-center gap-1.5 font-medium text-white/90">
-                <span>{correct ? '✅' : '❌'}</span>
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15, delay: i * 0.05 + 0.15 }}
+                >
+                  {correct ? '✅' : '❌'}
+                </motion.span>
                 <span className="line-clamp-1">{q.question}</span>
               </div>
               {explanation && <p className="text-white/60 mt-1 ml-5">{explanation}</p>}
