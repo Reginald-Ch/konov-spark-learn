@@ -88,6 +88,18 @@ const QUICK_EMOJIS = [
   { emoji: '🚀', icon: Rocket },
 ];
 
+// Preset cartoon avatars via DiceBear's public SVG endpoint — no file
+// upload, no storage infra (same category of external embed this app
+// already relies on for Lesson videos, just images instead of iframes).
+// Each option is a short seed string, not literal image data — the actual
+// artwork is generated deterministically from the seed, so this list only
+// needs to stay stable, not store any real asset. profileAvatarUrl() is the
+// only place that knows the URL format, so switching styles/providers later
+// is a one-line change.
+const PROFILE_AVATAR_OPTIONS = ['nova', 'pixel', 'comet', 'byte', 'flux', 'echo', 'zephyr', 'quark', 'ember', 'glitch', 'turbo', 'sprint', 'nebula', 'cipher', 'volt', 'atlas', 'orbit', 'spark', 'vector', 'crimson', 'lumen', 'drift', 'nimbus', 'quasar'];
+const profileAvatarUrl = (seed: string, size = 64) =>
+  `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&size=${size}&backgroundType=gradientLinear`;
+
 interface CommunityChatProps {
   // Set from a `?staff_invite=<token>` URL param by the Hackathons page
   // (which owns the access gate + tab state, both of which live above where
@@ -110,6 +122,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [userName, setUserName] = useState(() => localStorage.getItem('forge-student-name') || '');
   const [userEmail, setUserEmail] = useState(() => (localStorage.getItem('forge-student-email') || '').trim().toLowerCase());
   const [isJoined, setIsJoined] = useState(() => !!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
+  // Profile (username + emoji avatar) is layered on top of name/email, not a
+  // replacement — email stays the real identity everything else is keyed
+  // by. `profileChecked` distinguishes "still finding out if they have one"
+  // from "confirmed they don't", so a fresh join doesn't flash the profile
+  // setup step for someone who already has one, and a returning participant
+  // isn't asked to redo it every visit.
+  const [userUsername, setUserUsername] = useState(() => localStorage.getItem('forge-student-username') || '');
+  const [userAvatarEmoji, setUserAvatarEmoji] = useState(() => localStorage.getItem('forge-student-avatar') || '');
+  const [profileChecked, setProfileChecked] = useState(() => !!(localStorage.getItem('forge-student-username') && localStorage.getItem('forge-student-avatar')));
+  const [profileByEmail, setProfileByEmail] = useState<Record<string, { username: string; avatar_emoji: string }>>({});
   const [isInVoice, setIsInVoice] = useState(false);
   // Kept in sync with state via the effect below so the unmount cleanup can
   // read the CURRENT values — a plain closure captured at mount time would
@@ -290,6 +312,27 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     })();
   }, [isJoined, userEmail]);
 
+  // Confirms server-side whether this email already has a profile — covers
+  // returning on a browser that lost localStorage, or having set one from a
+  // different device. Only runs once we don't already believe we have one.
+  useEffect(() => {
+    if (!isJoined || !userEmail || profileChecked) return;
+    (async () => {
+      const { data } = await supabase
+        .from('participant_profiles')
+        .select('username, avatar_emoji')
+        .eq('participant_email', userEmail)
+        .maybeSingle();
+      if (data) {
+        setUserUsername(data.username);
+        setUserAvatarEmoji(data.avatar_emoji);
+        localStorage.setItem('forge-student-username', data.username);
+        localStorage.setItem('forge-student-avatar', data.avatar_emoji);
+      }
+      setProfileChecked(true);
+    })();
+  }, [isJoined, userEmail, profileChecked]);
+
   // Real presence, replacing what used to be a fake "voice participants + 1"
   // stand-in for "online" — that number had nothing to do with who was
   // actually viewing the page, just who happened to be in a voice call.
@@ -314,6 +357,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       const map: Record<string, StaffInfo> = {};
       (data as any[]).forEach((row) => { map[row.participant_email] = { display_name: row.display_name, role_label: row.role_label, badge_emoji: row.badge_emoji }; });
       setStaffByEmail(map);
+    }
+  };
+
+  // Batch-fetches only the profiles not already cached, for whichever
+  // senders are currently visible — not everyone will have set up a
+  // username/avatar yet, so messages fall back to sender_name/initial-circle
+  // when there's no entry here for that email.
+  const fetchProfilesForSenders = async (emails: string[]) => {
+    const missing = [...new Set(emails)].filter(e => !(e in profileByEmail));
+    if (missing.length === 0) return;
+    const { data } = await supabase.from('participant_profiles').select('participant_email, username, avatar_emoji').in('participant_email', missing);
+    if (data) {
+      setProfileByEmail(prev => {
+        const next = { ...prev };
+        (data as any[]).forEach(row => { next[row.participant_email] = { username: row.username, avatar_emoji: row.avatar_emoji }; });
+        missing.forEach(e => { if (!(e in next)) next[e] = undefined as any; }); // mark checked-but-absent so we don't refetch every render
+        return next;
+      });
     }
   };
 
@@ -374,6 +435,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
           },
           (payload) => {
             setMessages(prev => [...prev, payload.new as Message]);
+            fetchProfilesForSenders([(payload.new as Message).sender_email]);
             requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
           }
         )
@@ -599,6 +661,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       setMessages(rows);
       setHasMoreMessages(hasMore);
       fetchReactionsForMessages(rows.map(m => m.id));
+      fetchProfilesForSenders(rows.map(m => m.sender_email));
       // Fresh load — jump straight to the bottom, no animation (there's
       // nothing to animate from; the list didn't exist a moment ago).
       requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }));
@@ -635,6 +698,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       setMessages(prev => [...older, ...prev]);
       setHasMoreMessages(hasMore);
       fetchReactionsForMessages(older.map(m => m.id));
+      fetchProfilesForSenders(older.map(m => m.sender_email));
 
       if (viewport) {
         requestAnimationFrame(() => {
@@ -676,6 +740,38 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     localStorage.setItem('forge-student-email', cleanEmail);
     setIsJoined(true);
     fetchQuestsAndBadges(cleanEmail);
+  };
+
+  const [profileUsernameInput, setProfileUsernameInput] = useState('');
+  const [profileAvatarInput, setProfileAvatarInput] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const handleSetProfile = async () => {
+    if (!profileUsernameInput.trim() || !profileAvatarInput) {
+      toast({ title: 'Pick a username and an avatar', variant: 'destructive' });
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const { data, error } = await supabase.rpc('set_my_profile', {
+        p_participant_email: userEmail,
+        p_device_token: deviceToken || null,
+        p_username: profileUsernameInput.trim(),
+        p_avatar_emoji: profileAvatarInput,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error || !result?.ok) {
+        toast({ title: 'Could not save profile', description: result?.message || error?.message, variant: 'destructive' });
+        return;
+      }
+      if (result.new_device_token) setDeviceToken(result.new_device_token);
+      localStorage.setItem('forge-student-username', profileUsernameInput.trim());
+      localStorage.setItem('forge-student-avatar', profileAvatarInput);
+      setUserUsername(profileUsernameInput.trim());
+      setUserAvatarEmoji(profileAvatarInput);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -1413,6 +1509,83 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     );
   }
 
+  // Profile setup — shown once, right after joining, only once we've
+  // confirmed (via localStorage or the server check above) this email
+  // genuinely doesn't have one yet. Skipped entirely for anyone who already
+  // set one, including on a return visit.
+  if (isJoined && !profileChecked) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[hsl(var(--discord-dark))]">
+        <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--discord-text-muted))]" />
+      </div>
+    );
+  }
+  if (isJoined && profileChecked && !(userUsername && userAvatarEmoji)) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[hsl(var(--discord-dark))] text-white p-4">
+        <div className="w-full max-w-[420px] rounded-xl border border-[hsl(var(--discord-light))] bg-[hsl(var(--discord-darker))] p-6">
+          <div className="flex items-center gap-3 text-white text-xl font-semibold mb-1">
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--discord-blurple))] flex items-center justify-center overflow-hidden">
+              {profileAvatarInput ? (
+                <img src={profileAvatarUrl(profileAvatarInput)} alt="" className="w-full h-full" />
+              ) : (
+                <span className="text-lg">👤</span>
+              )}
+            </div>
+            Set Up Your Profile
+          </div>
+          <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
+            Pick a username and avatar — this is what other participants will see.
+          </p>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Username</label>
+              <Input
+                value={profileUsernameInput}
+                onChange={(e) => setProfileUsernameInput(e.target.value)}
+                placeholder="3-20 letters, numbers, underscores"
+                maxLength={20}
+                className="h-11 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] transition-colors"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Avatar</label>
+              <div className="grid grid-cols-6 gap-2">
+                {PROFILE_AVATAR_OPTIONS.map((seed) => (
+                  <button
+                    key={seed}
+                    type="button"
+                    onClick={() => setProfileAvatarInput(seed)}
+                    title={seed}
+                    className={`h-12 rounded-lg flex items-center justify-center overflow-hidden border transition-colors ${
+                      profileAvatarInput === seed
+                        ? 'bg-[hsl(var(--discord-blurple)/0.3)] border-[hsl(var(--discord-blurple))]'
+                        : 'bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] hover:border-[hsl(var(--discord-blurple)/0.5)]'
+                    }`}
+                  >
+                    <img src={profileAvatarUrl(seed, 48)} alt={seed} loading="lazy" className="w-9 h-9" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                onClick={handleSetProfile}
+                disabled={savingProfile}
+                className="w-full h-11 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.85)] text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {savingProfile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Save Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full bg-[hsl(var(--discord-dark))] text-white overflow-hidden flex flex-col">
         <div className="flex h-full relative">
@@ -1924,16 +2097,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                           >
                             {showHeader ? (
                               <div className="flex items-start gap-4">
-                                <div
-                                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
-                                  style={{ backgroundColor: getAvatarColor(message.sender_name) }}
-                                >
-                                  {message.sender_name.charAt(0).toUpperCase()}
-                                </div>
+                                {profileByEmail[message.sender_email]?.avatar_emoji ? (
+                                  <div
+                                    className={`w-10 h-10 rounded-full overflow-hidden bg-[hsl(var(--discord-darker))] flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
+                                  >
+                                    <img src={profileAvatarUrl(profileByEmail[message.sender_email].avatar_emoji, 40)} alt="" className="w-full h-full" loading="lazy" />
+                                  </div>
+                                ) : (
+                                  <div
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
+                                    style={{ backgroundColor: getAvatarColor(message.sender_name) }}
+                                  >
+                                    {message.sender_name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-baseline gap-2">
                                     <span className="font-semibold text-white">
-                                      {message.sender_name}
+                                      {profileByEmail[message.sender_email]?.username || message.sender_name}
                                     </span>
                                     {staffByEmail[message.sender_email] && (
                                       // perspective on the wrapper, tilt on the
@@ -1955,7 +2136,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       </span>
                                     )}
                                     {(badgesByEmail[message.sender_email] || []).map((badge, bi) => (
-                                      <span key={bi} title={badge.label} className="text-xs">{badge.emoji}</span>
+                                      <motion.span
+                                        key={bi}
+                                        title={badge.label}
+                                        className="text-xs inline-block"
+                                        whileHover={{ scale: 1.5, rotate: [0, -10, 10, 0] }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+                                      >
+                                        {badge.emoji}
+                                      </motion.span>
                                     ))}
                                     <span className="text-[10px] text-[hsl(var(--discord-text-muted))]">
                                       {formatTime(message.created_at)}
@@ -1986,8 +2175,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                 existing reaction but could never be first to add one. */}
                             <div className="flex items-center gap-1 mt-1 ml-14">
                                 {reactions.map((reaction) => (
-                                  <button
+                                  <motion.button
                                     key={reaction.emoji}
+                                    layout
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    whileHover={{ scale: 1.12 }}
+                                    whileTap={{ scale: 0.88 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                                     onClick={() => handleReaction(message.id, reaction.emoji)}
                                     title={reaction.names.join(', ')}
                                     className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${
@@ -1996,9 +2191,25 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                         : 'bg-[hsl(var(--discord-light)/0.3)] hover:bg-[hsl(var(--discord-light)/0.5)]'
                                     }`}
                                   >
-                                    <span>{reaction.emoji}</span>
-                                    <span className="text-[hsl(var(--discord-text))]">{reaction.count}</span>
-                                  </button>
+                                    {/* Discord/Slack's own signature reaction-hover
+                                        move — a little wiggle-bounce, not just a
+                                        static emoji sitting there. */}
+                                    <motion.span whileHover={{ scale: 1.35, rotate: [0, -12, 12, -6, 0] }} transition={{ duration: 0.4 }}>
+                                      {reaction.emoji}
+                                    </motion.span>
+                                    <AnimatePresence mode="popLayout">
+                                      <motion.span
+                                        key={reaction.count}
+                                        initial={{ y: -6, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: 6, opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="text-[hsl(var(--discord-text))]"
+                                      >
+                                        {reaction.count}
+                                      </motion.span>
+                                    </AnimatePresence>
+                                  </motion.button>
                                 ))}
                                 <button
                                   onClick={() => setHoveredMessage(prev => prev === message.id ? null : message.id)}
@@ -2019,13 +2230,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                   className="absolute -top-3 right-2 flex items-center gap-0.5 bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.3)] rounded-md shadow-lg overflow-hidden"
                                 >
                                   {QUICK_EMOJIS.map(({ emoji }) => (
-                                    <button
+                                    <motion.button
                                       key={emoji}
+                                      whileHover={{ scale: 1.4, rotate: [0, -12, 12, -6, 0], transition: { duration: 0.4 } }}
+                                      whileTap={{ scale: 0.85 }}
                                       onClick={() => handleReaction(message.id, emoji)}
                                       className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors text-sm"
                                     >
                                       {emoji}
-                                    </button>
+                                    </motion.button>
                                   ))}
                                   <Popover>
                                     <PopoverTrigger asChild>
@@ -2039,13 +2252,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                     >
                                       <div className="grid grid-cols-8 gap-1">
                                         {EMOJI_LIST.map((emoji) => (
-                                          <button
+                                          <motion.button
                                             key={emoji}
+                                            whileHover={{ scale: 1.4, rotate: [0, -12, 12, -6, 0], transition: { duration: 0.4 } }}
+                                            whileTap={{ scale: 0.85 }}
                                             onClick={() => handleReaction(message.id, emoji)}
                                             className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] rounded transition-colors text-lg"
                                           >
                                             {emoji}
-                                          </button>
+                                          </motion.button>
                                         ))}
                                       </div>
                                     </PopoverContent>
