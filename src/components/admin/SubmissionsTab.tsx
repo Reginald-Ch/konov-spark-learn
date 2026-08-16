@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ExternalLink, Loader2, Gift, CheckCircle2, Sparkles } from 'lucide-react';
+import { ExternalLink, Loader2, Gift, CheckCircle2, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSafeExternalUrl } from '@/lib/utils';
 
@@ -283,7 +283,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
             Re-grade already-graded
           </label>
           <Button size="sm" variant="outline" disabled={!selectedChallengeId || autoGrading} onClick={handleAutoGrade}>
-            {autoGrading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}
+            {autoGrading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Bot className="w-4 h-4 mr-1" />}
             Auto-Grade All
           </Button>
           {isOrganizer && (

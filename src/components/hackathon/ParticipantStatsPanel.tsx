@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, Gift, Sparkles } from 'lucide-react';
+import { Trophy, Gift, Medal } from 'lucide-react';
 import { toast } from 'sonner';
 import { CoinIcon } from './CoinIcon';
 import { MedalIcon } from './MedalIcon';
@@ -385,7 +385,7 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
                     }
                     transition={openingBoxId === box.id ? { duration: 0.4, repeat: Infinity } : { duration: 1.8, repeat: Infinity, repeatDelay: 1.2 }}
                   >
-                    {isMission ? <Sparkles className="w-5 h-5 text-[#FFD700]" /> : <Gift className="w-5 h-5 text-[#F7941D]" />}
+                    {isMission ? <Medal className="w-5 h-5 text-[#FFD700]" /> : <Gift className="w-5 h-5 text-[#F7941D]" />}
                   </motion.div>
                   <div>
                     <p className="text-sm font-semibold text-white">{isMission ? 'Mission Bonus unlocked!' : 'Issue Box unlocked!'}</p>

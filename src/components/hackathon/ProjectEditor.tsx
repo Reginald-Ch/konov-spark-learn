@@ -17,7 +17,7 @@ import {
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
   Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock,
-  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Wand2, GraduationCap, XCircle
+  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Zap, GraduationCap, XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -547,7 +547,7 @@ function parseReasoningTrace(content: string): ReasoningStep[] | null {
 
 const REASONING_STEP_META: Record<ReasoningStepType, { label: string; icon: typeof Lightbulb; color: string }> = {
   thought: { label: 'Thought', icon: Lightbulb, color: '#F7941D' },
-  action: { label: 'Action', icon: Wand2, color: '#5865F2' },
+  action: { label: 'Action', icon: Zap, color: '#5865F2' },
   observation: { label: 'Observation', icon: Eye, color: '#22C55E' },
   answer: { label: 'Answer', icon: MessageSquare, color: '#EC4899' },
 };

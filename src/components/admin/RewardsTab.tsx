@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { callAdminAction } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Gift, Sparkles, Loader2, PackageCheck } from 'lucide-react';
+import { Gift, Medal, Loader2, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RewardBox {
@@ -66,7 +66,7 @@ export const RewardsTab = ({ hackathonId }: { hackathonId: string }) => {
         {boxes.map(b => (
           <div key={b.id} className="bg-card rounded-lg border p-4 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              {b.box_type === 'mission' ? <Sparkles className="w-5 h-5 text-amber-500" /> : <Gift className="w-5 h-5 text-muted-foreground" />}
+              {b.box_type === 'mission' ? <Medal className="w-5 h-5 text-amber-500" /> : <Gift className="w-5 h-5 text-muted-foreground" />}
               <div>
                 <p className="text-sm font-semibold">{b.participant_email}</p>
                 <p className="text-xs text-muted-foreground">

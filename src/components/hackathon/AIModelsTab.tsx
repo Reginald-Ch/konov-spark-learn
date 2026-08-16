@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Brain, Bot, Cpu, Rocket, Zap, Send, Loader2, CheckCircle2, Code, 
   ChevronRight, ChevronDown, Plus, X, Play, MessageSquare,
-  User, Shield, BookOpen, Palette, Settings, Wand2, ArrowRight, RotateCcw, Mic, MicOff, Volume2, VolumeX,
+  User, Shield, BookOpen, Palette, Settings, Wrench, Blocks, ArrowRight, RotateCcw, Mic, MicOff, Volume2, VolumeX,
   Eye, EyeOff, Copy, Check, Search, Calculator, Globe, Phone, PhoneOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -150,7 +150,7 @@ const AGENT_SECTIONS: ConfigSection[] = [
     ]
   },
   {
-    id: 'tools', title: 'Tools', subtitle: 'Capabilities & reasoning', icon: <Wand2 className="w-4 h-4" />, color: '#06B6D4',
+    id: 'tools', title: 'Tools', subtitle: 'Capabilities & reasoning', icon: <Wrench className="w-4 h-4" />, color: '#06B6D4',
     fields: [
       { key: 'TOOLS', label: 'Available Tools', type: 'tool-picker', hint: 'Select tools your agent can use' },
       { key: 'MAX_ITERATIONS', label: 'Max Reasoning Steps', type: 'number', min: 1, max: 10, step: 1 },
@@ -596,11 +596,11 @@ APP_THEME = "default"
       <div ref={ref} className="max-w-4xl mx-auto p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[hsl(var(--discord-blurple))] to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20">
-            <Wand2 className="w-10 h-10 text-white" />
+            <Blocks className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-black text-white mb-2">Visual AI Builder</h1>
           <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto">
-            Choose what you want to build — configure everything visually, test it live, then export code ✨
+            Choose what you want to build — configure everything visually, test it live, then export code
           </p>
         </motion.div>
 
