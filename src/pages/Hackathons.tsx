@@ -8,6 +8,7 @@ import { LessonsLeaderboard } from '@/components/hackathon/LessonsLeaderboard';
 import { DailyChallengePanel } from '@/components/hackathon/DailyChallengePanel';
 import { GettingStarted } from '@/components/hackathon/GettingStarted';
 import { HackathonFAQ } from '@/components/hackathon/HackathonFAQ';
+import { HackathonFeedbackForm } from '@/components/hackathon/HackathonFeedbackForm';
 import { ProjectEditor, ProjectType } from '@/components/hackathon/ProjectEditor';
 import { CommunityChat } from '@/components/hackathon/CommunityChat';
 import { TemplatesTab } from '@/components/hackathon/TemplatesTab';
@@ -46,7 +47,7 @@ interface Hackathon {
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn' | 'community';
-type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'daily-challenge' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'judge';
+type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'daily-challenge' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'feedback' | 'judge';
 
 const ACCESS_CODE = 'Forge2039';
 
@@ -257,6 +258,8 @@ const Hackathons = () => {
         );
       case 'faq':
         return <HackathonFAQ />;
+      case 'feedback':
+        return <HackathonFeedbackForm hackathonId={liveHackathons[0]?.id || endedHackathons[0]?.id || null} />;
       case 'judge':
         return <JudgeDashboardPanel />;
       default:
@@ -291,6 +294,23 @@ const Hackathons = () => {
                 </div>
               </div>
             </div>
+
+            {/* Past events is exactly the moment someone's reflecting on an
+                event they just went through — the highest-response-rate
+                point to ask for feedback, so it gets a direct prompt here
+                on top of the always-available sidebar link. */}
+            {hackathonSubView === 'past-events' && !isLoading && endedHackathons.length > 0 && (
+              <div className="rounded-lg p-4 mb-6 border border-[hsl(var(--discord-blurple)/0.3)] flex items-center justify-between flex-wrap gap-3"
+                style={{ background: 'linear-gradient(135deg, hsl(var(--discord-blurple) / 0.12), transparent)' }}>
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-5 h-5 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
+                  <p className="text-sm text-white/90">Went through one of these? We'd love to hear how it went.</p>
+                </div>
+                <Button size="sm" onClick={() => setHackathonSubView('feedback')} className="flex-shrink-0">
+                  Give Feedback
+                </Button>
+              </div>
+            )}
 
             {/* Hackathon Cards */}
             {isLoading ? (
@@ -643,6 +663,7 @@ const Hackathons = () => {
               {[
                 { id: 'getting-started' as HackathonSubView, name: 'Getting Started', icon: BookOpen },
                 { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
+                { id: 'feedback' as HackathonSubView, name: 'Give Feedback', icon: MessageSquare },
               ].map(ch => (
                 <button
                   key={ch.id}

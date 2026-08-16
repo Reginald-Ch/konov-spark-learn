@@ -248,7 +248,7 @@ def solve(n):
         for j in range(n):
             if j == 2:
                 break
-            out.append((i, j))
+            out.append([i, j])
     return len(out)
 `;
   const r = runFunction(code, 'solve', [4]);

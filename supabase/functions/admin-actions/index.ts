@@ -763,6 +763,22 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      case "list_hackathon_feedback": {
+        // Organizer-only (not in JUDGE_ALLOWED_ACTIONS) — hackathon_feedback
+        // has no public SELECT policy at all (comments can name specific
+        // staff/issues), so this service-role read is the only way to see
+        // anyone's feedback but your own.
+        const { hackathon_id } = payload;
+        if (!hackathon_id) throw new Error("hackathon_id is required");
+        const { data, error } = await supabase
+          .from("hackathon_feedback")
+          .select("id, participant_email, overall_rating, lessons_rating, challenges_rating, organization_rating, comment, created_at, updated_at")
+          .eq("hackathon_id", hackathon_id)
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
       case "list_reward_boxes": {
         const { hackathon_id } = payload;
         const { data, error } = await supabase
