@@ -1189,6 +1189,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
     ]);
     setTerminalOutput([`> Loaded ${scaffold.name} template`, `> 3 files ready`]);
+    setConsoleResult(null); // avoid a stale flash of the previous template's printed output
     setShowBottomPanel(true);
     setBottomTab('terminal');
     setAiOutput('');
@@ -1239,6 +1240,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     undoStackRef.current = [];
     redoStackRef.current = [];
     lastSnapshotRef.current = scaffold.main;
+    setConsoleResult(null); // avoid a stale flash of the pre-reset code's printed output
     setFiles({
       'main.py': scaffold.main,
       'config.json': scaffold.config,
@@ -2024,16 +2026,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Debounced live console — same 250ms debounce as the config extraction
   // above, but this one actually executes the code (client-side, real
   // interpreter) rather than regex-scraping it, so it's async and needs the
-  // request-id guard. A short 1500ms budget is plenty for a live preview of
-  // a small module-level script — the interpreter's own timeout mechanism
-  // means even an accidentally-typed `while True:` resolves quickly and
-  // cleanly rather than hanging anything.
+  // request-id guard. Budget is intentionally much tighter than respond()'s
+  // (400ms/50k steps vs. 20s/200k) — the interpreter's eval loop has no real
+  // yield point during pure computation, so a long run doesn't just take a
+  // while, it blocks the browser tab's main thread for that whole duration
+  // on every keystroke pause. 400ms is generous for any of this scaffold's
+  // actual content (small lists, a handful of loop iterations) while
+  // keeping worst-case UI freeze on an accidental runaway loop short.
   useEffect(() => {
     if (activeFile !== 'main.py') return;
     if (consoleTimerRef.current) clearTimeout(consoleTimerRef.current);
     consoleTimerRef.current = setTimeout(() => {
       const runId = ++consoleRunIdRef.current;
-      runModule(files['main.py'], { timeoutMs: 1500, maxSteps: 200000 }).then(r => {
+      runModule(files['main.py'], { timeoutMs: 400, maxSteps: 50000 }).then(r => {
         if (runId !== consoleRunIdRef.current) return; // a newer run already superseded this one
         setConsoleResult(
           r.ok

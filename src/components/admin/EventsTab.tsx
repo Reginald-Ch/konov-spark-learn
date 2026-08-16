@@ -285,7 +285,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Blank Start (Build Studio)</p>
-                  <p className="text-xs text-muted-foreground">On: new script projects start with an empty main.py — participants write the whole 30-challenge script themselves. Off (default): starts pre-filled with working values to edit.</p>
+                  <p className="text-xs text-muted-foreground">On: new script projects start with an empty main.py — participants write the whole 34-challenge script themselves. Off (default): starts pre-filled with working values to edit.</p>
                 </div>
                 <Switch checked={!!form.settings?.blank_start_mode} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), blank_start_mode: v } }))} />
               </div>
