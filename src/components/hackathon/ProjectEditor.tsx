@@ -73,22 +73,17 @@ interface QAPair {
 const isResponseToneCustomized = (
   responseTone: string,
   responseToneConditional: Record<string, string>,
-  isAgent: boolean
+  defaultResponseToneConditional: Record<string, string>
 ): boolean => {
   const condKeys = Object.keys(responseToneConditional);
   if (condKeys.length === 0 && responseTone) return true;
-  const defaultChatbotCond: Record<string, string> = { morning: 'energetic and cheerful', afternoon: 'warm and productive', evening: 'relaxed and reflective', __else__: 'friendly' };
-  const defaultAgentCond: Record<string, string> = { morning: 'sharp and analytical', afternoon: 'efficient and focused', evening: 'thorough and reflective', __else__: 'balanced' };
-  const defaults = isAgent ? defaultAgentCond : defaultChatbotCond;
-  return condKeys.some(k => responseToneConditional[k] !== defaults[k]);
+  return condKeys.some(k => responseToneConditional[k] !== defaultResponseToneConditional[k]);
 };
 
 // Shared helper for Fallback Function challenge validation (Challenge 25)
-const isFallbackMessageCustomized = (fallbackMessage: string, isAgent: boolean): boolean => {
+const isFallbackMessageCustomized = (fallbackMessage: string, defaultFallbackMessage: string): boolean => {
   if (!fallbackMessage) return false;
-  const defaultChatbot = 'Hmm, that one is a bit tricky for me — try asking it a different way!';
-  const defaultAgent = 'I could not find a clear answer to that — try rephrasing or giving me more detail!';
-  return fallbackMessage !== (isAgent ? defaultAgent : defaultChatbot);
+  return fallbackMessage !== defaultFallbackMessage;
 };
 
 // Scaffolds imported from ./projectScaffolds
@@ -206,7 +201,7 @@ const unescapeQuoted = (s: string) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\
 
 // Extract all config variables from the student's Python code
 // Supports both SCREAMING_CASE and snake_case variable names — pure function at module scope
-const extractConfigFromCode = (rawCode: string) => {
+export const extractConfigFromCode = (rawCode: string) => {
   const code = stripComments(rawCode);
   const extract = (fallback: string, ...varNames: string[]) => {
     for (const name of varNames) {
@@ -1907,53 +1902,43 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       return;
     }
 
-    // First, do a local config analysis
+    // First, do a local config analysis — same defaults-from-the-actual-
+    // scaffold approach as getChallengeCount above, so this stays correct
+    // for blank-mode projects too instead of a second hardcoded copy.
     const config = extractConfigFromCode(files['main.py']);
-    const isAgent = projectType === 'agent';
-    const scaffold = PROJECT_SCAFFOLDS[projectType];
-    const defaultName = isAgent ? 'Research Agent' : 'Spark';
-    const defaultGreeting = isAgent
-      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
-      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
-    const defaultSystemMsg = scaffold.systemPrompt;
-    const defaultKB = isAgent
-      ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-      : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
-    // Same starter text in both scaffolds (Challenges 27-30) — one default
-    // per challenge, no isAgent branch needed.
-    const defaultPersonalizedIntro = "Hey, I'm {name} — nice to meet you!";
-    const defaultMoodInstruction = "Just be helpful and friendly.";
+    const defaults = extractConfigFromCode(scaffolds[projectType].main);
+    const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
 
     const localChecks = [
-      { label: 'BOT_NAME', ok: config.botName !== defaultName && config.botName !== 'AI Bot', val: config.botName },
-      { label: 'BOT_EMOJI', ok: config.botEmoji !== '🤖' && config.botEmoji !== '🧠', val: config.botEmoji },
-      { label: 'AI_MESSAGE', ok: !!config.greeting && config.greeting !== defaultGreeting, val: config.greeting ? '✓ set' : '✗ default' },
-      { label: 'CREATOR_NAME', ok: config.creatorName !== 'A FORGE Builder', val: config.creatorName },
-      { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaultSystemMsg && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
-      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaultKB, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
-      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > (isAgent ? 3 : 0), val: `${config.qaPairsFromCode.length} pairs` },
-      { label: 'TEMPERATURE', ok: config.temperature !== (isAgent ? 0.3 : 0.7), val: String(config.temperature) },
-      { label: 'RULES', ok: config.conversationRules.length >= (isAgent ? 4 : 3), val: `${config.conversationRules.length} rules` },
-      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length >= (isAgent ? 5 : 4), val: `${config.conversationStarters.length} starters` },
-      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > 0, val: `${config.forbiddenWords.length} words` },
-      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length >= (isAgent ? 3 : 2), val: `${config.blockedTopics.length} topics` },
-      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > 0, val: `${config.fewShotExamples.length} examples` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0), val: `${Object.keys(config.secretResponses).length} secrets` },
-      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0), val: `${Object.keys(config.moodResponses).length} moods` },
-      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== 'medium', val: config.maxResponseLength },
-      { label: 'MAX_TOKENS', ok: config.maxTokens !== 512, val: String(config.maxTokens) },
-      { label: 'MOOD', ok: config.mood !== 'neutral', val: config.mood },
-      { label: 'RESPONSE_TONE', ok: isResponseToneCustomized(config.responseTone, config.responseToneConditional, isAgent), val: config.responseTone || 'default' },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > (isAgent ? 3 : 0), val: `${config.catchphrases.length} phrases` },
+      { label: 'BOT_NAME', ok: config.botName !== defaults.botName && config.botName !== 'AI Bot', val: config.botName },
+      { label: 'BOT_EMOJI', ok: config.botEmoji !== defaults.botEmoji, val: config.botEmoji },
+      { label: 'AI_MESSAGE', ok: !!config.greeting && config.greeting !== defaults.greeting, val: config.greeting ? '✓ set' : '✗ default' },
+      { label: 'CREATOR_NAME', ok: config.creatorName !== defaults.creatorName, val: config.creatorName },
+      { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaults.systemMessage && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
+      { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
+      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > defaults.qaPairsFromCode.length, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'TEMPERATURE', ok: config.temperature !== defaults.temperature, val: String(config.temperature) },
+      { label: 'RULES', ok: config.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1), val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1), val: `${config.conversationStarters.length} starters` },
+      { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > defaults.forbiddenWords.length, val: `${config.forbiddenWords.length} words` },
+      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1), val: `${config.blockedTopics.length} topics` },
+      { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > defaults.fewShotExamples.length, val: `${config.fewShotExamples.length} examples` },
+      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > Object.keys(defaults.secretResponses).length, val: `${Object.keys(config.secretResponses).length} secrets` },
+      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > Object.keys(defaults.moodResponses).length, val: `${Object.keys(config.moodResponses).length} moods` },
+      { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== defaults.maxResponseLength, val: config.maxResponseLength },
+      { label: 'MAX_TOKENS', ok: config.maxTokens !== defaults.maxTokens, val: String(config.maxTokens) },
+      { label: 'MOOD', ok: config.mood !== defaults.mood, val: config.mood },
+      { label: 'RESPONSE_TONE', ok: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional), val: config.responseTone || 'default' },
+      { label: 'CATCHPHRASES', ok: config.catchphrases.length > defaults.catchphrases.length, val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
-      { label: 'VOICE_MODE', ok: config.voiceMode !== 'push-to-talk', val: config.voiceMode },
+      { label: 'VOICE_MODE', ok: config.voiceMode !== defaults.voiceMode, val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
-      { label: 'VOICE_GENDER', ok: config.voiceGender !== 'default', val: config.voiceGender || 'default' },
-      { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, isAgent), val: config.fallbackMessage ? '✓ set' : '✗ default' },
+      { label: 'VOICE_GENDER', ok: config.voiceGender !== defaults.voiceGender, val: config.voiceGender || 'default' },
+      { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, defaults.fallbackMessage), val: config.fallbackMessage ? '✓ set' : '✗ default' },
       { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > 0, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
       { label: 'HYPE_PHRASES', ok: config.hasListComprehension && config.phraseIdeas.length > 0, val: `${config.phraseIdeas.length} ideas` },
-      { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaultPersonalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
-      { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaultMoodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
+      { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
+      { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
       { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > 0, val: `${config.conversationRules.length} rules counted` },
     ];
     
@@ -2050,53 +2035,53 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => { if (consoleTimerRef.current) clearTimeout(consoleTimerRef.current); };
   }, [files['main.py'], activeFile]);
 
-  // Unified challenge count helper — shared between level badge, milestone tracker, and status bar
+  // Unified challenge count helper — shared between level badge, milestone tracker, and status bar.
+  // "Default" (not-yet-customized) values are derived by running the exact
+  // same extractor against the active scaffold's own text, not hardcoded
+  // literals — so this stays correct whichever scaffold is actually seeding
+  // fresh projects (PROJECT_SCAFFOLDS_BLANK's real defaults are "" / 0 / a
+  // missing function, not PROJECT_SCAFFOLDS's pre-filled values) without a
+  // second hand-maintained copy of the guided scaffold's values to drift.
   const getChallengeCount = useCallback((cfg: ReturnType<typeof extractConfigFromCode>, type: ProjectType) => {
-    const isAgent = type === 'agent';
-    const scaffold = PROJECT_SCAFFOLDS[type];
-    const defaultName = isAgent ? 'Research Agent' : 'Spark';
-    const defaultTemp = isAgent ? 0.3 : 0.7;
-    const defaultGreeting = isAgent
-      ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
-      : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
-    const defaultKBAgent = "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts.";
-    const defaultKBChatbot = "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
-    const defaultKB = isAgent ? defaultKBAgent : defaultKBChatbot;
-    const defaultPersonalizedIntro = "Hey, I'm {name} — nice to meet you!";
-    const defaultMoodInstruction = "Just be helpful and friendly.";
+    const defaults = extractConfigFromCode(scaffolds[type].main);
+    // Three challenges ask for "at least N of your own," not just "differs
+    // from default" — a floor for the 0-pre-filled case, or one more than
+    // whatever's already pre-filled, whichever is larger. Reduces to just
+    // the floor in blank mode (nothing pre-filled either way).
+    const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
     return [
-      cfg.botName !== defaultName && cfg.botName !== 'AI Bot',
-      cfg.botEmoji !== '🤖' && cfg.botEmoji !== '🧠',
-      cfg.greeting && cfg.greeting !== defaultGreeting,
-      cfg.creatorName && cfg.creatorName !== 'A FORGE Builder',
-      cfg.systemMessage !== scaffold.systemPrompt && cfg.systemMessage.length > 30,
-      cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaultKB,
-      cfg.qaPairsFromCode.length > (isAgent ? 3 : 0),
-      cfg.temperature !== defaultTemp,
-      cfg.conversationRules.length >= (isAgent ? 4 : 3),
-      cfg.conversationStarters.length >= (isAgent ? 5 : 4),
-      cfg.forbiddenWords.length > 0,
-      cfg.blockedTopics.length >= (isAgent ? 3 : 2),
-      cfg.fewShotExamples.length > 0,
-      Object.keys(cfg.secretResponses).length > (isAgent ? 2 : 0),
-      Object.keys(cfg.moodResponses).length > (isAgent ? 3 : 0),
-      cfg.maxResponseLength !== 'medium',
-      cfg.maxTokens !== 512,
-      cfg.mood && cfg.mood !== 'neutral',
-      isResponseToneCustomized(cfg.responseTone, cfg.responseToneConditional, isAgent),
-      cfg.catchphrases.length > (isAgent ? 3 : 0),
+      cfg.botName !== defaults.botName && cfg.botName !== 'AI Bot',
+      cfg.botEmoji !== defaults.botEmoji,
+      cfg.greeting && cfg.greeting !== defaults.greeting,
+      cfg.creatorName && cfg.creatorName !== defaults.creatorName,
+      cfg.systemMessage !== defaults.systemMessage && cfg.systemMessage.length > 30,
+      cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode,
+      cfg.qaPairsFromCode.length > defaults.qaPairsFromCode.length,
+      cfg.temperature !== defaults.temperature,
+      cfg.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1),
+      cfg.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1),
+      cfg.forbiddenWords.length > defaults.forbiddenWords.length,
+      cfg.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1),
+      cfg.fewShotExamples.length > defaults.fewShotExamples.length,
+      Object.keys(cfg.secretResponses).length > Object.keys(defaults.secretResponses).length,
+      Object.keys(cfg.moodResponses).length > Object.keys(defaults.moodResponses).length,
+      cfg.maxResponseLength !== defaults.maxResponseLength,
+      cfg.maxTokens !== defaults.maxTokens,
+      cfg.mood && cfg.mood !== defaults.mood,
+      isResponseToneCustomized(cfg.responseTone, cfg.responseToneConditional, defaults.responseToneConditional),
+      cfg.catchphrases.length > defaults.catchphrases.length,
       cfg.voiceEnabled === true,
-      cfg.voiceMode !== 'push-to-talk',
+      cfg.voiceMode !== defaults.voiceMode,
       cfg.wakeWord,
-      cfg.voiceGender !== 'default',
-      isFallbackMessageCustomized(cfg.fallbackMessage, isAgent),
+      cfg.voiceGender !== defaults.voiceGender,
+      isFallbackMessageCustomized(cfg.fallbackMessage, defaults.fallbackMessage),
       cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > 0,
       cfg.hasListComprehension && cfg.phraseIdeas.length > 0,
-      cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaultPersonalizedIntro,
-      cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaultMoodInstruction,
+      cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaults.personalizedIntro,
+      cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaults.moodInstruction,
       cfg.hasAccumulatorLoop && cfg.conversationRules.length > 0,
     ].filter(Boolean).length;
-  }, []);
+  }, [scaffolds]);
 
   // Track level changes for milestone celebrations (practice mode only)
   useEffect(() => {
@@ -2808,43 +2793,35 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* ── Mission Progress Bar ── */}
                     {(() => {
                       const config = liveConfig;
-                      const isAgent = projectType === 'agent';
-                      const scaffold = PROJECT_SCAFFOLDS[projectType];
-                      const defaultName = isAgent ? 'Research Agent' : 'Spark';
-                      const defaultTemp = isAgent ? 0.3 : 0.7;
-                      const defaultGreeting = isAgent
-                        ? "I'm your research agent. I can search, calculate, and analyse. Give me a task!"
-                        : "Hey there! I'm Spark, your AI buddy. Ask me anything!";
-                      const defaultSystemMessage = scaffold.systemPrompt;
-                      // Bug 1: Unified thresholds matching Live Preview — check beyond defaults
-                      const defaultKB = isAgent 
-                        ? "Agents use a ReAct loop: Reason, Act, Observe.\nTools extend what an AI can do beyond just chatting.\nFORGE agents can search the web, do math, and look up facts."
-                        : "Python was created by Guido van Rossum in 1991.\nAI stands for Artificial Intelligence.\nFORGE is a platform where students build AI projects.";
+                      // Same defaults-from-the-actual-scaffold approach as
+                      // getChallengeCount — stays correct in blank-start mode.
+                      const defaults = extractConfigFromCode(scaffolds[projectType].main);
+                      const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
                       const missions = [
-                        { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaultName && config.botName !== 'AI Bot' },
-                        { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== '🤖' && config.botEmoji !== '🧠' },
-                        { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaultGreeting },
-                        { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== 'A FORGE Builder' },
-                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaultSystemMessage && config.systemMessage.length > 30 },
-                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaultKB },
-                        { emoji: '❓', name: 'Intents', done: config.qaPairsFromCode.length > (isAgent ? 3 : 0) },
-                        { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaultTemp },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length >= (isAgent ? 4 : 3) },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length >= (isAgent ? 5 : 4) },
-                        { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > 0 },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length >= (isAgent ? 3 : 2) },
-                        { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > 0 },
-                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > (isAgent ? 2 : 0) },
-                        { emoji: '🎯', name: 'Mood Responses', done: Object.keys(config.moodResponses).length > (isAgent ? 3 : 0) },
-                        { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== 'medium' },
-                        { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== 512 },
-                        { emoji: '🎭', name: 'Mood', done: config.mood !== 'neutral' },
-                        { emoji: '🎵', name: 'Response Tone', done: isResponseToneCustomized(config.responseTone, config.responseToneConditional, isAgent) },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > (isAgent ? 3 : 0) },
+                        { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaults.botName && config.botName !== 'AI Bot' },
+                        { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== defaults.botEmoji },
+                        { emoji: '👋', name: 'Greeting Message', done: config.greeting !== '' && config.greeting !== defaults.greeting },
+                        { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== defaults.creatorName },
+                        { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaults.systemMessage && config.systemMessage.length > 30 },
+                        { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode },
+                        { emoji: '❓', name: 'Intents', done: config.qaPairsFromCode.length > defaults.qaPairsFromCode.length },
+                        { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaults.temperature },
+                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1) },
+                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1) },
+                        { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > defaults.forbiddenWords.length },
+                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1) },
+                        { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > defaults.fewShotExamples.length },
+                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > Object.keys(defaults.secretResponses).length },
+                        { emoji: '🎯', name: 'Mood Responses', done: Object.keys(config.moodResponses).length > Object.keys(defaults.moodResponses).length },
+                        { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== defaults.maxResponseLength },
+                        { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== defaults.maxTokens },
+                        { emoji: '🎭', name: 'Mood', done: config.mood !== defaults.mood },
+                        { emoji: '🎵', name: 'Response Tone', done: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional) },
+                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > defaults.catchphrases.length },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
-                        { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== 'push-to-talk' },
+                        { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== defaults.voiceMode },
                         { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },
-                        { emoji: '🗣️', name: 'Voice Gender', done: config.voiceGender !== 'default' },
+                        { emoji: '🗣️', name: 'Voice Gender', done: config.voiceGender !== defaults.voiceGender },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
@@ -2891,12 +2868,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         never actually see. */}
                     {(() => {
                       const config = liveConfig;
-                      const isAgent = projectType === 'agent';
-                      const defaultName = isAgent ? 'Research Agent' : 'Spark';
+                      const defaultBotName = extractConfigFromCode(scaffolds[projectType].main).botName;
                       return (
                         <AchievementGrid stats={{
                           challengeCount: getChallengeCount(config, projectType),
-                          hasCustomName: config.botName !== defaultName && config.botName !== 'AI Bot',
+                          hasCustomName: config.botName !== defaultBotName && config.botName !== 'AI Bot',
                           hasKnowledge: config.knowledgeBaseFromCode.trim() !== '',
                           hasQAPairs: config.qaPairsFromCode.length > 0,
                           hasRules: config.conversationRules.length > 0,
@@ -3853,15 +3829,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const sidebarQs = new Set(qaData.filter(p => p.q.trim()).map(p => p.q.toLowerCase().trim()));
             const uniqueCodeQA = codeQA.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
             const mergedQACount = qaData.filter(p => p.q.trim()).length + uniqueCodeQA.length;
-            
-            // Type-aware defaults
-            const isAgent = projectType === 'agent';
-            const defaultName = isAgent ? 'Research Agent' : 'Spark';
-            const defaultTemp = isAgent ? 0.3 : 0.7;
-            const _defaultPrompt = isAgent 
-              ? 'You are an AI agent that can use tools to search the web, run calculations, and generate content.'
-              : 'You are a helpful AI assistant that answers questions clearly and concisely.';
-            
+
             const totalChallenges = 30;
             const activeCount = getChallengeCount(cfg, projectType);
 
