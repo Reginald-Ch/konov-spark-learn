@@ -27,6 +27,10 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "supabase/functions/_shared/pyInterpreter"
+  ],
+  "exclude": [
+    "supabase/functions/_shared/pyInterpreter/__verify*.ts"
   ]
 }

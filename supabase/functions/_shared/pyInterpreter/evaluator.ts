@@ -699,21 +699,31 @@ export interface RunFunctionResult {
   errorLine?: number;
 }
 
+// Shared by `runFunction` (which continues on to look up and call an
+// entrypoint) and `runModule` (which stops here — top-level statements
+// only, no entrypoint required). `stdout` is created and owned by the
+// caller, not here, so partial output printed before a mid-run failure is
+// still visible to the caller's own catch block after this throws.
+async function runTopLevel(code: string, options: RunOptions, stdout: string[]): Promise<{ globalEnv: Environment; budget: Budget; interp: Interpreter }> {
+  const program: Program = parseProgram(code);
+  const globalEnv = new Environment(null);
+  const budget = new Budget(options.maxSteps ?? 200000, options.timeoutMs ?? 5000);
+  installBuiltins(globalEnv, stdout, options, budget);
+  const interp = new Interpreter();
+  try {
+    await interp.execStmts(program, globalEnv, budget, stdout);
+  } catch (e) {
+    if (e instanceof BreakSignal || e instanceof ContinueSignal) throw new PySyntaxError("'break'/'continue' outside a loop");
+    if (e instanceof ReturnSignal) throw new PySyntaxError("'return' outside a function");
+    throw e;
+  }
+  return { globalEnv, budget, interp };
+}
+
 export async function runFunction(code: string, functionName: string, jsonArgs: unknown[], options: RunOptions = {}): Promise<RunFunctionResult> {
   const stdout: string[] = [];
   try {
-    const program: Program = parseProgram(code);
-    const globalEnv = new Environment(null);
-    const budget = new Budget(options.maxSteps ?? 200000, options.timeoutMs ?? 5000);
-    installBuiltins(globalEnv, stdout, options, budget);
-    const interp = new Interpreter();
-    try {
-      await interp.execStmts(program, globalEnv, budget, stdout);
-    } catch (e) {
-      if (e instanceof BreakSignal || e instanceof ContinueSignal) throw new PySyntaxError("'break'/'continue' outside a loop");
-      if (e instanceof ReturnSignal) throw new PySyntaxError("'return' outside a function");
-      throw e;
-    }
+    const { globalEnv, budget, interp } = await runTopLevel(code, options, stdout);
     if (!globalEnv.has(functionName)) {
       return { ok: false, stdout: stdout.join(''), errorType: 'runtime_error', errorMessage: `Your code doesn't define a function called '${functionName}'.` };
     }
@@ -724,6 +734,23 @@ export async function runFunction(code: string, functionName: string, jsonArgs: 
     const args = jsonArgs.map(jsonToPyValue);
     const resultVal = await interp.callValue(fnVal, args, budget, stdout, 0);
     return { ok: true, result: pyValueToJson(resultVal), stdout: stdout.join('') };
+  } catch (e) {
+    if (e instanceof PyError) {
+      return { ok: false, stdout: stdout.join(''), errorType: e.type, errorMessage: e.message, errorLine: e.line };
+    }
+    return { ok: false, stdout: stdout.join(''), errorType: 'runtime_error', errorMessage: 'Something went wrong running this code.' };
+  }
+}
+
+// Runs `code`'s top-level statements only — no entrypoint function required
+// or called. For contexts where the whole point is the module's own side
+// effects (its print() output), not a return value — the Build Studio
+// script-mode live console being the first caller.
+export async function runModule(code: string, options: RunOptions = {}): Promise<RunFunctionResult> {
+  const stdout: string[] = [];
+  try {
+    await runTopLevel(code, options, stdout);
+    return { ok: true, stdout: stdout.join('') };
   } catch (e) {
     if (e instanceof PyError) {
       return { ok: false, stdout: stdout.join(''), errorType: e.type, errorMessage: e.message, errorLine: e.line };

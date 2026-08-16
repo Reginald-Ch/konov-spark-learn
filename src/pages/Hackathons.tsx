@@ -44,6 +44,7 @@ interface Hackathon {
   current_participants: number;
   status: 'upcoming' | 'live' | 'ended';
   prizes: string | null;
+  settings?: { blank_start_mode?: boolean; [key: string]: unknown };
 }
 
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn' | 'community';
@@ -728,7 +729,7 @@ const Hackathons = () => {
           {/* BUILD TAB */}
           {activeTab === 'build' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} hasLiveEvent={hasLiveEvent} />
+              <ProjectEditor key={`${buildTemplate}-${buildKey}`} initialType={buildTemplate} initialCode={buildCode} hackathonStartDate={liveHackathons[0]?.start_date || null} hackathonStatus={liveHackathons[0]?.status || null} hasLiveEvent={hasLiveEvent} blankStartMode={!!liveHackathons[0]?.settings?.blank_start_mode} />
             </div>
           )}
 

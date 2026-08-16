@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 interface HackathonSettings {
   mission_bonus_top_n: number;
   voting_enabled: boolean;
+  blank_start_mode: boolean;
 }
 
 interface Hackathon {
@@ -34,6 +35,7 @@ interface Hackathon {
 const defaultSettings = (): HackathonSettings => ({
   mission_bonus_top_n: 5,
   voting_enabled: false,
+  blank_start_mode: false,
 });
 
 const emptyForm = (): Partial<Hackathon> => ({
@@ -279,6 +281,13 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
                   <p className="text-xs text-muted-foreground">Reserved — participant voting isn't built yet, but this toggle is ready for when it is.</p>
                 </div>
                 <Switch checked={!!form.settings?.voting_enabled} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), voting_enabled: v } }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Blank Start (Build Studio)</p>
+                  <p className="text-xs text-muted-foreground">On: new script projects start with an empty main.py — participants write the whole 30-challenge script themselves. Off (default): starts pre-filled with working values to edit.</p>
+                </div>
+                <Switch checked={!!form.settings?.blank_start_mode} onCheckedChange={v => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), blank_start_mode: v } }))} />
               </div>
             </div>
 

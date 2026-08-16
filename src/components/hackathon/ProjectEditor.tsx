@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-import { ProjectType, PROJECT_SCAFFOLDS } from './projectScaffolds';
+import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
 import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
@@ -32,6 +32,12 @@ interface ProjectEditorProps {
   hackathonStartDate?: string | null;
   hackathonStatus?: 'upcoming' | 'live' | 'ended' | null;
   hasLiveEvent?: boolean;
+  // hackathons.settings.blank_start_mode — when true, a fresh script scaffold
+  // starts empty (comments/instructions only, no pre-filled answers) instead
+  // of the guided pre-filled version. Only affects freshly-seeded main.py
+  // content (new project, explicit type switch, "reset to template") — never
+  // an already-saved project (initialCode always wins when present).
+  blankStartMode?: boolean;
 }
 
 interface ChatMessage {
@@ -574,8 +580,13 @@ const CountdownWidget = ({ hackathonStartDate, hackathonStatus }: { hackathonSta
   );
 };
 
-export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, hackathonStatus, hasLiveEvent = false }: ProjectEditorProps) => {
+export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, hackathonStatus, hasLiveEvent = false, blankStartMode = false }: ProjectEditorProps) => {
   const isMobile = useIsMobile();
+  // Which scaffold table a FRESH main.py gets seeded from. Metadata fields
+  // (name/icon/systemPrompt/config/requirements) are identical between the
+  // two tables — only `main` differs — so reads of those fields don't need
+  // to switch tables, only the sites that actually seed `main.py` do.
+  const scaffolds = blankStartMode ? PROJECT_SCAFFOLDS_BLANK : PROJECT_SCAFFOLDS;
   const [projectType, setProjectType] = useState<ProjectType>(initialType || 'chatbot');
   const [projectName, setProjectName] = useState('My AI Project');
   const [systemPrompt, setSystemPrompt] = useState(PROJECT_SCAFFOLDS[initialType || 'chatbot'].systemPrompt);
@@ -610,15 +621,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // File state
   const [activeFile, setActiveFile] = useState<FileTab>('main.py');
   const [files, setFiles] = useState({
-    'main.py': initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main,
-    'config.json': PROJECT_SCAFFOLDS[initialType || 'chatbot'].config,
-    'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
+    'main.py': initialCode || scaffolds[initialType || 'chatbot'].main,
+    'config.json': scaffolds[initialType || 'chatbot'].config,
+    'requirements.txt': scaffolds[initialType || 'chatbot'].requirements,
   });
 
   const [savedFiles, setSavedFiles] = useState<Record<string, string>>(() => ({
-    'main.py': initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main,
-    'config.json': PROJECT_SCAFFOLDS[initialType || 'chatbot'].config,
-    'requirements.txt': PROJECT_SCAFFOLDS[initialType || 'chatbot'].requirements,
+    'main.py': initialCode || scaffolds[initialType || 'chatbot'].main,
+    'config.json': scaffolds[initialType || 'chatbot'].config,
+    'requirements.txt': scaffolds[initialType || 'chatbot'].requirements,
   }));
   const isDirty = useMemo(() => {
     return Object.keys(files).some(key => files[key as FileTab] !== savedFiles[key]);
@@ -720,7 +731,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Undo/redo history stack
   const undoStackRef = useRef<string[]>([]);
   const redoStackRef = useRef<string[]>([]);
-  const lastSnapshotRef = useRef<string>(initialCode || PROJECT_SCAFFOLDS[initialType || 'chatbot'].main);
+  const lastSnapshotRef = useRef<string>(initialCode || scaffolds[initialType || 'chatbot'].main);
   const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-save timer
@@ -1137,7 +1148,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py']]);
 
   const handleTypeChange = (type: ProjectType) => {
-    const scaffold = PROJECT_SCAFFOLDS[type];
+    const scaffold = scaffolds[type];
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
     setFiles({
@@ -1191,7 +1202,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Reset current file to original template code
   const handleResetToTemplate = useCallback(() => {
-    const scaffold = PROJECT_SCAFFOLDS[projectType];
+    const scaffold = scaffolds[projectType];
     const confirmMsg = 'Reset to original template? Your current edits will be lost.';
     if (!window.confirm(confirmMsg)) return;
     // window.confirm blocks the event loop long enough for a pending
@@ -1227,7 +1238,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // could resurrect the pre-reset code (it was tagged projectId: null too).
     localStorage.removeItem('forge-editor-code');
     toast.success('🔄 Code reset to original template');
-  }, [projectType, files]);
+  }, [projectType, files, scaffolds]);
 
   const updateFile = (content: string) => {
     // Mark as typing to suppress read-back effects
@@ -1529,9 +1540,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // ── Diff highlighting: lines changed from template ──
   const changedLines = useMemo(() => {
     if (activeFile !== 'main.py') return new Set<number>();
-    const templateCode = PROJECT_SCAFFOLDS[projectType].main;
+    const templateCode = scaffolds[projectType].main;
     return computeLineDiffs(files['main.py'], templateCode);
-  }, [files['main.py'], activeFile, projectType]);
+  }, [files['main.py'], activeFile, projectType, scaffolds]);
 
   // ── Python linting ──
   const lintErrors = useMemo(() => {
