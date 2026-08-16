@@ -45,12 +45,12 @@ function deepEqual(a: unknown, b: unknown): boolean {
 // test set — a small perf cost for a single small function, in exchange for
 // making cross-test state leakage structurally impossible rather than
 // something to reason about.
-export function gradeAgainstTests(code: string, functionName: string, tests: TestCase[], options?: RunOptions): GradeResult {
+export async function gradeAgainstTests(code: string, functionName: string, tests: TestCase[], options?: RunOptions): Promise<GradeResult> {
   const results: TestResult[] = [];
   let passedCount = 0;
   for (let i = 0; i < tests.length; i++) {
     const t = tests[i];
-    const r = runFunction(code, functionName, t.input_args, options);
+    const r = await runFunction(code, functionName, t.input_args, options);
     if (!r.ok) {
       // A code-level failure (syntax/unsupported/timeout) applies
       // identically to every test since it's the same code each time —

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
 import { tryRealPythonReply } from "./realPythonReply.ts";
+import { makeAiGenerateCallback } from "./aiGenerateCallback.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -482,10 +483,27 @@ Format as plain terminal text with emojis. Under 300 words.`;
       // user chatting with someone else's published bot). `code` is
       // repurposed as the chat message on this action (pre-existing
       // overload, not something this change introduces).
-      const pyReply = tryRealPythonReply(
+      // ai_generate()'s real fetch/slot logic is injected here rather than
+      // living inside the interpreter package — see aiGenerateCallback.ts.
+      // It shares the exact same acquire_ai_slot/release_ai_slot pool as
+      // every other gateway call in this function (no separate pool for v1).
+      const aiGenerateForThisTurn = makeAiGenerateCallback(
+        LOVABLE_API_KEY,
+        async (ttlSeconds) => {
+          const { data, error } = await supabaseAdmin.rpc("acquire_ai_slot", { p_ttl_seconds: ttlSeconds });
+          if (error) { console.error("acquire_ai_slot (ai_generate) error:", error); return null; }
+          return data;
+        },
+        async (slotId) => {
+          const { error } = await supabaseAdmin.rpc("release_ai_slot", { p_slot_id: slotId });
+          if (error) console.error("release_ai_slot (ai_generate) failed:", error);
+        },
+      );
+      const pyReply = await tryRealPythonReply(
         typeof studentCode === "string" ? studentCode : "",
         code,
-        Array.isArray(conversationHistory) ? conversationHistory : []
+        Array.isArray(conversationHistory) ? conversationHistory : [],
+        aiGenerateForThisTurn
       );
       if (pyReply.handled && "reply" in pyReply) {
         const encoder = new TextEncoder();

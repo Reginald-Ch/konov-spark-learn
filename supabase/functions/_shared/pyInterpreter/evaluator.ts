@@ -12,10 +12,17 @@ import { PyError, PyRuntimeError, PySyntaxError, PyTimeoutError, PyErrorType } f
 export interface PyList { __pytype: 'list'; items: PyValue[] }
 export interface PyDict { __pytype: 'dict'; map: Map<string | number | boolean, PyValue> }
 export interface PyFunction { __pytype: 'function'; name: string; params: string[]; body: Stmt[]; closure: Environment }
-export interface PyBuiltin { __pytype: 'builtin'; name: string; fn: (args: PyValue[], line: number) => PyValue }
+// Builtins are always async — the only builtin that actually needs to await
+// anything is `ai_generate` (a real network call), but every builtin shares
+// one uniform Promise-returning shape so callValue never has to branch on
+// sync-vs-async. Awaiting a synchronous builtin's already-resolved value is
+// a no-op, so this costs nothing for print/len/range/etc.
+export interface PyBuiltin { __pytype: 'builtin'; name: string; fn: (args: PyValue[], line: number) => Promise<PyValue> }
 // Backs the `import random` carve-out — attribute access (`random.choice`)
 // dispatches into `methods`, the same shape as callMethod's str/list/dict
 // tables below, just reached via a module value instead of a builtin type.
+// Module methods stay synchronous — nothing under `import` needs network
+// access, so there's no reason to pay the async-propagation cost here.
 export interface PyModule { __pytype: 'module'; name: string; methods: Record<string, (args: PyValue[], line: number) => PyValue> }
 export type PyValue = number | string | boolean | null | PyList | PyDict | PyFunction | PyBuiltin | PyModule;
 
@@ -114,6 +121,9 @@ class ContinueSignal {}
 // ── Execution budget ── native to our own evaluator loop, so a runaway
 // `while True` is interrupted mid-loop rather than needing an external
 // library's cooperative yield hook or an outer Promise.race abandonment.
+// `Date.now()` polling keeps working correctly across `await` points too —
+// wall-clock time still advances during a real network call, so a slow
+// `ai_generate()` correctly eats into the same deadline as everything else.
 export class Budget {
   private steps = 0;
   private readonly deadline: number;
@@ -122,60 +132,68 @@ export class Budget {
     this.steps++;
     if (this.steps > this.maxSteps || Date.now() > this.deadline) throw new PyTimeoutError();
   }
+  remainingMs(): number { return this.deadline - Date.now(); }
 }
 
 const MAX_STDOUT_CHARS = 20000;
+// Below this much remaining budget, don't even attempt an ai_generate()
+// fetch — it mathematically can't complete in time, and skipping it avoids
+// burning a shared AI-gateway slot on a call doomed to time out anyway.
+const MIN_AI_CALL_BUDGET_MS = 500;
 
 class Interpreter {
-  execStmts(stmts: Stmt[], env: Environment, budget: Budget, stdout: string[]): void {
-    for (const s of stmts) this.execStmt(s, env, budget, stdout);
+  async execStmts(stmts: Stmt[], env: Environment, budget: Budget, stdout: string[]): Promise<void> {
+    for (const s of stmts) await this.execStmt(s, env, budget, stdout);
   }
 
-  execStmt(stmt: Stmt, env: Environment, budget: Budget, stdout: string[]): void {
+  async execStmt(stmt: Stmt, env: Environment, budget: Budget, stdout: string[]): Promise<void> {
     budget.tick();
     switch (stmt.kind) {
-      case 'ExprStmt': this.evalExpr(stmt.expr, env, budget, stdout); return;
+      case 'ExprStmt': await this.evalExpr(stmt.expr, env, budget, stdout); return;
       case 'Assign': {
-        const value = this.evalExpr(stmt.value, env, budget, stdout);
-        this.assignTo(stmt.targets[0], value, env, budget, stdout);
+        const value = await this.evalExpr(stmt.value, env, budget, stdout);
+        await this.assignTo(stmt.targets[0], value, env, budget, stdout);
         return;
       }
       case 'AugAssign': {
-        const current = this.evalExpr(stmt.target, env, budget, stdout);
-        const rhs = this.evalExpr(stmt.value, env, budget, stdout);
+        const current = await this.evalExpr(stmt.target, env, budget, stdout);
+        const rhs = await this.evalExpr(stmt.value, env, budget, stdout);
         const result = this.binOp(stmt.op, current, rhs, stmt.line);
-        this.assignTo(stmt.target, result, env, budget, stdout);
+        await this.assignTo(stmt.target, result, env, budget, stdout);
         return;
       }
       case 'If': {
-        if (isTruthy(this.evalExpr(stmt.test, env, budget, stdout))) this.execStmts(stmt.body, env, budget, stdout);
-        else this.execStmts(stmt.orelse, env, budget, stdout);
+        if (isTruthy(await this.evalExpr(stmt.test, env, budget, stdout))) await this.execStmts(stmt.body, env, budget, stdout);
+        else await this.execStmts(stmt.orelse, env, budget, stdout);
         return;
       }
       case 'For': {
-        const iterVal = this.evalExpr(stmt.iter, env, budget, stdout);
+        const iterVal = await this.evalExpr(stmt.iter, env, budget, stdout);
         for (const item of this.toIterable(iterVal, stmt.line)) {
           budget.tick();
           this.bindForTarget(stmt.target, item, env, stmt.line);
-          try { this.execStmts(stmt.body, env, budget, stdout); }
+          try { await this.execStmts(stmt.body, env, budget, stdout); }
           catch (e) { if (e instanceof BreakSignal) break; if (e instanceof ContinueSignal) continue; throw e; }
         }
         return;
       }
       case 'Try': {
         try {
-          this.execStmts(stmt.body, env, budget, stdout);
+          await this.execStmts(stmt.body, env, budget, stdout);
         } catch (e) {
           // Never catch our own control-flow signals or a timeout — a
           // try/except that could swallow a timeout would defeat the whole
-          // execution budget (wrap a runaway loop in try/except, ignore the
-          // interrupt, loop forever). Only genuine runtime errors are
-          // catchable, matching what "except:" should mean here.
+          // execution budget (wrap a runaway loop — or a slow ai_generate()
+          // call — in try/except, ignore the interrupt, keep going forever).
+          // Only genuine runtime errors are catchable, matching what
+          // "except:" should mean here. `await` inside the try above turns
+          // a rejected promise into a thrown error here exactly like a
+          // synchronous throw would, so this needs no async-specific logic.
           if (e instanceof BreakSignal || e instanceof ContinueSignal || e instanceof ReturnSignal) throw e;
           if (e instanceof PyError && e.type !== 'runtime_error') throw e;
           if (!(e instanceof PyError)) throw e;
           if (stmt.exceptVar) env.set(stmt.exceptVar, e.message);
-          this.execStmts(stmt.exceptBody, env, budget, stdout);
+          await this.execStmts(stmt.exceptBody, env, budget, stdout);
         }
         return;
       }
@@ -184,9 +202,9 @@ class Interpreter {
         return;
       }
       case 'While': {
-        while (isTruthy(this.evalExpr(stmt.test, env, budget, stdout))) {
+        while (isTruthy(await this.evalExpr(stmt.test, env, budget, stdout))) {
           budget.tick();
-          try { this.execStmts(stmt.body, env, budget, stdout); }
+          try { await this.execStmts(stmt.body, env, budget, stdout); }
           catch (e) { if (e instanceof BreakSignal) break; if (e instanceof ContinueSignal) continue; throw e; }
         }
         return;
@@ -197,7 +215,7 @@ class Interpreter {
         return;
       }
       case 'Return': {
-        const value = stmt.value ? this.evalExpr(stmt.value, env, budget, stdout) : null;
+        const value = stmt.value ? await this.evalExpr(stmt.value, env, budget, stdout) : null;
         throw new ReturnSignal(value);
       }
       case 'Pass': return;
@@ -206,7 +224,7 @@ class Interpreter {
     }
   }
 
-  evalExpr(expr: Expr, env: Environment, budget: Budget, stdout: string[]): PyValue {
+  async evalExpr(expr: Expr, env: Environment, budget: Budget, stdout: string[]): Promise<PyValue> {
     budget.tick();
     switch (expr.kind) {
       case 'NumberLit': return expr.value;
@@ -216,22 +234,31 @@ class Interpreter {
       case 'FStringLit': {
         let out = '';
         for (const part of expr.parts) {
-          out += part.kind === 'str' ? part.value : pyStr(this.evalExpr(part.expr, env, budget, stdout));
+          out += part.kind === 'str' ? part.value : pyStr(await this.evalExpr(part.expr, env, budget, stdout));
         }
         return out;
       }
       case 'Name': return env.get(expr.name, expr.line);
-      case 'ListLit': return makeList(expr.elements.map(e => this.evalExpr(e, env, budget, stdout)));
+      case 'ListLit': {
+        // Sequential, not `.map(async ...)` — a `.map` with an async
+        // callback evaluates every element concurrently and out of order,
+        // which would break Python's guaranteed left-to-right evaluation
+        // once an element can be an `ai_generate(...)` call, and would let
+        // a single list literal fire several AI-gateway requests at once.
+        const items: PyValue[] = [];
+        for (const e of expr.elements) items.push(await this.evalExpr(e, env, budget, stdout));
+        return makeList(items);
+      }
       case 'DictLit': {
         const map = new Map<string | number | boolean, PyValue>();
         for (let i = 0; i < expr.keys.length; i++) {
-          const k = this.evalExpr(expr.keys[i], env, budget, stdout);
-          map.set(toDictKey(k, expr.line), this.evalExpr(expr.values[i], env, budget, stdout));
+          const k = await this.evalExpr(expr.keys[i], env, budget, stdout);
+          map.set(toDictKey(k, expr.line), await this.evalExpr(expr.values[i], env, budget, stdout));
         }
         return { __pytype: 'dict', map };
       }
       case 'UnaryOp': {
-        const v = this.evalExpr(expr.operand, env, budget, stdout);
+        const v = await this.evalExpr(expr.operand, env, budget, stdout);
         if (expr.op === 'not') return !isTruthy(v);
         if (typeof v !== 'number') throw new PyRuntimeError(`TypeError: bad operand type for unary ${expr.op}: '${describeType(v)}'`, expr.line);
         return expr.op === '-' ? -v : v;
@@ -239,51 +266,55 @@ class Interpreter {
       case 'BoolOp': {
         if (expr.op === 'and') {
           let last: PyValue = true;
-          for (const v of expr.values) { last = this.evalExpr(v, env, budget, stdout); if (!isTruthy(last)) return last; }
+          for (const v of expr.values) { last = await this.evalExpr(v, env, budget, stdout); if (!isTruthy(last)) return last; }
           return last;
         }
         let last: PyValue = false;
-        for (const v of expr.values) { last = this.evalExpr(v, env, budget, stdout); if (isTruthy(last)) return last; }
+        for (const v of expr.values) { last = await this.evalExpr(v, env, budget, stdout); if (isTruthy(last)) return last; }
         return last;
       }
       case 'Compare': {
-        let left = this.evalExpr(expr.left, env, budget, stdout);
+        let left = await this.evalExpr(expr.left, env, budget, stdout);
         for (let i = 0; i < expr.ops.length; i++) {
-          const right = this.evalExpr(expr.comparators[i], env, budget, stdout);
+          const right = await this.evalExpr(expr.comparators[i], env, budget, stdout);
           if (!this.compareValues(expr.ops[i], left, right, expr.line)) return false;
           left = right;
         }
         return true;
       }
       case 'BinOp': {
-        const l = this.evalExpr(expr.left, env, budget, stdout);
-        const r = this.evalExpr(expr.right, env, budget, stdout);
+        const l = await this.evalExpr(expr.left, env, budget, stdout);
+        const r = await this.evalExpr(expr.right, env, budget, stdout);
         return this.binOp(expr.op, l, r, expr.line);
       }
-      case 'Call': return this.evalCall(expr, env, budget, stdout);
+      case 'Call': return await this.evalCall(expr, env, budget, stdout);
       case 'Attribute':
         throw new PyRuntimeError(`AttributeError: '.${expr.attr}' is only supported as a direct method call, e.g. x.${expr.attr}(...)`, expr.line);
       case 'Subscript': {
-        const obj = this.evalExpr(expr.obj, env, budget, stdout);
-        const idx = this.evalExpr(expr.index, env, budget, stdout);
+        const obj = await this.evalExpr(expr.obj, env, budget, stdout);
+        const idx = await this.evalExpr(expr.index, env, budget, stdout);
         return this.subscriptGet(obj, idx, expr.line);
       }
     }
   }
 
-  private evalCall(expr: Extract<Expr, { kind: 'Call' }>, env: Environment, budget: Budget, stdout: string[]): PyValue {
+  private async evalCall(expr: Extract<Expr, { kind: 'Call' }>, env: Environment, budget: Budget, stdout: string[]): Promise<PyValue> {
     if (expr.func.kind === 'Attribute') {
-      const obj = this.evalExpr(expr.func.obj, env, budget, stdout);
-      const args = expr.args.map(a => this.evalExpr(a, env, budget, stdout));
+      const obj = await this.evalExpr(expr.func.obj, env, budget, stdout);
+      // Sequential for the same reason as ListLit above — argument order
+      // and single-flight AI calls must be preserved.
+      const args: PyValue[] = [];
+      for (const a of expr.args) args.push(await this.evalExpr(a, env, budget, stdout));
       return this.callMethod(obj, expr.func.attr, args, expr.line);
     }
-    const fnVal = this.evalExpr(expr.func, env, budget, stdout);
-    const args = expr.args.map(a => this.evalExpr(a, env, budget, stdout));
-    return this.callValue(fnVal, args, budget, stdout, expr.line);
+    const fnVal = await this.evalExpr(expr.func, env, budget, stdout);
+    const args: PyValue[] = [];
+    for (const a of expr.args) args.push(await this.evalExpr(a, env, budget, stdout));
+    return await this.callValue(fnVal, args, budget, stdout, expr.line);
   }
 
-  callValue(fnVal: PyValue, args: PyValue[], budget: Budget, stdout: string[], line: number): PyValue {
-    if (isBuiltin(fnVal)) return fnVal.fn(args, line);
+  async callValue(fnVal: PyValue, args: PyValue[], budget: Budget, stdout: string[], line: number): Promise<PyValue> {
+    if (isBuiltin(fnVal)) return await fnVal.fn(args, line);
     if (isFunction(fnVal)) {
       if (args.length !== fnVal.params.length) {
         throw new PyRuntimeError(`TypeError: ${fnVal.name}() takes ${fnVal.params.length} argument(s) but ${args.length} were given`, line);
@@ -291,7 +322,7 @@ class Interpreter {
       const callEnv = new Environment(fnVal.closure);
       fnVal.params.forEach((p, i) => callEnv.set(p, args[i]));
       try {
-        this.execStmts(fnVal.body, callEnv, budget, stdout);
+        await this.execStmts(fnVal.body, callEnv, budget, stdout);
       } catch (e) {
         if (e instanceof ReturnSignal) return e.value;
         if (e instanceof BreakSignal || e instanceof ContinueSignal) throw new PySyntaxError("'break'/'continue' outside a loop", line);
@@ -302,11 +333,11 @@ class Interpreter {
     throw new PyRuntimeError(`TypeError: '${describeType(fnVal)}' object is not callable`, line);
   }
 
-  private assignTo(target: Expr, value: PyValue, env: Environment, budget: Budget, stdout: string[]): void {
+  private async assignTo(target: Expr, value: PyValue, env: Environment, budget: Budget, stdout: string[]): Promise<void> {
     if (target.kind === 'Name') { env.set(target.name, value); return; }
     if (target.kind === 'Subscript') {
-      const obj = this.evalExpr(target.obj, env, budget, stdout);
-      const idx = this.evalExpr(target.index, env, budget, stdout);
+      const obj = await this.evalExpr(target.obj, env, budget, stdout);
+      const idx = await this.evalExpr(target.index, env, budget, stdout);
       this.subscriptSet(obj, idx, value, target.line);
       return;
     }
@@ -412,6 +443,9 @@ class Interpreter {
     throw new PyRuntimeError(`Unknown operator '${op}'`, line);
   }
 
+  // Stays fully synchronous — methods (string/list/dict/module) never need
+  // to await anything; `ai_generate` is a plain function reached via
+  // `callValue`, not a method reached here.
   private callMethod(obj: PyValue, attr: string, args: PyValue[], line: number): PyValue {
     if (typeof obj === 'string') {
       const m = STRING_METHODS[attr];
@@ -483,7 +517,7 @@ const DICT_METHODS: Record<string, (d: PyDict, args: PyValue[]) => PyValue> = {
   items: (d) => makeList([...d.map.entries()].map(([k, v]) => makeList([k as PyValue, v]))),
 };
 
-function builtin(name: string, fn: (args: PyValue[], line: number) => PyValue): PyBuiltin {
+function builtin(name: string, fn: (args: PyValue[], line: number) => Promise<PyValue>): PyBuiltin {
   return { __pytype: 'builtin', name, fn };
 }
 
@@ -514,23 +548,23 @@ function createModule(name: string, line: number): PyModule {
   throw new PyRuntimeError(`ModuleNotFoundError: no module named '${name}'`, line);
 }
 
-function installBuiltins(env: Environment, stdout: string[]): void {
+function installBuiltins(env: Environment, stdout: string[], options: RunOptions, budget: Budget): void {
   let stdoutChars = 0;
-  env.set('print', builtin('print', (args) => {
+  env.set('print', builtin('print', async (args) => {
     const line = args.map(pyStr).join(' ') + '\n';
     stdoutChars += line.length;
     if (stdoutChars <= MAX_STDOUT_CHARS) stdout.push(line);
     else if (stdoutChars - line.length <= MAX_STDOUT_CHARS) stdout.push('...output truncated (too much printed)...\n');
     return null;
   }));
-  env.set('len', builtin('len', (args, line) => {
+  env.set('len', builtin('len', async (args, line) => {
     const v = args[0];
     if (typeof v === 'string') return v.length;
     if (isList(v)) return v.items.length;
     if (isDict(v)) return v.map.size;
     throw new PyRuntimeError(`TypeError: object of type '${describeType(v)}' has no len()`, line);
   }));
-  env.set('range', builtin('range', (args, line) => {
+  env.set('range', builtin('range', async (args, line) => {
     const nums = args.map(a => { if (typeof a !== 'number') throw new PyRuntimeError('TypeError: range() arguments must be integers', line); return Math.trunc(a); });
     let start = 0, stop = 0, step = 1;
     if (nums.length === 1) { stop = nums[0]; }
@@ -543,31 +577,64 @@ function installBuiltins(env: Environment, stdout: string[]): void {
     if (out.length > 100000) throw new PyRuntimeError('ValueError: range() is too large', line);
     return makeList(out);
   }));
-  env.set('str', builtin('str', (args) => pyStr(args[0] ?? null)));
-  env.set('int', builtin('int', (args, line) => {
+  env.set('str', builtin('str', async (args) => pyStr(args[0] ?? null)));
+  env.set('int', builtin('int', async (args, line) => {
     const v = args[0];
     if (typeof v === 'number') return Math.trunc(v);
     if (typeof v === 'boolean') return v ? 1 : 0;
     if (typeof v === 'string') { const n = parseInt(v.trim(), 10); if (Number.isNaN(n)) throw new PyRuntimeError(`ValueError: invalid literal for int(): '${v}'`, line); return n; }
     throw new PyRuntimeError(`TypeError: int() argument must be a string or a number`, line);
   }));
-  env.set('float', builtin('float', (args, line) => {
+  env.set('float', builtin('float', async (args, line) => {
     const v = args[0];
     if (typeof v === 'number') return v;
     if (typeof v === 'boolean') return v ? 1 : 0;
     if (typeof v === 'string') { const n = parseFloat(v.trim()); if (Number.isNaN(n)) throw new PyRuntimeError(`ValueError: could not convert string to float: '${v}'`, line); return n; }
     throw new PyRuntimeError(`TypeError: float() argument must be a string or a number`, line);
   }));
-  env.set('bool', builtin('bool', (args) => isTruthy(args[0] ?? null)));
-  env.set('abs', builtin('abs', (args, line) => { if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: abs() requires a number', line); return Math.abs(args[0]); }));
-  env.set('round', builtin('round', (args, line) => {
+  env.set('bool', builtin('bool', async (args) => isTruthy(args[0] ?? null)));
+  env.set('abs', builtin('abs', async (args, line) => { if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: abs() requires a number', line); return Math.abs(args[0]); }));
+  env.set('round', builtin('round', async (args, line) => {
     if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: round() requires a number', line);
     const digits = typeof args[1] === 'number' ? args[1] : 0;
     const factor = Math.pow(10, digits);
     return Math.round(args[0] * factor) / factor;
   }));
-  env.set('min', builtin('min', (args, line) => reduceMinMax(args, line, 'min')));
-  env.set('max', builtin('max', (args, line) => reduceMinMax(args, line, 'max')));
+  env.set('min', builtin('min', async (args, line) => reduceMinMax(args, line, 'min')));
+  env.set('max', builtin('max', async (args, line) => reduceMinMax(args, line, 'max')));
+
+  // Only installed when the host explicitly opts in (Build Studio's chat
+  // path) — absent here, `ai_generate` simply isn't a name that exists, so
+  // e.g. Python Challenges grading (which never passes `aiGenerate`) gets a
+  // plain NameError if a submission tries to call it. Structural exclusion,
+  // not a flag to keep in sync.
+  if (options.aiGenerate) {
+    const aiGenerate = options.aiGenerate;
+    const maxAiCalls = options.maxAiCalls ?? 3;
+    let aiCallCount = 0;
+    env.set('ai_generate', builtin('ai_generate', async (args, line) => {
+      if (typeof args[0] !== 'string') throw new PyRuntimeError('TypeError: ai_generate() requires a string prompt', line);
+      aiCallCount++;
+      if (aiCallCount > maxAiCalls) {
+        throw new PyRuntimeError(`RuntimeError: ai_generate() was called too many times (limit ${maxAiCalls} per run)`, line);
+      }
+      const remaining = budget.remainingMs();
+      if (remaining < MIN_AI_CALL_BUDGET_MS) throw new PyTimeoutError();
+      let outcome: AiGenerateOutcome;
+      try {
+        outcome = await aiGenerate(args[0], remaining);
+      } catch (e) {
+        outcome = { ok: false, reason: 'error', message: e instanceof Error ? e.message : 'unknown error' };
+      }
+      budget.tick();
+      if (outcome.ok) return outcome.text;
+      // A budget-exhaustion timeout must stay uncatchable — same invariant
+      // as everywhere else in this file — or `try: ai_generate(...) except:
+      // pass` inside a loop could defeat the execution budget entirely.
+      if (outcome.reason === 'timeout') throw new PyTimeoutError();
+      throw new PyRuntimeError(`RuntimeError: ai_generate() failed — ${outcome.message}`, line);
+    }));
+  }
 }
 
 function reduceMinMax(args: PyValue[], line: number, mode: 'min' | 'max'): PyValue {
@@ -606,7 +673,23 @@ export function pyValueToJson(v: PyValue): unknown {
 }
 
 // ── Public API ──
-export interface RunOptions { timeoutMs?: number; maxSteps?: number }
+
+// The host-agnostic hook that lets a caller opt a run into `ai_generate()`.
+// The interpreter package has no Supabase client or fetch of its own — the
+// real network call/slot-acquire logic lives entirely in the host (see
+// `python-ai-assist/aiGenerateCallback.ts`), keeping this package's "no
+// network capability unless a caller explicitly wires it in" property.
+export type AiGenerateOutcome =
+  | { ok: true; text: string }
+  | { ok: false; reason: 'timeout' | 'error'; message: string };
+export type AiGenerateFn = (prompt: string, remainingMs: number) => Promise<AiGenerateOutcome>;
+
+export interface RunOptions {
+  timeoutMs?: number;
+  maxSteps?: number;
+  aiGenerate?: AiGenerateFn;
+  maxAiCalls?: number;
+}
 export interface RunFunctionResult {
   ok: boolean;
   result?: unknown;
@@ -616,16 +699,16 @@ export interface RunFunctionResult {
   errorLine?: number;
 }
 
-export function runFunction(code: string, functionName: string, jsonArgs: unknown[], options: RunOptions = {}): RunFunctionResult {
+export async function runFunction(code: string, functionName: string, jsonArgs: unknown[], options: RunOptions = {}): Promise<RunFunctionResult> {
   const stdout: string[] = [];
   try {
     const program: Program = parseProgram(code);
     const globalEnv = new Environment(null);
-    installBuiltins(globalEnv, stdout);
     const budget = new Budget(options.maxSteps ?? 200000, options.timeoutMs ?? 5000);
+    installBuiltins(globalEnv, stdout, options, budget);
     const interp = new Interpreter();
     try {
-      interp.execStmts(program, globalEnv, budget, stdout);
+      await interp.execStmts(program, globalEnv, budget, stdout);
     } catch (e) {
       if (e instanceof BreakSignal || e instanceof ContinueSignal) throw new PySyntaxError("'break'/'continue' outside a loop");
       if (e instanceof ReturnSignal) throw new PySyntaxError("'return' outside a function");
@@ -639,7 +722,7 @@ export function runFunction(code: string, functionName: string, jsonArgs: unknow
       return { ok: false, stdout: stdout.join(''), errorType: 'runtime_error', errorMessage: `'${functionName}' isn't a function.` };
     }
     const args = jsonArgs.map(jsonToPyValue);
-    const resultVal = interp.callValue(fnVal, args, budget, stdout, 0);
+    const resultVal = await interp.callValue(fnVal, args, budget, stdout, 0);
     return { ok: true, result: pyValueToJson(resultVal), stdout: stdout.join('') };
   } catch (e) {
     if (e instanceof PyError) {

@@ -14,7 +14,7 @@ def solve(a, b):
     label = f"sum is {total}"
     return label
 `;
-  const r = runFunction(code, 'solve', [3, 4]);
+  const r = await runFunction(code, 'solve', [3, 4]);
   check('basic function + f-string', r.ok && r.result === 'sum is 7', r);
 }
 
@@ -25,7 +25,7 @@ def solve(x):
     print(f"double is {x * 2}")
     return x * 2
 `;
-  const r = runFunction(code, 'solve', [5]);
+  const r = await runFunction(code, 'solve', [5]);
   check('print output captured', r.ok && r.result === 10 && r.stdout === 'got 5\ndouble is 10\n', r);
 }
 
@@ -34,7 +34,7 @@ def solve(x):
 def solve(a, b):
     return a / b
 `;
-  const r = runFunction(code, 'solve', [1, 0]);
+  const r = await runFunction(code, 'solve', [1, 0]);
   check('runtime_error on div by zero', !r.ok && r.errorType === 'runtime_error', r);
 }
 
@@ -48,9 +48,9 @@ def solve(n):
     else:
         return "zero"
 `;
-  check('if/elif/else positive', runFunction(code, 'solve', [5]).result === 'positive');
-  check('if/elif/else negative', runFunction(code, 'solve', [-5]).result === 'negative');
-  check('if/elif/else zero', runFunction(code, 'solve', [0]).result === 'zero');
+  check('if/elif/else positive', (await runFunction(code, 'solve', [5])).result === 'positive');
+  check('if/elif/else negative', (await runFunction(code, 'solve', [-5])).result === 'negative');
+  check('if/elif/else zero', (await runFunction(code, 'solve', [0])).result === 'zero');
 }
 
 {
@@ -61,7 +61,7 @@ def solve(n):
         out.append(i * i)
     return out
 `;
-  const r = runFunction(code, 'solve', [5]);
+  const r = await runFunction(code, 'solve', [5]);
   check('for/range/append', r.ok && JSON.stringify(r.result) === JSON.stringify([0, 1, 4, 9, 16]), r);
 }
 
@@ -79,7 +79,7 @@ def solve(n):
         total += i
     return total
 `;
-  const r = runFunction(code, 'solve', [10]);
+  const r = await runFunction(code, 'solve', [10]);
   check('while/break/continue (sum of odds 1..10 = 25)', r.ok && r.result === 25, r);
 }
 
@@ -92,8 +92,8 @@ def solve(message):
         return responses[m]
     return "not sure what you mean"
 `;
-  check('dict + string methods hi', runFunction(code, 'solve', ['  HI  ']).result === 'hello!');
-  check('dict + string methods unknown', runFunction(code, 'solve', ['xyz']).result === 'not sure what you mean');
+  check('dict + string methods hi', (await runFunction(code, 'solve', ['  HI  '])).result === 'hello!');
+  check('dict + string methods unknown', (await runFunction(code, 'solve', ['xyz'])).result === 'not sure what you mean');
 }
 
 {
@@ -102,7 +102,7 @@ def solve(items):
     items.append("new")
     return len(items)
 `;
-  const r = runFunction(code, 'solve', [['a', 'b']]);
+  const r = await runFunction(code, 'solve', [['a', 'b']]);
   check('list.append + len', r.ok && r.result === 3, r);
 }
 
@@ -112,7 +112,7 @@ import os
 def solve(x):
     return x
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('unsupported_syntax on import', !r.ok && r.errorType === 'unsupported_syntax', r);
 }
 
@@ -123,7 +123,7 @@ class Foo:
 def solve(x):
     return x
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('unsupported_syntax on class', !r.ok && r.errorType === 'unsupported_syntax', r);
 }
 
@@ -132,7 +132,7 @@ def solve(x):
 def solve(x)
     return x
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('syntax_error on missing colon', !r.ok && r.errorType === 'syntax_error', r);
 }
 
@@ -144,7 +144,7 @@ def solve(x):
     return x
 `;
   const start = Date.now();
-  const r = runFunction(code, 'solve', [1], { timeoutMs: 500, maxSteps: 5000000 });
+  const r = await runFunction(code, 'solve', [1], { timeoutMs: 500, maxSteps: 5000000 });
   const elapsed = Date.now() - start;
   check('timeout on while True', !r.ok && r.errorType === 'timeout' && elapsed < 3000, { ...r, elapsed });
 }
@@ -154,7 +154,7 @@ def solve(x):
 def solve(x):
     return y
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('runtime_error NameError', !r.ok && r.errorType === 'runtime_error' && /y/.test(r.errorMessage || ''), r);
 }
 
@@ -163,7 +163,7 @@ def solve(x):
 def other(x):
     return x
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('missing entrypoint reported cleanly', !r.ok && r.errorType === 'runtime_error', r);
 }
 
@@ -177,7 +177,7 @@ def factorial(n):
 def solve(n):
     return factorial(n)
 `;
-  const r = runFunction(code, 'solve', [6]);
+  const r = await runFunction(code, 'solve', [6]);
   check('recursion (6! = 720)', r.ok && r.result === 720, r);
 }
 
@@ -191,7 +191,7 @@ def solve(a, b):
     { input_args: [10, -5], expected_output: 5 },
     { input_args: [0, 0], expected_output: 1 },
   ];
-  const g = gradeAgainstTests(code, 'solve', tests);
+  const g = await gradeAgainstTests(code, 'solve', tests);
   check('gradeAgainstTests 2/3 pass', !g.hadError && g.passedCount === 2 && g.total === 3, g);
 }
 
@@ -204,7 +204,7 @@ def solve(a, b):
     { input_args: [1, 2], expected_output: 3 },
     { input_args: [10, -5], expected_output: 5 },
   ];
-  const g = gradeAgainstTests(code, 'solve', tests);
+  const g = await gradeAgainstTests(code, 'solve', tests);
   check('gradeAgainstTests reports single error, not per-test', g.hadError && g.errorType === 'runtime_error', g);
 }
 
@@ -214,7 +214,7 @@ def solve(x):
     f = lambda y: y + 1
     return f(x)
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('unsupported_syntax on lambda', !r.ok && r.errorType === 'unsupported_syntax', r);
 }
 
@@ -234,7 +234,7 @@ def solve(n):
             result.append(str(i))
     return result
 `;
-  const r = runFunction(code, 'solve', [15]);
+  const r = await runFunction(code, 'solve', [15]);
   const expected = ['1','2','Fizz','4','Buzz','Fizz','7','8','Fizz','Buzz','11','Fizz','13','14','FizzBuzz'];
   check('FizzBuzz (real Python semantics)', r.ok && JSON.stringify(r.result) === JSON.stringify(expected), r);
 }
@@ -251,7 +251,7 @@ def solve(n):
             out.append([i, j])
     return len(out)
 `;
-  const r = runFunction(code, 'solve', [4]);
+  const r = await runFunction(code, 'solve', [4]);
   check('nested loop: break only affects inner loop', r.ok && r.result === 8, r);
 }
 
@@ -260,7 +260,7 @@ def solve(n):
 def solve(s):
     return s[-1]
 `;
-  const r = runFunction(code, 'solve', ['hello']);
+  const r = await runFunction(code, 'solve', ['hello']);
   check('negative string indexing', r.ok && r.result === 'o', r);
 }
 
@@ -271,7 +271,7 @@ def solve(n):
       return "bad indent, 2 spaces then 4"
         return "never"
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('inconsistent indentation -> syntax_error', !r.ok && r.errorType === 'syntax_error', r);
 }
 
@@ -290,8 +290,8 @@ def solve(n):
     else:
         return "other"
 `;
-  check('4-way elif chain', runFunction(code, 'solve', [3]).result === 'three');
-  check('4-way elif chain else', runFunction(code, 'solve', [99]).result === 'other');
+  check('4-way elif chain', (await runFunction(code, 'solve', [3])).result === 'three');
+  check('4-way elif chain else', (await runFunction(code, 'solve', [99])).result === 'other');
 }
 
 {
@@ -300,7 +300,7 @@ def solve(n):
 def solve(x):
     return f"value: {x:.2f}"
 `;
-  const r = runFunction(code, 'solve', [3.14159]);
+  const r = await runFunction(code, 'solve', [3.14159]);
   check('f-string format spec dropped gracefully', r.ok, r);
 }
 
@@ -310,8 +310,8 @@ def solve(x):
 def solve(a, b, c):
     return a < b < c
 `;
-  check('chained comparison true', runFunction(code, 'solve', [1, 2, 3]).result === true);
-  check('chained comparison false', runFunction(code, 'solve', [1, 5, 3]).result === false);
+  check('chained comparison true', (await runFunction(code, 'solve', [1, 2, 3])).result === true);
+  check('chained comparison false', (await runFunction(code, 'solve', [1, 5, 3])).result === false);
 }
 
 // ── New syntax: random module ──
@@ -323,7 +323,7 @@ def solve(seed):
     pick = random.choice(options)
     return pick in options
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('import random + random.choice() works', r.ok && r.result === true, r);
 }
 
@@ -334,7 +334,7 @@ def solve():
     n = random.randint(5, 5)
     return n
 `;
-  const r = runFunction(code, 'solve', []);
+  const r = await runFunction(code, 'solve', []);
   check('random.randint(5, 5) is always 5', r.ok && r.result === 5, r);
 }
 
@@ -343,7 +343,7 @@ def solve():
 def solve():
     return random.random()
 `;
-  const r = runFunction(code, 'solve', []);
+  const r = await runFunction(code, 'solve', []);
   check('random module not imported -> NameError, not silently available', !r.ok && r.errorType === 'runtime_error', r);
 }
 
@@ -353,7 +353,7 @@ import os
 def solve():
     return 1
 `;
-  const r = runFunction(code, 'solve', []);
+  const r = await runFunction(code, 'solve', []);
   check('import of a non-allowlisted module still rejected', !r.ok && r.errorType === 'unsupported_syntax', r);
 }
 
@@ -366,7 +366,7 @@ def solve(d):
         out.append(f"{k}={v}")
     return out
 `;
-  const r = runFunction(code, 'solve', [{ a: 1, b: 2 }]);
+  const r = await runFunction(code, 'solve', [{ a: 1, b: 2 }]);
   check('for k, v in dict.items() unpacking', r.ok && JSON.stringify(r.result) === JSON.stringify(['a=1', 'b=2']), r);
 }
 
@@ -378,7 +378,7 @@ def solve(pairs):
         total += a * b
     return total
 `;
-  const r = runFunction(code, 'solve', [[[2, 3], [4, 5]]]);
+  const r = await runFunction(code, 'solve', [[[2, 3], [4, 5]]]);
   check('for a, b in list-of-lists unpacking', r.ok && r.result === 26, r);
 }
 
@@ -388,7 +388,7 @@ def solve(pairs):
     for a, b, c in pairs:
         return a
 `;
-  const r = runFunction(code, 'solve', [[[1, 2]]]);
+  const r = await runFunction(code, 'solve', [[[1, 2]]]);
   check('unpacking wrong count raises a clean ValueError, not a crash', !r.ok && r.errorType === 'runtime_error' && /unpack/.test(r.errorMessage || ''), r);
 }
 
@@ -401,8 +401,8 @@ def solve(a, b):
     except:
         return -1
 `;
-  check('try/except catches a real runtime error', runFunction(code, 'solve', [10, 0]).result === -1);
-  check('try/except: no error means except is skipped', runFunction(code, 'solve', [10, 2]).result === 5);
+  check('try/except catches a real runtime error', (await runFunction(code, 'solve', [10, 0])).result === -1);
+  check('try/except: no error means except is skipped', (await runFunction(code, 'solve', [10, 2])).result === 5);
 }
 
 {
@@ -413,7 +413,7 @@ def solve(a, b):
     except Exception as e:
         return e
 `;
-  const r = runFunction(code, 'solve', [1, 0]);
+  const r = await runFunction(code, 'solve', [1, 0]);
   check('except ... as e binds the error message as a string', r.ok && typeof r.result === 'string' && /ZeroDivision/.test(r.result as string), r);
 }
 
@@ -429,7 +429,7 @@ def solve(x):
             pass
     return x
 `;
-  const r = runFunction(code, 'solve', [1], { timeoutMs: 500, maxSteps: 5000000 });
+  const r = await runFunction(code, 'solve', [1], { timeoutMs: 500, maxSteps: 5000000 });
   check('try/except cannot swallow a timeout (critical safety property)', !r.ok && r.errorType === 'timeout', r);
 }
 
@@ -441,7 +441,7 @@ def solve(x):
     except ValueError:
         return "caught"
 `;
-  const r = runFunction(code, 'solve', [5]);
+  const r = await runFunction(code, 'solve', [5]);
   check('except <AnyName> (untyped matching) still catches', r.ok && r.result === 'caught', r);
 }
 
@@ -453,7 +453,7 @@ def solve(x):
     finally:
         pass
 `;
-  const r = runFunction(code, 'solve', [1]);
+  const r = await runFunction(code, 'solve', [1]);
   check('try without except (finally only) is a clean syntax_error, not a crash', !r.ok && r.errorType === 'syntax_error', r);
 }
 

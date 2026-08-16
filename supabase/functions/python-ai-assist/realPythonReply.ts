@@ -8,9 +8,15 @@
 // full reasoning (not gated by Lessons, main.py vs. config.json, the two
 // independent chat call sites this feeds).
 import { runFunction } from '../_shared/pyInterpreter/evaluator.ts';
+import type { AiGenerateFn } from '../_shared/pyInterpreter/evaluator.ts';
 import type { PyErrorType } from '../_shared/pyInterpreter/errors.ts';
 
 const ENTRYPOINT = 'respond';
+// 20s (up from the interpreter's 5s default) to leave room for a 2-3 call
+// ai_generate() chain — each a real network round-trip — on top of normal
+// logic. See the plan's "Confirmed parameters" for the reasoning.
+const RESPOND_TIMEOUT_MS = 20000;
+const MAX_AI_CALLS_PER_TURN = 3;
 
 export interface HistoryMessage {
   role: string;
@@ -32,10 +38,22 @@ export type RealPythonResult =
 // the caller uses to decide whether to surface an author-facing debug
 // signal, even though the reply itself still falls back to the LLM either
 // way.
-export function tryRealPythonReply(studentCode: string, message: string, history: HistoryMessage[]): RealPythonResult {
+//
+// `aiGenerate`, when provided, is threaded straight into the interpreter's
+// `ai_generate()` builtin — this module has zero Supabase/network
+// dependency of its own (see aiGenerateCallback.ts for where the real fetch
+// and AI-gateway slot handling actually live). When omitted, `ai_generate`
+// simply doesn't exist as a name in the student's code, same as anywhere
+// else this option isn't passed.
+export async function tryRealPythonReply(studentCode: string, message: string, history: HistoryMessage[], aiGenerate?: AiGenerateFn): Promise<RealPythonResult> {
   if (!studentCode || !studentCode.trim()) return { handled: false };
 
-  const result = runFunction(studentCode, ENTRYPOINT, [message, history], { timeoutMs: 5000, maxSteps: 200000 });
+  const result = await runFunction(studentCode, ENTRYPOINT, [message, history], {
+    timeoutMs: RESPOND_TIMEOUT_MS,
+    maxSteps: 200000,
+    aiGenerate,
+    maxAiCalls: MAX_AI_CALLS_PER_TURN,
+  });
 
   if (!result.ok) {
     // A missing entrypoint reports as a plain runtime_error message from

@@ -96,7 +96,7 @@ export async function handleGradeRequest(db: ChallengeDb, body: GradeRequestBody
     return { status: 500, body: { ok: false, errorType: 'runtime_error', errorMessage: 'This challenge has no test cases configured yet.' } };
   }
 
-  const grade = gradeAgainstTests(code, challenge.function_name, tests, { timeoutMs: 5000, maxSteps: 200000 });
+  const grade = await gradeAgainstTests(code, challenge.function_name, tests, { timeoutMs: 5000, maxSteps: 200000 });
 
   if (grade.hadError) {
     return { status: 200, body: { ok: false, errorType: grade.errorType, errorMessage: grade.errorMessage } };

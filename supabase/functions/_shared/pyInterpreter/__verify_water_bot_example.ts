@@ -31,26 +31,26 @@ def respond(message, history):
     return None
 `;
 
-function run(message: string, history: { role: string; content: string }[]) {
-  const r = runFunction(code, 'respond', [message, history]);
+async function run(message: string, history: { role: string; content: string }[]) {
+  const r = await runFunction(code, 'respond', [message, history]);
   console.log(`  in:  "${message}" (history len ${history.length})`);
   console.log(`  out: ${r.ok ? JSON.stringify(r.result) : `ERROR(${r.errorType}): ${r.errorMessage}`}`);
   console.log();
 }
 
 console.log('1. First message ever (empty history) -> should get the intro:');
-run('anything', []);
+await run('anything', []);
 
 const afterIntro = [{ role: 'assistant', content: 'intro' }];
 
 console.log('2. A greeting after the intro:');
-run('Hey!', afterIntro);
+await run('Hey!', afterIntro);
 
 console.log('3. A real question matching a keyword:');
-run('What do microplastics do to us?', afterIntro);
+await run('What do microplastics do to us?', afterIntro);
 
 console.log('4. Another keyword, different phrasing:');
-run('Tell me about oil spill damage', afterIntro);
+await run('Tell me about oil spill damage', afterIntro);
 
 console.log('5. Something totally unrelated -> should defer to AI (None):');
-run('What is the capital of France?', afterIntro);
+await run('What is the capital of France?', afterIntro);

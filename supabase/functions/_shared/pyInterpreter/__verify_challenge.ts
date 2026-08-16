@@ -30,11 +30,11 @@ const tests = [
   { input_args: [''], expected_output: false },
 ];
 
-const refResult = gradeAgainstTests(referenceSolution, 'is_greeting', tests);
+const refResult = await gradeAgainstTests(referenceSolution, 'is_greeting', tests);
 console.log('Reference solution:', refResult.hadError ? `ERROR: ${refResult.errorMessage}` : `${refResult.passedCount}/${refResult.total}`);
 if (!refResult.hadError) refResult.results.forEach(r => console.log(`  ${r.passed ? 'ok' : 'FAIL'} input=${JSON.stringify(r.input)} expected=${JSON.stringify(r.expected)} actual=${JSON.stringify(r.actual)}`));
 
-const naiveResult = gradeAgainstTests(naiveShortcut, 'is_greeting', tests);
+const naiveResult = await gradeAgainstTests(naiveShortcut, 'is_greeting', tests);
 console.log('\nNaive substring shortcut:', naiveResult.hadError ? `ERROR: ${naiveResult.errorMessage}` : `${naiveResult.passedCount}/${naiveResult.total}`);
 if (!naiveResult.hadError) naiveResult.results.forEach(r => console.log(`  ${r.passed ? 'ok' : 'FAIL'} input=${JSON.stringify(r.input)} expected=${JSON.stringify(r.expected)} actual=${JSON.stringify(r.actual)}`));
 
