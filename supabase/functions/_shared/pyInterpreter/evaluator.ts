@@ -249,6 +249,17 @@ class Interpreter {
         for (const e of expr.elements) items.push(await this.evalExpr(e, env, budget, stdout));
         return makeList(items);
       }
+      case 'ListComp': {
+        const iterVal = await this.evalExpr(expr.iter, env, budget, stdout);
+        const items: PyValue[] = [];
+        for (const item of this.toIterable(iterVal, expr.line)) {
+          budget.tick();
+          this.bindForTarget(expr.target, item, env, expr.line);
+          if (expr.cond && !isTruthy(await this.evalExpr(expr.cond, env, budget, stdout))) continue;
+          items.push(await this.evalExpr(expr.expr, env, budget, stdout));
+        }
+        return makeList(items);
+      }
       case 'DictLit': {
         const map = new Map<string | number | boolean, PyValue>();
         for (let i = 0; i < expr.keys.length; i++) {
@@ -475,6 +486,22 @@ const STRING_METHODS: Record<string, (s: string, args: PyValue[], line: number) 
   lower: (s) => s.toLowerCase(),
   upper: (s) => s.toUpperCase(),
   strip: (s) => s.trim(),
+  // Matches real CPython's actual `str.title()` exactly, including its
+  // well-known apostrophe quirk ("let's go".title() == "Let'S Go", not
+  // "Let's Go") — a word boundary is any non-letter, not just whitespace,
+  // so an apostrophe inside a contraction still starts a new "word." Real
+  // Python behaves this way too; matching it (not the more intuitive
+  // result) is what "identical to CPython" means for this subset.
+  title: (s) => {
+    let out = '';
+    let prevIsAlpha = false;
+    for (const ch of s) {
+      const isAlpha = /[a-zA-Z]/.test(ch);
+      out += isAlpha ? (prevIsAlpha ? ch.toLowerCase() : ch.toUpperCase()) : ch;
+      prevIsAlpha = isAlpha;
+    }
+    return out;
+  },
   split: (s, args) => {
     const sep = args[0];
     if (sep === undefined) return makeList(s.split(/\s+/).filter(Boolean));

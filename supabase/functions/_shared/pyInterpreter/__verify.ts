@@ -457,5 +457,55 @@ def solve(x):
   check('try without except (finally only) is a clean syntax_error, not a crash', !r.ok && r.errorType === 'syntax_error', r);
 }
 
+// ── New syntax: list comprehensions ──
+{
+  const code = `
+def solve(ideas):
+    return [idea.title() + "!" for idea in ideas]
+`;
+  const r = await runFunction(code, 'solve', [['nice one', "let's go"]]);
+  // "Let'S Go!" (not "Let's Go!") is correct — matches CPython's real
+  // .title() apostrophe quirk, see the comment on STRING_METHODS.title.
+  check('basic list comprehension with a string method', r.ok && JSON.stringify(r.result) === JSON.stringify(['Nice One!', "Let'S Go!"]), r);
+}
+
+{
+  const code = `
+def solve(nums):
+    return [n * n for n in nums if n % 2 == 0]
+`;
+  const r = await runFunction(code, 'solve', [[1, 2, 3, 4, 5, 6]]);
+  check('list comprehension with an if filter', r.ok && JSON.stringify(r.result) === JSON.stringify([4, 16, 36]), r);
+}
+
+{
+  const code = `
+def solve(d):
+    return [f"{k}={v}" for k, v in d.items()]
+`;
+  const r = await runFunction(code, 'solve', [{ a: 1, b: 2 }]);
+  check('list comprehension with target unpacking (for k, v in d.items())', r.ok && JSON.stringify(r.result) === JSON.stringify(['a=1', 'b=2']), r);
+}
+
+{
+  const code = `
+def solve():
+    empty = []
+    return [x for x in empty]
+`;
+  const r = await runFunction(code, 'solve', []);
+  check('list comprehension over an empty source list', r.ok && JSON.stringify(r.result) === JSON.stringify([]), r);
+}
+
+{
+  const code = `
+def solve(items):
+    tax = 0.1
+    return [item * (1 + tax) for item in items]
+`;
+  const r = await runFunction(code, 'solve', [[10, 20]]);
+  check('list comprehension expression can reference an outer variable', r.ok && JSON.stringify(r.result) === JSON.stringify([11, 22]), r);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

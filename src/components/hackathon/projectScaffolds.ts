@@ -18,7 +18,7 @@ export const PROJECT_SCAFFOLDS: Record<ProjectType, ProjectScaffold> = {
     capabilities: ['Web Search', 'Citations', 'Memory'],
     main: `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 26 Build-Up Challenges
+🤖 FORGE AI Chatbot — 34 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -26,7 +26,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-   - Complete all 26 challenges to build a unique AI!
+   - Complete all 34 challenges to build a unique AI!
 
 ⏱️ Time: 55-75 minutes
 """
@@ -430,6 +430,67 @@ for rule in RULES:
     RULE_COUNT += 1
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 31: Print and String Methods
+# print() shows real output — the first one in this
+# file! .upper() is a STRING METHOD: it returns a new,
+# all-caps version of a string, without changing the
+# original.
+#
+#   print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+#
+# 🧪 TEST: Check the Console panel below the editor —
+#          you should see this line printed for real.
+# ═══════════════════════════════════════════════
+print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 32: Combine Conditions (and / or / not)
+# Boolean operators combine True/False checks into one:
+#   and → both sides must be true
+#   or  → at least one side must be true
+#   not → flips true and false
+#
+#   IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+#
+# 🧪 TEST: Set TEMPERATURE above 0.5 and VOICE_ENABLED to
+#          True — IS_EXPRESSIVE should print as True.
+# ═══════════════════════════════════════════════
+IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+print(f"Expressive mode: {IS_EXPRESSIVE}")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 33: Number Your Rules (while Loop)
+# A while loop repeats as long as its condition is True.
+# This walks through RULES one at a time using a counter,
+# printing each one with its number:
+#
+#   i = 0
+#   while i < len(RULES):
+#       print(f"{i + 1}. {RULES[i]}")
+#       i += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 — the
+#          Console panel should number every one of them.
+# ═══════════════════════════════════════════════
+i = 0
+while i < len(RULES):
+    print(f"{i + 1}. {RULES[i]}")
+    i += 1
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 34: Type Casting (str())
+# MAX_TOKENS is a number (an int) — you can't + it
+# directly onto a string. str() converts it into text
+# first, so it can join with other strings safely:
+#
+#   print("Max tokens: " + str(MAX_TOKENS))
+#
+# 🧪 TEST: Change MAX_TOKENS in Challenge 17 and re-check —
+#          the printed line should update to match.
+# ═══════════════════════════════════════════════
+print("Max tokens: " + str(MAX_TOKENS))
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -478,6 +539,10 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 28. PERSONALIZED_INTRO — A function that takes an input
 # ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
 # ☐ 30. RULE_COUNT — A loop that counts instead of collects
+# ☐ 31. print() + .upper() — Real console output, a string method
+# ☐ 32. IS_EXPRESSIVE — Boolean logic with and/or/not
+# ☐ 33. Numbered rules — A while loop with a counter
+# ☐ 34. Max tokens line — Type casting with str()
 # ═══════════════════════════════════════════════
 
 
@@ -528,7 +593,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
   "memory_window": 20,
   "capabilities": ["conversation_memory", "streaming", "knowledge_base", "voice"],
   "forge_version": "3.0",
-  "challenges": 26,
+  "challenges": 34,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
@@ -545,7 +610,7 @@ streamlit>=1.28.0`,
     capabilities: ['Web Search', 'Calculator', 'Code Execution'],
     main: `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 26 Build-Up Challenges
+🧠 FORGE AI Agent — 34 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -867,6 +932,67 @@ for rule in RULES:
     RULE_COUNT += 1
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 31: Print and String Methods
+# print() shows real output — the first one in this
+# file! .upper() is a STRING METHOD: it returns a new,
+# all-caps version of a string, without changing the
+# original.
+#
+#   print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+#
+# 🧪 TEST: Check the Console panel below the editor —
+#          you should see this line printed for real.
+# ═══════════════════════════════════════════════
+print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 32: Combine Conditions (and / or / not)
+# Boolean operators combine True/False checks into one:
+#   and → both sides must be true
+#   or  → at least one side must be true
+#   not → flips true and false
+#
+#   IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+#
+# 🧪 TEST: Set TEMPERATURE above 0.5 and VOICE_ENABLED to
+#          True — IS_EXPRESSIVE should print as True.
+# ═══════════════════════════════════════════════
+IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+print(f"Expressive mode: {IS_EXPRESSIVE}")
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 33: Number Your Rules (while Loop)
+# A while loop repeats as long as its condition is True.
+# This walks through RULES one at a time using a counter,
+# printing each one with its number:
+#
+#   i = 0
+#   while i < len(RULES):
+#       print(f"{i + 1}. {RULES[i]}")
+#       i += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 — the
+#          Console panel should number every one of them.
+# ═══════════════════════════════════════════════
+i = 0
+while i < len(RULES):
+    print(f"{i + 1}. {RULES[i]}")
+    i += 1
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 34: Type Casting (str())
+# MAX_TOKENS is a number (an int) — you can't + it
+# directly onto a string. str() converts it into text
+# first, so it can join with other strings safely:
+#
+#   print("Max tokens: " + str(MAX_TOKENS))
+#
+# 🧪 TEST: Change MAX_TOKENS in Challenge 17 and re-check —
+#          the printed line should update to match.
+# ═══════════════════════════════════════════════
+print("Max tokens: " + str(MAX_TOKENS))
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -928,6 +1054,10 @@ TOOL_INSTRUCTIONS = {
 # ☐ 28. PERSONALIZED_INTRO — A function that takes an input
 # ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
 # ☐ 30. RULE_COUNT — A loop that counts instead of collects
+# ☐ 31. print() + .upper() — Real console output, a string method
+# ☐ 32. IS_EXPRESSIVE — Boolean logic with and/or/not
+# ☐ 33. Numbered rules — A while loop with a counter
+# ☐ 34. Max tokens line — Type casting with str()
 # ═══════════════════════════════════════════════
 
 
@@ -985,7 +1115,7 @@ TOOL_INSTRUCTIONS = {
   "tools": ["web_search", "calculator", "wikipedia"],
   "capabilities": ["tool_calling", "step_by_step_reasoning", "web_search", "voice"],
   "forge_version": "3.0",
-  "challenges": 26,
+  "challenges": 34,
   "notes": "Every variable in main.py is LIVE — edit and test instantly!"
 }`,
     requirements: `# FORGE handles everything — no installs needed!
@@ -1007,7 +1137,7 @@ streamlit>=1.28.0`,
 // metadata are reused unchanged — only `main` differs from PROJECT_SCAFFOLDS.
 const BLANK_CHATBOT_MAIN = `#!/usr/bin/env python3
 """
-🤖 FORGE AI Chatbot — 26 Build-Up Challenges
+🤖 FORGE AI Chatbot — 34 Build-Up Challenges
 ==============================================
 Every variable below DIRECTLY controls your chatbot.
 Edit any value → test instantly in Live Preview →
@@ -1015,7 +1145,7 @@ Edit any value → test instantly in Live Preview →
 🎯 RULES:
   - ALL variables are LIVE — every edit changes your bot
   - Test after EACH change in Live Preview (right panel)
-   - Complete all 26 challenges to build a unique AI!
+   - Complete all 34 challenges to build a unique AI!
 
 ⏱️ Time: 55-75 minutes
 """
@@ -1410,6 +1540,67 @@ RULE_COUNT = 0
 
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 31: Print and String Methods
+# print() shows real output — the first one in this
+# file! .upper() is a STRING METHOD: it returns a new,
+# all-caps version of a string, without changing the
+# original.
+#
+#   print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+#
+# 🧪 TEST: Check the Console panel below the editor —
+#          you should see this line printed for real.
+# ═══════════════════════════════════════════════
+# Write your print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 32: Combine Conditions (and / or / not)
+# Boolean operators combine True/False checks into one:
+#   and → both sides must be true
+#   or  → at least one side must be true
+#   not → flips true and false
+#
+#   IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+#
+# 🧪 TEST: Set TEMPERATURE above 0.5 and VOICE_ENABLED to
+#          True — IS_EXPRESSIVE should print as True.
+# ═══════════════════════════════════════════════
+# Write your condition and print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 33: Number Your Rules (while Loop)
+# A while loop repeats as long as its condition is True.
+# This walks through RULES one at a time using a counter,
+# printing each one with its number:
+#
+#   i = 0
+#   while i < len(RULES):
+#       print(f"{i + 1}. {RULES[i]}")
+#       i += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 — the
+#          Console panel should number every one of them.
+# ═══════════════════════════════════════════════
+# Write your while loop here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 34: Type Casting (str())
+# MAX_TOKENS is a number (an int) — you can't + it
+# directly onto a string. str() converts it into text
+# first, so it can join with other strings safely:
+#
+#   print("Max tokens: " + str(MAX_TOKENS))
+#
+# 🧪 TEST: Change MAX_TOKENS in Challenge 17 and re-check —
+#          the printed line should update to match.
+# ═══════════════════════════════════════════════
+# Write your str() + print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -1458,6 +1649,10 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 # ☐ 28. PERSONALIZED_INTRO — A function that takes an input
 # ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
 # ☐ 30. RULE_COUNT — A loop that counts instead of collects
+# ☐ 31. print() + .upper() — Real console output, a string method
+# ☐ 32. IS_EXPRESSIVE — Boolean logic with and/or/not
+# ☐ 33. Numbered rules — A while loop with a counter
+# ☐ 34. Max tokens line — Type casting with str()
 # ═══════════════════════════════════════════════
 
 
@@ -1503,7 +1698,7 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 
 const BLANK_AGENT_MAIN = `#!/usr/bin/env python3
 """
-🧠 FORGE AI Agent — 26 Build-Up Challenges
+🧠 FORGE AI Agent — 34 Build-Up Challenges
 ============================================
 An Agent USES TOOLS to take actions!
   🤖 Chatbot = answers from memory
@@ -1787,6 +1982,67 @@ RULE_COUNT = 0
 
 
 # ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 31: Print and String Methods
+# print() shows real output — the first one in this
+# file! .upper() is a STRING METHOD: it returns a new,
+# all-caps version of a string, without changing the
+# original.
+#
+#   print(f"Booting up {BOT_NAME.upper()}... {BOT_EMOJI}")
+#
+# 🧪 TEST: Check the Console panel below the editor —
+#          you should see this line printed for real.
+# ═══════════════════════════════════════════════
+# Write your print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 32: Combine Conditions (and / or / not)
+# Boolean operators combine True/False checks into one:
+#   and → both sides must be true
+#   or  → at least one side must be true
+#   not → flips true and false
+#
+#   IS_EXPRESSIVE = TEMPERATURE > 0.5 and VOICE_ENABLED
+#
+# 🧪 TEST: Set TEMPERATURE above 0.5 and VOICE_ENABLED to
+#          True — IS_EXPRESSIVE should print as True.
+# ═══════════════════════════════════════════════
+# Write your condition and print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 33: Number Your Rules (while Loop)
+# A while loop repeats as long as its condition is True.
+# This walks through RULES one at a time using a counter,
+# printing each one with its number:
+#
+#   i = 0
+#   while i < len(RULES):
+#       print(f"{i + 1}. {RULES[i]}")
+#       i += 1
+#
+# 🧪 TEST: Add or remove rules in Challenge 9 — the
+#          Console panel should number every one of them.
+# ═══════════════════════════════════════════════
+# Write your while loop here (see the example above):
+
+
+# ═══════════════════════════════════════════════
+# 🏆 CHALLENGE 34: Type Casting (str())
+# MAX_TOKENS is a number (an int) — you can't + it
+# directly onto a string. str() converts it into text
+# first, so it can join with other strings safely:
+#
+#   print("Max tokens: " + str(MAX_TOKENS))
+#
+# 🧪 TEST: Change MAX_TOKENS in Challenge 17 and re-check —
+#          the printed line should update to match.
+# ═══════════════════════════════════════════════
+# Write your str() + print() call here (see the example above):
+
+
+# ═══════════════════════════════════════════════
 # 🎨 APP THEME — Choose your app's color theme
 # Options: "default", "ocean", "forest", "sunset", "purple", "rose"
 # ═══════════════════════════════════════════════
@@ -1848,6 +2104,10 @@ TOOL_INSTRUCTIONS = {
 # ☐ 28. PERSONALIZED_INTRO — A function that takes an input
 # ☐ 29. MOOD_INSTRUCTION — Safe dict lookup with .get()
 # ☐ 30. RULE_COUNT — A loop that counts instead of collects
+# ☐ 31. print() + .upper() — Real console output, a string method
+# ☐ 32. IS_EXPRESSIVE — Boolean logic with and/or/not
+# ☐ 33. Numbered rules — A while loop with a counter
+# ☐ 34. Max tokens line — Type casting with str()
 # ═══════════════════════════════════════════════
 
 

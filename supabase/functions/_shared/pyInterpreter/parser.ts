@@ -363,11 +363,21 @@ class Parser {
     if (this.checkOp('[')) {
       const line = tok.line;
       this.advance();
-      const elements: Expr[] = [];
-      if (!this.checkOp(']')) {
-        elements.push(this.parseExpr());
-        while (this.checkOp(',')) { this.advance(); if (this.checkOp(']')) break; elements.push(this.parseExpr()); }
+      if (this.checkOp(']')) { this.advance(); return { kind: 'ListLit', elements: [], line }; }
+      const first = this.parseExpr();
+      if (this.checkName('for')) {
+        this.advance();
+        const target = [this.expectIdentifier()];
+        while (this.checkOp(',')) { this.advance(); target.push(this.expectIdentifier()); }
+        this.expectName('in');
+        const iter = this.parseExpr();
+        let cond: Expr | null = null;
+        if (this.checkName('if')) { this.advance(); cond = this.parseExpr(); }
+        this.expectOp(']');
+        return { kind: 'ListComp', expr: first, target, iter, cond, line };
       }
+      const elements: Expr[] = [first];
+      while (this.checkOp(',')) { this.advance(); if (this.checkOp(']')) break; elements.push(this.parseExpr()); }
       this.expectOp(']');
       return { kind: 'ListLit', elements, line };
     }

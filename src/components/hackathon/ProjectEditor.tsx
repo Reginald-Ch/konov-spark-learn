@@ -17,9 +17,17 @@ import {
   Circle, TestTube, Terminal, ChevronUp, ChevronDown, Eye,
   PanelRightClose, PanelRightOpen, HelpCircle, Database, Palette, Plus, Minus,
   Download, Upload, Undo2, Redo2, RotateCcw, Mic, Volume2, VolumeX, Radio, Lock,
-  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Zap, GraduationCap, XCircle
+  Search, Replace, ArrowUp, ArrowDown, AlertTriangle, Zap, GraduationCap, XCircle, Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
+// Client-side execution of main.py's top-level code, for a live "what does
+// my code print" console — see the plan for why this is safe to run in the
+// browser (a personal, non-graded preview, not a trust boundary) and how
+// the prior objection to this exact idea (raised in CodeEditor.tsx, over
+// the interpreter folder being outside the frontend's type-checked scope)
+// is resolved: tsconfig.app.json now includes it directly, closing that gap
+// instead of avoiding it.
+import { runModule } from '../../../supabase/functions/_shared/pyInterpreter/evaluator';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
@@ -498,7 +506,14 @@ function ReasoningTrace({ steps }: { steps: ReasoningStep[] }) {
 }
 
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
-type BottomTab = 'terminal' | 'ai-mentor';
+type BottomTab = 'terminal' | 'console' | 'ai-mentor';
+
+// Result of the live, client-side runModule() call — what main.py's
+// top-level code actually printed, or a real (not simulated) error from
+// the same error taxonomy every other execution path in this app uses.
+type ConsoleResult =
+  | { status: 'ok'; stdout: string }
+  | { status: 'error'; message: string };
 type ConfigTab = 'settings' | 'knowledge' | 'theme';
 
 const ONBOARDING_STEPS = [
@@ -742,6 +757,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [showBottomPanel, setShowBottomPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
+
+  // Live console — what main.py's top-level code actually prints, computed
+  // client-side (see the runModule import above). null = not run yet.
+  const [consoleResult, setConsoleResult] = useState<ConsoleResult | null>(null);
+  const consoleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against a slower earlier run resolving after a faster later one
+  // — same shape as this codebase's other async-race guards (e.g.
+  // LessonsPanel's fetchAllRequestRef) — since runModule is async.
+  const consoleRunIdRef = useRef(0);
 
   const [aiOutput, setAiOutput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -1996,6 +2020,30 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => { if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current); };
   }, [files['main.py']]);
   const liveConfig = debouncedLiveConfig;
+
+  // Debounced live console — same 250ms debounce as the config extraction
+  // above, but this one actually executes the code (client-side, real
+  // interpreter) rather than regex-scraping it, so it's async and needs the
+  // request-id guard. A short 1500ms budget is plenty for a live preview of
+  // a small module-level script — the interpreter's own timeout mechanism
+  // means even an accidentally-typed `while True:` resolves quickly and
+  // cleanly rather than hanging anything.
+  useEffect(() => {
+    if (activeFile !== 'main.py') return;
+    if (consoleTimerRef.current) clearTimeout(consoleTimerRef.current);
+    consoleTimerRef.current = setTimeout(() => {
+      const runId = ++consoleRunIdRef.current;
+      runModule(files['main.py'], { timeoutMs: 1500, maxSteps: 200000 }).then(r => {
+        if (runId !== consoleRunIdRef.current) return; // a newer run already superseded this one
+        setConsoleResult(
+          r.ok
+            ? { status: 'ok', stdout: r.stdout }
+            : { status: 'error', message: r.errorMessage || 'Something went wrong running this code.' }
+        );
+      });
+    }, 250);
+    return () => { if (consoleTimerRef.current) clearTimeout(consoleTimerRef.current); };
+  }, [files['main.py'], activeFile]);
 
   // Unified challenge count helper — shared between level badge, milestone tracker, and status bar
   const getChallengeCount = useCallback((cfg: ReturnType<typeof extractConfigFromCode>, type: ProjectType) => {
@@ -3689,6 +3737,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 <div className="flex items-center px-2 bg-ide-sidebar border-b border-ide-border h-7 flex-shrink-0">
                   {[
                     { id: 'terminal' as BottomTab, icon: Terminal, label: 'Terminal', color: 'text-ide-green' },
+                    { id: 'console' as BottomTab, icon: Printer, label: 'Console', color: 'text-ide-cyan' },
                     { id: 'ai-mentor' as BottomTab, icon: Brain, label: 'AI Mentor (Pair Programmer)', color: 'text-ide-accent' },
                   ].map(tab => (
                     <button
@@ -3714,6 +3763,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <div className="font-mono text-xs text-ide-green space-y-0.5">
                       {terminalOutput.map((line, i) => <div key={i}>{line}</div>)}
                       {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
+                    </div>
+                  ) : bottomTab === 'console' ? (
+                    <div className="font-mono text-xs space-y-0.5">
+                      {consoleResult === null && (
+                        <span className="text-ide-text-muted">Start typing in main.py — what your code prints shows up here, live.</span>
+                      )}
+                      {consoleResult?.status === 'ok' && (
+                        consoleResult.stdout ? (
+                          <pre className="whitespace-pre-wrap text-ide-cyan">{consoleResult.stdout}</pre>
+                        ) : (
+                          <span className="text-ide-text-muted">Your code runs cleanly, but doesn't print() anything yet.</span>
+                        )
+                      )}
+                      {consoleResult?.status === 'error' && (
+                        <span className="text-red-400">⚠ {consoleResult.message}</span>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-ide-text flex flex-col h-full">

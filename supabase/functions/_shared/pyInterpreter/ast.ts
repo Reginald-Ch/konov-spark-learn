@@ -15,6 +15,15 @@ export type Expr =
   | { kind: 'NoneLit'; line: number }
   | { kind: 'Name'; name: string; line: number }
   | { kind: 'ListLit'; elements: Expr[]; line: number }
+  // `[expr for target in iter]`, optionally `if cond` — reuses the same
+  // `target: string[]` shape as `For` below (so `for k, v in d.items()`
+  // works here too), and deliberately writes its loop variable into the
+  // *enclosing* scope rather than a fresh child scope — real CPython gives
+  // comprehensions their own scope, but plain `for` loops in this
+  // interpreter already don't, so matching that existing behavior keeps
+  // this subset internally consistent rather than picking real-Python
+  // fidelity in one spot and diverging from it everywhere else.
+  | { kind: 'ListComp'; expr: Expr; target: string[]; iter: Expr; cond: Expr | null; line: number }
   | { kind: 'DictLit'; keys: Expr[]; values: Expr[]; line: number }
   | { kind: 'UnaryOp'; op: 'not' | '-' | '+'; operand: Expr; line: number }
   | { kind: 'BinOp'; op: string; left: Expr; right: Expr; line: number }
