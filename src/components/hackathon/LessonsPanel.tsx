@@ -10,9 +10,9 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import {
-  GraduationCap, Lock, CheckCircle2, Loader2, Sparkles,
-  Lightbulb, Brain, Wand2, PartyPopper, ChevronRight, ChevronLeft, RotateCcw,
-  ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown, Eye,
+  GraduationCap, Lock, CheckCircle2, Loader2, PlayCircle,
+  Lightbulb, Brain, Puzzle, PartyPopper, ChevronRight, ChevronLeft, RotateCcw,
+  ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown, Eye, Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lintPython } from './editorFeatures';
@@ -679,7 +679,7 @@ export const LessonsPanel = () => {
                         {p?.passed ? (
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 animate-bounce-in" />
                         ) : available ? (
-                          <Sparkles className="w-4 h-4 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
+                          <PlayCircle className="w-4 h-4 text-[hsl(var(--discord-blurple))] flex-shrink-0" />
                         ) : (
                           <Lock className="w-4 h-4 text-white/30 flex-shrink-0" />
                         )}
@@ -709,7 +709,13 @@ export const LessonsPanel = () => {
       </div>
 
       <Dialog open={!!activeLesson} onOpenChange={(open) => !open && requestCloseDialog()}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        {/* The default DialogContent uses bg-background (light theme white),
+            but every content block inside (ContentBlock, CodeBlock, etc.)
+            hardcodes light/white text meant for a dark background — without
+            these overrides the dialog was near-unreadable: pale gray text
+            on a near-white background instead of matching the dark theme
+            the rest of this page (and every other dialog in the app) uses. */}
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
           {activeLesson && phase === 'content' && (
             <>
               <DialogHeader>
@@ -721,7 +727,7 @@ export const LessonsPanel = () => {
                     </span>
                   )}
                 </DialogTitle>
-                <DialogDescription>{activeLesson.summary}</DialogDescription>
+                <DialogDescription className="text-[hsl(var(--discord-text-muted))]">{activeLesson.summary}</DialogDescription>
               </DialogHeader>
               <div className="space-y-3 mt-2">
                 {(previewMode ? previewLoading : contentLoading) ? (
@@ -733,16 +739,16 @@ export const LessonsPanel = () => {
                     <ContentBlock icon={<Brain className="w-4 h-4" />} color="#5865F2" text={activeContent.explanation} delay={0.05} />
                     <CodeBlock code={activeContent.code} delay={0.07} />
                     <VisualBlock visual={activeContent.visual} delay={0.08} />
-                    <ContentBlock icon={<Wand2 className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0.1} />
+                    <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0.1} />
                     <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} delay={0.13} />
                     {activeContent.code_practice && (
                       <CodePracticeCell key={activeLesson.id} practice={activeContent.code_practice} delay={0.16} />
                     )}
-                    <ContentBlock icon={<Sparkles className="w-4 h-4" />} color="#006600" text={activeContent.fun_fact} label="Fun fact" delay={0.15} />
+                    <ContentBlock icon={<Star className="w-4 h-4" />} color="#006600" text={activeContent.fun_fact} label="Fun fact" delay={0.15} />
                     <ContentBlock icon={<PartyPopper className="w-4 h-4" />} color="#C70110" text={activeContent.try_it} label="Try it" delay={0.2} />
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Content coming soon.</p>
+                  <p className="text-sm text-[hsl(var(--discord-text-muted))]">Content coming soon.</p>
                 )}
 
                 {previewMode && previewQuiz.length > 0 && (
@@ -798,15 +804,23 @@ export const LessonsPanel = () => {
       </Dialog>
 
       <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
-        <AlertDialogContent>
+        {/* Same fix as the lesson dialog above — default bg-background reads
+            as plain white, jarringly inconsistent with the rest of this
+            dark-themed page even though its default text color is readable
+            against it on its own. */}
+        <AlertDialogContent className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Leave the quiz?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[hsl(var(--discord-text-muted))]">
               Your answers so far will not be saved. You can restart the quiz any time — no penalty for retaking.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Going</AlertDialogCancel>
+            {/* outline variant is bg-transparent + text-foreground (dark
+                text) — invisible against this dialog's now-dark background
+                without an explicit light override. The solid "Discard &
+                Close" button is unaffected (bg-primary is opaque). */}
+            <AlertDialogCancel className="text-white border-[hsl(var(--discord-light))] hover:bg-[hsl(var(--discord-light)/0.15)] hover:text-white">Keep Going</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setConfirmCloseOpen(false); closeDialog(); }}>Discard & Close</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
