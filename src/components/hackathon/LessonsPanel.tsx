@@ -234,7 +234,9 @@ export const LessonsPanel = () => {
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
+  const [startingQuiz, setStartingQuiz] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [resultWasRetake, setResultWasRetake] = useState(false);
   const [practicePick, setPracticePick] = useState<number | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewQuiz, setPreviewQuiz] = useState<(QuizQuestion & { correct_index: number; explanation: string | null })[]>([]);
@@ -285,6 +287,19 @@ export const LessonsPanel = () => {
     if (!hId) {
       const { data: live } = await supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle();
       hId = live?.id || null;
+    }
+    if (!hId) {
+      // Last-resort fallback: no registration and no currently-live event
+      // (e.g. the gap between one event ending and the next going live).
+      // Without this, lesson-coin point_events earned during that gap get
+      // hackathon_id = NULL — harmless for this component's own lifetime
+      // coin total (deliberately unscoped, see above), but invisible to any
+      // admin reporting that filters point_events by hackathon_id. Picking
+      // the most recent hackathon regardless of status keeps that linkage
+      // intact for everyone except a brand-new install with zero hackathons
+      // ever created.
+      const { data: any } = await supabase.from('hackathons').select('id').order('start_date', { ascending: false }).limit(1).maybeSingle();
+      hId = any?.id || null;
     }
     if (requestId !== fetchAllRequestRef.current) return; // superseded by a newer fetchAll
     setHackathonId(hId);
@@ -436,7 +451,7 @@ export const LessonsPanel = () => {
     setActiveContent(null);
     setContentLoading(true);
     const { data: content, error: contentErr } = await supabase.rpc('get_lesson_content', {
-      p_participant_email: email.trim(),
+      p_participant_email: email.trim().toLowerCase(),
       p_lesson_id: lesson.id,
     });
     if (requestId !== contentRequestRef.current) return; // superseded by a newer open
@@ -479,36 +494,47 @@ export const LessonsPanel = () => {
   const startQuiz = async () => {
     if (!activeLesson) return;
     const requestId = contentRequestRef.current; // no new "open" here, just piggyback the current one
-    const { data, error } = await supabase.rpc('get_quiz_questions', {
-      p_participant_email: email.trim(),
-      p_lesson_id: activeLesson.id,
-    });
-    if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
-    if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
-    const questions = (data as any as QuizQuestion[]) || [];
-    // A published, unlockable lesson with no quiz questions authored yet
-    // used to still flip phase to 'quiz' here — the render guard requires
-    // quizQuestions.length > 0, so nothing in the content/quiz/results
-    // blocks matched and the dialog just went blank with no way to close it
-    // except Escape, landing on a "Leave the quiz?" confirmation over an
-    // empty screen. Stay on the content phase and say so instead.
-    if (questions.length === 0) {
-      toast.error("This lesson's quiz isn't ready yet — check back soon!");
-      return;
+    setStartingQuiz(true);
+    try {
+      const { data, error } = await supabase.rpc('get_quiz_questions', {
+        p_participant_email: email.trim().toLowerCase(),
+        p_lesson_id: activeLesson.id,
+      });
+      if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
+      if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
+      const questions = (data as any as QuizQuestion[]) || [];
+      // A published, unlockable lesson with no quiz questions authored yet
+      // used to still flip phase to 'quiz' here — the render guard requires
+      // quizQuestions.length > 0, so nothing in the content/quiz/results
+      // blocks matched and the dialog just went blank with no way to close it
+      // except Escape, landing on a "Leave the quiz?" confirmation over an
+      // empty screen. Stay on the content phase and say so instead.
+      if (questions.length === 0) {
+        toast.error("This lesson's quiz isn't ready yet — check back soon!");
+        return;
+      }
+      setQuizQuestions(questions);
+      setAnswers({});
+      setQIdx(0);
+      setPhase('quiz');
+    } finally {
+      if (requestId === contentRequestRef.current) setStartingQuiz(false);
     }
-    setQuizQuestions(questions);
-    setAnswers({});
-    setQIdx(0);
-    setPhase('quiz');
   };
 
   const submitQuiz = async () => {
     if (!activeLesson) return;
     setSubmittingQuiz(true);
+    // Captured before fetchAll() below refreshes `progress` — after that,
+    // progress[lesson]?.passed is true regardless of whether this specific
+    // attempt passed (it's sticky once passed once), so this is the only
+    // way to tell "retake of an already-completed lesson" apart from
+    // "first time attempting this lesson" once the result is in.
+    const wasAlreadyPassed = !!progress[activeLesson.id]?.passed;
     try {
       const answerArray = quizQuestions.map((_, i) => answers[i] ?? -1);
       const { data, error } = await supabase.rpc('submit_lesson_quiz', {
-        p_participant_email: email.trim(),
+        p_participant_email: email.trim().toLowerCase(),
         p_hackathon_id: hackathonId,
         p_lesson_id: activeLesson.id,
         p_answers: answerArray,
@@ -516,6 +542,7 @@ export const LessonsPanel = () => {
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
       setQuizResult(result as unknown as QuizResult);
+      setResultWasRetake(wasAlreadyPassed);
       setPhase('results');
       if (result?.passed) {
         setCelebrationMsg(
@@ -532,7 +559,7 @@ export const LessonsPanel = () => {
     }
   };
 
-  const closeDialog = () => { setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setPreviewMode(false); setPreviewQuiz([]); };
+  const closeDialog = () => { setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setResultWasRetake(false); setPreviewMode(false); setPreviewQuiz([]); };
   const requestCloseDialog = () => {
     if (phase === 'quiz') { setConfirmCloseOpen(true); return; }
     closeDialog();
@@ -742,7 +769,7 @@ export const LessonsPanel = () => {
                     <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0.1} />
                     <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} delay={0.13} />
                     {activeContent.code_practice && (
-                      <CodePracticeCell key={activeLesson.id} practice={activeContent.code_practice} delay={0.16} />
+                      <CodePracticeCell key={activeLesson.id} lessonId={activeLesson.id} practice={activeContent.code_practice} delay={0.16} />
                     )}
                     <ContentBlock icon={<Star className="w-4 h-4" />} color="#006600" text={activeContent.fun_fact} label="Fun fact" delay={0.15} />
                     <ContentBlock icon={<PartyPopper className="w-4 h-4" />} color="#C70110" text={activeContent.try_it} label="Try it" delay={0.2} />
@@ -773,8 +800,14 @@ export const LessonsPanel = () => {
                 <div className="flex gap-2 pt-2">
                   <Button variant="ghost" onClick={closeDialog} className="flex-1">Close</Button>
                   {!previewMode && (
-                    <Button onClick={startQuiz} className="flex-1" disabled={!activeContent}>
-                      {progress[activeLesson.id]?.passed ? <><RotateCcw className="w-4 h-4 mr-1" /> Retake Quiz</> : <>Take the Quiz <ChevronRight className="w-4 h-4 ml-1" /></>}
+                    <Button onClick={startQuiz} className="flex-1" disabled={!activeContent || startingQuiz}>
+                      {startingQuiz ? (
+                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Loading...</>
+                      ) : progress[activeLesson.id]?.passed ? (
+                        <><RotateCcw className="w-4 h-4 mr-1" /> Retake Quiz</>
+                      ) : (
+                        <>Take the Quiz <ChevronRight className="w-4 h-4 ml-1" /></>
+                      )}
                     </Button>
                   )}
                 </div>
@@ -798,7 +831,7 @@ export const LessonsPanel = () => {
 
           {activeLesson && phase === 'results' && quizResult && (
             <ResultsStep result={quizResult} lessonTitle={activeLesson.title} questions={quizQuestions}
-              onReview={() => setPhase('content')} onClose={closeDialog} />
+              wasRetake={resultWasRetake} onReview={() => setPhase('content')} onClose={closeDialog} />
           )}
         </DialogContent>
       </Dialog>
@@ -1029,13 +1062,26 @@ const PracticeBlock = ({ practice, picked, onPick, delay }: {
   );
 };
 
-const CodePracticeCell = ({ practice, delay }: { practice: CodePractice; delay: number }) => {
-  const [code, setCode] = useState(practice.starter);
+const CodePracticeCell = ({ practice, lessonId, delay }: { practice: CodePractice; lessonId: string; delay: number }) => {
+  // Persisted per-lesson so a student who writes real code here doesn't
+  // lose it just by closing the dialog (accidentally or to check another
+  // lesson) — this cell was previously reset to the starter every time it
+  // remounted, with nothing saved anywhere. Read once on mount (the
+  // component remounts via key={activeLesson.id} on every lesson switch,
+  // so this correctly picks up the right lesson's saved code each time).
+  const storageKey = `forge-code-practice:${lessonId}`;
+  const [code, setCode] = useState(() => {
+    try { return localStorage.getItem(storageKey) || practice.starter; } catch { return practice.starter; }
+  });
   const [checked, setChecked] = useState(false);
   const [passed, setPassed] = useState(false);
   const [lintErrors, setLintErrors] = useState<ReturnType<typeof lintPython>>([]);
   const [showHint, setShowHint] = useState(false);
   const [burstId, setBurstId] = useState(0);
+
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, code); } catch { /* private browsing / storage full — persistence is a nicety, not required */ }
+  }, [code, storageKey]);
 
   const runCheck = () => {
     const errors = lintPython(code);
@@ -1048,7 +1094,10 @@ const CodePracticeCell = ({ practice, delay }: { practice: CodePractice; delay: 
     if (nowPassed) setBurstId(id => id + 1);
   };
 
-  const reset = () => { setCode(practice.starter); setChecked(false); setPassed(false); setLintErrors([]); setShowHint(false); };
+  const reset = () => {
+    setCode(practice.starter); setChecked(false); setPassed(false); setLintErrors([]); setShowHint(false);
+    try { localStorage.removeItem(storageKey); } catch { /* same as above */ }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
@@ -1140,8 +1189,8 @@ const QuizStep = ({ question, index, total, selected, onSelect, onBack, onNext, 
   </>
 );
 
-const ResultsStep = ({ result, lessonTitle, questions, onReview, onClose }: {
-  result: QuizResult; lessonTitle: string; questions: QuizQuestion[]; onReview: () => void; onClose: () => void;
+const ResultsStep = ({ result, lessonTitle, questions, wasRetake, onReview, onClose }: {
+  result: QuizResult; lessonTitle: string; questions: QuizQuestion[]; wasRetake: boolean; onReview: () => void; onClose: () => void;
 }) => (
   <div className="text-center py-2">
     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}
@@ -1153,7 +1202,9 @@ const ResultsStep = ({ result, lessonTitle, questions, onReview, onClose }: {
 
     {!result.passed && (
       <p className="text-xs text-amber-400 mb-4">
-        You need {Math.ceil(result.total * 5 / 7)}/{result.total} to pass — review the lesson and try again, no penalty for retaking!
+        {wasRetake
+          ? "This lesson is already marked complete, so nothing's lost here — this was just a practice retake. Review and try again any time!"
+          : `You need ${Math.ceil(result.total * 5 / 7)}/${result.total} to pass — review the lesson and try again, no penalty for retaking!`}
       </p>
     )}
 
