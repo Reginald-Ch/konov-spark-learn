@@ -1935,11 +1935,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== defaults.voiceGender, val: config.voiceGender || 'default' },
       { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, defaults.fallbackMessage), val: config.fallbackMessage ? '✓ set' : '✗ default' },
-      { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > 0, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
+      { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > defaults.qaPairsFromCode.length, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
       { label: 'HYPE_PHRASES', ok: config.hasListComprehension && config.phraseIdeas.length > 0, val: `${config.phraseIdeas.length} ideas` },
       { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
       { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
-      { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > 0, val: `${config.conversationRules.length} rules counted` },
+      { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > defaults.conversationRules.length, val: `${config.conversationRules.length} rules counted` },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -2075,11 +2075,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.wakeWord,
       cfg.voiceGender !== defaults.voiceGender,
       isFallbackMessageCustomized(cfg.fallbackMessage, defaults.fallbackMessage),
-      cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > 0,
+      cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > defaults.qaPairsFromCode.length,
       cfg.hasListComprehension && cfg.phraseIdeas.length > 0,
       cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaults.personalizedIntro,
       cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaults.moodInstruction,
-      cfg.hasAccumulatorLoop && cfg.conversationRules.length > 0,
+      cfg.hasAccumulatorLoop && cfg.conversationRules.length > defaults.conversationRules.length,
     ].filter(Boolean).length;
   }, [scaffolds]);
 
