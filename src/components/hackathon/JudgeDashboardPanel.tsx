@@ -48,6 +48,13 @@ interface Project {
   created_at: string;
 }
 
+// The shadcn Tabs defaults (bg-muted/bg-background) are light-theme tokens
+// — fine on AdminPanel.tsx's old light page, but this component lives
+// inside the dark hackathon shell, where an unstyled TabsList rendered as a
+// jarring white pill. Matches the discord-dark palette used everywhere
+// else in this file instead.
+const TAB_CLASS = 'text-[hsl(var(--discord-text-muted))] data-[state=active]:bg-[hsl(var(--discord-light)/0.6)] data-[state=active]:text-white data-[state=active]:shadow-none';
+
 const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot' },
   agent: { icon: '🧠', label: 'Agent' },
@@ -398,18 +405,18 @@ export const JudgeDashboardPanel = () => {
       {/* Everything the Admin Panel had lives here now too — one place for
           organizers (and, for grading, judges) instead of a separate page. */}
       <Tabs defaultValue="gallery">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="gallery">Gallery Judging</TabsTrigger>
-          <TabsTrigger value="submissions">Daily Submissions</TabsTrigger>
+        <TabsList className="flex-wrap h-auto bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.2)] p-1 gap-1">
+          <TabsTrigger value="gallery" className={TAB_CLASS}>Gallery Judging</TabsTrigger>
+          <TabsTrigger value="submissions" className={TAB_CLASS}>Daily Submissions</TabsTrigger>
           {role === 'organizer' && (
             <>
-              <TabsTrigger value="events">Events</TabsTrigger>
-              <TabsTrigger value="challenges">Daily Challenges</TabsTrigger>
-              <TabsTrigger value="rewards">Reward Boxes</TabsTrigger>
-              <TabsTrigger value="coins">Forge Coins</TabsTrigger>
-              <TabsTrigger value="community-staff">Community Staff</TabsTrigger>
-              <TabsTrigger value="judges">Judges</TabsTrigger>
-              <TabsTrigger value="feedback">Feedback</TabsTrigger>
+              <TabsTrigger value="events" className={TAB_CLASS}>Events</TabsTrigger>
+              <TabsTrigger value="challenges" className={TAB_CLASS}>Daily Challenges</TabsTrigger>
+              <TabsTrigger value="rewards" className={TAB_CLASS}>Reward Boxes</TabsTrigger>
+              <TabsTrigger value="coins" className={TAB_CLASS}>Forge Coins</TabsTrigger>
+              <TabsTrigger value="community-staff" className={TAB_CLASS}>Community Staff</TabsTrigger>
+              <TabsTrigger value="judges" className={TAB_CLASS}>Judges</TabsTrigger>
+              <TabsTrigger value="feedback" className={TAB_CLASS}>Feedback</TabsTrigger>
             </>
           )}
         </TabsList>
