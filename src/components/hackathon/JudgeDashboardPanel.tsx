@@ -214,6 +214,29 @@ export const JudgeDashboardPanel = () => {
     }
   };
 
+  // Lets someone already logged in as a judge unlock the full organizer
+  // view without logging out and back in — enter the separate organizer
+  // passphrase here, and this session steps up in place.
+  const [adminStepUpOpen, setAdminStepUpOpen] = useState(false);
+  const [adminStepUpPassphrase, setAdminStepUpPassphrase] = useState('');
+  const [steppingUp, setSteppingUp] = useState(false);
+
+  const handleAdminStepUp = async () => {
+    if (!adminStepUpPassphrase.trim()) { toast.error('Enter the organizer passphrase'); return; }
+    setSteppingUp(true);
+    const resolvedRole = await verifyAdminPassphrase(adminStepUpPassphrase.trim());
+    setSteppingUp(false);
+    if (resolvedRole !== 'organizer') {
+      toast.error(resolvedRole === 'judge' ? "That's the judge passphrase — enter the organizer one instead." : 'Invalid passphrase');
+      return;
+    }
+    setRole('organizer');
+    setAdminStepUpOpen(false);
+    setAdminStepUpPassphrase('');
+    fetchHackathonOptions();
+    toast.success('Admin access unlocked');
+  };
+
   const fetchHackathonOptions = useCallback(async () => {
     const { data } = await supabase.from('hackathons').select('id, title, status').order('start_date', { ascending: false });
     const options = (data as HackathonOption[]) || [];
@@ -389,6 +412,12 @@ export const JudgeDashboardPanel = () => {
             </SelectContent>
           </Select>
           <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
+          {role === 'judge' && (
+            <Button size="sm" variant="outline" onClick={() => setAdminStepUpOpen(true)}
+              className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
+              <Shield className="w-3.5 h-3.5 mr-1" /> Admin
+            </Button>
+          )}
           {role === 'organizer' && (
             <Button size="sm" variant="outline" onClick={() => setPassphraseDialogOpen(true)}
               className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
@@ -553,6 +582,32 @@ export const JudgeDashboardPanel = () => {
               <Button onClick={handleSavePassphrase} disabled={savingPassphrase} className="flex-1">
                 {savingPassphrase ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={adminStepUpOpen} onOpenChange={(open) => { setAdminStepUpOpen(open); if (!open) setAdminStepUpPassphrase(''); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Admin Access</DialogTitle>
+            <DialogDescription>Enter the organizer passphrase to unlock the full control panel for this session.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Input
+              type="password"
+              value={adminStepUpPassphrase}
+              onChange={e => setAdminStepUpPassphrase(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdminStepUp()}
+              placeholder="Organizer passphrase"
+              autoFocus
+            />
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setAdminStepUpOpen(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleAdminStepUp} disabled={steppingUp} className="flex-1">
+                {steppingUp ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Unlock
               </Button>
             </div>
           </div>
