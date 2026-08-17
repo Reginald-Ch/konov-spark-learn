@@ -8,10 +8,32 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+// createClient() throws synchronously if the URL/key are missing or
+// malformed — and since this file sits in nearly every page's import graph
+// (App.tsx eagerly imports every route, no code-splitting), that throw used
+// to take down the ENTIRE site at module-load time, before React ever got a
+// chance to render anything — including plain marketing pages that never
+// touch Supabase at all. A misconfigured deployment (missing env vars) is
+// now a loud console error plus broken network calls on whichever specific
+// feature actually needs them, not a blank page on every route.
+const isConfigured = typeof SUPABASE_URL === 'string' && SUPABASE_URL.length > 0
+  && typeof SUPABASE_PUBLISHABLE_KEY === 'string' && SUPABASE_PUBLISHABLE_KEY.length > 0;
+if (!isConfigured) {
+  console.error(
+    '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are missing for this deployment. ' +
+    'Falling back to a placeholder client so the rest of the app can still render — anything that ' +
+    'talks to Supabase will fail until the real values are set in this deployment\'s environment.'
+  );
+}
+
+export const supabase = createClient<Database>(
+  isConfigured ? SUPABASE_URL : 'https://placeholder.invalid',
+  isConfigured ? SUPABASE_PUBLISHABLE_KEY : 'placeholder-key',
+  {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    }
   }
-});
+);
