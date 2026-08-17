@@ -14,7 +14,7 @@ interface WalkthroughStep {
 
 const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   { id: 'welcome', title: 'Welcome to FORGE!', message: "I'll guide you through building your first AI bot. It's easier than you think!", icon: Rocket, color: '#F7941D', emoji: '👋' },
-  { id: 'config', title: 'Set Your Bot\'s Identity', message: 'Start by giving your bot a name and personality. Edit the BOT_NAME and SYSTEM_MESSAGE in the code.', icon: Code, color: '#5865F2', emoji: '⚙️' },
+  { id: 'config', title: 'Set Your Bot\'s Identity', message: 'Start by giving your bot a name and personality. Edit the BOT_NAME and SYSTEM_MESSAGE in the code — or, if you know Python, clear the script and write a real respond() function instead.', icon: Code, color: '#5865F2', emoji: '⚙️' },
   { id: 'test', title: 'Test in Live Preview', message: 'Type a message in the chat panel on the right to see your bot in action!', icon: MessageSquare, color: '#00B894', emoji: '💬' },
   { id: 'customize', title: 'Make It Yours!', message: 'Add knowledge, Q&A pairs, rules, and easter eggs. Each one is a challenge!', icon: Zap, color: '#9B59B6', emoji: '🎨' },
   { id: 'deploy', title: 'Deploy & Share', message: 'When you\'re ready, hit Go Live to publish your bot and earn points!', icon: Trophy, color: '#FFD700', emoji: '🚀' },

@@ -206,6 +206,14 @@ export const BotBattleArena = () => {
         <p className="text-[hsl(var(--discord-text-muted))] text-lg">Pick two published bots and watch them duel!</p>
       </motion.div>
 
+      {/* Beta disclaimer — this is a just-for-fun exhibition, not a real
+          tournament: it doesn't eliminate anyone, and votes here never
+          affect a hackathon score or the leaderboard. */}
+      <div className="mb-8 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex items-start gap-2">
+        <span className="text-amber-400 font-bold uppercase tracking-wide text-xs mt-0.5">Beta</span>
+        <span>This is a just-for-fun way to see how your bot stacks up against someone else's — not a real tournament. Nobody gets eliminated, and votes here don't affect your hackathon score or the leaderboard.</span>
+      </div>
+
       {/* Bot Selection */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {[

@@ -538,10 +538,10 @@ type ConsoleResult =
 type ConfigTab = 'settings' | 'knowledge' | 'theme';
 
 const ONBOARDING_STEPS = [
-  { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds.' },
-  { target: 'editor', title: '💻 Write Code', description: 'Edit your Python code here. The syntax highlighter shows your code in color. Switch between files using the tabs.' },
-  { target: 'preview', title: '💬 Test Your AI', description: 'Chat with your AI in real-time! Your system prompt controls how it responds. Try changing it and see the difference.' },
-  { target: 'knowledge', title: '📚 Add Knowledge', description: 'Add custom text and intents (trigger phrase → response pairs) to make your bot smarter! Your bot will reference this data when answering.' },
+  { target: 'config', title: '⚙️ Configure', description: 'Set your project type, system prompt, and capabilities. The system prompt controls how your AI responds — unless you write a real Python respond() function in main.py instead, in which case your own code decides.' },
+  { target: 'editor', title: '💻 Write Code', description: 'main.py starts as a guided fill-in-the-blank script (no coding required). Know Python? Clear it out and write a real def respond(message, history): function — it runs for real, and the Console tab shows its actual print() output live.' },
+  { target: 'preview', title: '💬 Test Your AI', description: "Chat with your AI in real-time! With the guided script, your system prompt controls how it responds — try changing it and see the difference. With real Python, your code's own logic answers directly." },
+  { target: 'knowledge', title: '📚 Add Knowledge', description: 'Add custom text and intents (trigger phrase → response pairs) to make your bot smarter! The guided script references this data automatically; a real Python respond() function can use it too, or ignore it entirely.' },
   { target: 'actions', title: '🚀 Save & Deploy', description: 'Run Tests to check your code, Save Checkpoint to keep your work, and Go Live to publish with a shareable URL!' },
 ];
 
@@ -2810,9 +2810,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           >
                             <div className="text-[10px] leading-relaxed p-2 rounded bg-ide-accent/10 border border-ide-accent/20 text-ide-text">
                               <strong className="text-ide-accent">💡 What is this?</strong><br />
-                              This controls how your AI responds in the <strong>Live Preview</strong> chat. It's like giving your AI a personality card.<br /><br />
+                              This controls how your AI responds in the <strong>Live Preview</strong> chat — but only while main.py is the guided script. It's like giving your AI a personality card.<br /><br />
                               Try changing it to: <em>"You are a math tutor for SHS students"</em> — then test in the preview!
-                              <p className="mt-1 text-ide-text-muted">Changes here auto-sync to your code's SYSTEM_PROMPT variable.</p>
+                              <p className="mt-1 text-ide-text-muted">Changes here auto-sync to your code's SYSTEM_PROMPT variable. If you've written a real Python respond() function in main.py instead, that function answers directly and this setting is skipped.</p>
                             </div>
                           </motion.div>
                         )}
@@ -2968,7 +2968,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* Explainer card */}
                     <div className="bg-ide-accent/10 rounded-lg p-2.5 border border-ide-accent/20 mb-1">
                       <p className="text-[10px] text-ide-text leading-relaxed">
-                        <strong className="text-ide-accent">📚 Teach Your AI</strong> — Add facts, notes, or intents below. Your bot will use this data to answer questions in the Live Preview and deployed app.
+                        <strong className="text-ide-accent">📚 Teach Your AI</strong> — Add facts, notes, or intents below. If main.py is the guided script, your bot uses this data to answer questions in Live Preview and the deployed app. A real Python respond() function can use it too (or ignore it and decide answers entirely on its own).
                       </p>
                     </div>
 

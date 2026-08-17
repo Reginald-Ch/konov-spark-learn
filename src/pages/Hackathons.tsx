@@ -389,9 +389,9 @@ const Hackathons = () => {
             {/* Feature highlights */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
               {[
-                { icon: Code, label: 'Browser IDE', desc: 'Write Python code with AI assistance' },
-                { icon: Trophy, label: 'Hackathons', desc: 'Compete and win prizes' },
-                { icon: Swords, label: 'Bot Battles', desc: 'Pit your bots against others' },
+                { icon: Code, label: 'Browser IDE', desc: 'Write Python code with AI assistance', beta: false },
+                { icon: Trophy, label: 'Hackathons', desc: 'Compete and win prizes', beta: false },
+                { icon: Swords, label: 'Bot Battles', desc: 'Just-for-fun — pit your bots against others', beta: true },
               ].map((f, i) => (
                 <motion.div
                   key={f.label}
@@ -401,7 +401,12 @@ const Hackathons = () => {
                   className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.2)] rounded-xl p-4"
                 >
                   <f.icon className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-white font-semibold text-sm">{f.label}</p>
+                  <p className="text-white font-semibold text-sm flex items-center justify-center gap-1.5">
+                    {f.label}
+                    {f.beta && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Beta</span>
+                    )}
+                  </p>
                   <p className="text-white/50 text-xs mt-1">{f.desc}</p>
                 </motion.div>
               ))}
