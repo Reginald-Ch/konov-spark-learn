@@ -24,7 +24,7 @@ export const HackathonFAQ = () => {
     },
     {
       question: 'What programming language do I need to know?',
-      answer: 'Python! Our templates use LangChain, OpenAI SDK, and other popular Python AI libraries. You don\'t need to be an expert — the templates come with working starter code, and the AI Mentor is always there to help you understand and extend it.'
+      answer: 'Python! You don\'t need to be an expert — main.py starts as a guided, fill-in-the-blank script (34 numbered challenges) that doesn\'t require writing real code logic. If you do know Python, you can clear that out and write a real def respond(message, history): function instead, and it runs for real — no separate setup, just write it and test it in Live Preview.'
     },
     {
       question: 'How does scoring work?',
@@ -36,7 +36,11 @@ export const HackathonFAQ = () => {
     },
     {
       question: 'What is the Live Preview?',
-      answer: 'The Live Preview panel on the right side of the IDE lets you chat with your AI in real time. It uses your system prompt, knowledge base, and Q&A data to respond — just like a real deployed chatbot. Change your system prompt and instantly see how your AI\'s personality changes!'
+      answer: 'The Live Preview panel on the right side of the IDE lets you chat with your AI in real time. If main.py is still the guided script, it uses your system prompt, knowledge base, and Q&A data to respond — change any of those and instantly see the difference. If you\'ve written a real respond() function instead, Live Preview runs that real code directly and shows a small "🐍 Answered by your Python code" badge on messages it handled — the script settings are skipped for those replies.'
+    },
+    {
+      question: 'What\'s the difference between the script and writing real Python?',
+      answer: 'They\'re two ways to build the same bot, and you can pick either — main.py doesn\'t care which. The 34-challenge script is fill-in-the-blank: you set variables like BOT_NAME and SYSTEM_MESSAGE and an AI model answers using them, no code logic required. Writing a real def respond(message, history): function means your own code decides the reply — return a string to answer directly, or return None to let the AI handle that message instead. You can even call ai_generate(prompt) from inside your own function to mix hardcoded logic with a real AI call. There\'s also a live Console tab that runs your code\'s print() statements for real as you type, so you can see exactly what your code does.'
     },
     {
       question: 'What are the Knowledge Base and Q&A features?',
@@ -65,6 +69,10 @@ export const HackathonFAQ = () => {
     {
       question: 'Where is the Judge Dashboard?',
       answer: 'The Judge Dashboard is now integrated right into the platform! Go to the Hackathons tab and click "Judge Dashboard" in the sidebar. Enter the access code provided by the event organizer to unlock scoring, event management, and project controls — all without leaving the page.'
+    },
+    {
+      question: 'What is Bot Battle?',
+      answer: 'Bot Battle is a beta, just-for-fun feature — pick two published bots and watch them debate a topic, then vote on which one did better. It\'s a way to see how your bot stacks up against someone else\'s, nothing more: it isn\'t a real tournament, doesn\'t eliminate anyone, and votes don\'t affect your hackathon score or the leaderboard.'
     },
     {
       question: 'I\'m stuck — who can help?',

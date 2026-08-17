@@ -5,7 +5,11 @@
       "Bash(node 'C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Dell-Desktop-konov-konov-spark-learn\\\\bb3b077b-e94c-4a75-8f1c-1df170d2ef95\\\\scratchpad\\\\balance_check.js' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\admin\\\\SubmissionsTab.tsx' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\hackathon\\\\DailyChallengePanel.tsx')",
       "Bash(node 'C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Dell-Desktop-konov-konov-spark-learn\\\\bb3b077b-e94c-4a75-8f1c-1df170d2ef95\\\\scratchpad\\\\balance_check.js' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\pages\\\\Hackathons.tsx' 'c:\\\\Users\\\\Dell\\\\Desktop\\\\konov\\\\konov-spark-learn\\\\src\\\\components\\\\hackathon\\\\HackathonCard.tsx')",
       "Bash(xargs -I{} basename {})",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(timeout 90 npx tsx src/components/hackathon/__verify_challenge_count_defaults_tmp.ts)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

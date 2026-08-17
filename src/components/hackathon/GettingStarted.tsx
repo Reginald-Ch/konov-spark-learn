@@ -30,7 +30,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     {
       number: 3,
       title: 'Select a Project Template',
-      description: 'Want to build a chatbot or an AI agent? Pick a starting template and customize its system prompt, knowledge base, and behavior.',
+      description: 'Want to build a chatbot or an AI agent? Pick a starting template, then either fill in the guided 34-challenge script (system prompt, knowledge base, behavior — no coding required) or clear it out and write a real Python respond() function if you already know Python. Both run for real in Live Preview.',
       icon: Brain,
       color: '#006600',
       action: { label: 'Browse Templates', channel: 'templates' }
@@ -51,6 +51,7 @@ export const GettingStarted = ({ onNavigate }: GettingStartedProps) => {
     { icon: Lightbulb, text: 'Be specific in your KNOWLEDGE_BASE — vague entries give vague answers.' },
     { icon: CheckCircle2, text: 'Pick a thematic Easter Egg keyword users will enjoy discovering.' },
     { icon: MessageSquare, text: 'Add follow-up questions to keep the conversation going.' },
+    { icon: Brain, text: 'Know Python? Write a real respond() function in main.py instead of the script — use the Console tab to watch your print() output live.' },
     { icon: MessageSquare, text: 'Save a checkpoint at least every 5 minutes.' },
     { icon: Rocket, text: 'Submit early to avoid last-minute issues.' }
   ];
