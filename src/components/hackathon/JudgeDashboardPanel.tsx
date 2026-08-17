@@ -27,6 +27,7 @@ import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
 import { RewardsTab } from '@/components/admin/RewardsTab';
 import { CoinsTab } from '@/components/admin/CoinsTab';
 import { CommunityStaffTab } from '@/components/admin/CommunityStaffTab';
+import { FeedbackTab } from '@/components/admin/FeedbackTab';
 
 interface HackathonOption {
   id: string;
@@ -408,6 +409,7 @@ export const JudgeDashboardPanel = () => {
               <TabsTrigger value="coins">Forge Coins</TabsTrigger>
               <TabsTrigger value="community-staff">Community Staff</TabsTrigger>
               <TabsTrigger value="judges">Judges</TabsTrigger>
+              <TabsTrigger value="feedback">Feedback</TabsTrigger>
             </>
           )}
         </TabsList>
@@ -506,6 +508,9 @@ export const JudgeDashboardPanel = () => {
                   ))}
                 </div>
               </div>
+            </TabsContent>
+            <TabsContent value="feedback" className="mt-4">
+              <FeedbackTab hackathonId={selectedHackathonId} />
             </TabsContent>
           </>
         )}

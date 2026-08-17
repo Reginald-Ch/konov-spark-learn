@@ -23,7 +23,7 @@ import { useCommunityUnread } from '@/hooks/useCommunityUnread';
 import { 
   Code, Trophy, ArrowLeft, Brain,
   Rocket, Zap, Circle, Calendar, Hash,
-  Users, MessageSquare, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords, Settings2
+  Users, MessageSquare, HelpCircle, BookOpen, Award, Image, GraduationCap, X, Shield, Swords
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -66,8 +66,12 @@ const Hackathons = () => {
   const [accessCodeError, setAccessCodeError] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<MainTab>('templates');
-  const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>('all-events');
+  // ?section=judge (e.g. from /admin's redirect below) lands straight on the
+  // Judge Dashboard sub-view instead of the default Templates tab — the same
+  // lazy-initializer-from-the-URL pattern staff_invite already uses below.
+  const initialSection = new URLSearchParams(window.location.search).get('section');
+  const [activeTab, setActiveTab] = useState<MainTab>(initialSection === 'judge' ? 'hackathons' : 'templates');
+  const [hackathonSubView, setHackathonSubView] = useState<HackathonSubView>(initialSection === 'judge' ? 'judge' : 'all-events');
   // Two genuinely different rankings live under "Leaderboard" — Daily SP
   // tracks daily-challenge grinding, Project Score is a 100-point tiered
   // score (system prompt quality, published status, judge score) that had
@@ -626,14 +630,10 @@ const Hackathons = () => {
                 </button>
               ))}
 
-              {/* Admin Panel — separate passphrase-gated page, not a sub-view */}
-              <button
-                onClick={() => navigate('/admin')}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]"
-              >
-                <Settings2 className="w-4 h-4 text-[#F7941D]" />
-                <span className="flex-1 text-left truncate">Admin Panel</span>
-              </button>
+              {/* The old separate "Admin Panel" button (navigate('/admin')) is
+                  gone — that page now just redirects into the "Judge
+                  Dashboard" sub-view button below, so it was two labels
+                  pointing at the same destination through an extra hop. */}
 
               {[
                 { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image, count: 0, live: false },
@@ -650,6 +650,9 @@ const Hackathons = () => {
                 >
                   <ch.icon className={`w-4 h-4 ${ch.live ? 'text-[hsl(var(--discord-red))] animate-pulse' : ''}`} />
                   <span className="flex-1 text-left truncate">{ch.name}</span>
+                  {ch.id === 'battle-arena' && (
+                    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Beta</span>
+                  )}
                   {ch.count > 0 && (
                     <span className={`text-xs px-1.5 py-0.5 rounded ${
                       ch.live ? 'bg-[hsl(var(--discord-red))] text-white' : 'bg-[hsl(var(--discord-light))] text-[hsl(var(--discord-text-muted))]'
