@@ -80,6 +80,33 @@ All colors MUST be HSL.
     --ide-selection: 220 13% 28%;
     --ide-cursor: 221 100% 66%;
   }
+
+  /* Scoped to the hackathon dashboard's admin/judge tabs (JudgeDashboardPanel
+     wraps its post-login view in class="dark"). Those six tab components
+     (EventsTab, ChallengesTab, SubmissionsTab, RewardsTab, CoinsTab,
+     CommunityStaffTab) were built for the old light-themed standalone
+     AdminPanel page and use plain shadcn tokens (bg-card, text-foreground,
+     text-muted-foreground, border-border) — with no dark palette defined
+     anywhere, those inherited body's light --background/--foreground,
+     rendering near-black text directly on the dark discord background.
+     Redefining the tokens here (not editing six files' classNames) fixes
+     every current and future consumer at once. */
+  .dark {
+    --background: 225 6% 8%;
+    --foreground: 210 9% 87%;
+
+    --card: 225 7% 11%;
+    --card-foreground: 210 9% 87%;
+
+    --popover: 225 7% 11%;
+    --popover-foreground: 210 9% 87%;
+
+    --muted: 223 6% 18%;
+    --muted-foreground: 214 8% 61%;
+
+    --border: 223 6% 25%;
+    --input: 223 6% 25%;
+  }
 }
 
 @layer base {

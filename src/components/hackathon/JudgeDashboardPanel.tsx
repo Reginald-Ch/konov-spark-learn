@@ -388,7 +388,14 @@ export const JudgeDashboardPanel = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="dark space-y-6">
+      {/* Six admin sub-tabs below (Events/Challenges/Submissions/Rewards/
+          Coins/Community Staff) were built for the old light AdminPanel page
+          and default to plain shadcn tokens (bg-card, text-foreground) —
+          the `dark` class here activates the dark-palette overrides in
+          index.css's `.dark` block so their cards/headers/borders render
+          correctly against this dashboard's dark background instead of
+          near-invisible dark-on-dark text. */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
