@@ -275,7 +275,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 {/* Points */}
                 <div className="flex items-center justify-center gap-2 py-2 rounded-lg" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)' }}>
                   <Trophy className="w-4 h-4 text-[#FFD700]" />
-                  <span className="text-sm font-bold text-[#FFD700]">+15 Points Earned</span>
+                  <span className="text-sm font-bold text-[#FFD700]">Now scored on the Leaderboard!</span>
                 </div>
 
                 {/* URL */}
@@ -376,7 +376,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
               <div className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.12)' }}>
                 <Trophy className="w-3.5 h-3.5 text-[#FFD700] flex-shrink-0" />
                 <p className="text-[11px] text-white/50">
-                  Submitting earns <strong className="text-[#FFD700]">15 leaderboard points</strong> and sends your project to judges.
+                  Publishing puts your project on the <strong className="text-[#FFD700]">Leaderboard</strong> — scored on code quality, your description, and judge review — and sends it to judges.
                 </p>
               </div>
 
