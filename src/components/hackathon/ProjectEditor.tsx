@@ -368,6 +368,28 @@ export const extractConfigFromCode = (rawCode: string) => {
   // counter with += — distinct from Challenge 26's .append()-building loop.
   const extractHasAccumulatorLoop = (): boolean =>
     /for\s+\w+\s+in\s+\w+\s*:[\s\S]{0,150}?\w+\s*\+=\s*\d/.test(code);
+  // Challenges 31-34: each teaches a piece of syntax via a print() call
+  // (real output in the live console) rather than a stored variable, so
+  // "done" means the printed statement's own text differs from the
+  // scaffold's own default — same presence-plus-differs-from-default shape
+  // as Challenges 19/25/28 above, just extracting a print() argument
+  // instead of a variable/function-return value.
+  const extractPrintUpperStatement = (): string => {
+    const m = code.match(/print\(([^\n]*\.upper\(\)[^\n]*)\)/);
+    return m ? m[1].trim() : '';
+  };
+  const extractBooleanLogicExpr = (): string => {
+    const m = code.match(/IS_EXPRESSIVE\s*=\s*(.+)/);
+    return m ? m[1].trim() : '';
+  };
+  const extractWhileLoopPrint = (): string => {
+    const m = code.match(/while\s+\w+\s*<\s*len\(RULES\)\s*:[\s\S]{0,200}?print\(([^\n]*)\)/);
+    return m ? m[1].trim() : '';
+  };
+  const extractTypeCastPrint = (): string => {
+    const m = code.match(/print\(([^\n]*str\(MAX_TOKENS\)[^\n]*)\)/);
+    return m ? m[1].trim() : '';
+  };
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -416,6 +438,10 @@ export const extractConfigFromCode = (rawCode: string) => {
     hasSafeDictLookup: extractHasSafeDictLookup(),
     moodInstruction: extractGetFallback('MOOD_INSTRUCTION'),
     hasAccumulatorLoop: extractHasAccumulatorLoop(),
+    printUpperStatement: extractPrintUpperStatement(),
+    booleanLogicExpr: extractBooleanLogicExpr(),
+    whileLoopPrint: extractWhileLoopPrint(),
+    typeCastPrint: extractTypeCastPrint(),
   };
 };
 
@@ -1940,6 +1966,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
       { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
       { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > defaults.conversationRules.length, val: `${config.conversationRules.length} rules counted` },
+      { label: 'PRINT + UPPER', ok: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement, val: config.printUpperStatement ? '✓ printed' : '✗ default' },
+      { label: 'IS_EXPRESSIVE', ok: config.booleanLogicExpr !== '' && config.booleanLogicExpr !== defaults.booleanLogicExpr, val: config.booleanLogicExpr || '✗ default' },
+      { label: 'NUMBERED RULES', ok: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint, val: config.whileLoopPrint ? '✓ while loop found' : '✗ missing' },
+      { label: 'MAX TOKENS LINE', ok: config.typeCastPrint !== '' && config.typeCastPrint !== defaults.typeCastPrint, val: config.typeCastPrint ? '✓ printed' : '✗ default' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -1950,12 +1980,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       ``,
       `🔍 FORGE Config Scanner v2.0`,
       `═══════════════════════════════════`,
-      `📋 Scanning 30 challenges...`,
+      `📋 Scanning 34 challenges...`,
       ``,
       ...localChecks.map(c => `  ${c.ok ? '✅' : '⬜'} ${c.label.padEnd(22)} → ${c.val}`),
       ``,
       `═══════════════════════════════════`,
-      `📊 Progress: ${completedCount}/30 challenges completed (${Math.round(completedCount / 30 * 100)}%)`,
+      `📊 Progress: ${completedCount}/34 challenges completed (${Math.round(completedCount / 34 * 100)}%)`,
       `🤖 Bot Name: ${config.botEmoji} ${config.botName}`,
       `🌡️ Temperature: ${config.temperature}`,
       `✍️ Mood: ${config.mood} | Length: ${config.maxResponseLength}`,
@@ -1988,7 +2018,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       } else {
         setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
       }
-      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/30 challenges done.` }]);
+      setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/34 challenges done.` }]);
       // Used to also insert a 'first_run_success' point_event here —
       // confirmed dead: nothing anywhere sums or displays it, pure ledger
       // noise. Removed rather than left generating rows forever.
@@ -2080,6 +2110,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaults.personalizedIntro,
       cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaults.moodInstruction,
       cfg.hasAccumulatorLoop && cfg.conversationRules.length > defaults.conversationRules.length,
+      cfg.printUpperStatement !== '' && cfg.printUpperStatement !== defaults.printUpperStatement,
+      cfg.booleanLogicExpr !== '' && cfg.booleanLogicExpr !== defaults.booleanLogicExpr,
+      cfg.whileLoopPrint !== '' && cfg.whileLoopPrint !== defaults.whileLoopPrint,
+      cfg.typeCastPrint !== '' && cfg.typeCastPrint !== defaults.typeCastPrint,
     ].filter(Boolean).length;
   }, [scaffolds]);
 
@@ -3830,7 +3864,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const uniqueCodeQA = codeQA.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
             const mergedQACount = qaData.filter(p => p.q.trim()).length + uniqueCodeQA.length;
 
-            const totalChallenges = 30;
+            const totalChallenges = 34;
             const activeCount = getChallengeCount(cfg, projectType);
 
             return (

@@ -163,7 +163,7 @@ export const LevelBadge = ({ challengeCount, compact = false }: LevelBadgeProps)
         </div>
         <div>
           <p className="text-xs font-bold" style={{ color: config.color }}>{config.emoji} {config.name}</p>
-          <p className="text-[10px] text-[hsl(var(--discord-text-muted))]">{challengeCount}/30 challenges</p>
+          <p className="text-[10px] text-[hsl(var(--discord-text-muted))]">{challengeCount}/34 challenges</p>
         </div>
       </div>
       {nextConfig && (
