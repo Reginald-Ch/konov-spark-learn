@@ -154,6 +154,22 @@ export const stripLineComment = (line: string): string => {
   return line;
 };
 
+// Shared by ProjectEditor.tsx's Live Preview and ProjectView.tsx's published
+// bot — a project defining a real `respond(message, history)` function is a
+// deliberate, documented alternative to the config-based script (see the
+// walkthrough's own copy: "write a real def respond(...) function —
+// INSTEAD"), not a layer on top of it. Both places used to run their
+// config-based interceptors (secret responses, Q&A pairs, blocked topics)
+// unconditionally before ever reaching respond() — since every scaffold
+// ships those config variables pre-filled and respond() never clears them,
+// a student's own Python could be silently skipped for any message that
+// also happened to match leftover scaffold defaults, with zero indication
+// their function never ran. Living here (rather than duplicated in both
+// files) means preview and published behavior can't drift apart on this
+// again the way they already had on match-strictness elsewhere.
+export const codeDefinesRespond = (code: string): boolean =>
+  code.split('\n').some(line => /^\s*def\s+respond\s*\(/.test(stripLineComment(line)));
+
 export const lintPython = (code: string): LintError[] => {
   const errors: LintError[] = [];
   const lines = code.split('\n');

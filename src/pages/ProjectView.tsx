@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { codeDefinesRespond } from '@/components/hackathon/editorFeatures';
 
 interface Project {
   id: string;
@@ -595,51 +596,77 @@ const ProjectView = () => {
     setChatInput('');
     const lowerMsg = userMsg.toLowerCase();
 
-    // 1. Check for secret responses (client-side, EXACT match only)
-    for (const [trigger, response] of Object.entries(config.secretResponses)) {
-      if (lowerMsg === trigger.toLowerCase()) {
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: String(response) }]);
+    // Skipped entirely when the project defines a real respond() — see
+    // codeDefinesRespond's own comment. Was previously unconditional here
+    // AND used looser matching than Build Studio's own Live Preview (exact-
+    // only trigger match, first-match-wins/no-stop-words Q&A, raw substring
+    // blocked-topic match, no forbidden-word scrubbing on canned answers) —
+    // both fixed below to share the exact same rules the preview already
+    // uses, so testing in Build Studio reliably predicts what ships here.
+    const hasRespond = codeDefinesRespond(project.code || '');
+    const normalizeTrigger = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.!?,;:]+$/, '');
+    const normalizedMsg = normalizeTrigger(userMsg);
+    const scrubForbidden = (text: string) => (config.forbiddenWords || []).reduce((acc: string, word: string) => {
+      const w = word.trim();
+      if (!w) return acc;
+      const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return acc.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '***');
+    }, text);
+
+    // 1. Check for secret responses (client-side, near-exact match)
+    if (!hasRespond) for (const [trigger, response] of Object.entries(config.secretResponses)) {
+      if (normalizedMsg === normalizeTrigger(trigger)) {
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: scrubForbidden(String(response)) }]);
         return;
       }
     }
 
-    // 2. Client-side Q&A matching with tighter fuzzy logic
-    for (const pair of config.qaPairs) {
-      const qLower = pair.q.toLowerCase().trim();
-      if (!qLower) continue;
-      // Exact match
-      if (lowerMsg === qLower || lowerMsg.includes(qLower) || qLower.includes(lowerMsg)) {
-        let answer = pair.a;
-        if (config.catchphrases.length > 0) {
-          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+    // 2. Client-side Q&A matching — best match wins, not first match
+    if (!hasRespond) {
+      const QA_STOP_WORDS = new Set(['can', 'you', 'the', 'and', 'for', 'are', 'that', 'this', 'with', 'what', 'how', 'does', 'did', 'was', 'were', 'have', 'has', 'just', 'please', 'your', 'like', 'want', 'need', 'tell', 'know', 'get', 'got', 'not', 'but', 'all', 'any', 'out', 'who', 'why', 'when', 'where', 'about', 'me']);
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
+      let bestQA: { pair: (typeof config.qaPairs)[number]; score: number } | null = null;
+      for (const pair of config.qaPairs) {
+        const qLower = pair.q.toLowerCase().trim();
+        if (!qLower) continue;
+        const isSupersetOfQ = lowerMsg.includes(qLower);
+        const isGenericSubstringOfQ = userWords.length >= 2 && qLower.includes(lowerMsg);
+        if (isSupersetOfQ || isGenericSubstringOfQ) {
+          const score = 1000 + qLower.length;
+          if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+          continue;
         }
-        if (config.signOff) answer += `\n\n${config.signOff}`;
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
-        return;
+        const qWords = qLower.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
+        const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+        const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+        if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
+          const score = userInQ + qInUser;
+          if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+        }
       }
-      // Fuzzy match: require ≥60% bidirectional word overlap
-      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2);
-      const qWords = qLower.split(/\s+/).filter(w => w.length > 2);
-      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
-      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
-      if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
-        let answer = pair.a;
+      if (bestQA) {
+        let answer = bestQA.pair.a;
         if (config.catchphrases.length > 0) {
           answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
         }
         if (config.signOff) answer += `\n\n${config.signOff}`;
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: answer }]);
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: scrubForbidden(answer) }]);
         return;
       }
     }
 
-    // 3. Blocked topics (client-side)
-    for (const topic of config.blockedTopics) {
-      if (lowerMsg.includes(topic.toLowerCase())) {
-        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
-        if (config.signOff) refusal += `\n\n${config.signOff}`;
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: refusal }]);
-        return;
+    // 3. Blocked topics (client-side) — word-boundary match, not raw
+    // substring (a blocked topic like "sex" used to also trip on "Sussex").
+    if (!hasRespond) {
+      const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      for (const topic of config.blockedTopics) {
+        const t = topic.trim();
+        if (t.length > 0 && new RegExp(`\\b${escapeRegex(t)}\\b`, 'i').test(userMsg)) {
+          let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+          if (config.signOff) refusal += `\n\n${config.signOff}`;
+          setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: refusal }]);
+          return;
+        }
       }
     }
 

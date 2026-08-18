@@ -248,6 +248,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+  // Mirrors profileByEmail for the same reason messagesRef exists — the
+  // realtime INSERT handler below is registered once per [activeChannel]
+  // effect run and closes over whatever profileByEmail was at that moment
+  // (usually {} right after switching channels), so every single incoming
+  // message re-queried a profile that was actually already cached by the
+  // time it arrived. Reading the ref instead of the closed-over state fixes
+  // that without adding activeChannel-effect churn every time a profile loads.
+  const profileByEmailRef = useRef(profileByEmail);
+  useEffect(() => { profileByEmailRef.current = profileByEmail; }, [profileByEmail]);
 
   useEffect(() => {
     voicePresenceRef.current = { inVoice: isInVoice, channelId: activeChannel?.id ?? null, email: userEmail };
@@ -303,12 +312,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   useEffect(() => {
     if (!isJoined || !userEmail) return;
     (async () => {
-      const { data } = await supabase
-        .from('community_muted_users')
-        .select('muted_until')
-        .eq('participant_email', userEmail)
-        .maybeSingle();
-      setMutedUntil(data && new Date(data.muted_until) > new Date() ? data.muted_until : null);
+      // Routed through an RPC, not a direct select — community_muted_users
+      // had a wide-open SELECT policy, so anyone with the anon key could
+      // dump the whole table (who's muted, until when, the organizer's
+      // free-text reason) even though this only ever needed the caller's
+      // own row.
+      const { data } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
+      const row = Array.isArray(data) ? data[0] : data;
+      setMutedUntil(row?.muted_until && new Date(row.muted_until) > new Date() ? row.muted_until : null);
     })();
   }, [isJoined, userEmail]);
 
@@ -352,11 +363,20 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   }, [isJoined, userEmail, userName]);
 
   const fetchStaffList = async () => {
-    const { data } = await supabase.from('community_staff').select('participant_email, display_name, role_label, badge_emoji');
+    const { data, error } = await supabase.from('community_staff').select('participant_email, display_name, role_label, badge_emoji');
     if (data) {
       const map: Record<string, StaffInfo> = {};
       (data as any[]).forEach((row) => { map[row.participant_email] = { display_name: row.display_name, role_label: row.role_label, badge_emoji: row.badge_emoji }; });
       setStaffByEmail(map);
+    } else if (error) {
+      // Silently leaving staffByEmail empty on failure isn't harmless here —
+      // isStaffEmail (below) would read false for a real staff member,
+      // routing their send through send_community_message instead of
+      // send_staff_message, which the DB hard-rejects with a confusing
+      // "this email belongs to a staff account" error despite them holding
+      // a valid staffToken. Loud enough to debug, not user-facing (this
+      // runs on every page load, not from a user action).
+      console.error('Failed to load community staff list:', error);
     }
   };
 
@@ -365,7 +385,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // username/avatar yet, so messages fall back to sender_name/initial-circle
   // when there's no entry here for that email.
   const fetchProfilesForSenders = async (emails: string[]) => {
-    const missing = [...new Set(emails)].filter(e => !(e in profileByEmail));
+    const missing = [...new Set(emails)].filter(e => !(e in profileByEmailRef.current));
     if (missing.length === 0) return;
     const { data } = await supabase.from('participant_profiles').select('participant_email, username, avatar_emoji').in('participant_email', missing);
     if (data) {
@@ -409,6 +429,20 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   }, [pendingStaffInviteToken]);
 
   useEffect(() => {
+    // Nothing previously cleared the prior channel's messages/pinned list/
+    // pagination state here — for the duration of the fetch below (or
+    // permanently, if that fetch silently failed, since none of the fetch
+    // functions had an error branch), the header would show the NEW
+    // channel's name over the OLD channel's messages. Worse, if a fetch
+    // failed outright, loadOlderMessages would keep reading `messages[0]`
+    // as if it belonged to the new channel and query the wrong channel's
+    // history entirely. Resetting up front means a slow/failed fetch shows
+    // an empty/loading state instead of stale, wrongly-attributed content.
+    setMessages([]);
+    setPinnedMessages([]);
+    setHasMoreMessages(false);
+    setVoiceParticipants([]);
+
     // Announcement channels render through the exact same message-list/
     // composer JSX as text channels (just with posting locked to
     // organizers) — but this effect used to only ever fetch messages and
@@ -434,9 +468,19 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             filter: `channel_id=eq.${activeChannel.id}`
           },
           (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
-            fetchProfilesForSenders([(payload.new as Message).sender_email]);
-            requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
+            const incoming = payload.new as Message;
+            // Only auto-scroll if the viewport was already near the bottom
+            // (or this is the sender's own message) — unconditionally
+            // yanking the view down on every incoming message made reading
+            // history in a busy channel impossible, and raced with
+            // loadOlderMessages' own scroll-position restoration below.
+            const viewport = scrollRootRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+            const nearBottom = !viewport || viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 150;
+            setMessages(prev => [...prev, incoming]);
+            fetchProfilesForSenders([incoming.sender_email]);
+            if (nearBottom || incoming.sender_email === userEmail) {
+              requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
+            }
           }
         )
         // Edit/delete had no realtime handling at all — one viewer editing
@@ -587,13 +631,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     }
     setClaimingQuestId(quest.id);
     try {
+      // Now device-token gated, same as every other mutating community RPC
+      // — it used to take no proof of identity at all, letting anyone
+      // claim a badge for any email.
       const { data, error } = await supabase.rpc('claim_community_quest', {
         p_participant_email: userEmail,
         p_participant_name: userName,
         p_quest_id: quest.id,
+        p_device_token: deviceToken || null,
       });
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
+      if (result?.new_device_token) setDeviceToken(result.new_device_token);
       if (result?.ok) {
         toast({ title: `${result.badge_emoji || '🏅'} ${result.message}`, description: result.badge_label ? `You earned the "${result.badge_label}" badge!` : undefined });
         await fetchQuestsAndBadges();
@@ -665,6 +714,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // Fresh load — jump straight to the bottom, no animation (there's
       // nothing to animate from; the list didn't exist a moment ago).
       requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }));
+    } else if (error) {
+      // messages/pinned/hasMore are already reset to empty before this
+      // runs (see the effect above), so a failure here now shows an empty
+      // channel instead of silently keeping a stale, wrongly-attributed
+      // previous channel's messages on screen — still worth telling the
+      // user explicitly rather than leaving them staring at "no messages".
+      toast({ title: 'Could not load messages', description: 'Try switching channels again.', variant: 'destructive' });
     }
   };
 
@@ -821,7 +877,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       const result = Array.isArray(data) ? data[0] : data;
       if (error || !result?.ok) {
         toast({ title: 'Could not send', description: result?.message || error?.message || 'Staff verification failed.', variant: 'destructive' });
-        setStaffToken(''); // stale/revoked token — force a fresh invite link rather than silently retrying
+        // Only clear on a genuine rejection from the RPC (stale/revoked
+        // token) — `error` is also set for any transport failure (offline,
+        // a 500, a timeout), and those aren't proof the token is bad. A
+        // one-second wifi blip used to permanently wipe a real staff
+        // credential and force re-minting a fresh invite link for no reason.
+        if (!error && result?.ok === false) setStaffToken('');
       } else {
         setNewMessage('');
       }
@@ -1261,12 +1322,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (!target) return;
 
     disposeJitsi();
-    await supabase.rpc('leave_voice_room', {
+    const { error } = await supabase.rpc('leave_voice_room', {
       p_channel_id: target.id,
       p_participant_email: userEmail,
       p_device_token: deviceToken || null,
     });
 
+    // Flipping this regardless of the result was exactly the phantom-
+    // participant class the comments around this function already fixed
+    // three other ways (beforeunload beacon, channel-switch cleanup,
+    // dispose-on-unmount) — a failed RPC call here (network blip, or a
+    // device-token mismatch since it's only minted on first reaction/
+    // profile-save, so an early voice join can carry a null token) left
+    // the local UI saying "not in voice" while the row lived on, showing
+    // this person as permanently connected to everyone else.
+    if (error) {
+      toast({ title: 'Could not leave voice cleanly', description: 'Refresh if you still show as connected to others.', variant: 'destructive' });
+    }
     setIsInVoice(false);
   };
 
@@ -1774,12 +1846,26 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 </div>
                 <button
                   onClick={() => {
-                    // The staff token is a bearer credential now (unlike the
-                    // old PIN, which naturally expired with sessionStorage on
-                    // tab close) — on a shared/kiosk device, leaving it behind
-                    // would let the next person type this staffer's email and
-                    // inherit their verified badge with zero proof of identity.
+                    // The staff token AND the regular device token are both
+                    // bearer credentials now (unlike the old PIN, which
+                    // naturally expired with sessionStorage on tab close) —
+                    // on a shared/kiosk device, leaving either behind would
+                    // let the next person type this participant's email,
+                    // land on the join screen still prefilled with it, and
+                    // inherit full posting/edit/delete rights (or a staff
+                    // badge) with zero proof of identity. Every identity-
+                    // scoped key needs clearing here, not just the staff one.
                     setStaffToken('');
+                    setDeviceToken('');
+                    localStorage.removeItem('forge-student-name');
+                    localStorage.removeItem('forge-student-email');
+                    localStorage.removeItem('forge-student-username');
+                    localStorage.removeItem('forge-student-avatar');
+                    setUserName('');
+                    setUserEmail('');
+                    setUserUsername('');
+                    setUserAvatarEmoji('');
+                    setProfileChecked(false);
                     setIsJoined(false);
                   }}
                   title="Not you? Switch identity"

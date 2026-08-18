@@ -31,7 +31,7 @@ import { runModule } from '../../../supabase/functions/_shared/pyInterpreter/eva
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
-import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -56,6 +56,11 @@ interface ChatMessage {
   // (vs. the AI) — the one visible signal that real Python is genuinely
   // running, not just accepted and ignored.
   usedRealPython?: boolean;
+  // Set when respond() was attempted and genuinely failed (missing
+  // entrypoint, a bug, an invalid return type, a timeout) — previously
+  // this was completely invisible; the AI's fallback reply looked
+  // identical whether respond() worked, wasn't defined, or crashed.
+  pythonErrorType?: string;
 }
 
 interface QAPair {
@@ -847,7 +852,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Restore session from DB on mount if we have a saved project ID
   // Skip restore if initialCode was explicitly provided (user picked a new template)
   useEffect(() => {
-    if (initialCode) return; // Fresh template selected — don't overwrite with old project
+    if (initialCode) {
+      // Fresh template/gallery code selected — don't restore the old
+      // project's saved state on top of it. But `currentProjectId` above
+      // already initialized from localStorage (whatever project was open
+      // last time), and this branch used to just return without touching
+      // it — so Save Checkpoint would silently target and overwrite that
+      // OLD project with this brand-new code instead of creating a new
+      // one. Same clearing handleTypeChange/handleResetToTemplate already
+      // do when switching templates from inside the editor.
+      setCurrentProjectId(null);
+      localStorage.removeItem('forge-current-project-id');
+      setLastKnownUpdatedAt(null);
+      return;
+    }
     const savedId = localStorage.getItem('forge-current-project-id');
     // forge-editor-code is tagged with the project id it was written for
     // (see updateFile) — only ever trust it for the project it actually
@@ -951,10 +969,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const tripleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*"""([\s\S]*?)"""/;
       const singleRegex = /(?:KNOWLEDGE_BASE|knowledge_base)\s*=\s*["'](.*)["']/;
       const varName = stripComments(code).match(/KNOWLEDGE_BASE\s*=/) ? 'KNOWLEDGE_BASE' : 'knowledge_base';
-      let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${knowledgeBase}"""`);
+      // Escaped the same way the single-line branch below always has —
+      // unescaped, a backslash (a Windows path, LaTeX) produced an invalid
+      // Python escape sequence, and text containing a literal `"""` (rare,
+      // but not impossible in pasted notes) terminated the string early
+      // and corrupted everything after it in main.py. `\"` is always legal
+      // inside a Python triple-quoted string even when not strictly
+      // required, so escaping every quote is safe, not just the runs of 3.
+      const escapedKnowledge = knowledgeBase.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${escapedKnowledge}"""`);
       if (updated === null) {
         if (knowledgeBase.includes('\n')) {
-          updated = replaceOutsideComments(code, singleRegex, `${varName} = """${knowledgeBase}"""`);
+          updated = replaceOutsideComments(code, singleRegex, `${varName} = """${escapedKnowledge}"""`);
         } else {
           const escaped = knowledgeBase.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           updated = replaceOutsideComments(code, singleRegex, `${varName} = "${escaped}"`);
@@ -981,8 +1007,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // ~955) — the write effect above escapes \ and " when building the
       // single-line form, but this read-back never undid it, so typing a
       // quote into Knowledge Base round-tripped as a literal backslash and
-      // re-escaped further on every subsequent edit.
-      const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      // re-escaped further on every subsequent edit. Now applies to the
+      // triple-quoted form too, since the write side above escapes both
+      // forms identically.
+      const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevKnowledgeRef.current) {
         prevKnowledgeRef.current = unescaped;
         setKnowledgeBase(unescaped);
@@ -1155,11 +1183,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         const singleRegex = /(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/;
         const strippedForName = stripComments(code);
         const varName = strippedForName.match(/SYSTEM_MESSAGE\s*=/) ? 'SYSTEM_MESSAGE' : strippedForName.match(/SYSTEM_PROMPT\s*=/) ? 'SYSTEM_PROMPT' : 'system_message';
-        let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${systemPrompt}"""`);
+        // Escaped the same way as the Knowledge Base sync above — a raw
+        // backslash or a literal `"""` in the text would otherwise produce
+        // an invalid escape sequence or terminate the string early and
+        // corrupt the rest of main.py.
+        const escapedSystemPrompt = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        let updated = replaceOutsideComments(code, tripleRegex, `${varName} = """${escapedSystemPrompt}"""`);
         if (updated === null) {
           const needsTriple = systemPrompt.includes('\n');
           if (needsTriple) {
-            updated = replaceOutsideComments(code, singleRegex, `${varName} = """${systemPrompt}"""`);
+            updated = replaceOutsideComments(code, singleRegex, `${varName} = """${escapedSystemPrompt}"""`);
           } else {
             const escaped = systemPrompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
             updated = replaceOutsideComments(code, singleRegex, `${varName} = "${escaped}"`);
@@ -1184,7 +1217,9 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const singleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT)\s*=\s*["'](.*)["']/);
     const match = tripleMatch || singleMatch;
     if (match) {
-      const unescaped = tripleMatch ? match[1] : match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      // Both forms are escaped identically on write now (see the sync
+      // effect above), so both need unescaping on read-back.
+      const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       if (unescaped !== prevSystemPromptRef.current) {
         prevSystemPromptRef.current = unescaped;
         setSystemPrompt(unescaped);
@@ -2016,7 +2051,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (!result) {
         setTerminalOutput(prev => [...prev, '⚠ No output received. Check your code for issues.']);
       } else {
-        setTerminalOutput(prev => [...prev, '───────────────────', '✅ All tests passed!']);
+        // Was previously a hardcoded '✅ All tests passed!' appended after
+        // ANY non-empty response — even right after the AI's own generated
+        // text (which the 'run' prompt explicitly asks to end with a real
+        // status, including saying so plainly if something's broken) had
+        // just reported a problem. Just a divider now; the AI's own
+        // concluding line is the actual status, not overridden by one.
+        setTerminalOutput(prev => [...prev, '───────────────────']);
       }
       setChatMessages(prev => [...prev, { role: 'system', content: `✅ Tests complete! ${completedCount}/34 challenges done.` }]);
       // Used to also insert a 'first_run_success' point_event here —
@@ -2167,8 +2208,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       return acc.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '***');
     }, text);
 
+    // Steps 1-3 below are config-based interception (easter eggs, Q&A,
+    // blocked topics) — skipped entirely when the project defines a real
+    // respond() function. Every scaffold ships these config variables
+    // pre-filled and respond() never clears them, so without this check a
+    // student's own Python never even ran for any message that happened to
+    // also match leftover scaffold defaults — with zero indication their
+    // function was skipped. respond() is the documented alternative to
+    // this whole config system, not a layer on top of it (see the
+    // walkthrough's own copy: "write a real def respond(...) function —
+    // INSTEAD"), so when it's present it's authoritative and every message
+    // goes straight to step 4, which is the one path that actually runs it.
+    const hasRespond = codeDefinesRespond(files['main.py']);
+
     // 1. Check for secret responses FIRST (client-side, near-exact match)
-    for (const [trigger, response] of Object.entries(config.secretResponses)) {
+    if (!hasRespond) for (const [trigger, response] of Object.entries(config.secretResponses)) {
       if (normalizedMsg === normalizeTrigger(trigger)) {
         setChatMessages(prev => [
           ...prev,
@@ -2179,83 +2233,93 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }
 
-    // 2. Check for EXACT Q&A matches client-side (most reliable)
+    // Computed unconditionally — even when respond() is authoritative and
+    // skips the interception below, mergedQA still ships to the edge
+    // function (see the streamFromEdgeFunction call further down) as
+    // context the LLM fallback can draw on if respond() itself returns
+    // None/empty for a given message.
     // Deduplicate: sidebar qaData syncs to code, so qaPairsFromCode may duplicate.
     // Use sidebar qaData as primary, then add any code-only pairs not already present.
     const sidebarPairs = qaData.filter(p => p.q.trim() && p.a.trim());
     const sidebarQs = new Set(sidebarPairs.map(p => p.q.toLowerCase().trim()));
     const codePairs = config.qaPairsFromCode.filter(p => !sidebarQs.has(p.q.toLowerCase().trim()));
     const mergedQA = [...sidebarPairs, ...codePairs];
-    // Generic filler words carry no topic signal — without excluding them,
-    // a message as thin as "can you help" bidirectional-overlap-matched
-    // ANY Q&A pair that happened to also contain those three words,
-    // regardless of actual subject (e.g. an unrelated math Q&A pair).
-    const QA_STOP_WORDS = new Set(['can', 'you', 'the', 'and', 'for', 'are', 'that', 'this', 'with', 'what', 'how', 'does', 'did', 'was', 'were', 'have', 'has', 'just', 'please', 'your', 'like', 'want', 'need', 'tell', 'know', 'get', 'got', 'not', 'but', 'all', 'any', 'out', 'who', 'why', 'when', 'where', 'about', 'me']);
-    const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
-    // Scan every pair and keep the strongest match instead of acting on
-    // whichever happened to come first in the array — an exact substring
-    // match later in the list used to lose to a weaker fuzzy match earlier.
-    let bestQA: { pair: (typeof mergedQA)[number]; score: number } | null = null;
-    for (const pair of mergedQA) {
-      const qLower = pair.q.toLowerCase().trim();
-      if (!qLower) continue;
-      // The full question appearing inside what the user typed is a strong
-      // signal regardless of length. The reverse — the user's message being
-      // a substring of the question — is only reliable when that message
-      // carries real content; otherwise a generic filler phrase like "can
-      // you help" is trivially a substring of "can you help me with math
-      // homework" and would match on nothing meaningful.
-      const isSupersetOfQ = lowerMsg.includes(qLower);
-      const isGenericSubstringOfQ = userWords.length >= 2 && qLower.includes(lowerMsg);
-      if (isSupersetOfQ || isGenericSubstringOfQ) {
-        const score = 1000 + qLower.length; // exact/substring always beats a fuzzy match
-        if (!bestQA || score > bestQA.score) bestQA = { pair, score };
-        continue;
+
+    // 2. Check for EXACT Q&A matches client-side (most reliable)
+    if (!hasRespond) {
+      // Generic filler words carry no topic signal — without excluding them,
+      // a message as thin as "can you help" bidirectional-overlap-matched
+      // ANY Q&A pair that happened to also contain those three words,
+      // regardless of actual subject (e.g. an unrelated math Q&A pair).
+      const QA_STOP_WORDS = new Set(['can', 'you', 'the', 'and', 'for', 'are', 'that', 'this', 'with', 'what', 'how', 'does', 'did', 'was', 'were', 'have', 'has', 'just', 'please', 'your', 'like', 'want', 'need', 'tell', 'know', 'get', 'got', 'not', 'but', 'all', 'any', 'out', 'who', 'why', 'when', 'where', 'about', 'me']);
+      const userWords = lowerMsg.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
+      // Scan every pair and keep the strongest match instead of acting on
+      // whichever happened to come first in the array — an exact substring
+      // match later in the list used to lose to a weaker fuzzy match earlier.
+      let bestQA: { pair: (typeof mergedQA)[number]; score: number } | null = null;
+      for (const pair of mergedQA) {
+        const qLower = pair.q.toLowerCase().trim();
+        if (!qLower) continue;
+        // The full question appearing inside what the user typed is a strong
+        // signal regardless of length. The reverse — the user's message being
+        // a substring of the question — is only reliable when that message
+        // carries real content; otherwise a generic filler phrase like "can
+        // you help" is trivially a substring of "can you help me with math
+        // homework" and would match on nothing meaningful.
+        const isSupersetOfQ = lowerMsg.includes(qLower);
+        const isGenericSubstringOfQ = userWords.length >= 2 && qLower.includes(lowerMsg);
+        if (isSupersetOfQ || isGenericSubstringOfQ) {
+          const score = 1000 + qLower.length; // exact/substring always beats a fuzzy match
+          if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+          continue;
+        }
+        // Bug 2: Tighter fuzzy matching — require bidirectional overlap ≥60%
+        const qWords = qLower.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
+        const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
+        const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
+        if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
+          const score = userInQ + qInUser;
+          if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+        }
       }
-      // Bug 2: Tighter fuzzy matching — require bidirectional overlap ≥60%
-      const qWords = qLower.split(/\s+/).filter(w => w.length > 2 && !QA_STOP_WORDS.has(w));
-      const userInQ = qWords.length > 0 ? userWords.filter(w => qLower.includes(w)).length / qWords.length : 0;
-      const qInUser = userWords.length > 0 ? qWords.filter(w => lowerMsg.includes(w)).length / userWords.length : 0;
-      if (userWords.length >= 2 && userInQ >= 0.6 && qInUser >= 0.6) {
-        const score = userInQ + qInUser;
-        if (!bestQA || score > bestQA.score) bestQA = { pair, score };
+      if (bestQA) {
+        // Build the answer with bot personality
+        let answer = bestQA.pair.a;
+        if (config.catchphrases.length > 0) {
+          answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
+        }
+        if (config.signOff) {
+          answer += `\n\n${config.signOff}`;
+        }
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: scrubForbidden(answer) },
+        ]);
+        return;
       }
-    }
-    if (bestQA) {
-      // Build the answer with bot personality
-      let answer = bestQA.pair.a;
-      if (config.catchphrases.length > 0) {
-        answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
-      }
-      if (config.signOff) {
-        answer += `\n\n${config.signOff}`;
-      }
-      setChatMessages(prev => [
-        ...prev,
-        { role: 'user', content: userMsg },
-        { role: 'assistant', content: scrubForbidden(answer) },
-      ]);
-      return;
     }
 
     // 3. Check for blocked topics client-side
     // Word-boundary match, not raw substring — a blocked topic like "sex" or "ass"
     // used to trip on unrelated words like "Sussex" or "assessment".
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const topicMatches = (topic: string) => {
-      const t = topic.trim();
-      return t.length > 0 && new RegExp(`\\b${escapeRegex(t)}\\b`, 'i').test(userMsg);
-    };
-    for (const topic of config.blockedTopics) {
-      if (topicMatches(topic)) {
-        let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
-        if (config.signOff) refusal += `\n\n${config.signOff}`;
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: userMsg },
-          { role: 'assistant', content: refusal },
-        ]);
-        return;
+    if (!hasRespond) {
+      const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const topicMatches = (topic: string) => {
+        const t = topic.trim();
+        return t.length > 0 && new RegExp(`\\b${escapeRegex(t)}\\b`, 'i').test(userMsg);
+      };
+      for (const topic of config.blockedTopics) {
+        if (topicMatches(topic)) {
+          let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
+          if (config.signOff) refusal += `\n\n${config.signOff}`;
+          setChatMessages(prev => [
+            ...prev,
+            { role: 'user', content: userMsg },
+            { role: 'assistant', content: refusal },
+          ]);
+          return;
+        }
       }
     }
 
@@ -2278,6 +2342,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     try {
       let assistantReply = '';
       let usedRealPython = false;
+      let pythonErrorType: string | undefined;
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
@@ -2334,12 +2399,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const updated = [...prev];
             const idx = updated.findIndex(m => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId, usedRealPython };
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId, usedRealPython, pythonErrorType };
             return updated;
           });
         },
         abortCtl.signal,
-        (headers) => { usedRealPython = headers.get('X-Python-Status') === 'handled'; },
+        (headers) => {
+          const status = headers.get('X-Python-Status');
+          usedRealPython = status === 'handled';
+          pythonErrorType = status === 'error' ? (headers.get('X-Python-Error-Type') || 'error') : undefined;
+        },
       );
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
@@ -2382,7 +2451,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           p_project_id: currentProjectId,
           p_participant_email: email,
           p_project_name: projectName,
-          p_description: systemPrompt,
+          // NULL, not systemPrompt — this is a regular checkpoint save, not
+          // a publish. description is the public blurb PublishModal's own
+          // dedicated field owns; save_own_project now COALESCEs a NULL
+          // here into "leave it alone" instead of unconditionally
+          // overwriting it, so the next autosave after publishing can't
+          // silently replace what the student typed there with their raw
+          // system prompt.
+          p_description: null,
           p_code: codePayload,
           p_template_id: projectType,
           p_author_name: authorName,
@@ -2397,6 +2473,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 action: { label: 'Reload', onClick: () => window.location.reload() },
               });
             }
+            // The ref above only throttles the intrusive toast (so the
+            // 2-minute autosave timer doesn't re-spam it) — without this
+            // line, every save attempt after the first conflict returned
+            // with literally zero feedback of any kind, silent no-ops that
+            // looked identical to a successful save at a glance.
+            setTerminalOutput(prev => [...prev, '⚠ Save blocked — conflict with another tab/device. Reload to continue.']);
             return;
           }
           throw error;
@@ -2404,9 +2486,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         conflictAlertedRef.current = false;
         if ((data as any)?.updated_at) setLastKnownUpdatedAt((data as any).updated_at);
       } else {
+        // Attach whichever hackathon is currently live, same lookup
+        // PublishModal's own new-project path already does — without this,
+        // a project created here (via Save Checkpoint, before ever
+        // publishing) got hackathon_id = NULL permanently: the identity-
+        // lock trigger below refuses to let it be set later, so it would
+        // stay invisible to the judge dashboard and leaderboard forever
+        // even after being published.
+        const { data: liveHackathon } = await supabase
+          .from('hackathons')
+          .select('id')
+          .eq('status', 'live')
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
         const { data, error } = await supabase
           .from('ai_projects')
-          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0 })
+          .insert({ project_name: projectName, description: systemPrompt, code: codePayload, template_id: projectType, author_name: name || authorName || 'Student', author_email: email, is_published: false, points_earned: 0, hackathon_id: liveHackathon?.id || null })
           .select('id, updated_at')
           .single();
         if (error) throw error;
@@ -2856,6 +2952,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== defaults.voiceMode },
                         { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },
                         { emoji: '🗣️', name: 'Voice Gender', done: config.voiceGender !== defaults.voiceGender },
+                        // Challenges 25-34 — this list stopped at 24 while the
+                        // terminal's Run Tests panel, getChallengeCount (used
+                        // by the Achievement Grid), and the scaffolds
+                        // themselves all moved to 34. Same done-conditions as
+                        // those two, just mirrored here so the sidebar
+                        // doesn't undercount what's actually customized.
+                        { emoji: '💌', name: 'Fallback Message', done: isFallbackMessageCustomized(config.fallbackMessage, defaults.fallbackMessage) },
+                        { emoji: '🔑', name: 'Topic Keywords', done: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > defaults.qaPairsFromCode.length },
+                        { emoji: '🎉', name: 'Hype Phrases', done: config.hasListComprehension && config.phraseIdeas.length > 0 },
+                        { emoji: '👤', name: 'Personalized Intro', done: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro },
+                        { emoji: '🧭', name: 'Mood Instruction', done: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction },
+                        { emoji: '➕', name: 'Rule Count', done: config.hasAccumulatorLoop && config.conversationRules.length > defaults.conversationRules.length },
+                        { emoji: '🔠', name: 'Print + Upper', done: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement },
+                        { emoji: '⚖️', name: 'Is Expressive', done: config.booleanLogicExpr !== '' && config.booleanLogicExpr !== defaults.booleanLogicExpr },
+                        { emoji: '🔢', name: 'Numbered Rules', done: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint },
+                        { emoji: '🎚️', name: 'Max Tokens Line', done: config.typeCastPrint !== '' && config.typeCastPrint !== defaults.typeCastPrint },
                       ];
                       const completed = missions.filter(m => m.done).length;
                       const total = missions.length;
@@ -3942,6 +4054,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           {msg.usedRealPython && (
                             <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-400 mb-1" title="main.py's respond() answered this message directly — the AI wasn't called.">
                               🐍 Answered by your Python code
+                            </div>
+                          )}
+                          {msg.pythonErrorType && (
+                            <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={`respond() didn't run (${msg.pythonErrorType}) — the AI answered instead. Check the Console tab or your function for bugs.`}>
+                              🐍 Python error ({msg.pythonErrorType}) — AI answered instead
                             </div>
                           )}
                           <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">

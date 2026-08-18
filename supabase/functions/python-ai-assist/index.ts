@@ -6,6 +6,12 @@ import { makeAiGenerateCallback } from "./aiGenerateCallback.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  // Without this, a cross-origin fetch's headers.get() returns null for
+  // ANY header not on the browser's small CORS safelist — X-Python-Status
+  // isn't on it, so ProjectEditor.tsx/ProjectView.tsx's `usedRealPython`
+  // check always read false regardless of whether respond() actually ran.
+  // The "🐍 Answered by your Python code" badge could never appear.
+  "Access-Control-Expose-Headers": "X-Python-Status, X-Python-Error-Type",
 };
 
 // ── Concurrency gate ──
@@ -297,6 +303,12 @@ serve(async (req) => {
     let sysPrompt = "";
     let userPrompt = "";
     let extraMessages: { role: string; content: string }[] = [];
+    // Set below if respond() was attempted and genuinely failed (not just
+    // absent/deferred) — carried through to whichever response actually
+    // gets returned, since a real Python error still falls through to the
+    // same AI-fallback response construction as a project with no
+    // respond() at all.
+    let pythonErrorType: string | null = null;
 
     // Build knowledge context string if available
     let knowledgeContext = "";
@@ -519,9 +531,19 @@ Format as plain terminal text with emojis. Under 300 words.`;
           headers: { ...corsHeaders, "Content-Type": "text/event-stream", "X-Python-Status": "handled" },
         });
       }
-      // handled: false (no code / deferred / N/A for this action) or a
-      // Python-side error — either way, everything below runs exactly as
-      // it did before this change existed.
+      // handled: false (no code / deferred / N/A for this action) still
+      // falls through to the AI exactly as before. A genuine error — a
+      // missing entrypoint, a real bug, an invalid return type, a timeout —
+      // used to be silently discarded right here with zero signal, so a
+      // student whose respond() crashed had no way to distinguish "my code
+      // isn't running" from "it's working, the AI's tone is just different
+      // today." Still doesn't block the response (same fallback-safe
+      // contract, still falls through to the AI below) — just tracked so
+      // the eventual response can carry a header the client can check.
+      if (pyReply.handled && "error" in pyReply) {
+        console.error("respond() failed:", pyReply.error.type, pyReply.error.message);
+        pythonErrorType = pyReply.error.type;
+      }
 
       // ── Real tool calling for agent projects ──
       let toolResultsContext = "";
@@ -758,7 +780,11 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
     }
 
     return new Response(releaseSlotOnStreamEnd(response.body, releaseSlot), {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        ...(pythonErrorType ? { "X-Python-Status": "error", "X-Python-Error-Type": pythonErrorType } : {}),
+      },
     });
   } catch (e) {
     await releaseSlot();
