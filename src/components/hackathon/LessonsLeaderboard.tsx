@@ -6,7 +6,7 @@ import { GraduationCap, Crown, Medal, Users } from 'lucide-react';
 import { CoinIcon } from './CoinIcon';
 
 interface RankedLearner {
-  email: string;
+  key: string;
   name: string;
   coins: number;
   lessonsPassed: number;
@@ -29,6 +29,12 @@ export const LessonsLeaderboard = ({ hackathonId }: { hackathonId: string | null
   const fetchLeaderboard = useCallback(async () => {
     if (!hackathonId) { setLearners([]); setIsLoading(false); return; }
     try {
+      // Routed through SECURITY DEFINER RPCs instead of raw table selects —
+      // point_events/hackathon_registrations both have an open public
+      // SELECT policy, so a direct client-side select here handed every
+      // visitor every registrant's real email address. Each RPC returns
+      // md5(lower(trim(email))) instead of the address itself.
+      //
       // The coins query is deliberately NOT scoped to hackathonId — lesson
       // coins are a lifetime learning total (matching lesson_progress,
       // which has never been per-event), not a per-event competition score
@@ -36,29 +42,29 @@ export const LessonsLeaderboard = ({ hackathonId }: { hackathonId: string | null
       // event-scoped (this event's registered participants); each of
       // their coin totals reflects everything they've ever earned.
       const [coinRes, regRes] = await Promise.all([
-        supabase.from('point_events').select('participant_email, points').eq('event_type', 'lesson_coin'),
-        supabase.from('hackathon_registrations').select('participant_email, participant_name').eq('hackathon_id', hackathonId),
+        supabase.rpc('get_lesson_coin_events'),
+        supabase.rpc('get_hackathon_registered_participants', { p_hackathon_id: hackathonId }),
       ]);
 
       if (!isMountedRef.current) return;
 
       const nameMap = new Map<string, string>();
-      (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_email, r.participant_name));
+      (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_key, r.participant_name));
 
       const coinMap = new Map<string, number>();
       const countMap = new Map<string, number>();
       (coinRes.data || []).forEach((row: any) => {
-        if (!nameMap.has(row.participant_email)) return; // not registered for this event
-        coinMap.set(row.participant_email, (coinMap.get(row.participant_email) || 0) + row.points);
-        countMap.set(row.participant_email, (countMap.get(row.participant_email) || 0) + 1);
+        if (!nameMap.has(row.participant_key)) return; // not registered for this event
+        coinMap.set(row.participant_key, (coinMap.get(row.participant_key) || 0) + row.points);
+        countMap.set(row.participant_key, (countMap.get(row.participant_key) || 0) + 1);
       });
 
       const ranked = [...coinMap.keys()]
-        .map(email => ({
-          email,
-          name: nameMap.get(email) || email.split('@')[0],
-          coins: coinMap.get(email) || 0,
-          lessonsPassed: countMap.get(email) || 0,
+        .map(key => ({
+          key,
+          name: nameMap.get(key) || 'A FORGE Builder',
+          coins: coinMap.get(key) || 0,
+          lessonsPassed: countMap.get(key) || 0,
           rank: 0,
         }))
         .sort((a, b) => b.coins - a.coins || a.name.localeCompare(b.name))
@@ -154,7 +160,7 @@ export const LessonsLeaderboard = ({ hackathonId }: { hackathonId: string | null
             <AnimatePresence initial={false}>
               {learners.map((p, index) => (
                 <motion.div
-                  key={p.email}
+                  key={p.key}
                   layout
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}

@@ -112,14 +112,33 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
   const fetchSubmissions = useCallback(async () => {
     if (!selectedChallengeId) { setSubmissions([]); setIsLoading(false); return; }
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('challenge_submissions')
-      .select('id, participant_email, content_url, notes, submitted_at, submission_scores(total_sp, status, auto_score, judge_score, auto_breakdown, judge_breakdown, last_judge_name)')
-      .eq('challenge_id', selectedChallengeId)
-      .order('submitted_at', { ascending: true });
-    if (error) toast.error('Failed to load submissions');
-    setSubmissions((data as any) || []);
-    setIsLoading(false);
+    try {
+      // Routed through admin-actions instead of a direct challenge_submissions
+      // select — that table has a wide-open SELECT policy, so the raw anon
+      // key could read every participant's email/submission outside the
+      // organizer/judge passphrase gate entirely. The RPC returns flat
+      // columns instead of an embedded relationship, reassembled below into
+      // the same submission_scores shape the rest of this file expects.
+      const rows = await callAdminAction<any[]>('list_challenge_submissions', { challenge_id: selectedChallengeId });
+      const mapped: Submission[] = (rows || []).map(r => ({
+        id: r.id,
+        participant_email: r.participant_email,
+        content_url: r.content_url,
+        notes: r.notes,
+        submitted_at: r.submitted_at,
+        submission_scores: r.total_sp === null && r.score_status === null && r.auto_score === null
+          ? null
+          : {
+              total_sp: r.total_sp, status: r.score_status, auto_score: r.auto_score, judge_score: r.judge_score,
+              auto_breakdown: r.auto_breakdown, judge_breakdown: r.judge_breakdown, last_judge_name: r.last_judge_name,
+            },
+      }));
+      setSubmissions(mapped);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load submissions');
+    } finally {
+      setIsLoading(false);
+    }
   }, [selectedChallengeId]);
 
   useEffect(() => { fetchChallenges(); }, [fetchChallenges]);

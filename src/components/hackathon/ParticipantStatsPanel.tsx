@@ -240,7 +240,11 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
   const fetchStats = useCallback(async () => {
     if (!email || !hackathonId) return;
     const [pointsRes, boxesRes] = await Promise.all([
-      supabase.from('point_events').select('event_type, points, metadata').eq('hackathon_id', hackathonId).eq('participant_email', email),
+      // Routed through an RPC, not a direct select — point_events has a
+      // wide-open SELECT policy, so a raw client-side select here worked
+      // fine but meant the same anon key could be used outside this app to
+      // pull every participant's events, not just the caller's own.
+      supabase.rpc('get_my_point_events', { p_participant_email: email, p_hackathon_id: hackathonId }),
       // reward_boxes has no public SELECT policy (a participant could otherwise
       // list everyone's boxes and open them) — this RPC is scoped to the
       // caller's own claimed email server-side.

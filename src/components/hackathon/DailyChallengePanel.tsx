@@ -97,13 +97,28 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     setMyProjects(((projectsRes.data as MyProject[]) || []).filter(p => p.hackathon_id === hackathonId));
 
     if (email && chs.length > 0) {
-      const { data: subs } = await supabase
-        .from('challenge_submissions')
-        .select('id, challenge_id, content_url, notes, project_id, submission_scores(total_sp, status, auto_breakdown)')
-        .in('challenge_id', chs.map(c => c.id))
-        .eq('participant_email', email);
+      // Routed through an RPC — challenge_submissions has a wide-open
+      // SELECT policy, so this raw select worked but let the same anon key
+      // read any participant's submissions, not just the caller's own.
+      // The RPC returns flat columns instead of an embedded relationship,
+      // so it's reassembled into the same submission_scores shape below —
+      // singleScore() and everything downstream is unchanged either way.
+      const { data: subs } = await supabase.rpc('get_my_challenge_submissions', {
+        p_participant_email: email,
+        p_challenge_ids: chs.map(c => c.id),
+      });
       const map: Record<string, MySubmission> = {};
-      (subs || []).forEach((s: any) => { map[s.challenge_id] = s; });
+      (subs || []).forEach((s: any) => {
+        map[s.challenge_id] = {
+          id: s.id,
+          content_url: s.content_url,
+          notes: s.notes,
+          project_id: s.project_id,
+          submission_scores: s.total_sp === null && s.score_status === null && s.auto_breakdown === null
+            ? null
+            : { total_sp: s.total_sp, status: s.score_status, auto_breakdown: s.auto_breakdown },
+        };
+      });
       setSubmissions(map);
     } else {
       setSubmissions({});

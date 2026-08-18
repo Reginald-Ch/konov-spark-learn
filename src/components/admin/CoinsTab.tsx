@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { callAdminAction } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,18 +30,23 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
   const fetchData = useCallback(async () => {
     if (!hackathonId) { setRegistrants([]); setBalances({}); setIsLoading(false); return; }
     setIsLoading(true);
-    const [regRes, coinRes] = await Promise.all([
-      supabase.from('hackathon_registrations').select('participant_email, participant_name').eq('hackathon_id', hackathonId),
-      supabase.from('point_events').select('participant_email, points').eq('hackathon_id', hackathonId).in('event_type', ['forge_coin_grant', 'forge_coin_adjust']),
-    ]);
-    if (regRes.error || coinRes.error) toast.error('Failed to load Forge Coin data');
-    setRegistrants((regRes.data as Registrant[]) || []);
-    const map: Record<string, number> = {};
-    (coinRes.data || []).forEach((row: any) => {
-      map[row.participant_email] = (map[row.participant_email] || 0) + row.points;
-    });
-    setBalances(map);
-    setIsLoading(false);
+    try {
+      // Routed through admin-actions instead of direct selects —
+      // hackathon_registrations/point_events both have a wide-open SELECT
+      // policy, so the raw anon key could read every participant's email
+      // and coin history outside the organizer passphrase gate entirely.
+      const { registrants: regs, coinEvents } = await callAdminAction<{ registrants: Registrant[]; coinEvents: { participant_email: string; points: number }[] }>('list_coin_balances', { hackathon_id: hackathonId });
+      setRegistrants(regs || []);
+      const map: Record<string, number> = {};
+      (coinEvents || []).forEach((row) => {
+        map[row.participant_email] = (map[row.participant_email] || 0) + row.points;
+      });
+      setBalances(map);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load Forge Coin data');
+    } finally {
+      setIsLoading(false);
+    }
   }, [hackathonId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

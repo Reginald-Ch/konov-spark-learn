@@ -7,7 +7,7 @@ import { ParticipantStatsPanel } from './ParticipantStatsPanel';
 import { MedalIcon } from './MedalIcon';
 
 interface RankedParticipant {
-  email: string;
+  key: string;
   name: string;
   sp: number;
   badges: { gold: number; silver: number; bronze: number };
@@ -24,50 +24,55 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
   const fetchLeaderboard = useCallback(async () => {
     if (!hackathonId) { setParticipants([]); setIsLoading(false); return; }
     try {
+      // Routed through SECURITY DEFINER RPCs instead of raw table selects —
+      // point_events/hackathon_registrations/challenge_submissions all have
+      // an open public SELECT policy, so a direct client-side select here
+      // handed every visitor every registrant's real email address. Each
+      // RPC returns md5(lower(trim(email))) instead — the client can still
+      // join rows together by key, it just never sees the address itself.
       const [spRes, badgeRes, regRes, onTimeRes] = await Promise.all([
-        supabase.from('point_events').select('participant_email, points').eq('hackathon_id', hackathonId).eq('event_type', 'daily_challenge_sp'),
-        supabase.from('point_events').select('participant_email, metadata').eq('hackathon_id', hackathonId).eq('event_type', 'badge_award'),
-        supabase.from('hackathon_registrations').select('participant_email, participant_name').eq('hackathon_id', hackathonId),
+        supabase.rpc('get_hackathon_sp_events', { p_hackathon_id: hackathonId }),
+        supabase.rpc('get_hackathon_badge_events', { p_hackathon_id: hackathonId }),
+        supabase.rpc('get_hackathon_registered_participants', { p_hackathon_id: hackathonId }),
         // On Time badge count — replaces the old Boost Token currency. Reads
         // the timeliness component that's already part of auto_score instead
         // of tracking a separate reward, so it can't double-count SP.
-        supabase.from('challenge_submissions').select('participant_email, submission_scores(auto_breakdown)').eq('hackathon_id', hackathonId),
+        supabase.rpc('get_hackathon_ontime_submissions', { p_hackathon_id: hackathonId }),
       ]);
 
       if (!isMountedRef.current) return;
 
       const nameMap = new Map<string, string>();
-      (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_email, r.participant_name));
+      (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_key, r.participant_name));
 
       const spMap = new Map<string, number>();
       (spRes.data || []).forEach((row: any) => {
-        spMap.set(row.participant_email, (spMap.get(row.participant_email) || 0) + row.points);
+        spMap.set(row.participant_key, (spMap.get(row.participant_key) || 0) + row.points);
       });
 
       const badgeMap = new Map<string, { gold: number; silver: number; bronze: number }>();
       (badgeRes.data || []).forEach((row: any) => {
         const tier = row.metadata?.tier as 'gold' | 'silver' | 'bronze';
         if (!tier) return;
-        const existing = badgeMap.get(row.participant_email) || { gold: 0, silver: 0, bronze: 0 };
+        const existing = badgeMap.get(row.participant_key) || { gold: 0, silver: 0, bronze: 0 };
         existing[tier] += 1;
-        badgeMap.set(row.participant_email, existing);
+        badgeMap.set(row.participant_key, existing);
       });
 
       const onTimeMap = new Map<string, number>();
       (onTimeRes.data || []).forEach((row: any) => {
-        const score = Array.isArray(row.submission_scores) ? row.submission_scores[0] : row.submission_scores;
-        if (score?.auto_breakdown?.timeliness !== 10) return;
-        onTimeMap.set(row.participant_email, (onTimeMap.get(row.participant_email) || 0) + 1);
+        if (row.timeliness !== 10) return;
+        onTimeMap.set(row.participant_key, (onTimeMap.get(row.participant_key) || 0) + 1);
       });
 
-      const emails = new Set([...spMap.keys(), ...badgeMap.keys(), ...onTimeMap.keys()]);
-      const ranked = [...emails]
-        .map(email => ({
-          email,
-          name: nameMap.get(email) || email.split('@')[0],
-          sp: spMap.get(email) || 0,
-          badges: badgeMap.get(email) || { gold: 0, silver: 0, bronze: 0 },
-          onTimeCount: onTimeMap.get(email) || 0,
+      const keys = new Set([...spMap.keys(), ...badgeMap.keys(), ...onTimeMap.keys()]);
+      const ranked = [...keys]
+        .map(key => ({
+          key,
+          name: nameMap.get(key) || 'A FORGE Builder',
+          sp: spMap.get(key) || 0,
+          badges: badgeMap.get(key) || { gold: 0, silver: 0, bronze: 0 },
+          onTimeCount: onTimeMap.get(key) || 0,
           rank: 0,
         }))
         .sort((a, b) => b.sp - a.sp || a.name.localeCompare(b.name))
@@ -165,7 +170,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
             <AnimatePresence initial={false}>
               {participants.map((p, index) => (
                 <motion.div
-                  key={p.email}
+                  key={p.key}
                   layout
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}

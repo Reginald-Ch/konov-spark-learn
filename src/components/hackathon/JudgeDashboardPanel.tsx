@@ -60,7 +60,7 @@ const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   agent: { icon: '🧠', label: 'Agent' },
 };
 
-const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish }: {
+const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish, isOrganizer }: {
   project: Project;
   meta: { icon: string; label: string };
   isScored: boolean;
@@ -71,6 +71,7 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
   onFeedbackChange: (id: string, val: string) => void;
   onSubmitScore: (project: Project) => void;
   onTogglePublish: (project: Project) => void;
+  isOrganizer: boolean;
 }) => (
   <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
     <div className="p-4">
@@ -98,10 +99,17 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
             <ExternalLink className="w-3 h-3 mr-1" /> Try Live
           </Button>
         </a>
-        <Button size="sm" variant="outline" onClick={() => onTogglePublish(project)}
-          className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
-          {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
-        </Button>
+        {/* toggle_project_publish is organizer-only server-side (a judge-
+            passphrase holder taking any project offline is a griefing
+            vector unrelated to actually judging) — hidden here too instead
+            of showing judges a button that will always come back with
+            "Judges cannot perform this action". */}
+        {isOrganizer && (
+          <Button size="sm" variant="outline" onClick={() => onTogglePublish(project)}
+            className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
+            {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2 pt-3 border-t border-[hsl(var(--discord-light)/0.1)]">
@@ -283,14 +291,20 @@ export const JudgeDashboardPanel = () => {
     if (!hackathonId) { setProjects([]); setIsLoading(false); return; }
     setIsLoading(true);
     try {
+      // Judge scores routed through admin-actions instead of a direct
+      // point_events select — that select had no hackathon filter (relied
+      // on project IDs from other events simply not matching) and fetched
+      // participant_email even though it was never used here; the RPC this
+      // now calls fixes both by joining to ai_projects server-side and
+      // dropping the unused column.
       const [projectsRes, existingScores] = await Promise.all([
         supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
-        supabase.from('point_events').select('participant_email, points, metadata').eq('event_type', 'judge_score').limit(500),
+        callAdminAction<{ points: number; metadata: any }[]>('list_gallery_judge_scores', { hackathon_id: hackathonId }),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
-      if (existingScores.data) {
+      if (existingScores) {
         const byProject: Record<string, { judgeName: string; points: number }[]> = {};
-        (existingScores.data as any[]).forEach((evt: any) => {
+        (existingScores as any[]).forEach((evt: any) => {
           const pid = evt.metadata?.project_id;
           if (!pid) return;
           (byProject[pid] ||= []).push({ judgeName: evt.metadata?.judge_name || 'Unknown judge', points: evt.points });
@@ -388,14 +402,23 @@ export const JudgeDashboardPanel = () => {
   }
 
   return (
-    <div className="dark space-y-6">
+    <div className="dark text-foreground space-y-6">
       {/* Six admin sub-tabs below (Events/Challenges/Submissions/Rewards/
           Coins/Community Staff) were built for the old light AdminPanel page
           and default to plain shadcn tokens (bg-card, text-foreground) —
           the `dark` class here activates the dark-palette overrides in
           index.css's `.dark` block so their cards/headers/borders render
           correctly against this dashboard's dark background instead of
-          near-invisible dark-on-dark text. */}
+          near-invisible dark-on-dark text.
+          The explicit `text-foreground` alongside `dark` matters too: color
+          is an inherited property, and elements like "Reward Boxes" /
+          "Submission Review" headings never declare their own color, only
+          `text-lg font-bold` — without this, they'd inherit body's
+          already-resolved (light-theme, near-black) color, since that
+          inheritance is fixed at body and never re-evaluates --foreground
+          inside this `.dark`-scoped subtree. Declaring color HERE, on the
+          element that actually carries the `dark` class, is what makes the
+          re-evaluated (light) --foreground the thing descendants inherit. */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -493,6 +516,7 @@ export const JudgeDashboardPanel = () => {
                   onFeedbackChange={handleFeedbackChange}
                   onSubmitScore={handleSubmitScore}
                   onTogglePublish={handleTogglePublish}
+                  isOrganizer={role === 'organizer'}
                 />
               ))}
             </div>

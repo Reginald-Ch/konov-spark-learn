@@ -39,7 +39,14 @@ async function resolveRole(supabase: ReturnType<typeof createClient>, passphrase
 // toggle_project_publish removed — it let any judge-passphrase holder
 // take ANY project (not just ones they're actively judging) offline or
 // live, a griefing vector with no relationship to actually judging.
-const JUDGE_ALLOWED_ACTIONS = new Set(["verify", "grade_submission", "submit_gallery_score", "auto_grade_challenge"]);
+const JUDGE_ALLOWED_ACTIONS = new Set([
+  "verify", "grade_submission", "submit_gallery_score", "auto_grade_challenge",
+  // Read-only lookups behind the same tables judges already grade through
+  // (Gallery Judging, Daily Submissions) — moved off the public anon key
+  // (see 20260818020000 migration) but still needed by both roles, not
+  // just organizers.
+  "list_gallery_judge_scores", "list_challenge_submissions",
+]);
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const GRADING_MODEL = "google/gemini-3-flash-preview";
@@ -714,6 +721,40 @@ Deno.serve(async (req) => {
       // Moved here from a direct client-side insert: judge_score is now a
       // privileged point_events type (see migration ...f6c4e0b8), so this is
       // the only path that can write it.
+
+      // Replaces a direct point_events select that had no hackathon filter
+      // (relied on project IDs from other events simply not matching) and
+      // fetched participant_email even though the caller never used it —
+      // see the migration comment for why this needed fixing either way.
+      case "list_gallery_judge_scores": {
+        const { hackathon_id } = payload;
+        if (!hackathon_id) throw new Error("hackathon_id is required");
+        const { data, error } = await supabase.rpc("list_gallery_judge_scores", { p_hackathon_id: hackathon_id });
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
+      case "list_challenge_submissions": {
+        const { challenge_id } = payload;
+        if (!challenge_id) throw new Error("challenge_id is required");
+        const { data, error } = await supabase.rpc("list_challenge_submissions", { p_challenge_id: challenge_id });
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
+      // Organizer-only (not in JUDGE_ALLOWED_ACTIONS) — Forge Coins is an
+      // organizer-only tab already.
+      case "list_coin_balances": {
+        const { hackathon_id } = payload;
+        if (!hackathon_id) throw new Error("hackathon_id is required");
+        const [regRes, coinRes] = await Promise.all([
+          supabase.rpc("list_hackathon_registrants", { p_hackathon_id: hackathon_id }),
+          supabase.rpc("list_coin_events", { p_hackathon_id: hackathon_id }),
+        ]);
+        if (regRes.error) throw regRes.error;
+        if (coinRes.error) throw coinRes.error;
+        return json({ ok: true, data: { registrants: regRes.data, coinEvents: coinRes.data } });
+      }
 
       case "submit_gallery_score": {
         const { project_id, participant_email, points, project_name, judge_name, feedback } = payload;

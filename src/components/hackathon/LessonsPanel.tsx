@@ -275,14 +275,11 @@ export const LessonsPanel = () => {
     // for a brand-new visitor who hasn't registered/earned anything yet.
     let hId: string | null = null;
     if (email) {
-      const { data: reg } = await supabase
-        .from('hackathon_registrations')
-        .select('hackathon_id')
-        .eq('participant_email', email)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      hId = reg?.hackathon_id || null;
+      // Routed through an RPC — hackathon_registrations has a wide-open
+      // SELECT policy, so this raw select worked but let the same anon key
+      // read any participant's registration, not just the caller's own.
+      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email });
+      hId = regs?.[0]?.hackathon_id || null;
     }
     if (!hId) {
       const { data: live } = await supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle();
@@ -327,7 +324,9 @@ export const LessonsPanel = () => {
       // the coin total now follows the same lifetime scope progress does.
       const [{ data: prog }, { data: coinRows }] = await Promise.all([
         supabase.rpc('get_my_lesson_progress', { p_participant_email: email }),
-        supabase.from('point_events').select('points').eq('participant_email', email).eq('event_type', 'lesson_coin'),
+        // Same RPC-not-raw-select fix as the registration lookup above —
+        // point_events also has a wide-open SELECT policy.
+        supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email }),
       ]);
       if (requestId !== fetchAllRequestRef.current) return;
       const map: Record<string, Progress> = {};
