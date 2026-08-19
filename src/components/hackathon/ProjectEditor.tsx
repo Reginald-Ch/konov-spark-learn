@@ -1375,7 +1375,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = prev;
     setFiles(f => ({ ...f, 'main.py': prev }));
     if (textareaRef.current) textareaRef.current.value = prev;
-  }, [files, activeFile]);
+    // Same tagged format updateFile writes on every keystroke — without
+    // this, the localStorage draft stayed on the pre-undo text, so a
+    // crash/reload right after Ctrl+Z resurrected the version the student
+    // had just undone away, silently redoing it for them.
+    localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: prev }));
+  }, [files, activeFile, currentProjectId]);
 
   const handleRedo = useCallback(() => {
     if (activeFile !== 'main.py' || redoStackRef.current.length === 0) return;
@@ -1386,7 +1391,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     lastSnapshotRef.current = next;
     setFiles(f => ({ ...f, 'main.py': next }));
     if (textareaRef.current) textareaRef.current.value = next;
-  }, [files, activeFile]);
+    localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: next }));
+  }, [files, activeFile, currentProjectId]);
 
   // ── Global keyboard shortcuts (handled by ref-based handler at line ~1818) ──
 
@@ -1430,6 +1436,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
         setFiles(f => ({ ...f, 'main.py': content }));
         if (textareaRef.current) textareaRef.current.value = content;
+        // Same tagged draft format updateFile writes on every keystroke —
+        // without this, a crash/reload right after uploading a file
+        // resurrected whatever was open BEFORE the upload instead of the
+        // file the student just loaded.
+        localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: content }));
         // isDirty is computed automatically from files vs savedFiles
         toast.success(`📂 Loaded ${file.name}!`);
       }
@@ -1437,7 +1448,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     reader.readAsText(file);
     // Reset input so the same file can be uploaded again
     e.target.value = '';
-  }, [files]);
+  }, [files, currentProjectId]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(files[activeFile]);
@@ -3437,7 +3448,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           const codeLines = oldCode.split('\n');
                           codeLines[match.line] = codeLines[match.line].substring(0, match.startCol) + replaceTerm + codeLines[match.line].substring(match.endCol);
                           const newCode = codeLines.join('\n');
-                          if (activeFile === 'main.py') lastSnapshotRef.current = newCode;
+                          if (activeFile === 'main.py') {
+                            lastSnapshotRef.current = newCode;
+                            // Same tagged draft format updateFile writes on
+                            // every keystroke — without this, a
+                            // crash/reload right after Replace resurrected
+                            // the pre-replace text.
+                            localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: newCode }));
+                          }
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
@@ -3457,7 +3475,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           const regex = new RegExp(escaped, 'gi');
                           const newCode = oldCode.replace(regex, replaceTerm);
                           const count = (oldCode.match(regex) || []).length;
-                          if (activeFile === 'main.py') lastSnapshotRef.current = newCode;
+                          if (activeFile === 'main.py') {
+                            lastSnapshotRef.current = newCode;
+                            localStorage.setItem('forge-editor-code', JSON.stringify({ projectId: currentProjectId, code: newCode }));
+                          }
                           setFiles(prev => ({ ...prev, [activeFile]: newCode }));
                           if (textareaRef.current) textareaRef.current.value = newCode;
                           setCurrentMatchIndex(0);
@@ -4226,6 +4247,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         onProjectIdUpdate={(id) => { setCurrentProjectId(id); localStorage.setItem('forge-current-project-id', id); }}
         lastKnownUpdatedAt={lastKnownUpdatedAt}
         onUpdatedAtChange={setLastKnownUpdatedAt}
+        // Without this, authorEmail/authorName here stayed whatever they
+        // were at mount even after publishing committed a different
+        // identity to the DB — the next Save Checkpoint (or the 2-minute
+        // autosave) sent the stale email, which no longer matched the
+        // row's author_email, so save_own_project's ownership check
+        // rejected every save from then on with no recovery short of a
+        // reload. PublishModal already writes both to localStorage; this
+        // just keeps THIS component's in-memory state from drifting out
+        // of sync with what it just wrote.
+        onIdentityChange={(email, name) => { setAuthorEmail(email); setAuthorName(name); }}
       />
 
       {/* Walkthrough guide for new users */}

@@ -117,45 +117,146 @@ async function wikiSearch(query: string): Promise<string> {
   }
 }
 
-function calculate(expression: string): string {
-  try {
-    // Safe math evaluation — only allow numbers, operators, parentheses, and math functions
-    // Strip anything that isn't a number, operator, parenthesis, or a known math word
-    const allowedWords = ['sqrt', 'pi', 'log', 'sin', 'cos', 'tan', 'abs', 'pow', 'min', 'max', 'floor', 'ceil', 'round', 'e'];
-    const sanitized = expression.replace(new RegExp(`(?:${allowedWords.join('|')})|[0-9+\\-*/().,%^\\s]|.`, 'g'), (match) => {
-      if (allowedWords.includes(match) || /[0-9+\-*/().,%^\s]/.test(match)) return match;
-      return '';
-    });
-    
-    // Replace common math notation
-    let expr = sanitized
-      .replace(/\^/g, '**')
-      .replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)')
-      .replace(/pi/g, 'Math.PI')
-      .replace(/\be\b/g, 'Math.E')
-      .replace(/log\(([^)]+)\)/g, 'Math.log($1)')
-      .replace(/sin\(([^)]+)\)/g, 'Math.sin($1)')
-      .replace(/cos\(([^)]+)\)/g, 'Math.cos($1)')
-      .replace(/tan\(([^)]+)\)/g, 'Math.tan($1)')
-      .replace(/abs\(([^)]+)\)/g, 'Math.abs($1)')
-      .replace(/pow\(([^,]+),([^)]+)\)/g, 'Math.pow($1,$2)')
-      .replace(/min\(([^)]+)\)/g, 'Math.min($1)')
-      .replace(/max\(([^)]+)\)/g, 'Math.max($1)')
-      .replace(/floor\(([^)]+)\)/g, 'Math.floor($1)')
-      .replace(/ceil\(([^)]+)\)/g, 'Math.ceil($1)')
-      .replace(/round\(([^)]+)\)/g, 'Math.round($1)');
-    
-    // Validate: only math-safe characters after substitution
-    if (/[a-zA-Z]/.test(expr.replace(/Math\.\w+/g, ''))) {
-      return `[Calculator: Cannot evaluate "${expression}" — only numerical expressions are supported]`;
+// Real recursive-descent arithmetic parser/evaluator — no `new Function`,
+// no `eval`, ever. The version this replaced sanitized `expression` with a
+// regex allowlist, string-substituted math-function calls into `Math.x(...)`
+// text, and ran the RESULT through `new Function(...)()`. `expression`
+// ultimately comes from an LLM's tool-call arguments, itself built from the
+// raw, unauthenticated user message (see determineAndRunTools below) — a
+// hand-rolled sanitizer standing in front of a real JS eval on an
+// unauthenticated endpoint is exactly the shape that turns into RCE the
+// moment the allowlist gains one word with a useful character in it (already
+// demonstrated as weak: "e.e" sanitized to "Math.E.Math.E" and reached
+// `new Function` cleanly). This tokenizes and parses the expression itself
+// and only ever produces/combines plain numbers — there is no code string
+// construction step for a payload to hide inside.
+type CalcToken = { type: 'num'; value: number } | { type: 'name'; value: string } | { type: 'op'; value: string };
+
+function tokenizeCalcExpr(expression: string): CalcToken[] {
+  const tokens: CalcToken[] = [];
+  let i = 0;
+  while (i < expression.length) {
+    const ch = expression[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      let j = i;
+      while (j < expression.length && /[0-9.]/.test(expression[j])) j++;
+      const raw = expression.slice(i, j);
+      const value = Number(raw);
+      if (raw === '' || Number.isNaN(value)) throw new Error(`Invalid number "${raw}"`);
+      tokens.push({ type: 'num', value });
+      i = j;
+      continue;
     }
-    
-    const result = new Function(`"use strict"; return (${expr})`)();
+    if (/[a-zA-Z]/.test(ch)) {
+      let j = i;
+      while (j < expression.length && /[a-zA-Z]/.test(expression[j])) j++;
+      tokens.push({ type: 'name', value: expression.slice(i, j) });
+      i = j;
+      continue;
+    }
+    if ('+-*/%^(),'.includes(ch)) {
+      // "**" is accepted as a single power operator alongside "^".
+      if (ch === '*' && expression[i + 1] === '*') { tokens.push({ type: 'op', value: '^' }); i += 2; continue; }
+      tokens.push({ type: 'op', value: ch });
+      i++;
+      continue;
+    }
+    throw new Error(`Unexpected character "${ch}"`);
+  }
+  return tokens;
+}
+
+const CALC_CONSTANTS: Record<string, number> = { pi: Math.PI, e: Math.E };
+const CALC_UNARY_FNS: Record<string, (x: number) => number> = {
+  sqrt: Math.sqrt, log: Math.log, sin: Math.sin, cos: Math.cos, tan: Math.tan,
+  abs: Math.abs, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+};
+const CALC_VARIADIC_FNS: Record<string, (...xs: number[]) => number> = { min: Math.min, max: Math.max, pow: Math.pow };
+
+class CalcParser {
+  private pos = 0;
+  constructor(private tokens: CalcToken[]) {}
+  private peek(): CalcToken | undefined { return this.tokens[this.pos]; }
+  private isOp(v: string): boolean { const t = this.peek(); return !!t && t.type === 'op' && t.value === v; }
+
+  parseExpression(): number {
+    const v = this.parseAddSub();
+    if (this.pos < this.tokens.length) throw new Error(`Unexpected token near position ${this.pos}`);
+    return v;
+  }
+  private parseAddSub(): number {
+    let v = this.parseMulDiv();
+    while (this.isOp('+') || this.isOp('-')) {
+      const op = (this.tokens[this.pos++] as { value: string }).value;
+      const rhs = this.parseMulDiv();
+      v = op === '+' ? v + rhs : v - rhs;
+    }
+    return v;
+  }
+  private parseMulDiv(): number {
+    let v = this.parsePower();
+    while (this.isOp('*') || this.isOp('/') || this.isOp('%')) {
+      const op = (this.tokens[this.pos++] as { value: string }).value;
+      const rhs = this.parsePower();
+      if ((op === '/' || op === '%') && rhs === 0) throw new Error('Division by zero');
+      v = op === '*' ? v * rhs : op === '/' ? v / rhs : v % rhs;
+    }
+    return v;
+  }
+  // Right-associative, matching real exponentiation semantics (2^3^2 = 2^9).
+  private parsePower(): number {
+    const base = this.parseUnary();
+    if (this.isOp('^')) { this.pos++; return Math.pow(base, this.parsePower()); }
+    return base;
+  }
+  private parseUnary(): number {
+    if (this.isOp('-')) { this.pos++; return -this.parseUnary(); }
+    if (this.isOp('+')) { this.pos++; return this.parseUnary(); }
+    return this.parseAtom();
+  }
+  private parseAtom(): number {
+    const t = this.peek();
+    if (!t) throw new Error('Unexpected end of expression');
+    if (t.type === 'num') { this.pos++; return t.value; }
+    if (this.isOp('(')) {
+      this.pos++;
+      const v = this.parseAddSub();
+      if (!this.isOp(')')) throw new Error("Expected ')'");
+      this.pos++;
+      return v;
+    }
+    if (t.type === 'name') {
+      this.pos++;
+      if (t.value in CALC_CONSTANTS) return CALC_CONSTANTS[t.value];
+      if (!this.isOp('(')) throw new Error(`Unknown name "${t.value}"`);
+      this.pos++;
+      const args: number[] = [this.parseAddSub()];
+      while (this.isOp(',')) { this.pos++; args.push(this.parseAddSub()); }
+      if (!this.isOp(')')) throw new Error("Expected ')'");
+      this.pos++;
+      if (t.value in CALC_UNARY_FNS) {
+        if (args.length !== 1) throw new Error(`${t.value}() takes exactly one argument`);
+        return CALC_UNARY_FNS[t.value](args[0]);
+      }
+      if (t.value in CALC_VARIADIC_FNS) return CALC_VARIADIC_FNS[t.value](...args);
+      throw new Error(`Unknown function "${t.value}"`);
+    }
+    throw new Error('Unexpected token');
+  }
+}
+
+function calculate(expression: string): string {
+  if (expression.length > 500) {
+    return `[Calculator: expression is too long]`;
+  }
+  try {
+    const result = new CalcParser(tokenizeCalcExpr(expression)).parseExpression();
     if (typeof result !== 'number' || !isFinite(result)) {
       return `[Calculator: Result is not a finite number for "${expression}"]`;
     }
     return `🧮 Calculator: ${expression} = ${result}`;
-  } catch (e) {
+  } catch {
     return `[Calculator error: Could not evaluate "${expression}"]`;
   }
 }

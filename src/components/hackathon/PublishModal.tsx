@@ -22,6 +22,18 @@ interface PublishModalProps {
   onProjectIdUpdate?: (id: string) => void;
   lastKnownUpdatedAt?: string | null;
   onUpdatedAtChange?: (updatedAt: string | null) => void;
+  // ProjectEditor's own authorEmail/authorName state is only ever read
+  // from localStorage once, at mount — this modal writes a corrected
+  // identity straight to localStorage AND the DB (below) with no way to
+  // tell the editor its already-loaded state is now stale. Without this,
+  // publishing with a real name/email for the first time (the normal
+  // first-publish flow — the email field is always shown, prefilled with
+  // an auto-generated placeholder) permanently broke every save after:
+  // the next checkpoint save still sent the editor's stale email, which
+  // no longer matched the row's author_email, so save_own_project's
+  // ownership check rejected it every time with no recovery short of a
+  // full page reload.
+  onIdentityChange?: (email: string, name: string) => void;
 }
 
 type DeployStep = 'form' | 'deploying' | 'deployed';
@@ -35,7 +47,7 @@ const DEPLOY_MESSAGES = [
   '✅ Running final checks...',
 ];
 
-export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate, lastKnownUpdatedAt, onUpdatedAtChange }, ref) => {
+export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isOpen, onClose, code, templateId, projectName: prefillName, description: prefillDesc, prefillEmail, prefillAuthorName, currentProjectId, onProjectIdUpdate, lastKnownUpdatedAt, onUpdatedAtChange, onIdentityChange }, ref) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -100,6 +112,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     if (finalEmail) {
       localStorage.setItem('forge-student-email', finalEmail);
     }
+    // Keep ProjectEditor's in-memory authorEmail/authorName in sync — see
+    // this prop's own doc comment for why a stale editor-side value here
+    // permanently broke every save after the first real-identity publish.
+    onIdentityChange?.(finalEmail, finalName);
 
     // Seeds the organizer's roster (CoinsTab, LessonsLeaderboard) for
     // whoever's publishing right now, even if they skipped "Register for

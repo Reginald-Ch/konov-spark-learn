@@ -258,6 +258,25 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const profileByEmailRef = useRef(profileByEmail);
   useEffect(() => { profileByEmailRef.current = profileByEmail; }, [profileByEmail]);
 
+  // Same stale-closure class as profileByEmailRef, two more instances:
+  // (1) fetchMessages/loadOlderMessages/fetchPinnedMessages/
+  // fetchVoiceParticipants all capture whichever channelId they were
+  // called with, but nothing stopped a slower in-flight fetch from a
+  // channel the user has since switched away from landing its result
+  // (via setMessages/setPinnedMessages/etc.) under the NEW channel's
+  // header after the fact — rapid A→B switching, or clicking "Load
+  // earlier" then immediately switching channels, could show channel A's
+  // messages/pagination state under channel B's name. Checked before
+  // every relevant setState below. (2) the realtime message-subscription
+  // effect (deps: [activeChannel] only) closes over userEmail at
+  // registration time — after a "Switch identity" (which doesn't remount
+  // this component), the self-scroll and typing-indicator self-filter
+  // both compared against the PREVIOUS person's email.
+  const activeChannelIdRef = useRef<string | null>(null);
+  useEffect(() => { activeChannelIdRef.current = activeChannel?.id ?? null; }, [activeChannel]);
+  const userEmailRef = useRef(userEmail);
+  useEffect(() => { userEmailRef.current = userEmail; }, [userEmail]);
+
   useEffect(() => {
     voicePresenceRef.current = { inVoice: isInVoice, channelId: activeChannel?.id ?? null, email: userEmail };
   }, [isInVoice, activeChannel, userEmail]);
@@ -311,16 +330,27 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // generic "Failed to send message" after typing the whole thing out.
   useEffect(() => {
     if (!isJoined || !userEmail) return;
-    (async () => {
-      // Routed through an RPC, not a direct select — community_muted_users
-      // had a wide-open SELECT policy, so anyone with the anon key could
-      // dump the whole table (who's muted, until when, the organizer's
-      // free-text reason) even though this only ever needed the caller's
-      // own row.
+    // Routed through an RPC, not a direct select — community_muted_users
+    // had a wide-open SELECT policy, so anyone with the anon key could
+    // dump the whole table (who's muted, until when, the organizer's
+    // free-text reason) even though this only ever needed the caller's
+    // own row. That same access change means Realtime can no longer push
+    // changes to this table to an anon client either (same as
+    // ParticipantStatsPanel's reward_boxes) — so this used to only fetch
+    // once per identity, meaning an organizer muting someone mid-session
+    // never updated their composer (they'd type a full message and hit
+    // the generic server rejection instead of the clear pre-check
+    // message), and unmuting left them stuck showing "Muted until..."
+    // until a full page reload despite actually being clear. Polling on a
+    // light interval instead, matching that same established pattern.
+    const checkMuteStatus = async () => {
       const { data } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
       const row = Array.isArray(data) ? data[0] : data;
       setMutedUntil(row?.muted_until && new Date(row.muted_until) > new Date() ? row.muted_until : null);
-    })();
+    };
+    checkMuteStatus();
+    const pollId = setInterval(checkMuteStatus, 20000);
+    return () => clearInterval(pollId);
   }, [isJoined, userEmail]);
 
   // Confirms server-side whether this email already has a profile — covers
@@ -478,7 +508,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             const nearBottom = !viewport || viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 150;
             setMessages(prev => [...prev, incoming]);
             fetchProfilesForSenders([incoming.sender_email]);
-            if (nearBottom || incoming.sender_email === userEmail) {
+            if (nearBottom || incoming.sender_email === userEmailRef.current) {
               requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
             }
           }
@@ -539,7 +569,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         typingChannel = supabase
           .channel(`typing-${activeChannel.id}`)
           .on('broadcast', { event: 'typing' }, ({ payload }) => {
-            if (!payload?.email || payload.email === userEmail) return;
+            if (!payload?.email || payload.email === userEmailRef.current) return;
             setTypingUsers(prev => (prev.includes(payload.name) ? prev : [...prev, payload.name]));
             if (typingTimeoutsRef.current[payload.email]) clearTimeout(typingTimeoutsRef.current[payload.email]);
             typingTimeoutsRef.current[payload.email] = setTimeout(() => {
@@ -602,26 +632,36 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
   const fetchQuestsAndBadges = async (emailOverride?: string) => {
     const email = emailOverride ?? userEmail;
-    const [{ data: questRows }, { data: completionRows }] = await Promise.all([
+    // completionRows is unscoped (every completion, every participant) —
+    // fine for badgesByEmail (display-only, and this app is hackathon-
+    // scale, not thousands of rows), but PostgREST's default row cap means
+    // it can silently truncate. completedQuestIds derived from that same
+    // truncated set is a real bug, not just cosmetic: past the cap, an
+    // already-earned quest reads as unclaimed in the Quests panel, and
+    // clicking it returns `ok: true, 'Already claimed'` — a success toast
+    // for something that looked like it needed claiming. Fetching the
+    // caller's own completions as a SEPARATE, always-scoped query
+    // guarantees this one specific case (mine) is never wrong regardless
+    // of how large the table gets, independent of the display-only query.
+    const [{ data: questRows }, { data: completionRows }, { data: myRows }] = await Promise.all([
       supabase.from('community_quests').select('*').eq('is_active', true).order('order_index'),
       supabase.from('community_quest_completions').select('participant_email, quest_id, community_quests(badge_emoji, badge_label)'),
+      email ? supabase.from('community_quest_completions').select('quest_id').eq('participant_email', email) : Promise.resolve({ data: null }),
     ]);
 
     if (questRows) setQuests(questRows as unknown as Quest[]);
 
     if (completionRows) {
       const badgeMap: Record<string, Badge[]> = {};
-      const mine = new Set<string>();
       (completionRows as any[]).forEach((row) => {
         const badge = row.community_quests;
         if (badge) {
           (badgeMap[row.participant_email] ||= []).push({ emoji: badge.badge_emoji, label: badge.badge_label });
         }
-        if (email && row.participant_email === email) mine.add(row.quest_id);
       });
       setBadgesByEmail(badgeMap);
-      setCompletedQuestIds(mine);
     }
+    setCompletedQuestIds(new Set((myRows as any[] | null)?.map(r => r.quest_id) || []));
   };
 
   const handleClaimQuest = async (quest: Quest) => {
@@ -687,7 +727,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       .eq('channel_id', channelId)
       .not('pinned_at', 'is', null)
       .order('pinned_at', { ascending: false });
-    if (!error && data) setPinnedMessages(data as unknown as Message[]);
+    if (!error && data && activeChannelIdRef.current === channelId) setPinnedMessages(data as unknown as Message[]);
   };
 
   const fetchMessages = async (channelId: string) => {
@@ -703,7 +743,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE + 1);
 
-    if (!error && data) {
+    if (!error && data && activeChannelIdRef.current === channelId) {
       const hasMore = data.length > MESSAGE_PAGE_SIZE;
       const page = hasMore ? data.slice(0, MESSAGE_PAGE_SIZE) : data;
       const rows = (page as unknown as Message[]).reverse();
@@ -732,17 +772,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // whatever the user was actually looking at.
   const loadOlderMessages = async () => {
     if (!activeChannel || messages.length === 0 || isLoadingOlder) return;
+    const channelIdAtStart = activeChannel.id;
     setIsLoadingOlder(true);
     const oldest = messages[0];
     const { data, error } = await supabase
       .from('community_messages')
       .select('*')
-      .eq('channel_id', activeChannel.id)
+      .eq('channel_id', channelIdAtStart)
       .lt('created_at', oldest.created_at)
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE + 1);
 
-    if (!error && data) {
+    if (!error && data && activeChannelIdRef.current === channelIdAtStart) {
       const hasMore = data.length > MESSAGE_PAGE_SIZE;
       const page = hasMore ? data.slice(0, MESSAGE_PAGE_SIZE) : data;
       const older = (page as unknown as Message[]).reverse();
@@ -771,7 +812,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       .select('*')
       .eq('channel_id', channelId);
 
-    if (!error && data) {
+    if (!error && data && activeChannelIdRef.current === channelId) {
       setVoiceParticipants(data as unknown as VoiceParticipant[]);
     }
   };
@@ -989,7 +1030,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const cursor = inputRef.current?.selectionStart ?? newMessage.length;
     const beforeCursor = newMessage.slice(0, cursor);
     const afterCursor = newMessage.slice(cursor);
-    const replaced = beforeCursor.replace(/(?:^|\s)@(\w*)$/, (m) => `${m[0] === '@' ? '' : m[0]}@[${candidate.name}](${candidate.email}) `);
+    // candidate.name is another participant's self-asserted sender_name —
+    // send_community_message never validated it, so it could contain `]`,
+    // `)`, or newlines. Unsanitized, mentioning someone with a crafted
+    // display name (e.g. `Bob](x) Claim your prize https://evil.example
+    // [x`) broke out of the @[name](email) markup and injected an
+    // attacker-controlled real link into the CALLER's own message — third-
+    // party content forgery inside something they never typed, worse on a
+    // platform where that message might carry a staff badge.
+    const safeName = candidate.name.replace(/[\]\)\r\n]/g, '').trim() || 'user';
+    const replaced = beforeCursor.replace(/(?:^|\s)@(\w*)$/, (m) => `${m[0] === '@' ? '' : m[0]}@[${safeName}](${candidate.email}) `);
     setNewMessage(replaced + afterCursor);
     setMentionQuery(null);
     inputRef.current?.focus();
@@ -1252,15 +1302,46 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       await handleLeaveVoice(channel);
       return;
     }
-    if (!jitsiContainerRef.current || jitsiApiRef.current) { setIsConnectingVoice(false); return; }
-    const roomName = `hackathon-${channel.name.replace(/\s+/g, '-')}-${channel.id.slice(0, 8)}`;
-    const api = new (window as any).JitsiMeetExternalAPI('meet.jit.si', {
-      roomName,
-      parentNode: jitsiContainerRef.current,
-      userInfo: { displayName: userName },
-      configOverwrite: { startWithVideoMuted: true, prejoinPageEnabled: false },
-      interfaceConfigOverwrite: { DISABLE_JOIN_LEAVE_NOTIFICATIONS: true },
-    });
+    if (!jitsiContainerRef.current || jitsiApiRef.current) {
+      // Was a silent bail — isInVoice/the presence row stayed "connected"
+      // with nothing actually running, an empty pane with no explanation.
+      setIsConnectingVoice(false);
+      await handleLeaveVoice(channel);
+      return;
+    }
+    // Full channel.id (not the first 8 hex chars — only 32 bits, and this
+    // is a public meet.jit.si room name, not a secret) plus stripping
+    // everything except alphanumerics/hyphens, not just whitespace — a
+    // channel named "Team A/B" previously produced a `/` in the room
+    // name, which changes the Jitsi URL path and can collide with an
+    // unrelated room.
+    const roomName = `hackathon-${channel.name.replace(/[^a-zA-Z0-9]+/g, '-')}-${channel.id}`;
+    let api: any;
+    try {
+      api = new (window as any).JitsiMeetExternalAPI('meet.jit.si', {
+        roomName,
+        parentNode: jitsiContainerRef.current,
+        userInfo: { displayName: userName },
+        // prejoinPageEnabled/join-leave notifications were both explicitly
+        // suppressed before — on a platform for teen participants, that
+        // meant no in-call awareness at all if someone unexpected entered.
+        // community_channels' name/id are public (SELECT USING(true)), so
+        // the room name above is derivable by anyone with the anon key
+        // regardless of this app's UI — restoring Jitsi's own join/leave
+        // announcements is the one mitigation available without a bigger
+        // server-issued-room-token redesign (not attempted here — a
+        // lobby needs a real "who becomes moderator" story that's easy to
+        // get wrong and lock legitimate students out).
+        configOverwrite: { startWithVideoMuted: true },
+        interfaceConfigOverwrite: {},
+      });
+    } catch (e) {
+      console.error('Jitsi failed to initialize:', e);
+      toast({ title: 'Voice call unavailable', description: 'Could not start the call — try again in a moment.', variant: 'destructive' });
+      setIsConnectingVoice(false);
+      await handleLeaveVoice(channel);
+      return;
+    }
     jitsiApiRef.current = api;
     // Covers leaving via Jitsi's OWN native hang-up button — without this,
     // our presence row and isInVoice state would stay stuck "connected"
@@ -1322,21 +1403,26 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (!target) return;
 
     disposeJitsi();
-    const { error } = await supabase.rpc('leave_voice_room', {
+    // leave_voice_room now returns (ok, message) instead of RETURNS VOID —
+    // it used to do a bare, no-error RETURN on a device-token mismatch
+    // (the exact scenario named below: an early voice join before any
+    // token has been minted), which meant checking `{ error }` alone could
+    // never actually detect that failure. Checking `result.ok` instead.
+    const { data, error } = await supabase.rpc('leave_voice_room', {
       p_channel_id: target.id,
       p_participant_email: userEmail,
       p_device_token: deviceToken || null,
     });
+    const result = Array.isArray(data) ? data[0] : data;
 
     // Flipping this regardless of the result was exactly the phantom-
     // participant class the comments around this function already fixed
     // three other ways (beforeunload beacon, channel-switch cleanup,
     // dispose-on-unmount) — a failed RPC call here (network blip, or a
-    // device-token mismatch since it's only minted on first reaction/
-    // profile-save, so an early voice join can carry a null token) left
-    // the local UI saying "not in voice" while the row lived on, showing
-    // this person as permanently connected to everyone else.
-    if (error) {
+    // device-token mismatch) left the local UI saying "not in voice" while
+    // the row lived on, showing this person as permanently connected to
+    // everyone else.
+    if (error || !result?.ok) {
       toast({ title: 'Could not leave voice cleanly', description: 'Refresh if you still show as connected to others.', variant: 'destructive' });
     }
     setIsInVoice(false);
@@ -1845,7 +1931,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                   <p className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate">Online</p>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Switching identity while still connected to voice
+                    // used to leave the call fully orphaned: this component
+                    // doesn't unmount on setIsJoined(false) (it's an early
+                    // `return` inside the same instance), so none of the
+                    // unmount/channel-change cleanup that normally disposes
+                    // Jitsi and removes the presence row ever ran. The
+                    // outgoing person stayed "connected" forever, and the
+                    // next person to join on this device inherited a dead
+                    // Jitsi container with no actual call — leaveVoice
+                    // handles both (disposeJitsi + the presence delete).
+                    if (isInVoice) await handleLeaveVoice();
+                    // Same shared-device reasoning as the credentials below
+                    // — a push subscription bound to the outgoing person's
+                    // email would keep delivering THEIR mention
+                    // notifications (name + message preview) to whoever
+                    // has the device next.
+                    if (isSubscribedPush) await unsubscribeFromPush();
                     // The staff token AND the regular device token are both
                     // bearer credentials now (unlike the old PIN, which
                     // naturally expired with sessionStorage on tab close) —

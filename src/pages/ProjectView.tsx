@@ -683,9 +683,14 @@ const ProjectView = () => {
     const placeholderId = Date.now();
 
     try {
-      const history = newMessages
-        .filter(m => m.content !== '...')
-        .map(m => ({ role: m.role, content: m.content }));
+      // config.rememberName gates this in Build Studio's own Live Preview
+      // (ProjectEditor.tsx) — this always sent full history regardless, so
+      // a project with MEMORY_ENABLED = False tested as forgetful in
+      // preview but remembered everything once published, the same
+      // preview≠published gap already fixed for the interceptors above.
+      const history = config.rememberName
+        ? newMessages.filter(m => m.content !== '...').map(m => ({ role: m.role, content: m.content }))
+        : [];
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;

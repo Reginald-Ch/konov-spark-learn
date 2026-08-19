@@ -12,6 +12,15 @@ const AI_GENERATE_MODEL = 'google/gemini-2.5-flash-lite';
 // Leaves time for the slot release + returning control to the interpreter
 // before its own wall-clock deadline fires, rather than racing it exactly.
 const SAFETY_MARGIN_MS = 400;
+// max_tokens below only caps OUTPUT cost — nothing capped the prompt
+// itself, and it's built from interpreted student code with no length
+// check anywhere upstream (studentCode itself is now capped in
+// evaluator.ts, but a prompt can still be assembled character-by-character
+// inside a loop before ever calling this). Measured: a 30MB prompt string
+// passed straight through to the real gateway fetch with zero rejection.
+// Real ai_generate() use cases (asking the model to phrase a canned
+// response, summarize something short) don't need anywhere close to this.
+const MAX_PROMPT_CHARS = 10000;
 
 export function makeAiGenerateCallback(
   apiKey: string,
@@ -19,6 +28,9 @@ export function makeAiGenerateCallback(
   releaseSlot: (slotId: number) => Promise<void>,
 ): AiGenerateFn {
   return async (prompt: string, remainingMs: number): Promise<AiGenerateOutcome> => {
+    if (typeof prompt === 'string' && prompt.length > MAX_PROMPT_CHARS) {
+      return { ok: false, reason: 'error', message: `ai_generate() prompt is too long (${prompt.length} characters, limit ${MAX_PROMPT_CHARS}).` };
+    }
     const budgetMs = remainingMs - SAFETY_MARGIN_MS;
     if (budgetMs <= 0) return { ok: false, reason: 'timeout', message: "no time left in this turn's budget" };
 

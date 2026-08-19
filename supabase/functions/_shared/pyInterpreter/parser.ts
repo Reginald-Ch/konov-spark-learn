@@ -14,8 +14,18 @@ const UNSUPPORTED_KEYWORDS = new Set([
 
 const COMPARE_OPS = new Set(['==', '!=', '<', '>', '<=', '>=']);
 
+// Deeply nested parenthesized expressions (e.g. 40,000 nested `(`) recurse
+// through parseExpr -> ... -> parseAtom -> parseExpr on every level, with
+// no bound — measured to overflow the JS call stack in ~200ms, surfacing
+// as the generic "Something went wrong running this code." with no
+// indication why. Real Python code essentially never nests expressions
+// this deep, so a generous-but-finite cap turns a stack overflow into a
+// clean, honest error.
+const MAX_EXPR_DEPTH = 300;
+
 class Parser {
   private pos = 0;
+  private exprDepth = 0;
   constructor(private tokens: Token[]) {}
 
   private current(): Token { return this.tokens[this.pos]; }
@@ -213,7 +223,17 @@ class Parser {
     return { kind: 'ExprStmt', expr: first, line };
   }
 
-  parseExpr(): Expr { return this.parseOr(); }
+  parseExpr(): Expr {
+    if (++this.exprDepth > MAX_EXPR_DEPTH) {
+      this.exprDepth--;
+      throw new PySyntaxError('This expression is too deeply nested.', this.current().line);
+    }
+    try {
+      return this.parseOr();
+    } finally {
+      this.exprDepth--;
+    }
+  }
 
   private parseOr(): Expr {
     let left = this.parseAnd();

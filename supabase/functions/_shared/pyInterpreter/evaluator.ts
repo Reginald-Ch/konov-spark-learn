@@ -58,15 +58,49 @@ function isTruthy(v: PyValue): boolean {
   return true;
 }
 
+// Caps recursion cost inside pyEquals/pyStr/pyRepr — every OTHER place the
+// interpreter does work ticks Budget on each step, but these three are
+// plain recursive JS functions called from many sites (== / in / .count() /
+// .index() / str() / print()) with no budget parameter at all. Two lists
+// built by doubling a shared reference N times (`a = [a, a]`) are each one
+// budget tick per doubling, but comparing or stringifying them afterward
+// visits up to 2^N nodes with zero ticks — measured at N=30, `a == b` on two
+// independently-built such lists took ~59 seconds of real CPU with the
+// timeout never firing, because nothing inside the comparison itself was
+// ever checked against the budget or the wall clock. This is a local,
+// hardcoded visit cap (not threaded through Budget) specifically so it
+// doesn't require changing every call site's signature — same effect
+// (bounded work) without touching the thirty-odd unrelated builtins that
+// call these functions.
+const MAX_STRUCTURAL_VISITS = 200000;
+// Separate from MAX_STRUCTURAL_VISITS: two mutually self-referential
+// structures (a.items[0] = a; b.items[0] = b; a == b, with a !== b so the
+// x===y shortcut below never fires) recurse to equal DEPTH on every visit,
+// not just many total visits — real V8 stack limits are typically ~10-15k
+// frames, well below the 200000 visit cap, so that cap alone still let a
+// genuine cycle overflow the actual JS call stack before ever being
+// caught. A single self-referential structure compared/stringified
+// against ITSELF is fine either way (x===y / the object identity check
+// short-circuits immediately), so this only bites the "two different
+// cyclic structures" case in practice, but it's cheap insurance regardless.
+const MAX_STRUCTURAL_DEPTH = 1000;
+
 function pyEquals(a: PyValue, b: PyValue): boolean {
-  if (a === b) return true;
-  if (isList(a) && isList(b)) return a.items.length === b.items.length && a.items.every((v, i) => pyEquals(v, b.items[i]));
-  if (isDict(a) && isDict(b)) {
-    if (a.map.size !== b.map.size) return false;
-    for (const [k, v] of a.map.entries()) { if (!b.map.has(k) || !pyEquals(v, b.map.get(k)!)) return false; }
-    return true;
-  }
-  return false;
+  let visits = 0;
+  const eq = (x: PyValue, y: PyValue, depth: number): boolean => {
+    if (++visits > MAX_STRUCTURAL_VISITS || depth > MAX_STRUCTURAL_DEPTH) {
+      throw new PyTimeoutError('Comparing these values took too long — they may be too large, deeply nested, or self-referential.');
+    }
+    if (x === y) return true;
+    if (isList(x) && isList(y)) return x.items.length === y.items.length && x.items.every((v, i) => eq(v, y.items[i], depth + 1));
+    if (isDict(x) && isDict(y)) {
+      if (x.map.size !== y.map.size) return false;
+      for (const [k, v] of x.map.entries()) { if (!y.map.has(k) || !eq(v, y.map.get(k)!, depth + 1)) return false; }
+      return true;
+    }
+    return false;
+  };
+  return eq(a, b, 0);
 }
 
 function numberToPyString(v: number): string {
@@ -75,15 +109,34 @@ function numberToPyString(v: number): string {
 }
 
 function pyStr(v: PyValue): string {
-  if (v === null) return 'None';
-  if (typeof v === 'boolean') return v ? 'True' : 'False';
-  if (typeof v === 'number') return numberToPyString(v);
-  if (typeof v === 'string') return v;
-  if (isList(v)) return '[' + v.items.map(pyRepr).join(', ') + ']';
-  if (isDict(v)) return '{' + [...v.map.entries()].map(([k, val]) => `${pyRepr(k as PyValue)}: ${pyRepr(val)}`).join(', ') + '}';
-  if (isFunction(v) || isBuiltin(v)) return `<function ${v.name}>`;
-  if (isModule(v)) return `<module '${v.name}'>`;
-  return String(v);
+  let visits = 0;
+  // Unlike pyEquals, stringifying has no "same object" shortcut to save it
+  // — a.append(a); print(a) recurses on ITSELF with nothing to short-
+  // circuit, so the depth cap is what actually catches this one, not the
+  // visit cap (which a single-object cycle wouldn't reach at any
+  // reasonable list size before the real JS stack overflows first).
+  const str = (x: PyValue, depth: number): string => {
+    if (++visits > MAX_STRUCTURAL_VISITS || depth > MAX_STRUCTURAL_DEPTH) {
+      throw new PyTimeoutError('Converting this value to text took too long — it may be too large, deeply nested, or self-referential.');
+    }
+    if (x === null) return 'None';
+    if (typeof x === 'boolean') return x ? 'True' : 'False';
+    if (typeof x === 'number') return numberToPyString(x);
+    if (typeof x === 'string') return x;
+    if (isList(x)) return '[' + x.items.map(item => repr(item, depth + 1)).join(', ') + ']';
+    if (isDict(x)) return '{' + [...x.map.entries()].map(([k, val]) => `${repr(k as PyValue, depth + 1)}: ${repr(val, depth + 1)}`).join(', ') + '}';
+    if (isFunction(x) || isBuiltin(x)) return `<function ${x.name}>`;
+    if (isModule(x)) return `<module '${x.name}'>`;
+    return String(x);
+  };
+  const repr = (x: PyValue, depth: number): string => {
+    if (++visits > MAX_STRUCTURAL_VISITS || depth > MAX_STRUCTURAL_DEPTH) {
+      throw new PyTimeoutError('Converting this value to text took too long — it may be too large, deeply nested, or self-referential.');
+    }
+    if (typeof x === 'string') return `'${x.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+    return str(x, depth);
+  };
+  return str(v, 0);
 }
 
 function pyRepr(v: PyValue): string {
@@ -436,9 +489,26 @@ class Interpreter {
     }
     if (op === '*') {
       if (typeof l === 'number' && typeof r === 'number') return l * r;
-      if (typeof l === 'string' && typeof r === 'number') return l.repeat(Math.max(0, Math.trunc(r)));
-      if (typeof r === 'string' && typeof l === 'number') return r.repeat(Math.max(0, Math.trunc(l)));
-      if (isList(l) && typeof r === 'number') { const out: PyValue[] = []; for (let i = 0; i < r; i++) out.push(...l.items); return makeList(out); }
+      // Unlike range() (capped at 100000 items, checked before building —
+      // see that fix above), string/list repeat had NO cap at all:
+      // "a" * 20000000 built a 20MB string in ~1ms, one budget tick.
+      // Same order-of-magnitude cap as range()'s, so this and range()
+      // agree on what "too large" means.
+      if (typeof l === 'string' && typeof r === 'number') {
+        const count = Math.max(0, Math.trunc(r));
+        if (l.length * count > 1000000) throw new PyRuntimeError('ValueError: repeated string is too large', line);
+        return l.repeat(count);
+      }
+      if (typeof r === 'string' && typeof l === 'number') {
+        const count = Math.max(0, Math.trunc(l));
+        if (r.length * count > 1000000) throw new PyRuntimeError('ValueError: repeated string is too large', line);
+        return r.repeat(count);
+      }
+      if (isList(l) && typeof r === 'number') {
+        const count = Math.max(0, Math.trunc(r));
+        if (l.items.length * count > 100000) throw new PyRuntimeError('ValueError: repeated list is too large', line);
+        const out: PyValue[] = []; for (let i = 0; i < count; i++) out.push(...l.items); return makeList(out);
+      }
       throw new PyRuntimeError(`TypeError: unsupported operand type(s) for *: '${describeType(l)}' and '${describeType(r)}'`, line);
     }
     if (typeof l !== 'number' || typeof r !== 'number') {
@@ -458,29 +528,41 @@ class Interpreter {
   // to await anything; `ai_generate` is a plain function reached via
   // `callValue`, not a method reached here.
   private callMethod(obj: PyValue, attr: string, args: PyValue[], line: number): PyValue {
+    // hasOwnProperty, not just `if (!m)` — these tables are plain object
+    // literals, so an attr like "constructor"/"toString"/"valueOf"
+    // resolved through inherited Object.prototype members instead of
+    // failing the lookup. Not a sandbox escape (every inherited member
+    // either throws when called unbound under strict mode, or returns a
+    // raw JS value with no __pytype that dead-ends on the next attribute
+    // access) but it let a raw JS value/wrapper leak into PyValue space,
+    // where every other part of the interpreter assumes the tagged union
+    // — and the failure mode when it didn't dead-end cleanly was the
+    // generic, uninformative "Something went wrong running this code."
     if (typeof obj === 'string') {
-      const m = STRING_METHODS[attr];
+      const m = hasOwn(STRING_METHODS, attr) ? STRING_METHODS[attr] : undefined;
       if (!m) throw new PyRuntimeError(`AttributeError: 'str' object has no attribute '${attr}'`, line);
       return m(obj, args, line);
     }
     if (isList(obj)) {
-      const m = LIST_METHODS[attr];
+      const m = hasOwn(LIST_METHODS, attr) ? LIST_METHODS[attr] : undefined;
       if (!m) throw new PyRuntimeError(`AttributeError: 'list' object has no attribute '${attr}'`, line);
       return m(obj, args, line);
     }
     if (isDict(obj)) {
-      const m = DICT_METHODS[attr];
+      const m = hasOwn(DICT_METHODS, attr) ? DICT_METHODS[attr] : undefined;
       if (!m) throw new PyRuntimeError(`AttributeError: 'dict' object has no attribute '${attr}'`, line);
       return m(obj, args, line);
     }
     if (isModule(obj)) {
-      const m = obj.methods[attr];
+      const m = hasOwn(obj.methods, attr) ? obj.methods[attr] : undefined;
       if (!m) throw new PyRuntimeError(`AttributeError: module '${obj.name}' has no attribute '${attr}'`, line);
       return m(args, line);
     }
     throw new PyRuntimeError(`AttributeError: '${describeType(obj)}' object has no attribute '${attr}'`, line);
   }
 }
+
+const hasOwn = (obj: object, key: string): boolean => Object.prototype.hasOwnProperty.call(obj, key);
 
 const STRING_METHODS: Record<string, (s: string, args: PyValue[], line: number) => PyValue> = {
   lower: (s) => s.toLowerCase(),
@@ -521,7 +603,15 @@ const STRING_METHODS: Record<string, (s: string, args: PyValue[], line: number) 
 };
 
 const LIST_METHODS: Record<string, (l: PyList, args: PyValue[], line: number) => PyValue> = {
-  append: (l, args) => { l.items.push(args[0]); return null; },
+  append: (l, args, line) => {
+    // args[0] silently pushed `undefined` when called with no arguments
+    // (a.append() then print(a) printed "[undefined]") — a raw JS value
+    // with no __pytype, the same class of leak the hasOwnProperty fix
+    // above closes for method dispatch. append() genuinely takes exactly
+    // one argument in real Python too.
+    if (args.length !== 1) throw new PyRuntimeError(`TypeError: append() takes exactly one argument (${args.length} given)`, line);
+    l.items.push(args[0]); return null;
+  },
   pop: (l, args, line) => {
     const idx = args.length ? (args[0] as number) : l.items.length - 1;
     if (l.items.length === 0) throw new PyRuntimeError('IndexError: pop from empty list', line);
@@ -598,10 +688,18 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
     else if (nums.length === 2) { [start, stop] = nums; }
     else if (nums.length === 3) { [start, stop, step] = nums; if (step === 0) throw new PyRuntimeError('ValueError: range() step must not be zero', line); }
     else throw new PyRuntimeError('TypeError: range() takes 1 to 3 arguments', line);
+    // Cap checked BEFORE materializing, not after — range(10**9) used to
+    // push a billion elements into `out` and only THEN discover it should
+    // have refused, which is exactly backwards for a guard meant to bound
+    // memory/time.
+    // Works uniformly for either sign of step: (stop-start)/step is
+    // positive whenever the range is non-empty, negative (clamped to 0)
+    // whenever it's empty (e.g. start > stop with a positive step).
+    const length = Math.max(0, Math.ceil((stop - start) / step));
+    if (length > 100000) throw new PyRuntimeError('ValueError: range() is too large', line);
     const out: PyValue[] = [];
     if (step > 0) for (let i = start; i < stop; i += step) out.push(i);
     else for (let i = start; i > stop; i += step) out.push(i);
-    if (out.length > 100000) throw new PyRuntimeError('ValueError: range() is too large', line);
     return makeList(out);
   }));
   env.set('str', builtin('str', async (args) => pyStr(args[0] ?? null)));
@@ -731,7 +829,21 @@ export interface RunFunctionResult {
 // only, no entrypoint required). `stdout` is created and owned by the
 // caller, not here, so partial output printed before a mid-run failure is
 // still visible to the caller's own catch block after this throws.
+// Lexing and parsing both run entirely BEFORE the Budget below is even
+// constructed, so neither one is bounded by maxSteps/timeoutMs at all —
+// measured: a 5MB string literal costs ~800ms of lexing on its own with
+// maxSteps set to 5, and 40,000 nested parens overflows the parser's
+// recursive-descent call stack. main.py's raw text arrives straight from
+// the request body with no length cap anywhere upstream of this. 300,000
+// characters is generous for any real project (ProjectEditor.tsx's own
+// uploaded-.py-file limit is 256,000 bytes) while still bounding how much
+// unmetered lex/parse work a single request can trigger.
+const MAX_CODE_LENGTH = 300000;
+
 async function runTopLevel(code: string, options: RunOptions, stdout: string[]): Promise<{ globalEnv: Environment; budget: Budget; interp: Interpreter }> {
+  if (code.length > MAX_CODE_LENGTH) {
+    throw new PySyntaxError(`This code is too long to run (${code.length} characters, limit ${MAX_CODE_LENGTH}).`);
+  }
   const program: Program = parseProgram(code);
   const globalEnv = new Environment(null);
   const budget = new Budget(options.maxSteps ?? 200000, options.timeoutMs ?? 5000);

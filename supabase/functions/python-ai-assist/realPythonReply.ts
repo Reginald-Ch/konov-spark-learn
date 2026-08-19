@@ -56,9 +56,22 @@ export async function tryRealPythonReply(studentCode: string, message: string, h
   });
 
   if (!result.ok) {
-    // A missing entrypoint reports as a plain runtime_error message from
-    // runFunction ("doesn't define a function called 'respond'") — no
-    // special-casing needed, it already reads clearly as-is.
+    // A missing entrypoint DOES need special-casing after all — this
+    // comment used to say otherwise, back when nothing downstream cared
+    // about the difference between "no respond() at all" and "respond()
+    // genuinely broke". That stopped being true once index.ts started
+    // surfacing `error` as an X-Python-Status: error header and
+    // ProjectEditor.tsx started rendering an amber "Python error" badge
+    // from it — every stock scaffold has no respond() at all, so that
+    // badge fired on 100% of messages for every default project, none of
+    // which had written a single line of real Python. "Not defined" is
+    // the same non-event `handled: false` already represents for an
+    // empty/None return — nothing was attempted, so there's nothing to
+    // report as broken. A genuine failure (wrong arg count, a runtime
+    // exception, a timeout, a bad return type) still returns a real error.
+    if (result.errorMessage === `Your code doesn't define a function called '${ENTRYPOINT}'.`) {
+      return { handled: false };
+    }
     return { handled: true, error: { type: result.errorType ?? 'runtime_error', message: result.errorMessage ?? 'Something went wrong running this code.' } };
   }
 
