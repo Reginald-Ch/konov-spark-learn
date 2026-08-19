@@ -45,6 +45,7 @@ interface GradeResponse {
   passed?: boolean;
   errorType?: string;
   errorMessage?: string;
+  newDeviceToken?: string | null;
 }
 
 const DIFFICULTY_META: Record<Challenge['difficulty'], { label: string; color: string }> = {
@@ -79,6 +80,16 @@ export const PythonChallengesPanel = () => {
   const [email, setEmail] = useState(localStorage.getItem('forge-student-email') || '');
   const [name, setName] = useState(localStorage.getItem('forge-student-name') || '');
   const [editingIdentity, setEditingIdentity] = useState(!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
+  // Same per-email TOFU bearer credential Community Chat/Daily
+  // Challenges/Lessons mint and check — shared localStorage key. Without
+  // this, python-challenge-grade took a bare self-asserted email and let
+  // anyone grade+submit as any known registered participant.
+  const [deviceToken, setDeviceTokenState] = useState(() => localStorage.getItem('forge-device-token') || '');
+  const setDeviceToken = (value: string) => {
+    setDeviceTokenState(value);
+    if (value) localStorage.setItem('forge-device-token', value);
+    else localStorage.removeItem('forge-device-token');
+  };
 
   const [gateChecked, setGateChecked] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -173,7 +184,9 @@ export const PythonChallengesPanel = () => {
       challenge_id: activeChallenge.id,
       code,
       mode: 'run',
+      device_token: deviceToken || null,
     });
+    if (result.newDeviceToken) setDeviceToken(result.newDeviceToken);
     setRunResult(result);
     setRunning(false);
   };
@@ -187,7 +200,9 @@ export const PythonChallengesPanel = () => {
       challenge_id: activeChallenge.id,
       code,
       mode: 'submit',
+      device_token: deviceToken || null,
     });
+    if (result.newDeviceToken) setDeviceToken(result.newDeviceToken);
     setSubmitResult(result);
     setSubmitting(false);
     if (result.ok) {

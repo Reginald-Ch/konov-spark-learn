@@ -45,7 +45,7 @@ const ROUTES = [
         <h2>Why Parents &amp; Schools in Ghana Choose KONOV</h2>
         <p>Most edtech is designed for the West. KONOV is built for African classrooms, homes and internet speeds — with authentic African mentors, real projects kids can show off, and a curriculum spanning AI, robotics, coding, hackathons and tech. We partner with schools across Accra and Ghana to bring practical AI &amp; ML learning into every classroom.</p>
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:konovartechtist@gmail.com">konovartechtist@gmail.com</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
+        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
   },
   {
     path: "/about",
@@ -185,7 +185,7 @@ const ROUTES = [
     intro: "Have questions? We'd love to hear from you! Send us a message and we'll respond super fast.",
     main: `
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:konovartechtist@gmail.com">konovartechtist@gmail.com</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
+        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
         <p><a href="/">Back to home</a></p>`,
   },
 ];

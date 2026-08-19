@@ -30,7 +30,7 @@ const contactPageJsonLd = {
   mainEntity: {
     "@type": "EducationalOrganization",
     name: "KONOV",
-    email: "konovartechtist@gmail.com",
+    email: "hello@konovtech.com",
     telephone: "+234 (0) 20 874 1417",
     address: {
       "@type": "PostalAddress",
@@ -105,7 +105,7 @@ const Contact = () => {
     {
       icon: Mail,
       title: "Email Us",
-      content: "konovartechtist@gmail.com",
+      content: "hello@konovtech.com",
       color: "bg-primary",
       mascot: "happy" as const,
     },

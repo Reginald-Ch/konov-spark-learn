@@ -19,8 +19,25 @@ function makeFakeDb(opts: { publishedLessons: number; passedLessonsByEmail: Reco
     { input_args: [''], expected_output: false, is_hidden: true },
   ];
   const attempts = new Map<string, { passed: boolean; bestPassedCount: number; attempts: number }>();
+  // Mirrors participant_device_tokens' mint-or-verify semantics closely
+  // enough to exercise handleGradeRequest's new gating without a real
+  // bcrypt hash — first call for an email always mints (returns ok, a
+  // token), later calls must present that exact token.
+  const tokensByEmail = new Map<string, string>();
 
   const db: ChallengeDb = {
+    async verifyOrMintDeviceToken(email, deviceToken) {
+      const existing = tokensByEmail.get(email);
+      if (!existing) {
+        const minted = `token-${email}`;
+        tokensByEmail.set(email, minted);
+        return { ok: true, newDeviceToken: minted };
+      }
+      if (deviceToken !== existing) {
+        return { ok: false, message: 'This email is already active on another device — submit from there, or use a different email.' };
+      }
+      return { ok: true };
+    },
     async countPassedLessons(email) { return opts.passedLessonsByEmail[email] ?? 0; },
     async countPublishedLessons() { return opts.publishedLessons; },
     async getChallenge(id) { return id === challenge.id ? challenge : null; },
@@ -101,9 +118,21 @@ async function run() {
 
   {
     const { db } = makeFakeDb({ publishedLessons: 40, passedLessonsByEmail: { 'kid@example.com': 40 } });
-    await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit' });
-    const second = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit' });
+    const first = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit' });
+    // Same device-token thread every real caller has to follow: persist
+    // whatever newDeviceToken came back and present it on the next call.
+    const second = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit', device_token: first.body.newDeviceToken });
     check('second passing submit does not award coins again', second.body.ok && second.body.passed === true && second.body.bonusCoinsAwarded === 0, second);
+  }
+
+  {
+    const { db } = makeFakeDb({ publishedLessons: 40, passedLessonsByEmail: { 'kid@example.com': 40 } });
+    const first = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'run' });
+    check('first call for an email mints a device token', first.body.ok && typeof first.body.newDeviceToken === 'string' && first.body.newDeviceToken.length > 0, first);
+    const impersonator = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit', device_token: 'wrong-token' });
+    check('a second device presenting the wrong token is rejected, not allowed to submit as this email', impersonator.status === 403 && !impersonator.body.ok, impersonator);
+    const owner = await handleGradeRequest(db, { participant_email: 'kid@example.com', challenge_id: 'chal-1', code: CORRECT, mode: 'submit', device_token: first.body.newDeviceToken });
+    check('the real owner presenting the minted token can still submit', owner.body.ok && owner.body.passed === true, owner);
   }
 
   {

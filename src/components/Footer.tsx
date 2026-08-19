@@ -118,7 +118,7 @@ export const Footer = () => {
             <ul className="space-y-3 font-space">
               <li className="flex items-start gap-2 text-muted-foreground">
                 <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" />
-                <span>konovartechtist@gmail.com</span>
+                <span>hello@konovtech.com</span>
               </li>
             </ul>
           </div>

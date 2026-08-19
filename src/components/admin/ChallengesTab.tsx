@@ -294,7 +294,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mb-2">
-                Each test is a message sent to the participant's bot; the auto-grader checks whether the response satisfies what you describe. No tests defined = full benchmark credit by default.
+                Each test is a message sent to the participant's bot; the auto-grader checks whether the response satisfies what you describe. No tests defined = 0 benchmark credit, not full credit — add at least one test if this challenge should score on it.
               </p>
               <div className="space-y-2">
                 {(form.benchmark_tests || []).map((t, i) => (
@@ -328,7 +328,7 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
                   </div>
                 ))}
                 {(form.benchmark_tests || []).length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">No benchmark tests yet — Auto-Grade will award full benchmark credit.</p>
+                  <p className="text-xs text-muted-foreground italic">No benchmark tests yet — Auto-Grade will award 0 benchmark credit until at least one is added.</p>
                 )}
               </div>
             </div>

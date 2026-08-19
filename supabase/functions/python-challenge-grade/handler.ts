@@ -20,6 +20,14 @@ export interface TestRow {
 }
 
 export interface ChallengeDb {
+  // Delegates to verify_or_mint_device_token — same participant_device_tokens
+  // TOFU pattern as submit_challenge_entry/claim_community_quest/
+  // submit_lesson_quiz. Without this, participant_email was a bare
+  // self-asserted value (this function also has verify_jwt = false in
+  // config.toml, so it doesn't even require a valid anon JWT) and anyone
+  // could grade+submit as any known registered email, minting coins onto
+  // their balance and overwriting their attempt history.
+  verifyOrMintDeviceToken(participantEmail: string, deviceToken: string | null): Promise<{ ok: boolean; message?: string; newDeviceToken?: string | null }>;
   countPassedLessons(participantEmail: string): Promise<number>;
   countPublishedLessons(): Promise<number>;
   getChallenge(challengeId: string): Promise<ChallengeRow | null>;
@@ -35,6 +43,7 @@ export interface GradeRequestBody {
   challenge_id?: unknown;
   code?: unknown;
   mode?: unknown;
+  device_token?: unknown;
 }
 
 export interface VisibleTestResult {
@@ -54,10 +63,11 @@ export interface GradeResponse {
   passed?: boolean;
   errorType?: string;
   errorMessage?: string;
+  newDeviceToken?: string | null;
 }
 
 export async function handleGradeRequest(db: ChallengeDb, body: GradeRequestBody): Promise<{ status: number; body: GradeResponse }> {
-  const { participant_email, challenge_id, code, mode } = body;
+  const { participant_email, challenge_id, code, mode, device_token } = body;
 
   if (typeof participant_email !== 'string' || !participant_email.trim()) {
     return { status: 400, body: { ok: false, errorType: 'runtime_error', errorMessage: 'participant_email is required.' } };
@@ -73,6 +83,11 @@ export async function handleGradeRequest(db: ChallengeDb, body: GradeRequestBody
   }
 
   const email = participant_email.trim().toLowerCase();
+
+  const tokenCheck = await db.verifyOrMintDeviceToken(email, typeof device_token === 'string' ? device_token : null);
+  if (!tokenCheck.ok) {
+    return { status: 403, body: { ok: false, errorType: 'runtime_error', errorMessage: tokenCheck.message || 'Device verification failed.' } };
+  }
 
   // Server-side re-verification of the "finished all lessons" gate — never
   // trust the client's belief that this track is unlocked, same discipline
@@ -105,7 +120,7 @@ export async function handleGradeRequest(db: ChallengeDb, body: GradeRequestBody
   if (mode === 'run') {
     // Visible-only tests were fetched, so every result here is safe to
     // return in full — no persistence, "Run" doesn't count as an attempt.
-    return { status: 200, body: { ok: true, passedCount: grade.passedCount, total: grade.total, results: grade.results } };
+    return { status: 200, body: { ok: true, passedCount: grade.passedCount, total: grade.total, results: grade.results, newDeviceToken: tokenCheck.newDeviceToken } };
   }
 
   const { passed, bonusCoinsAwarded } = await db.recordAttempt({
@@ -127,6 +142,6 @@ export async function handleGradeRequest(db: ChallengeDb, body: GradeRequestBody
   // status (stays true on a later failed retry), not "passed this attempt".
   return {
     status: 200,
-    body: { ok: true, passedCount: grade.passedCount, total: grade.total, results: visibleResults, bonusCoinsAwarded, passed },
+    body: { ok: true, passedCount: grade.passedCount, total: grade.total, results: visibleResults, bonusCoinsAwarded, passed, newDeviceToken: tokenCheck.newDeviceToken },
   };
 }

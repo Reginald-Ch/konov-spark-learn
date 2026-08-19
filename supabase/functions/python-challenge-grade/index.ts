@@ -17,6 +17,15 @@ function json(data: unknown, status = 200) {
 // has no anon/authenticated grant).
 function makeSupabaseChallengeDb(supabase: ReturnType<typeof createClient>): ChallengeDb {
   return {
+    async verifyOrMintDeviceToken(participantEmail: string, deviceToken: string | null) {
+      const { data, error } = await supabase.rpc("verify_or_mint_device_token", {
+        p_participant_email: participantEmail,
+        p_device_token: deviceToken,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return { ok: !!row?.ok, message: row?.message ?? undefined, newDeviceToken: row?.new_device_token ?? null };
+    },
     async countPassedLessons(participantEmail: string): Promise<number> {
       const { count, error } = await supabase
         .from("lesson_progress")

@@ -38,7 +38,7 @@ async function generateVapidAuthHeader(
   const payload = {
     aud: audience,
     exp: expiry,
-    sub: "mailto:konovartechtist@gmail.com",
+    sub: "mailto:hello@konovtech.com",
   };
 
   const encoder = new TextEncoder();

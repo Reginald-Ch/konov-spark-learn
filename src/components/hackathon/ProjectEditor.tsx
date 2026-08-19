@@ -317,8 +317,14 @@ export const extractConfigFromCode = (rawCode: string) => {
     // used to make that one branch's value silently vanish, with the bug
     // "randomly" only affecting whichever branch happened to have the extra
     // line.
+    // Greedy `.*` between quotes, not [^"']+ — the same single-exclusion
+    // pattern already fixed everywhere else in this file (extractFunctionReturn,
+    // extractGetFallback, the System Prompt/Knowledge Base sync) but missed
+    // here, so a value containing an apostrophe ("Good morning! Let's
+    // crush it") truncated at the apostrophe instead of the real closing
+    // quote.
     const blockRegex = new RegExp(
-      `(?:if|elif)\\s+\\w+\\s*==\\s*["']([^"']+)["'][^:]*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["']([^"']+)["']`,
+      `(?:if|elif)\\s+\\w+\\s*==\\s*["'](.*)["'][^:]*:[\\s\\S]{0,300}?\\n\\s*${targetVar}\\s*=\\s*["'](.*)["']`,
       'g'
     );
     let m;
@@ -930,6 +936,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [restoreDone, setRestoreDone] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // Terminal (Run Tests output — the progress summary and AI verdict land
+  // at the END of ~45 lines) and AI Mentor (a streamed answer appended
+  // after any prior Review/Explain text) both scroll their own content but
+  // never scrolled TO anything — a fixed 180px panel meant the actual
+  // point of clicking Run, or the mentor's whole answer, routinely
+  // rendered below the fold with no indication more was there.
+  const terminalScrollRef = useRef<HTMLDivElement>(null);
+  const mentorScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1133,9 +1147,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const code = prev['main.py'];
       const stripped = stripComments(code);
       const varName = stripped.match(/QA_PAIRS\s*=/) ? 'QA_PAIRS' : 'qa_pairs';
+      // Escape backslash BEFORE quotes (matches the KNOWLEDGE_BASE/system-prompt
+      // sync above) — a lone `.replace(/"/g, '\\"')` left backslashes (a Windows
+      // path, LaTeX, regex pasted into an answer) untouched, producing an
+      // invalid Python escape sequence. These are single-quoted single-line
+      // string literals (not triple-quoted), so a literal newline in the
+      // pair also has to become a real `\n` escape or the generated file
+      // fails to parse entirely.
+      const escapePyLine = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
       const pairsStr = validPairs.length === 0
         ? '[]'
-        : '[\n' + validPairs.map(p => `    {"q": "${p.q.replace(/"/g, '\\"')}", "a": "${p.a.replace(/"/g, '\\"')}"}`).join(',\n') + '\n]';
+        : '[\n' + validPairs.map(p => `    {"q": "${escapePyLine(p.q)}", "a": "${escapePyLine(p.a)}"}`).join(',\n') + '\n]';
       // Comment-anchored (like replaceOutsideComments) AND balanced-bracket-
       // aware for the END boundary — a lazy \[...\] regex here would stop
       // replacing at the first closing bracket inside an EXISTING pair's
@@ -1257,6 +1279,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Same "scroll to what just changed" idea as chatEndRef above, applied
+  // to the bottom panel — new terminal lines or a growing mentor answer
+  // used to just append with the scroll position wherever it happened to
+  // be, so the actual point of clicking Run (the progress summary and AI
+  // verdict, at the end of the output) or a streamed mentor reply
+  // routinely sat below the fold with nothing telling the student more
+  // was there.
+  useEffect(() => {
+    if (bottomTab === 'terminal') terminalScrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [terminalOutput, bottomTab]);
+  useEffect(() => {
+    if (bottomTab === 'ai-mentor') mentorScrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [aiOutput, bottomTab]);
+
   // Cap chat messages separately to avoid re-render loop
   useEffect(() => {
     if (chatMessages.length > 100) {
@@ -1328,6 +1364,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py']]);
 
   const handleTypeChange = (type: ProjectType) => {
+    // Re-clicking the already-selected type tile — the sidebar renders it
+    // as a highlighted "current selection" indicator, not an obviously
+    // destructive button, so nothing below should fire for a no-op click.
+    if (type === projectType) return;
+    // No confirmation existed at all — every unsaved edit, the full undo
+    // history, the local draft, AND the link to any already-saved project
+    // (currentProjectId gets nulled below, same "orphans a published
+    // link" risk as Reset to Template) were destroyed in one click on a
+    // tile that reads as a selector, not a destructive action.
+    if ((isDirty || currentProjectId) && !window.confirm(
+      currentProjectId
+        ? 'Switch project type? Your current project and any unsaved edits will be replaced with a fresh template — this does NOT delete what\'s already saved on the server, but this editor will disconnect from it (a new save creates a separate project).'
+        : 'Switch project type? Your unsaved edits will be replaced with a fresh template.'
+    )) return;
     const scaffold = scaffolds[type];
     setProjectType(type);
     setSystemPrompt(scaffold.systemPrompt);
@@ -1384,7 +1434,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // Reset current file to original template code
   const handleResetToTemplate = useCallback(() => {
     const scaffold = scaffolds[projectType];
-    const confirmMsg = 'Reset to original template? Your current edits will be lost.';
+    // This also clears currentProjectId (see below) — for a project
+    // that's already been published and shared, that means the NEXT Go
+    // Live inserts a brand-new project row instead of updating the one
+    // whose link is already circulating; the old link keeps serving the
+    // pre-reset version with nothing telling the student the connection
+    // was severed. Only worth the extra sentence when there's an actual
+    // saved project to disconnect from.
+    const confirmMsg = currentProjectId
+      ? 'Reset to original template? Your current edits will be lost, AND this editor will disconnect from your saved project (if you\'ve already published it, that link keeps working but stops reflecting new changes — publishing again creates a separate project).'
+      : 'Reset to original template? Your current edits will be lost.';
     if (!window.confirm(confirmMsg)) return;
     // window.confirm blocks the event loop long enough for a pending
     // debounced snapshot (from typing right before Reset) to still be
@@ -1420,7 +1479,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // could resurrect the pre-reset code (it was tagged projectId: null too).
     localStorage.removeItem('forge-editor-code');
     toast.success('🔄 Code reset to original template');
-  }, [projectType, files, scaffolds]);
+  }, [projectType, files, scaffolds, currentProjectId]);
 
   const updateFile = (content: string) => {
     // Mark as typing to suppress read-back effects
@@ -1866,6 +1925,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // ── Voice Assistant Helpers ──
   const stripMarkdown = (text: string) => text.replace(/[*_`#\[\]()>~|]/g, '').replace(/\n+/g, ' ').trim();
+  // speechSynthesis.cancel() is synchronous to CALL, but the cancelled
+  // utterance's own onend/onerror still fires asynchronously afterward —
+  // by the time it does, speakText has already moved on to the NEW
+  // utterance and set isSpeaking(true) for it. The stale callback then
+  // incorrectly flips isSpeaking back to false while the new reply is
+  // actively playing, which matters here because isListening's onresult
+  // gates on isSpeaking specifically to stop the mic re-ingesting the
+  // bot's own voice — two replies in quick succession reopened that loop.
+  // Tracking the current utterance and only letting THAT one's own
+  // callback touch isSpeaking closes the race.
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const speakText = useCallback((text: string, voiceGender?: string) => {
     if (!ttsEnabled || !window.speechSynthesis) return;
@@ -1882,12 +1952,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const match = voices.find(v => genderKeywords.some(k => v.name.toLowerCase().includes(k)));
       if (match) utterance.voice = match;
     }
+    currentUtteranceRef.current = utterance;
     setIsSpeaking(true);
     utterance.onend = () => {
-      setIsSpeaking(false);
+      // Only if this is still the current utterance — a stale callback
+      // from an utterance speakText already cancelled in favor of this
+      // one must not clear isSpeaking for a reply that's actively playing.
+      if (currentUtteranceRef.current === utterance) setIsSpeaking(false);
       // Recognition is in continuous mode — no need to restart
     };
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onerror = () => {
+      if (currentUtteranceRef.current === utterance) setIsSpeaking(false);
+    };
     window.speechSynthesis.speak(utterance);
   }, [ttsEnabled]);
 
@@ -1948,6 +2024,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         retryCountRef.current++;
         try { recognition.start(); } catch { setIsListening(false); }
         return;
+      }
+      // Reaching here with voiceModeRef.current STILL true means retries
+      // ran out (Chrome ends continuous recognition after ~60s of
+      // silence, and this restarts it — up to MAX_RETRIES times) while the
+      // student never asked for hands-free to stop. That used to only
+      // clear isListening/waitingForWakeWord, leaving voiceModeRef.current
+      // AND the voiceConversationMode toggle both still true — the button
+      // kept reading "Hands-free ON" (green) with the mic genuinely dead
+      // and no toast explaining why. If voiceModeRef.current is already
+      // false here instead, the student turned it off themselves (that
+      // handler already did its own state updates) — nothing extra to say.
+      if (voiceModeRef.current) {
+        voiceModeRef.current = false;
+        setVoiceConversationMode(false);
+        toast.error('Hands-free mode stopped listening — tap the mic to turn it back on.');
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
@@ -2345,11 +2436,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // 1. Check for secret responses FIRST (client-side, near-exact match)
     if (!hasRespond) for (const [trigger, response] of Object.entries(config.secretResponses)) {
       if (normalizedMsg === normalizeTrigger(trigger)) {
+        const reply = scrubForbidden(`${response}`);
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
-          { role: 'assistant', content: scrubForbidden(`${response}`) },
+          { role: 'assistant', content: reply },
         ]);
+        if (config.voiceEnabled && ttsEnabled) speakText(reply, config.voiceGender);
         return;
       }
     }
@@ -2412,11 +2505,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         if (config.signOff) {
           answer += `\n\n${config.signOff}`;
         }
+        const reply = scrubForbidden(answer);
         setChatMessages(prev => [
           ...prev,
           { role: 'user', content: userMsg },
-          { role: 'assistant', content: scrubForbidden(answer) },
+          { role: 'assistant', content: reply },
         ]);
+        if (config.voiceEnabled && ttsEnabled) speakText(reply, config.voiceGender);
         return;
       }
     }
@@ -2439,6 +2534,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             { role: 'user', content: userMsg },
             { role: 'assistant', content: refusal },
           ]);
+          if (config.voiceEnabled && ttsEnabled) speakText(refusal, config.voiceGender);
           return;
         }
       }
@@ -2531,6 +2627,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           pythonErrorType = status === 'error' ? (headers.get('X-Python-Error-Type') || 'error') : undefined;
         },
       );
+      // A stream that completes without ever emitting a content delta (an
+      // empty respond() return, or the provider finishing with zero tokens)
+      // never calls onChunk above, so the '...' placeholder is never
+      // replaced — same bug fixed on the published page (ProjectView.tsx).
+      // The render-time skip only hides '...' while isStreaming is true, so
+      // once this finishes it shows a permanent literal "..." bubble.
+      if (!assistantReply) {
+        const fallback = liveConfig.errorMessage || "I don't have a response for that — try asking something else.";
+        setChatMessages(prev => {
+          const updated = [...prev];
+          const idx = updated.findIndex(m => m._id === placeholderId);
+          const targetIdx = idx !== -1 ? idx : updated.length - 1;
+          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId, usedRealPython, pythonErrorType };
+          return updated;
+        });
+      }
       // TTS: Speak the assistant's reply if voice is enabled
       if (assistantReply && liveConfig.voiceEnabled && ttsEnabled) {
         speakText(assistantReply, liveConfig.voiceGender);
@@ -2721,7 +2833,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       );
       // Store actual assistant response for proper conversation context
       setMentorHistory(prev => [...prev, { role: 'assistant', content: assistantReply || 'No response' }]);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      toast.error(e.message);
+      // A timeout/abort/rate-limit here used to leave the user turn
+      // committed to BOTH aiOutput (visibly stuck as "**You:** <question>"
+      // with nothing after it — indistinguishable from a mentor that read
+      // the question and silently ignored it) AND mentorHistory (an
+      // orphaned user message with no assistant reply). The NEXT question
+      // then shipped [..., orphaned_q, new_q] as conversation history —
+      // the edge function's own `.slice(0, -1)` re-sends the orphaned
+      // question as a normal prior turn, and the model would frequently
+      // answer THAT instead of what was actually just asked. Reverting
+      // both back to their pre-turn state makes a failure a clean no-op
+      // instead of silent, compounding corruption.
+      setMentorHistory(trimmedHistory);
+      setAiOutput(prev => {
+        const sepIdx = prev.lastIndexOf(MENTOR_SEP);
+        return sepIdx !== -1 ? prev.slice(0, sepIdx) : prev;
+      });
+    }
     finally { setIsAiLoading(false); }
   };
 
@@ -3140,17 +3270,33 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         never actually see. */}
                     {(() => {
                       const config = liveConfig;
-                      const defaultBotName = extractConfigFromCode(scaffolds[projectType].main).botName;
+                      const defaults = extractConfigFromCode(scaffolds[projectType].main);
                       return (
                         <AchievementGrid stats={{
                           challengeCount: getChallengeCount(config, projectType),
-                          hasCustomName: config.botName !== defaultBotName && config.botName !== 'AI Bot',
-                          hasKnowledge: config.knowledgeBaseFromCode.trim() !== '',
-                          hasQAPairs: config.qaPairsFromCode.length > 0,
-                          hasRules: config.conversationRules.length > 0,
+                          hasCustomName: config.botName !== defaults.botName && config.botName !== 'AI Bot',
+                          // hasKnowledge/hasQAPairs/hasRules used to be bare
+                          // "non-empty" checks — fine for the guided chatbot
+                          // template (nothing pre-filled), but the AI Agent
+                          // template ships all three pre-filled with real
+                          // example content, so these three badges (plus
+                          // code-ninja below) were already unlocked the
+                          // moment the editor opened on that template, before
+                          // the student did anything. Same differs-from-
+                          // default comparison the challenge detectors use.
+                          hasKnowledge: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode,
+                          hasQAPairs: listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1),
+                          hasRules: listDiffersFromDefault(config.conversationRules, defaults.conversationRules, 1),
                           hasTested: terminalOutput.length > 0,
                           hasSaved: !!currentProjectId,
-                          codeLength: files['main.py'].length,
+                          // Lines actually added beyond the scaffold's own
+                          // starting point, not raw character count — every
+                          // scaffold is ~20,000 characters before a student
+                          // types a single keystroke, so "codeLength >= 50"
+                          // (its ORIGINAL threshold, meant as "50+ lines" per
+                          // the badge's own description) was true instantly,
+                          // on every project, every time.
+                          codeLength: Math.max(0, files['main.py'].split('\n').length - scaffolds[projectType].main.split('\n').length),
                         }} />
                       );
                     })()}
@@ -3358,7 +3504,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             className="hidden"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
+                              e.target.value = '';
                               if (!file) return;
+                              // accept="image/*" is only a picker HINT, not
+                              // enforcement — a HEIC photo straight off a
+                              // phone, or a BMP/AVIF, passed through
+                              // uncaught before, so "Logo uploaded!" was
+                              // immediately followed by the preview below
+                              // rejecting it as "not a safe image URL" —
+                              // telling the student to do the exact thing
+                              // they just did. Matches the same allowlist
+                              // the preview itself checks.
+                              if (!/^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(file.type)) {
+                                toast.error('Please upload a PNG, JPG, GIF, WEBP, or SVG image.');
+                                return;
+                              }
                               if (file.size > 500 * 1024) { toast.error('Logo must be under 500KB'); return; }
                               const reader = new FileReader();
                               reader.onload = (ev) => {
@@ -3385,7 +3545,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             <button onClick={() => setLogoUrl('')} className="text-[10px] text-ide-text-muted hover:text-red-400 ml-auto">Remove</button>
                           </div>
                         ) : (
-                          <p className="text-[10px] text-red-400">That doesn't look like a safe image URL — paste a real http(s) link or use Upload.</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[10px] text-red-400 flex-1">That doesn't look like a safe image URL — paste a real http(s) link or use Upload.</p>
+                            {/* Upload now rejects unsupported formats up front, but this covers
+                                whatever already got into logoUrl before that existed (e.g. a
+                                pasted URL that doesn't parse) — the ONLY previous way out of
+                                this state was manually deleting a data URL by hand out of the
+                                tiny Input above. */}
+                            <button onClick={() => setLogoUrl('')} className="text-[10px] text-ide-text-muted hover:text-red-400 flex-shrink-0">Clear</button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -3472,7 +3640,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   <span className="text-[10px] text-ide-text-muted">Ready</span>
                 </>
               )}
-              <Button variant="ghost" size="icon" onClick={handleCopy}
+              <Button variant="ghost" size="icon" onClick={handleCopy} title="Copy code" aria-label="Copy code"
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
                 {copied ? <Check className="w-3 h-3 text-ide-green" /> : <Copy className="w-3 h-3" />}
               </Button>
@@ -3937,8 +4105,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     onSelect={e => updateCursorInfo(e.target as HTMLTextAreaElement)}
                     onBlur={() => setTimeout(() => setAutocompleteItems([]), 150)}
                     spellCheck={false}
+                    // For main.py, this textarea's own text is invisible
+                    // (text-transparent) since the syntax-highlight overlay
+                    // paints the real visible text underneath — but with no
+                    // ::selection override, a selection's background still
+                    // painted over the (already-invisible) glyphs, so
+                    // selecting/select-all rendered as one solid highlighted
+                    // block with no visible characters at all, e.g. right
+                    // before a copy. selection:text-white makes the
+                    // selected span's actual characters visible again.
                     className={`resize-none font-mono text-[13px] pt-4 pl-4 pr-4 leading-6 focus:outline-none border-0 bg-transparent whitespace-pre ${
-                      activeFile === 'main.py' ? 'text-transparent caret-ide-cursor' : 'text-ide-text'
+                      activeFile === 'main.py' ? 'text-transparent caret-ide-cursor selection:text-white selection:bg-ide-accent/50' : 'text-ide-text'
                     }`}
                     style={{ gridArea: 'stack', minHeight: '100%' }}
                     placeholder="# Start coding..."
@@ -3993,7 +4170,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {showBottomPanel && (
               <motion.div
                 initial={{ height: 0 }}
-                animate={{ height: 180 }}
+                // Was 180 — barely fit the first ~8 of Run Tests' ~45 lines
+                // of output, with the actual progress summary and verdict
+                // (the whole point of clicking Run) below the fold.
+                animate={{ height: 280 }}
                 exit={{ height: 0 }}
                 className="overflow-hidden flex-shrink-0 flex flex-col border-t border-ide-border-subtle"
               >
@@ -4026,6 +4206,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <div className="font-mono text-xs text-ide-green space-y-0.5">
                       {terminalOutput.map((line, i) => <div key={i}>{line}</div>)}
                       {terminalOutput.length === 0 && <span className="text-ide-text-muted">$ Ready</span>}
+                      <div ref={terminalScrollRef} />
                     </div>
                   ) : bottomTab === 'console' ? (
                     <div className="font-mono text-xs space-y-0.5">
@@ -4057,6 +4238,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             <p className="text-ide-text-muted text-[10px] italic">Try: "How do I add a quiz feature?" or click Review above</p>
                           </div>
                         )}
+                        <div ref={mentorScrollRef} />
                       </div>
                       <div className="flex gap-2 mt-2 pt-2 border-t border-ide-border flex-shrink-0">
                         <Input
@@ -4094,6 +4276,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             </Button>
             <Button variant="ghost" size="icon"
               onClick={() => setChatMessages([])}
+              title="Clear chat" aria-label="Clear chat"
               className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
               <Trash2 className="w-3 h-3" />
             </Button>
@@ -4244,7 +4427,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {liveConfig.voiceEnabled && (
               <div className="flex items-center gap-1 px-1">
                 <Button size="sm" onClick={toggleListening} disabled={isStreaming}
-                  title={isListening ? 'Stop listening' : 'Push to talk'}
+                  title={isListening ? 'Stop listening' : 'Tap to speak'}
                   className={`h-6 w-6 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
                   <Mic className="w-3 h-3" />
                 </Button>

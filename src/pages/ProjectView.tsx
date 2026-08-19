@@ -124,6 +124,16 @@ const ProjectView = () => {
   const voiceModeRef = useRef(false);
   const handleChatSendRef = useRef<(msg?: string) => void>(() => {});
   const wakeWordRef = useRef<string>('');
+  // Ref mirror of isSpeaking — recognition.onresult below is registered
+  // once per listening session, not re-created every render, so it'd
+  // otherwise see whatever isSpeaking was at registration time forever.
+  const isSpeakingRef = useRef(false);
+  useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
+  // Same "which utterance can still touch isSpeaking" tracking Build
+  // Studio's own speakText uses — without it, a cancelled utterance's
+  // stale onend fires after a newer one already started and incorrectly
+  // clears isSpeaking mid-playback.
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -340,7 +350,7 @@ const ProjectView = () => {
       botEmoji: extract('🤖', 'BOT_EMOJI', 'bot_emoji'),
       greeting: extract('', 'AI_MESSAGE', 'greeting', 'GREETING_MESSAGE'),
       creatorName: extract('', 'CREATOR_NAME', 'creator'),
-      systemPrompt: extract('You are a helpful AI assistant.', 'SYSTEM_MESSAGE', 'system_message', 'SYSTEM_PROMPT'),
+      systemPrompt: extract('You are a helpful AI assistant.', 'SYSTEM_MESSAGE', 'system_message', 'SYSTEM_PROMPT', 'system_prompt'),
       temperature: extractNumber(0.7, 'TEMPERATURE', 'temperature'),
       responseStyle: extract('Balanced', 'RESPONSE_STYLE', 'response_style'),
       maxResponseLength: extract('medium', 'MAX_RESPONSE_LENGTH', 'max_response_length'),
@@ -446,12 +456,15 @@ const ProjectView = () => {
       const match = voices.find(v => genderKeywords.some(k => v.name.toLowerCase().includes(k)));
       if (match) utterance.voice = match;
     }
+    currentUtteranceRef.current = utterance;
     setIsSpeaking(true);
     utterance.onend = () => {
-      setIsSpeaking(false);
+      if (currentUtteranceRef.current === utterance) setIsSpeaking(false);
       // Recognition is in continuous mode — no need to restart
     };
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onerror = () => {
+      if (currentUtteranceRef.current === utterance) setIsSpeaking(false);
+    };
     window.speechSynthesis.speak(utterance);
   }, [ttsEnabled]);
 
@@ -481,6 +494,22 @@ const ProjectView = () => {
       if (!last.isFinal) return;
       const transcript = last[0].transcript.trim();
       if (!transcript) return;
+      // Recognition is continuous and stays live while the bot's reply
+      // plays through the speakers — without this, an unsuspecting
+      // visitor (no headphones) has the still-open mic transcribe the
+      // bot's OWN spoken reply and fire it right back as a new question,
+      // which the bot answers aloud again, which the mic picks up again.
+      // This never self-terminates; it's a live, unauthenticated loop
+      // burning the shared AI-gateway key for as long as the tab stays
+      // open. Build Studio's own Live Preview already guards this the
+      // same way — this page never got the fix.
+      if (isSpeakingRef.current) return;
+      // Reset on every real transcript, not just once at listening-start —
+      // Chrome ends continuous recognition on routine silence timeouts
+      // even during normal, working use, so without this a completely
+      // healthy conversation burns through MAX_RETRIES in about a minute
+      // and hands-free dies with no further recovery.
+      retryCountRef.current = 0;
 
       if (isWakeWordMode && waitingForWakeWordRef.current) {
         if (transcript.toLowerCase().includes(wakeWord!.toLowerCase())) {
@@ -502,6 +531,16 @@ const ProjectView = () => {
         retryCountRef.current++;
         try { recognition.start(); } catch { setIsListening(false); }
         return;
+      }
+      // voiceModeRef.current still true here means retries ran out while
+      // the visitor never asked hands-free to stop — used to leave the
+      // toggle showing "on" over a genuinely dead mic with no explanation.
+      // (If it's already false, they turned it off themselves and that
+      // handler already did its own state updates — nothing extra to say.)
+      if (voiceModeRef.current) {
+        voiceModeRef.current = false;
+        setVoiceConversationMode(false);
+        toast.error('Hands-free mode stopped listening — tap the mic to turn it back on.');
       }
       setIsListening(false);
       setWaitingForWakeWord(false);
@@ -616,7 +655,9 @@ const ProjectView = () => {
     // 1. Check for secret responses (client-side, near-exact match)
     if (!hasRespond) for (const [trigger, response] of Object.entries(config.secretResponses)) {
       if (normalizedMsg === normalizeTrigger(trigger)) {
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: scrubForbidden(String(response)) }]);
+        const reply = scrubForbidden(String(response));
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: reply }]);
+        if (config.voiceEnabled && ttsEnabled) speakText(reply, config.voiceGender);
         return;
       }
     }
@@ -650,7 +691,9 @@ const ProjectView = () => {
           answer += ` ${config.catchphrases[Math.floor(Math.random() * config.catchphrases.length)]}`;
         }
         if (config.signOff) answer += `\n\n${config.signOff}`;
-        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: scrubForbidden(answer) }]);
+        const reply = scrubForbidden(answer);
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: reply }]);
+        if (config.voiceEnabled && ttsEnabled) speakText(reply, config.voiceGender);
         return;
       }
     }
@@ -665,6 +708,7 @@ const ProjectView = () => {
           let refusal = `I'm sorry, I can't discuss "${topic}". Is there something else I can help you with?`;
           if (config.signOff) refusal += `\n\n${config.signOff}`;
           setChatMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: refusal }]);
+          if (config.voiceEnabled && ttsEnabled) speakText(refusal, config.voiceGender);
           return;
         }
       }
@@ -811,6 +855,23 @@ const ProjectView = () => {
           } catch { /* ignore */ }
         }
       }
+      // A completed stream that never emitted a single content delta (an
+      // empty respond() return, or the provider legitimately completing
+      // with zero tokens) left the '...' placeholder in chatMessages with
+      // nothing to ever replace it — the render-time skip below only hides
+      // '...' while isStreaming is true, so once this request finished
+      // (isStreaming -> false in the finally block) it started rendering
+      // as a literal, permanent "..." bubble instead of the loading dots.
+      if (!fullText) {
+        const fallback = config?.errorMessage || "I don't have a response for that — try asking something else.";
+        setChatMessages(prev => {
+          const updated = [...prev];
+          const idx = updated.findIndex(m => m._id === placeholderId);
+          const targetIdx = idx !== -1 ? idx : updated.length - 1;
+          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId };
+          return updated;
+        });
+      }
       // TTS: Speak the response if voice is enabled
       if (fullText && config?.voiceEnabled && ttsEnabled) {
         speakText(fullText, config?.voiceGender);
@@ -872,7 +933,10 @@ const ProjectView = () => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.bg }}>
-      <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} canonical={`/projects/${id}`} />
+      {/* noindex: this page shows a minor's real name (project.author_name
+          below) — nothing about a student project needs to be searchable,
+          and there's no reason that name should be crawlable/indexed. */}
+      <SEO title={`${project.project_name} - AI App`} description={project.description || 'An AI app built by a student'} canonical={`/projects/${id}`} noindex />
 
       {/* ── App-like Header ── */}
       <motion.div
@@ -948,7 +1012,7 @@ const ProjectView = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
+          <div role="log" aria-live="polite" aria-relevant="additions" className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: '400px' }}>
             {chatMessages.length === 0 && config && (
               <div className="text-center py-12 space-y-4">
                 <motion.div
@@ -966,21 +1030,34 @@ const ProjectView = () => {
                     {config.greeting || project.description || 'Send a message to start using this AI app!'}
                   </p>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {(config.conversationStarters.length > 0
-                    ? config.conversationStarters.slice(0, 4)
-                    : ['Hello! What can you do?', 'Help me with something', 'Tell me about yourself']
-                  ).map(example => (
-                    <button
-                      key={example}
-                      onClick={() => { handleChatSend(example); }}
-                      className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
-                      style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
+              </div>
+            )}
+            {/* Was inside the block above, gated on chatMessages.length === 0
+                — the auto-greeting effect below adds an assistant message
+                ~1.5s after load specifically so this welcome screen (and
+                these starter buttons) would be visible for a moment first,
+                but that same greeting landing is what set length to 1 and
+                unmounted this block. A visitor saw Challenge 10's starter
+                buttons flash for about a second, then permanently vanish
+                before there was any real chance to read or click one.
+                Decoupled from the header above and now keyed on "no real
+                reply from the visitor yet" instead — persists through the
+                auto-greeting, disappears once they've actually engaged. */}
+            {!chatMessages.some(m => m.role === 'user') && config && (
+              <div className="flex flex-wrap justify-center gap-2 mt-2 mb-2">
+                {(config.conversationStarters.length > 0
+                  ? config.conversationStarters.slice(0, 4)
+                  : ['Hello! What can you do?', 'Help me with something', 'Tell me about yourself']
+                ).map((example, i) => (
+                  <button
+                    key={`${example}-${i}`}
+                    onClick={() => { handleChatSend(example); }}
+                    className="text-xs px-3 py-2 rounded-full text-ide-text-muted hover:text-white transition-all"
+                    style={{ backgroundColor: `${theme.accent}10`, border: `1px solid ${theme.accent}25` }}
+                  >
+                    {example}
+                  </button>
+                ))}
               </div>
             )}
             {chatMessages.map((msg, i) => {
@@ -1058,7 +1135,7 @@ const ProjectView = () => {
               {config?.voiceEnabled && (
                 <>
                   <Button onClick={toggleListening} disabled={isStreaming}
-                    title={isListening ? 'Stop listening' : 'Push to talk'}
+                    title={isListening ? 'Stop listening' : 'Tap to speak'}
                     className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-white hover:opacity-90'}`}
                     style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
                     <Mic className="w-4 h-4" />
@@ -1080,6 +1157,7 @@ const ProjectView = () => {
                 </>
               )}
               <Button onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
+                title="Send message" aria-label="Send message"
                 className="h-10 w-10 rounded-full flex-shrink-0 text-white hover:opacity-90 p-0"
                 style={{ backgroundColor: theme.accent }}>
                 {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -1090,9 +1168,13 @@ const ProjectView = () => {
 
         {/* ── Collapsible Code Section ── */}
         <div className="border-t border-ide-border">
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setShowCode(!showCode)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-ide-text-muted hover:text-white transition-colors"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowCode(!showCode); } }}
+            aria-expanded={showCode}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm text-ide-text-muted hover:text-white transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Code className="w-4 h-4" />
@@ -1109,7 +1191,7 @@ const ProjectView = () => {
               )}
               {showCode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
-          </button>
+          </div>
 
           {showCode && (
             <motion.div

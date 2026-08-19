@@ -93,6 +93,7 @@ interface QuizResult {
   bonus_coins_awarded: number;
   correct_flags: boolean[];
   explanations: string[];
+  new_device_token?: string | null;
 }
 
 const MODULE_META: Record<number, { name: string; color: string }> = {
@@ -216,6 +217,18 @@ export const LessonsPanel = () => {
   const [hackathonId, setHackathonId] = useState<string | null>(null);
   const [email, setEmail] = useState(localStorage.getItem('forge-student-email') || '');
   const [name, setName] = useState(localStorage.getItem('forge-student-name') || '');
+  // Same per-email TOFU bearer credential Community Chat/Daily Challenges
+  // mint and check — shared localStorage key, so an identity already
+  // claimed elsewhere on this browser doesn't need proving twice. Without
+  // this, submit_lesson_quiz took a bare self-asserted email and let
+  // anyone force-complete lessons (and mint coins) onto someone else's
+  // account just by knowing it.
+  const [deviceToken, setDeviceTokenState] = useState(() => localStorage.getItem('forge-device-token') || '');
+  const setDeviceToken = (value: string) => {
+    setDeviceTokenState(value);
+    if (value) localStorage.setItem('forge-device-token', value);
+    else localStorage.removeItem('forge-device-token');
+  };
   // Identity is shared app-wide (Community, Daily Challenges, the IDE) — only
   // show editable fields when we don't already know who this is.
   const [editingIdentity, setEditingIdentity] = useState(!(localStorage.getItem('forge-student-name') && localStorage.getItem('forge-student-email')));
@@ -537,9 +550,11 @@ export const LessonsPanel = () => {
         p_hackathon_id: hackathonId,
         p_lesson_id: activeLesson.id,
         p_answers: answerArray,
+        p_device_token: deviceToken || null,
       });
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
+      if ((result as any)?.new_device_token) setDeviceToken((result as any).new_device_token);
       setQuizResult(result as unknown as QuizResult);
       setResultWasRetake(wasAlreadyPassed);
       setPhase('results');

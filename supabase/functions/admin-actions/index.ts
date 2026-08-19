@@ -63,8 +63,16 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+// Alias list and triple/single-quote handling must match the canonical
+// extractor (ProjectEditor.tsx / ProjectView.tsx `extract()`) exactly — this
+// is a third, independent copy, and it previously only matched uppercase
+// SYSTEM_MESSAGE/SYSTEM_PROMPT on the triple-quote branch. A submission using
+// the fully-supported lowercase `system_prompt = """multi-line..."""` form
+// fell through both branches (the single-quote regex's `.` can't match
+// newlines) and got silently auto-graded as if it had no system prompt at
+// all, even though the same code renders correctly in Build Studio.
 function extractSystemPrompt(code: string): string {
-  const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|SYSTEM_PROMPT)\s*=\s*"""([\s\S]*?)"""/);
+  const tripleMatch = code.match(/(?:SYSTEM_MESSAGE|system_message|SYSTEM_PROMPT|system_prompt)\s*=\s*"""([\s\S]*?)"""/);
   if (tripleMatch) return tripleMatch[1].trim();
   const singleMatch = code.match(/(?:SYSTEM_MESSAGE|SYSTEM_PROMPT|system_message|system_prompt)\s*=\s*["'](.*)["']/);
   if (singleMatch) return singleMatch[1];
