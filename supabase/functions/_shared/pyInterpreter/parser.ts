@@ -450,14 +450,24 @@ function parseFStringParts(raw: string, line: number): FStringPart[] {
       }
       if (depth !== 0) throw new PySyntaxError("Unterminated '{' in f-string", line);
       let exprSrc = raw.slice(i + 1, j);
-      // Drop an optional format spec ("{value:.2f}") — not supported, but
-      // shouldn't hard-fail on the common case of a student trying it.
+      // Format spec ("{value:.2f}") used to be silently dropped entirely —
+      // for the single most common formatting idiom in a chatbot project
+      // (rounding a price/score/percentage), that meant printing the full
+      // unrounded float with no error and no indication anything was
+      // ignored. Captured here and applied at evaluation time instead
+      // (see applyFormatSpec in evaluator.ts) for the common cases; still
+      // degrades gracefully (spec ignored, not a hard failure) for
+      // anything outside that subset.
       const colonAt = findTopLevelColon(exprSrc);
-      if (colonAt !== -1) exprSrc = exprSrc.slice(0, colonAt);
+      let formatSpec: string | undefined;
+      if (colonAt !== -1) {
+        formatSpec = exprSrc.slice(colonAt + 1);
+        exprSrc = exprSrc.slice(0, colonAt);
+      }
       const subTokens = tokenize(exprSrc + '\n');
       const subParser = new Parser(subTokens);
       const expr = subParser.parseExpr();
-      parts.push({ kind: 'expr', expr });
+      parts.push({ kind: 'expr', expr, formatSpec });
       i = j + 1;
       continue;
     }

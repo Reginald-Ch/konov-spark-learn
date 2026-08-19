@@ -335,8 +335,22 @@ export const extractConfigFromCode = (rawCode: string) => {
     const callMatch = code.match(new RegExp(`${targetVar}\\s*=\\s*(\\w+)\\s*\\(`));
     if (!callMatch) return '';
     const funcName = callMatch[1];
-    const defMatch = code.match(new RegExp(`def\\s+${funcName}\\s*\\([^)]*\\)\\s*:[\\s\\S]*?return\\s+f?["'](.*)["']`));
-    return defMatch ? defMatch[1] : '';
+    const defMatch = code.match(new RegExp(`def\\s+${funcName}\\s*\\([^)]*\\)\\s*:`));
+    if (!defMatch || defMatch.index === undefined) return '';
+    const bodyStart = defMatch.index + defMatch[0].length;
+    // Bounded to this function's own body — stop at the next `def` (a new
+    // function starting). The old version searched `[\s\S]*?` unbounded
+    // for the first `return "..."` ANYWHERE after this def line, so a
+    // function that builds its message into a variable first
+    // (`message = f"..."`; `return message` — no quote directly after
+    // `return`) let the search run straight past the end of THIS
+    // function and pick up a later, unrelated function's return text
+    // instead — confirmed: Challenge 25's FALLBACK_MESSAGE could silently
+    // read Challenge 28's function 40 lines further down.
+    const nextDefIdx = code.indexOf('\ndef ', bodyStart);
+    const body = code.slice(bodyStart, nextDefIdx === -1 ? code.length : nextDefIdx);
+    const returnMatch = body.match(/return\s+f?["'](.*)["']/);
+    return returnMatch ? returnMatch[1] : '';
   };
   // Challenge 26: detect a for-loop that builds TOPIC_KEYWORDS from QA_PAIRS.
   // The window was 200 chars, tuned to the boilerplate one-liner the
@@ -345,8 +359,13 @@ export const extractConfigFromCode = (rawCode: string) => {
   // and a natural, fully-correct version of that easily runs 300-500+ chars
   // between the `for` line and `.append`. It was silently marking a
   // student's improved, working solution as "✗ missing".
+  // Accepts snake_case (qa_pairs/topic_keywords) too — every other
+  // extractor in this file that reads a config variable already does
+  // (see extract/extractList/extractDict's own alternation), but this one
+  // was hardcoded to SCREAMING_CASE only, silently rejecting a perfectly
+  // valid stylistic choice.
   const extractHasTopicKeywordsLoop = (): boolean =>
-    /for\s+\w+\s+in\s+QA_PAIRS\s*:[\s\S]{0,600}?TOPIC_KEYWORDS\.append/.test(code);
+    /for\s+\w+\s+in\s+(?:QA_PAIRS|qa_pairs)\s*:[\s\S]{0,600}?(?:TOPIC_KEYWORDS|topic_keywords)\.append/.test(code);
   // Challenge 29: the fallback (2nd) argument of a `targetVar = dict.get(key, "...")`
   // call — same greedy-then-backtrack quote matching as extractFunctionReturn,
   // so an apostrophe inside the fallback text doesn't break the match.
@@ -357,8 +376,24 @@ export const extractConfigFromCode = (rawCode: string) => {
   // Challenge 27: a [...] containing `for X in Y` with no nested {}/[] —
   // distinguishes a real list comprehension from a list-of-dicts literal
   // like QA_PAIRS.
-  const extractHasListComprehension = (): boolean =>
-    /\[[^[\]{}]*\bfor\b\s+\w+\s+in\s+\w+[^[\]{}]*\]/.test(code);
+  // Uses findBalancedBracket instead of a flat "no nested [/{" regex — the
+  // old version rejected a totally valid comprehension like
+  // `[PHRASE_IDEAS[i].upper() for i in range(3)]` just for containing a
+  // nested subscript. Balanced-bracket matching correctly finds the TRUE
+  // closing `]` regardless of what's nested inside, so any real `[...]`
+  // span containing a top-level `for X in Y` counts, nested brackets or not.
+  const extractHasListComprehension = (): boolean => {
+    let searchFrom = 0;
+    while (true) {
+      const openIdx = code.indexOf('[', searchFrom);
+      if (openIdx === -1) return false;
+      const bracket = findBalancedBracket(code, '[', ']', openIdx);
+      if (!bracket) return false;
+      const inner = code.slice(bracket.start + 1, bracket.end);
+      if (/\bfor\b\s+\w+\s+in\s+\w+/.test(inner)) return true;
+      searchFrom = bracket.end + 1;
+    }
+  };
   // Challenge 28: a function taking a parameter whose return is an f-string
   // that actually uses it — distinct from Challenge 25's no-argument function.
   // Matched per-quote-style (not a single [^"'] exclusion) since a
@@ -371,30 +406,56 @@ export const extractConfigFromCode = (rawCode: string) => {
     /\.get\(\s*\w+\s*,\s*["']/.test(code);
   // Challenge 30: an accumulator loop — a for-loop whose body increments a
   // counter with += — distinct from Challenge 26's .append()-building loop.
+  // Was \+=\s*\d — required a LITERAL digit on the right of +=, rejecting
+  // `RULE_COUNT += len(rule)` or any other non-literal increment even
+  // though the actual teaching point (a for-loop body accumulating into a
+  // counter via +=) is identical either way.
   const extractHasAccumulatorLoop = (): boolean =>
-    /for\s+\w+\s+in\s+\w+\s*:[\s\S]{0,150}?\w+\s*\+=\s*\d/.test(code);
+    /for\s+\w+\s+in\s+\w+\s*:[\s\S]{0,150}?\w+\s*\+=\s*\S/.test(code);
   // Challenges 31-34: each teaches a piece of syntax via a print() call
   // (real output in the live console) rather than a stored variable, so
   // "done" means the printed statement's own text differs from the
   // scaffold's own default — same presence-plus-differs-from-default shape
   // as Challenges 19/25/28 above, just extracting a print() argument
   // instead of a variable/function-return value.
-  const extractPrintUpperStatement = (): string => {
-    const m = code.match(/print\(([^\n]*\.upper\(\)[^\n]*)\)/);
-    return m ? m[1].trim() : '';
+  // Finds the full argument text of the first print(...) call whose
+  // balanced-bracket content contains `mustContain` — [^\n]* (what these
+  // three used before) can't cross a line at all, so wrapping a long
+  // print() call onto multiple lines (completely normal, and something the
+  // editor's own auto-indent encourages) made it invisible to the
+  // detector. findBalancedBracket finds the TRUE closing paren regardless
+  // of newlines or nested parens (str(MAX_TOKENS) has its own), the same
+  // way it already does for lists/dicts elsewhere in this file.
+  const findPrintCallContaining = (mustContain: string): string => {
+    let searchFrom = 0;
+    while (true) {
+      const callIdx = code.indexOf('print(', searchFrom);
+      if (callIdx === -1) return '';
+      const bracket = findBalancedBracket(code, '(', ')', callIdx + 'print'.length);
+      if (!bracket) return '';
+      const inner = code.slice(bracket.start + 1, bracket.end);
+      if (inner.includes(mustContain)) return inner.trim();
+      searchFrom = bracket.end + 1;
+    }
   };
+  const extractPrintUpperStatement = (): string => findPrintCallContaining('.upper()');
   const extractBooleanLogicExpr = (): string => {
     const m = code.match(/IS_EXPRESSIVE\s*=\s*(.+)/);
     return m ? m[1].trim() : '';
   };
   const extractWhileLoopPrint = (): string => {
-    const m = code.match(/while\s+\w+\s*<\s*len\(RULES\)\s*:[\s\S]{0,200}?print\(([^\n]*)\)/);
-    return m ? m[1].trim() : '';
+    // Comparison relaxed to accept <= as well as <, and the right side to
+    // tolerate a trailing adjustment like `len(RULES) - 1` — both are
+    // correct, common ways to write "loop once per rule".
+    const headerMatch = code.match(/while\s+\w+\s*<=?\s*len\(RULES\)(?:\s*-\s*\d+)?\s*:/);
+    if (!headerMatch || headerMatch.index === undefined) return '';
+    const searchStart = headerMatch.index + headerMatch[0].length;
+    const printIdx = code.indexOf('print(', searchStart);
+    if (printIdx === -1 || printIdx > searchStart + 200) return '';
+    const bracket = findBalancedBracket(code, '(', ')', printIdx + 'print'.length);
+    return bracket ? code.slice(bracket.start + 1, bracket.end).trim() : '';
   };
-  const extractTypeCastPrint = (): string => {
-    const m = code.match(/print\(([^\n]*str\(MAX_TOKENS\)[^\n]*)\)/);
-    return m ? m[1].trim() : '';
-  };
+  const extractTypeCastPrint = (): string => findPrintCallContaining('str(MAX_TOKENS)');
 
   return {
     botName: extract('AI Bot', 'BOT_NAME', 'bot_name', 'AGENT_NAME'),
@@ -448,6 +509,31 @@ export const extractConfigFromCode = (rawCode: string) => {
     whileLoopPrint: extractWhileLoopPrint(),
     typeCastPrint: extractTypeCastPrint(),
   };
+};
+
+// Seven challenge detectors (RULES, CONVERSATION_STARTERS, BLOCKED_TOPICS,
+// CATCHPHRASES, QA_PAIRS, SECRET_RESPONSES, MOOD_RESPONSES) used to require
+// MORE items than the scaffold's own pre-filled defaults — fine for the
+// guided chatbot template (0 pre-filled), but the AI Agent template ships
+// all seven pre-filled with real example content. A student who
+// thoughtfully replaced all 3 pre-filled rules with 3 rules specific to
+// their own project scored 0 credit, because the count stayed the same —
+// only ADDING a 4th (unasked-for) item registered as "customized". These
+// compare actual CONTENT against the default, not just length, so
+// rewriting counts the same as adding. The `floor` argument still applies
+// (ensuring real substance on zero-default scaffolds, not just one token
+// item), but no longer requires strictly-more-than-default on templates
+// that start pre-filled.
+const listDiffersFromDefault = (current: unknown[], def: unknown[], floor: number): boolean => {
+  if (current.length < floor) return false;
+  if (current.length !== def.length) return true;
+  return current.some((v, i) => JSON.stringify(v) !== JSON.stringify(def[i]));
+};
+const dictDiffersFromDefault = (current: Record<string, string>, def: Record<string, string>): boolean => {
+  const ck = Object.keys(current);
+  if (ck.length === 0) return false;
+  if (ck.length !== Object.keys(def).length) return true;
+  return ck.some(k => current[k] !== def[k]);
 };
 
 // ── Agent reasoning trace ──
@@ -832,6 +918,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
   const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
   const prevLevelRef = useRef<string | null>(null);
+  // debouncedLiveConfig initializes synchronously from whatever's in
+  // files['main.py'] AT MOUNT — the scaffold's own default, since the real
+  // saved project (if any) only arrives later via the async restore RPC
+  // below. Without this flag, the milestone effect took that transient
+  // scaffold-level config as its baseline on its very first run, then
+  // "leveled up" the moment the real (higher) restored level landed a
+  // beat later — a full-screen "Level Up! You're now Architect!" overlay
+  // firing on every single reload of a project a student had already
+  // reached that level in yesterday.
+  const [restoreDone, setRestoreDone] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -864,6 +960,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       setCurrentProjectId(null);
       localStorage.removeItem('forge-current-project-id');
       setLastKnownUpdatedAt(null);
+      setRestoreDone(true);
       return;
     }
     const savedId = localStorage.getItem('forge-current-project-id');
@@ -896,6 +993,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         setFiles(prev => ({ ...prev, 'main.py': draft.code }));
         if (textareaRef.current) textareaRef.current.value = draft.code;
       }
+      setRestoreDone(true);
       return;
     }
     // ai_projects' public SELECT policy is published-only — an in-progress
@@ -913,6 +1011,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           setFiles(prev => ({ ...prev, 'main.py': localDraftForThisProject }));
           if (textareaRef.current) textareaRef.current.value = localDraftForThisProject;
         }
+        setRestoreDone(true);
         return;
       }
       setCurrentProjectId(data.id);
@@ -935,6 +1034,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       if (data.project_name) setProjectName(data.project_name);
       applyPublishState(!!data.is_published);
+      setRestoreDone(true);
     });
   }, []);
 
@@ -1979,7 +2079,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // for blank-mode projects too instead of a second hardcoded copy.
     const config = extractConfigFromCode(files['main.py']);
     const defaults = extractConfigFromCode(scaffolds[projectType].main);
-    const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
+    // starterFloor matches the scaffold's own instructions ("Create a
+    // list of 3-5 strings", projectScaffolds.ts) — was 4, which meant a
+    // student who wrote exactly the 3 starters the instructions actually
+    // asked for saw the challenge stay unchecked despite following it
+    // correctly.
+    const ruleFloor = 3, starterFloor = 3, blockedFloor = 2;
 
     const localChecks = [
       { label: 'BOT_NAME', ok: config.botName !== defaults.botName && config.botName !== 'AI Bot', val: config.botName },
@@ -1988,20 +2093,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'CREATOR_NAME', ok: config.creatorName !== defaults.creatorName, val: config.creatorName },
       { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaults.systemMessage && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
-      { label: 'QA_PAIRS', ok: config.qaPairsFromCode.length > defaults.qaPairsFromCode.length, val: `${config.qaPairsFromCode.length} pairs` },
+      { label: 'QA_PAIRS', ok: listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1), val: `${config.qaPairsFromCode.length} pairs` },
       { label: 'TEMPERATURE', ok: config.temperature !== defaults.temperature, val: String(config.temperature) },
-      { label: 'RULES', ok: config.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1), val: `${config.conversationRules.length} rules` },
-      { label: 'CONVERSATION_STARTERS', ok: config.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1), val: `${config.conversationStarters.length} starters` },
+      { label: 'RULES', ok: listDiffersFromDefault(config.conversationRules, defaults.conversationRules, ruleFloor), val: `${config.conversationRules.length} rules` },
+      { label: 'CONVERSATION_STARTERS', ok: listDiffersFromDefault(config.conversationStarters, defaults.conversationStarters, starterFloor), val: `${config.conversationStarters.length} starters` },
       { label: 'FORBIDDEN_WORDS', ok: config.forbiddenWords.length > defaults.forbiddenWords.length, val: `${config.forbiddenWords.length} words` },
-      { label: 'BLOCKED_TOPICS', ok: config.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1), val: `${config.blockedTopics.length} topics` },
+      { label: 'BLOCKED_TOPICS', ok: listDiffersFromDefault(config.blockedTopics, defaults.blockedTopics, blockedFloor), val: `${config.blockedTopics.length} topics` },
       { label: 'FEW_SHOT_EXAMPLES', ok: config.fewShotExamples.length > defaults.fewShotExamples.length, val: `${config.fewShotExamples.length} examples` },
-      { label: 'SECRET_RESPONSES', ok: Object.keys(config.secretResponses).length > Object.keys(defaults.secretResponses).length, val: `${Object.keys(config.secretResponses).length} secrets` },
-      { label: 'MOOD_RESPONSES', ok: Object.keys(config.moodResponses).length > Object.keys(defaults.moodResponses).length, val: `${Object.keys(config.moodResponses).length} moods` },
+      { label: 'SECRET_RESPONSES', ok: dictDiffersFromDefault(config.secretResponses, defaults.secretResponses), val: `${Object.keys(config.secretResponses).length} secrets` },
+      { label: 'MOOD_RESPONSES', ok: dictDiffersFromDefault(config.moodResponses, defaults.moodResponses), val: `${Object.keys(config.moodResponses).length} moods` },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== defaults.maxResponseLength, val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== defaults.maxTokens, val: String(config.maxTokens) },
       { label: 'MOOD', ok: config.mood !== defaults.mood, val: config.mood },
       { label: 'RESPONSE_TONE', ok: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional), val: config.responseTone || 'default' },
-      { label: 'CATCHPHRASES', ok: config.catchphrases.length > defaults.catchphrases.length, val: `${config.catchphrases.length} phrases` },
+      { label: 'CATCHPHRASES', ok: listDiffersFromDefault(config.catchphrases, defaults.catchphrases, 1), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
       { label: 'VOICE_MODE', ok: config.voiceMode !== defaults.voiceMode, val: config.voiceMode },
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
@@ -2130,7 +2235,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // from default" — a floor for the 0-pre-filled case, or one more than
     // whatever's already pre-filled, whichever is larger. Reduces to just
     // the floor in blank mode (nothing pre-filled either way).
-    const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
+    // starterFloor matches the scaffold's own instructions ("Create a
+    // list of 3-5 strings", projectScaffolds.ts) — was 4, which meant a
+    // student who wrote exactly the 3 starters the instructions actually
+    // asked for saw the challenge stay unchecked despite following it
+    // correctly.
+    const ruleFloor = 3, starterFloor = 3, blockedFloor = 2;
     return [
       cfg.botName !== defaults.botName && cfg.botName !== 'AI Bot',
       cfg.botEmoji !== defaults.botEmoji,
@@ -2138,20 +2248,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.creatorName && cfg.creatorName !== defaults.creatorName,
       cfg.systemMessage !== defaults.systemMessage && cfg.systemMessage.length > 30,
       cfg.knowledgeBaseFromCode.trim() !== '' && cfg.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode,
-      cfg.qaPairsFromCode.length > defaults.qaPairsFromCode.length,
+      listDiffersFromDefault(cfg.qaPairsFromCode, defaults.qaPairsFromCode, 1),
       cfg.temperature !== defaults.temperature,
-      cfg.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1),
-      cfg.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1),
+      listDiffersFromDefault(cfg.conversationRules, defaults.conversationRules, ruleFloor),
+      listDiffersFromDefault(cfg.conversationStarters, defaults.conversationStarters, starterFloor),
       cfg.forbiddenWords.length > defaults.forbiddenWords.length,
-      cfg.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1),
+      listDiffersFromDefault(cfg.blockedTopics, defaults.blockedTopics, blockedFloor),
       cfg.fewShotExamples.length > defaults.fewShotExamples.length,
-      Object.keys(cfg.secretResponses).length > Object.keys(defaults.secretResponses).length,
-      Object.keys(cfg.moodResponses).length > Object.keys(defaults.moodResponses).length,
+      dictDiffersFromDefault(cfg.secretResponses, defaults.secretResponses),
+      dictDiffersFromDefault(cfg.moodResponses, defaults.moodResponses),
       cfg.maxResponseLength !== defaults.maxResponseLength,
       cfg.maxTokens !== defaults.maxTokens,
       cfg.mood && cfg.mood !== defaults.mood,
       isResponseToneCustomized(cfg.responseTone, cfg.responseToneConditional, defaults.responseToneConditional),
-      cfg.catchphrases.length > defaults.catchphrases.length,
+      listDiffersFromDefault(cfg.catchphrases, defaults.catchphrases, 1),
       cfg.voiceEnabled === true,
       cfg.voiceMode !== defaults.voiceMode,
       cfg.wakeWord,
@@ -2171,7 +2281,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
   // Track level changes for milestone celebrations (practice mode only)
   useEffect(() => {
-    if (hasLiveEvent) return;
+    if (hasLiveEvent || !restoreDone) return;
     const count = getChallengeCount(liveConfig, projectType);
     const newLevel = getForgeLevel(count);
     // On first run, just record the initial level without celebrating
@@ -2186,7 +2296,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
     }
     prevLevelRef.current = newLevel;
-  }, [liveConfig, hasLiveEvent, projectType, getChallengeCount]);
+  }, [liveConfig, hasLiveEvent, projectType, getChallengeCount, restoreDone]);
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
@@ -2937,7 +3047,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       // Same defaults-from-the-actual-scaffold approach as
                       // getChallengeCount — stays correct in blank-start mode.
                       const defaults = extractConfigFromCode(scaffolds[projectType].main);
-                      const ruleFloor = 3, starterFloor = 4, blockedFloor = 2;
+                      // starterFloor matches the scaffold's own instructions ("Create a
+    // list of 3-5 strings", projectScaffolds.ts) — was 4, which meant a
+    // student who wrote exactly the 3 starters the instructions actually
+    // asked for saw the challenge stay unchecked despite following it
+    // correctly.
+    const ruleFloor = 3, starterFloor = 3, blockedFloor = 2;
                       const missions = [
                         { emoji: '🏷️', name: 'Bot Name', done: config.botName !== defaults.botName && config.botName !== 'AI Bot' },
                         { emoji: '😀', name: 'Bot Emoji', done: config.botEmoji !== defaults.botEmoji },
@@ -2945,20 +3060,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '✍️', name: 'Creator Name', done: config.creatorName !== '' && config.creatorName !== defaults.creatorName },
                         { emoji: '🧠', name: 'System Message', done: config.systemMessage !== defaults.systemMessage && config.systemMessage.length > 30 },
                         { emoji: '📚', name: 'Knowledge Base', done: config.knowledgeBaseFromCode.trim() !== '' && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode },
-                        { emoji: '❓', name: 'Intents', done: config.qaPairsFromCode.length > defaults.qaPairsFromCode.length },
+                        { emoji: '❓', name: 'Intents', done: listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1) },
                         { emoji: '🌡️', name: 'Temperature', done: config.temperature !== defaults.temperature },
-                        { emoji: '📜', name: 'Conversation Rules', done: config.conversationRules.length >= Math.max(ruleFloor, defaults.conversationRules.length + 1) },
-                        { emoji: '💬', name: 'Conversation Starters', done: config.conversationStarters.length >= Math.max(starterFloor, defaults.conversationStarters.length + 1) },
+                        { emoji: '📜', name: 'Conversation Rules', done: listDiffersFromDefault(config.conversationRules, defaults.conversationRules, ruleFloor) },
+                        { emoji: '💬', name: 'Conversation Starters', done: listDiffersFromDefault(config.conversationStarters, defaults.conversationStarters, starterFloor) },
                         { emoji: '🔇', name: 'Forbidden Words', done: config.forbiddenWords.length > defaults.forbiddenWords.length },
-                        { emoji: '🚫', name: 'Blocked Topics', done: config.blockedTopics.length >= Math.max(blockedFloor, defaults.blockedTopics.length + 1) },
+                        { emoji: '🚫', name: 'Blocked Topics', done: listDiffersFromDefault(config.blockedTopics, defaults.blockedTopics, blockedFloor) },
                         { emoji: '📖', name: 'Few-Shot Examples', done: config.fewShotExamples.length > defaults.fewShotExamples.length },
-                        { emoji: '🔐', name: 'Secret Responses', done: Object.keys(config.secretResponses).length > Object.keys(defaults.secretResponses).length },
-                        { emoji: '🎯', name: 'Mood Responses', done: Object.keys(config.moodResponses).length > Object.keys(defaults.moodResponses).length },
+                        { emoji: '🔐', name: 'Secret Responses', done: dictDiffersFromDefault(config.secretResponses, defaults.secretResponses) },
+                        { emoji: '🎯', name: 'Mood Responses', done: dictDiffersFromDefault(config.moodResponses, defaults.moodResponses) },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== defaults.maxResponseLength },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== defaults.maxTokens },
                         { emoji: '🎭', name: 'Mood', done: config.mood !== defaults.mood },
                         { emoji: '🎵', name: 'Response Tone', done: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional) },
-                        { emoji: '🗣️', name: 'Catchphrases', done: config.catchphrases.length > defaults.catchphrases.length },
+                        { emoji: '🗣️', name: 'Catchphrases', done: listDiffersFromDefault(config.catchphrases, defaults.catchphrases, 1) },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
                         { emoji: '🎙️', name: 'Voice Mode', done: config.voiceMode !== defaults.voiceMode },
                         { emoji: '📢', name: 'Wake Word', done: !!config.wakeWord },

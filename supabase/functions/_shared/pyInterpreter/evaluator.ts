@@ -144,6 +144,51 @@ function pyRepr(v: PyValue): string {
   return pyStr(v);
 }
 
+// Applies the common subset of Python's format mini-language to an
+// f-string interpolation ("{value:.2f}") — this used to be silently
+// dropped entirely at parse time, so `f"{price:.2f}"` printed the full
+// unrounded float with no error and no indication anything was ignored,
+// on what's the single most common formatting idiom in a chatbot project
+// (rounding a price/score/percentage for display). Doesn't attempt full
+// parity with CPython's mini-language (custom fill characters, sign
+// flags, thousands separators, general "g"/"e" types) — covers what
+// students actually reach for, and degrades gracefully (spec ignored, not
+// a hard failure) for anything outside that subset, matching the parser's
+// own stance on unsupported f-string syntax.
+function applyFormatSpec(value: PyValue, spec: string): string {
+  const base = pyStr(value);
+  if (!spec) return base;
+
+  // ".Nf" — fixed-decimal rounding, by far the most common case.
+  const fixed = spec.match(/^\.(\d+)f$/);
+  if (fixed && typeof value === 'number') return value.toFixed(Number(fixed[1]));
+
+  // "05d" / "05" — zero-padded integer width.
+  const zeroPad = spec.match(/^0(\d+)d?$/);
+  if (zeroPad && typeof value === 'number') return String(Math.trunc(value)).padStart(Number(zeroPad[1]), '0');
+
+  // ">10" / "<10" / "^10" — explicit alignment + width.
+  const aligned = spec.match(/^([<>^])(\d+)$/);
+  if (aligned) {
+    const width = Number(aligned[2]);
+    if (aligned[1] === '<') return base.padEnd(width);
+    if (aligned[1] === '>') return base.padStart(width);
+    const total = Math.max(0, width - base.length);
+    const left = Math.floor(total / 2);
+    return ' '.repeat(left) + base + ' '.repeat(total - left);
+  }
+
+  // "10" — bare width, no alignment given. Python's default is
+  // right-align for numbers, left-align for everything else.
+  const width = spec.match(/^(\d+)$/);
+  if (width) {
+    const w = Number(width[1]);
+    return typeof value === 'number' ? base.padStart(w) : base.padEnd(w);
+  }
+
+  return base;
+}
+
 // ── Environment (scope chain) ──
 // No `global`/`nonlocal` support (both are in the parser's unsupported-
 // keyword list), so assignment always writes the current scope — matches
@@ -287,7 +332,9 @@ class Interpreter {
       case 'FStringLit': {
         let out = '';
         for (const part of expr.parts) {
-          out += part.kind === 'str' ? part.value : pyStr(await this.evalExpr(part.expr, env, budget, stdout));
+          if (part.kind === 'str') { out += part.value; continue; }
+          const val = await this.evalExpr(part.expr, env, budget, stdout);
+          out += part.formatSpec ? applyFormatSpec(val, part.formatSpec) : pyStr(val);
         }
         return out;
       }

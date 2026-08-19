@@ -5,7 +5,14 @@
 
 export type FStringPart =
   | { kind: 'str'; value: string }
-  | { kind: 'expr'; expr: Expr };
+  // formatSpec is the raw text after a top-level ":" (e.g. ".2f", ">10",
+  // "05d") — undefined when there was none. Only a common subset is
+  // actually honored at evaluation time (see applyFormatSpec in
+  // evaluator.ts); anything outside that subset is applied as if the spec
+  // weren't there rather than hard-failing, matching this interpreter's
+  // general stance of degrading gracefully on unsupported syntax within a
+  // string literal instead of refusing to run.
+  | { kind: 'expr'; expr: Expr; formatSpec?: string };
 
 export type Expr =
   | { kind: 'NumberLit'; value: number; line: number }

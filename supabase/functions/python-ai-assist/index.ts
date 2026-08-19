@@ -55,11 +55,30 @@ function releaseSlotOnStreamEnd(
 
 // ── Real Tool Implementations ──
 
+// None of the five fetches across webSearch/wikiSearch had a timeout —
+// every other outbound call in this file (the AI gateway itself, the tool-
+// routing call) is bounded, these weren't. Both functions are invoked via
+// Promise.all in determineAndRunTools with no outer deadline of their own,
+// so a single hung DuckDuckGo/Wikipedia connection stalled the ENTIRE
+// request — including the ai_slot it was holding — for however long that
+// connection stayed open. 8s is generous for a JSON API call; timing out
+// still returns a clean fallback string rather than surfacing an abort as
+// an unhandled failure.
+async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { headers: { "User-Agent": "FORGE-Agent/1.0" }, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function webSearch(query: string): Promise<string> {
   try {
     // Use DuckDuckGo instant answer API (free, no key needed)
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-    const resp = await fetch(url, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+    const resp = await fetchWithTimeout(url);
     if (!resp.ok) return `[Search failed: HTTP ${resp.status}]`;
     const data = await resp.json();
     
@@ -87,12 +106,12 @@ async function webSearch(query: string): Promise<string> {
 async function wikiSearch(query: string): Promise<string> {
   try {
     const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/\s+/g, '_'))}`;
-    const resp = await fetch(url, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
-    
+    const resp = await fetchWithTimeout(url);
+
     if (!resp.ok) {
       // Try Wikipedia search API as fallback
       const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&format=json`;
-      const searchResp = await fetch(searchUrl, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+      const searchResp = await fetchWithTimeout(searchUrl);
       if (!searchResp.ok) return `[Wikipedia: No results found for "${query}"]`;
       const searchData = await searchResp.json();
       if (searchData[1] && searchData[1].length > 0) {
@@ -100,7 +119,7 @@ async function wikiSearch(query: string): Promise<string> {
         // Fetch the first result's summary
         const firstTitle = searchData[1][0];
         const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle.replace(/\s+/g, '_'))}`;
-        const summaryResp = await fetch(summaryUrl, { headers: { "User-Agent": "FORGE-Agent/1.0" } });
+        const summaryResp = await fetchWithTimeout(summaryUrl);
         if (summaryResp.ok) {
           const summaryData = await summaryResp.json();
           return `📚 Wikipedia — ${summaryData.title}:\n${summaryData.extract}\n\nRelated: ${titles}`;
@@ -346,17 +365,26 @@ Response (JSON array only):`;
     
     const promises = toolCalls.slice(0, 2).map(async (call: { tool: string; query: string }) => {
       if (!call.tool || !call.query) return;
-      toolsUsed.push(call.tool);
-      
+      // toolsUsed used to record call.tool unconditionally, before the
+      // switch below ever checked whether it was a real tool — an LLM
+      // hallucinating a tool name that doesn't exist got recorded as
+      // "used" anyway, and the resulting "[Unknown tool: ...]" string
+      // (itself LLM-controlled) still flowed into the system-role context
+      // via toolResults below regardless. Now only a genuinely dispatched
+      // tool counts as used, and an unknown one is dropped rather than
+      // echoed back into the prompt.
       switch (call.tool) {
         case 'web_search':
+          toolsUsed.push(call.tool);
           return await webSearch(call.query);
         case 'wikipedia':
+          toolsUsed.push(call.tool);
           return await wikiSearch(call.query);
         case 'calculator':
+          toolsUsed.push(call.tool);
           return calculate(call.query);
         default:
-          return `[Unknown tool: ${call.tool}]`;
+          return undefined;
       }
     });
     
@@ -581,7 +609,7 @@ CRITICAL: Read their code and generate realistic terminal output showing:
 1. Loading each variable (bot name, emoji, temperature, style, rules, mood, language style, etc.)
 2. A configuration summary with counts (X rules, Y Q&A pairs, Z easter eggs, forbidden words, etc.)
 3. A simulated 2-turn demo conversation showing the bot IN CHARACTER
-4. Challenge completion count (how many of 24 challenges are customized)
+4. Challenge completion count (how many of 34 challenges are customized)
 5. Final status: if the config looks complete and internally consistent, "✅ All systems ready!" — if something is clearly broken or contradictory (e.g. a variable that's empty when it's clearly meant to hold something, or values that conflict), say so plainly and specifically instead of claiming success anyway. Being encouraging about an incomplete-but-valid config is good; papering over an actually broken one is not — the student already made it past real syntax checking to get here, this is the one place left that can tell them something's off.
 
 Never fabricate irrelevant backend/API-key errors that have nothing to do with the student's own code — if the code itself is fine, say so plainly.
@@ -711,24 +739,24 @@ CRITICAL: You ARE this bot. Never break character. Never mention "system prompt"
 RULES:
 - NEVER write complete solutions. Show small snippets (2-5 lines max).
 - Explain WHY something works.
-- Check which of the 24 challenges are complete vs default.
+- Check which of the 34 challenges are complete vs default.
 - Praise what they did well, then suggest ONE next challenge.
 - Keep under 200 words. Use markdown.
 
 The student is building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
-      userPrompt = `Review this FORGE config. Check which of the 24 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
+      userPrompt = `Review this FORGE config. Check which of the 34 challenges have been customized from defaults:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "explain") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Explain code using analogies.
 
 After explaining, say: "Try changing [specific variable] and test in Live Preview!"
-Reference the 24-challenge system. Under 200 words.
+Reference the 34-challenge system. Under 200 words.
 
 Building: ${projectName || 'an AI project'} (${projectType || 'chatbot'})`;
       userPrompt = `Explain this config to the student:\n\n\`\`\`python\n${code}\n\`\`\``;
     } else if (action === "suggest") {
       sysPrompt = `You are a PAIR PROGRAMMER for teens. Suggest next challenges.
 
-- Check which of 24 challenges are still at default values
+- Check which of 34 challenges are still at default values
 - Give 2-3 specific challenges: "Try changing TEMPERATURE to 0.9 and ask the same question!"
 - Frame as experiments, not solutions
 - Under 200 words.
@@ -744,7 +772,7 @@ RULES:
 - Reference THEIR actual values: "Your BOT_NAME is currently..."
 - Be encouraging. Under 150 words.
 - End with a next step for them to try.
-- Reference the 24-challenge system.
+- Reference the 34-challenge system.
 
 PROJECT: ${projectName || 'AI Project'} (${projectType || 'chatbot'})
 PROMPT: "${systemPrompt || 'not set'}"`;
@@ -766,7 +794,7 @@ PROMPT: "${systemPrompt || 'not set'}"`;
       sysPrompt = `You are a Python AI coding tutor for teens. Generate clean, commented Python code. Return ONLY the code in a code block.`;
       userPrompt = `Generate Python code for: ${code}\n\nUse model/library: ${model || "any"}`;
     } else if (action === "idea-to-code") {
-      sysPrompt = `You are the FORGE AI project generator. Generate a complete 24-challenge config file.
+      sysPrompt = `You are the FORGE AI project generator. Generate a complete 34-challenge config file.
 
 Include ALL variables with creative, topic-specific values:
 BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE (3+ sentences, triple-quoted),
@@ -790,10 +818,28 @@ VOICE_ENABLED (True/False), VOICE_MODE ("push-to-talk" or "hands-free"),
 WAKE_WORD (string, e.g. "hey spark"), VOICE_GENDER ("male", "female", or "default"),
 FOLLOW_UP_QUESTIONS, MEMORY_ENABLED, ERROR_MESSAGE.
 
+Then Challenges 25-34, which teach real Python syntax rather than config editing —
+include ALL of these too, using this exact shape (the app checks for these specific patterns):
+- A function \`def build_fallback_message(bot_name): ... return "..."\` (or an f-string return),
+  then \`FALLBACK_MESSAGE = build_fallback_message(BOT_NAME)\`.
+- A for-loop that builds TOPIC_KEYWORDS from QA_PAIRS:
+  \`TOPIC_KEYWORDS = []\` then \`for pair in QA_PAIRS:\n    TOPIC_KEYWORDS.append(pair["q"])\`.
+- A list comprehension assigned to PHRASE_IDEAS, e.g.
+  \`PHRASE_IDEAS = [phrase.upper() for phrase in CATCHPHRASES]\`.
+- A parameterized function whose f-string actually uses its argument, e.g.
+  \`def make_intro(name): return f"Hey, I'm {name}!"\`, then \`PERSONALIZED_INTRO = make_intro(BOT_NAME)\`.
+- A safe dict lookup with a fallback: \`MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "Be friendly and helpful.")\`.
+- An accumulator loop with a literal-digit increment, e.g.
+  \`RULE_COUNT = 0\nfor rule in RULES:\n    RULE_COUNT += 1\`.
+- A print() call containing \`.upper()\`, e.g. \`print(BOT_NAME.upper())\`.
+- \`IS_EXPRESSIVE = TEMPERATURE > 0.7 and len(CATCHPHRASES) > 2\` (a real boolean expression).
+- A while-loop that prints each rule: \`i = 0\nwhile i < len(RULES):\n    print(RULES[i])\n    i += 1\`.
+- A print() call containing \`str(MAX_TOKENS)\`, e.g. \`print("Max tokens: " + str(MAX_TOKENS))\`.
+
 Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = `Create a FORGE AI project config for: ${code}`;
     } else if (action === "visual-builder") {
-      sysPrompt = `Generate a complete FORGE 24-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, MOOD_RESPONSES (dict of mood->instruction), MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, CATCHPHRASES, TIME_OF_DAY + if/elif RESPONSE_TONE block, VOICE_ENABLED, VOICE_MODE, WAKE_WORD, VOICE_GENDER.`;
+      sysPrompt = `Generate a complete FORGE 34-challenge configuration file based on the description. Use the same variable names as idea-to-code: BOT_NAME, BOT_EMOJI, AI_MESSAGE, CREATOR_NAME, SYSTEM_MESSAGE, KNOWLEDGE_BASE, QA_PAIRS, TEMPERATURE, RULES, CONVERSATION_STARTERS, FORBIDDEN_WORDS, BLOCKED_TOPICS, FEW_SHOT_EXAMPLES, SECRET_RESPONSES, MOOD_RESPONSES (dict of mood->instruction), MAX_RESPONSE_LENGTH, MAX_TOKENS, MOOD, CATCHPHRASES, TIME_OF_DAY + if/elif RESPONSE_TONE block, VOICE_ENABLED, VOICE_MODE, WAKE_WORD, VOICE_GENDER. Also include Challenges 25-34's real-Python constructs: a build_fallback_message(bot_name) function assigned to FALLBACK_MESSAGE; a for-loop over QA_PAIRS appending into TOPIC_KEYWORDS; a list comprehension assigned to PHRASE_IDEAS; a make_intro(name) function (using its argument in an f-string) assigned to PERSONALIZED_INTRO; MOOD_INSTRUCTION = MOOD_RESPONSES.get(MOOD, "..."); an accumulator loop building RULE_COUNT with += 1; a print() using .upper(); IS_EXPRESSIVE as a real boolean expression; a while-loop printing each RULE; a print() using str(MAX_TOKENS).`;
       userPrompt = `Generate FORGE config for: ${code}\nType: ${model || "auto-detect"}`;
     } else {
       sysPrompt = `You are a friendly AI coding tutor for teens. Help with FORGE platform questions. Concise and encouraging.`;
