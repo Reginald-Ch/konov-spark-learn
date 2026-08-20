@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { codeDefinesRespond } from '@/components/hackathon/editorFeatures';
+import { codeDefinesRespond, abortableSleep } from '@/components/hackathon/editorFeatures';
 
 interface Project {
   id: string;
@@ -740,61 +740,79 @@ const ProjectView = () => {
       const mergedQA = config.qaPairs.length > 0 ? config.qaPairs : undefined;
       const mergedKnowledge = config.knowledgeBase || undefined;
 
-      const resp = await fetchAIEndpoint(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            code: userMsg,
-            model: project.template_id || 'chatbot',
-            action: 'test-agent',
-            systemPrompt,
-            messages: history.slice(0, -1),
-            knowledgeBase: mergedKnowledge,
-            qaData: mergedQA,
-            // The published bot's real main.py — if it defines a real
-            // respond() that returns a string, the edge function uses that
-            // directly. Same fallback-safe contract as the editor's own
-            // test chat: anything else falls straight through to the
-            // existing AI behavior, unchanged.
-            studentCode: project.code,
-            botConfig: {
-              botName: config.botName,
-              botEmoji: config.botEmoji,
-              creatorName: config.creatorName,
-              temperature: config.temperature,
-              responseStyle: config.responseStyle,
-              maxResponseLength: config.maxResponseLength,
-              responseFormat: config.responseFormat,
-              conversationRules: config.conversationRules,
-              catchphrases: config.catchphrases,
-              blockedTopics: config.blockedTopics,
-              followUpQuestions: config.followUpQuestions,
-              rememberName: config.rememberName,
-              showReasoning: config.showReasoning,
-              tools: config.tools,
-              toolInstructions: config.toolInstructions,
-              forbiddenWords: config.forbiddenWords,
-              mood: config.mood,
-              fewShotExamples: config.fewShotExamples,
-              languageStyle: config.languageStyle,
-              signOff: config.signOff,
-              maxTokens: config.maxTokens,
-              moodResponses: config.moodResponses,
-              responseTone: config.responseTone,
-              responseToneConditional: config.responseToneConditional,
-              errorMessage: config.errorMessage,
-              timeOfDay: config.timeOfDay,
-              greeting: config.greeting,
+      // 429 means the shared 10-slot ai_gateway_slots pool (or the upstream
+      // gateway's own rate limit) was momentarily full — not that anything
+      // is broken. Retry a few times with backoff before surfacing a hard
+      // error, same as Build Studio's own Live Preview, instead of a
+      // student's very first "busy" moment reading as "the bot is broken."
+      const requestBody = JSON.stringify({
+        code: userMsg,
+        model: project.template_id || 'chatbot',
+        action: 'test-agent',
+        systemPrompt,
+        messages: history.slice(0, -1),
+        knowledgeBase: mergedKnowledge,
+        qaData: mergedQA,
+        // The published bot's real main.py — if it defines a real
+        // respond() that returns a string, the edge function uses that
+        // directly. Same fallback-safe contract as the editor's own
+        // test chat: anything else falls straight through to the
+        // existing AI behavior, unchanged.
+        studentCode: project.code,
+        botConfig: {
+          botName: config.botName,
+          botEmoji: config.botEmoji,
+          creatorName: config.creatorName,
+          temperature: config.temperature,
+          responseStyle: config.responseStyle,
+          maxResponseLength: config.maxResponseLength,
+          responseFormat: config.responseFormat,
+          conversationRules: config.conversationRules,
+          catchphrases: config.catchphrases,
+          blockedTopics: config.blockedTopics,
+          followUpQuestions: config.followUpQuestions,
+          rememberName: config.rememberName,
+          showReasoning: config.showReasoning,
+          tools: config.tools,
+          toolInstructions: config.toolInstructions,
+          forbiddenWords: config.forbiddenWords,
+          mood: config.mood,
+          fewShotExamples: config.fewShotExamples,
+          languageStyle: config.languageStyle,
+          signOff: config.signOff,
+          maxTokens: config.maxTokens,
+          moodResponses: config.moodResponses,
+          responseTone: config.responseTone,
+          responseToneConditional: config.responseToneConditional,
+          errorMessage: config.errorMessage,
+          timeOfDay: config.timeOfDay,
+          greeting: config.greeting,
+        },
+      });
+      const MAX_429_RETRIES = 3;
+      let resp: Response;
+      let attempt = 0;
+      while (true) {
+        resp = await fetchAIEndpoint(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
-          }),
-          signal: controller.signal,
+            body: requestBody,
+            signal: controller.signal,
+          }
+        );
+        if (resp.status === 429 && attempt < MAX_429_RETRIES) {
+          attempt++;
+          toast.info('This app is busy — retrying automatically...', { id: 'ai-busy-retry' });
+          await abortableSleep(1200 * attempt + Math.random() * 500, controller.signal);
+          continue;
         }
-      );
+        break;
+      }
 
       if (!resp.ok || !resp.body) throw new Error('AI service error');
 
@@ -945,22 +963,27 @@ const ProjectView = () => {
         className="flex-shrink-0 border-b"
         style={{ backgroundColor: theme.chat, borderColor: `${theme.accent}20` }}
       >
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
+        {/* min-w-0 on the title cluster + truncate on the title itself —
+            without it, a long project_name had nothing forcing it to wrap
+            or shrink, so on a narrow phone this whole justify-between row
+            overflowed the viewport and pushed Share/FORGE off-screen
+            instead of the title just truncating. */}
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
               style={{ background: `${theme.accent}20` }}>
               {config?.botEmoji || typeEmoji}
             </div>
-            <div>
-              <h1 className="text-base font-bold text-white leading-tight">{projectTitle}</h1>
-              <p className="text-[11px] text-ide-text-muted flex items-center gap-1.5">
-                <User className="w-3 h-3" /> {project.author_name}
-                <span className="text-ide-border">•</span>
-                <Trophy className="w-3 h-3 text-[#FFD700]" /> {project.points_earned} pts
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-white leading-tight truncate">{projectTitle}</h1>
+              <p className="text-[11px] text-ide-text-muted flex items-center gap-1.5 truncate">
+                <User className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{project.author_name}</span>
+                <span className="text-ide-border flex-shrink-0">•</span>
+                <Trophy className="w-3 h-3 text-[#FFD700] flex-shrink-0" /> <span className="flex-shrink-0">{project.points_earned} pts</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <Button size="sm" variant="ghost" onClick={handleShareUrl} className="h-8 text-xs text-ide-text-muted hover:text-white hover:bg-white/10">
               <Share2 className="w-3.5 h-3.5 mr-1" /> Share
             </Button>
@@ -1135,21 +1158,21 @@ const ProjectView = () => {
               {config?.voiceEnabled && (
                 <>
                   <Button onClick={toggleListening} disabled={isStreaming}
-                    title={isListening ? 'Stop listening' : 'Tap to speak'}
+                    title={isListening ? 'Stop listening' : 'Tap to speak'} aria-label={isListening ? 'Stop listening' : 'Tap to speak'}
                     className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-white hover:opacity-90'}`}
                     style={!isListening ? { backgroundColor: `${theme.accent}30` } : undefined}>
                     <Mic className="w-4 h-4" />
                   </Button>
                   {config.voiceMode === 'hands-free' && (
                     <Button onClick={toggleVoiceConversation} disabled={isStreaming}
-                      title={voiceConversationMode ? 'Stop hands-free' : 'Start hands-free mode'}
+                      title={voiceConversationMode ? 'Stop hands-free' : 'Start hands-free mode'} aria-label={voiceConversationMode ? 'Stop hands-free' : 'Start hands-free mode'}
                       className={`h-10 w-10 rounded-full flex-shrink-0 p-0 ${voiceConversationMode ? 'text-white' : 'text-white hover:opacity-90'}`}
                       style={{ backgroundColor: voiceConversationMode ? theme.accent : `${theme.accent}30` }}>
                       <Radio className="w-4 h-4" />
                     </Button>
                   )}
                   <Button onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
-                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                    title={ttsEnabled ? 'Mute voice' : 'Unmute voice'} aria-label={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                     className="h-10 w-10 rounded-full flex-shrink-0 p-0 text-white hover:opacity-90"
                     style={{ backgroundColor: `${theme.accent}30` }}>
                     {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}

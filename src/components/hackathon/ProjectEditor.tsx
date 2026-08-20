@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PublishModal } from './PublishModal';
-import { LevelBadge, AchievementGrid, getForgeLevel } from './AchievementBadges';
+import { LevelBadge, AchievementGrid, getForgeLevel, getAchievements } from './AchievementBadges';
 import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAIEndpoint } from '@/lib/aiFetch';
@@ -31,7 +31,7 @@ import { runModule } from '../../../supabase/functions/_shared/pyInterpreter/eva
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
-import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, abortableSleep, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -61,6 +61,13 @@ interface ChatMessage {
   // this was completely invisible; the AI's fallback reply looked
   // identical whether respond() worked, wasn't defined, or crashed.
   pythonErrorType?: string;
+  // The real exception message (e.g. "IndexError: list index out of
+  // range") — previously only the coarse category above reached the
+  // client, so every kind of crash rendered identically as
+  // "🐍 Python error (runtime_error)" with no way to tell an IndexError
+  // from a KeyError from a TypeError without digging into server logs a
+  // student has no access to.
+  pythonErrorMessage?: string;
 }
 
 interface QAPair {
@@ -924,6 +931,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
   const [milestoneMsg, setMilestoneMsg] = useState<string | null>(null);
   const prevLevelRef = useRef<string | null>(null);
+  // Tracks which of the 8 individual Achievement badges (First Edit,
+  // Identity Crisis, Knowledge Keeper, Rule Maker, Q&A Master, Speed Demon,
+  // Code Ninja, AI Lord) were already unlocked, so a NEW unlock can be
+  // announced. Before this, only the 3 Level thresholds got any active
+  // celebration (a full-screen confetti overlay) — these 8 badges had zero
+  // toast/sound/animation of any kind, only a passive tile change buried in
+  // a config-sidebar tab a student would have to already be looking at,
+  // at that exact moment, to ever notice.
+  const prevAchievementIdsRef = useRef<Set<string> | null>(null);
   // debouncedLiveConfig initializes synchronously from whatever's in
   // files['main.py'] AT MOUNT — the scaffold's own default, since the real
   // saved project (if any) only arrives later via the async restore RPC
@@ -958,6 +974,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   const cursorRafRef = useRef<number | null>(null);
   const liveConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedLiveConfig, setDebouncedLiveConfig] = useState(() => extractConfigFromCode(files['main.py']));
+  // Feeds lintErrors/changedLines below — set on the same 250ms cadence as
+  // debouncedLiveConfig, in the same effect, rather than a second timer.
+  // Deliberately NOT used for highlightedContent: that overlay is rendered
+  // as a pointer-events-none layer stacked exactly behind the raw textarea
+  // (see the CSS grid "stack" area further down) and has to stay in perfect
+  // per-keystroke sync, or the colored text would visibly lag a few hundred
+  // ms behind what was just typed — a real, visible bug, not a performance
+  // win. lintErrors/changedLines only drive secondary indicators (gutter
+  // markers, underline/background tints layered on top of already-synced
+  // text), so a short lag there is imperceptible, the same reasoning that
+  // already justified debouncing liveConfig/the live Console below.
+  const [debouncedMainPy, setDebouncedMainPy] = useState(() => files['main.py']);
 
   // Restore session from DB on mount if we have a saved project ID
   // Skip restore if initialCode was explicitly provided (user picked a new template)
@@ -1790,17 +1818,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   }, [files['main.py'], activeFile]);
 
   // ── Diff highlighting: lines changed from template ──
+  // Debounced (debouncedMainPy, not files['main.py']) — see debouncedMainPy's
+  // own comment above for why this is safe to lag by ~250ms while
+  // highlightedContent below deliberately isn't.
   const changedLines = useMemo(() => {
     if (activeFile !== 'main.py') return new Set<number>();
     const templateCode = scaffolds[projectType].main;
-    return computeLineDiffs(files['main.py'], templateCode);
-  }, [files['main.py'], activeFile, projectType, scaffolds]);
+    return computeLineDiffs(debouncedMainPy, templateCode);
+  }, [debouncedMainPy, activeFile, projectType, scaffolds]);
 
-  // ── Python linting ──
+  // ── Python linting ── (debounced — same reasoning as changedLines above)
   const lintErrors = useMemo(() => {
     if (activeFile !== 'main.py') return [] as LintError[];
-    return lintPython(files['main.py']);
-  }, [files['main.py'], activeFile]);
+    return lintPython(debouncedMainPy);
+  }, [debouncedMainPy, activeFile]);
 
   const lintErrorsByLine = useMemo(() => {
     const map = new Map<number, LintError>();
@@ -1848,6 +1879,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (aiCallCount >= 40) {
       throw new Error("You've hit this session's 40 AI-call guide rail. Reload the page to reset it, or take a short break — your code and saves are unaffected.");
     }
+    // Counted here, at dispatch, not after a successful response — this used
+    // to only increment once fullText was fully collected below, so a
+    // message sent while the previous reply was still streaming (a normal
+    // impatient-teen pattern: mashing Enter, re-clicking a starter while a
+    // reply is still typing out) aborted the in-flight request before it
+    // ever reached that increment, and the resulting real, billed AI Gateway
+    // call never counted toward this guide rail at all — a gap that doesn't
+    // even require a page refresh to hit, unlike the already-known
+    // resets-on-refresh limitation.
+    setAiCallCount(prev => prev + 1);
     const controller = new AbortController();
     const timeoutMs = 60000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -1856,23 +1897,43 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
     }
     try {
-      const resp = await fetchAIEndpoint(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
+      // 429 here means the shared 10-slot ai_gateway_slots pool (or the
+      // upstream gateway's own rate limit) was full at that exact instant —
+      // not that anything is broken. Retrying shortly is very likely to
+      // succeed once someone else's request finishes and frees a slot, so
+      // instead of surfacing a hard error on the first busy moment (which
+      // reads as "the platform is broken" to a student, especially in a
+      // synchronized-burst moment like "everyone test your bot now"), retry
+      // a few times with backoff before giving up for real.
+      const MAX_429_RETRIES = 3;
+      let resp: Response;
+      let attempt = 0;
+      while (true) {
+        resp = await fetchAIEndpoint(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          }
+        );
+        if (resp.status === 429 && attempt < MAX_429_RETRIES) {
+          attempt++;
+          toast.info('FORGE is busy — retrying automatically...', { id: 'ai-busy-retry' });
+          await abortableSleep(1200 * attempt + Math.random() * 500, controller.signal);
+          continue;
         }
-      );
+        break;
+      }
       onHeaders?.(resp.headers);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         if (resp.status === 401) throw new Error('Authentication error. Please refresh the page.');
-        if (resp.status === 429) throw new Error('Too many requests. Wait a moment and try again.');
+        if (resp.status === 429) throw new Error("FORGE is still busy after a few retries — please wait a moment and try again.");
         if (resp.status === 402) throw new Error('AI credits exhausted. Try again later.');
         throw new Error(err.error || 'AI service error');
       }
@@ -1915,7 +1976,6 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           } catch { /* ignore */ }
         }
       }
-      setAiCallCount(prev => prev + 1);
       return fullText;
     } catch (e: any) {
       if (e?.name === 'AbortError') throw new Error('⏱️ Response timed out. Please try again.');
@@ -2134,6 +2194,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     };
   }, []);
 
+  // typingTimerRef/snapshotTimerRef are set inside updateFile (a plain
+  // callback, not its own useEffect), so unlike liveConfigTimerRef/
+  // consoleTimerRef/autoSaveIntervalRef above — each cleaned up by its own
+  // effect's return function — these two had no unmount cleanup at all.
+  // Harmless today (both only ever touch refs, never setState, so no React
+  // warning), but a real leak class if a future addition of a setState call
+  // ends up inside either callback after this component has unmounted.
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    };
+  }, []);
+
   const handleRun = async () => {
     if (isRunning) return; // Prevent concurrent runs (Ctrl+Enter can bypass the button's disabled state)
     if (!files['main.py'].trim()) { toast.error('Write some code first!'); return; }
@@ -2181,7 +2255,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'BOT_NAME', ok: config.botName !== defaults.botName && config.botName !== 'AI Bot', val: config.botName },
       { label: 'BOT_EMOJI', ok: config.botEmoji !== defaults.botEmoji, val: config.botEmoji },
       { label: 'AI_MESSAGE', ok: !!config.greeting && config.greeting !== defaults.greeting, val: config.greeting ? '✓ set' : '✗ default' },
-      { label: 'CREATOR_NAME', ok: config.creatorName !== defaults.creatorName, val: config.creatorName },
+      { label: 'CREATOR_NAME', ok: !!config.creatorName && config.creatorName !== defaults.creatorName, val: config.creatorName },
       { label: 'SYSTEM_MESSAGE', ok: config.systemMessage !== defaults.systemMessage && config.systemMessage.length > 30, val: `${config.systemMessage.length} chars` },
       { label: 'KNOWLEDGE_BASE', ok: !!config.knowledgeBaseFromCode.trim() && config.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode, val: config.knowledgeBaseFromCode ? '✓ loaded' : '✗ empty' },
       { label: 'QA_PAIRS', ok: listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1), val: `${config.qaPairsFromCode.length} pairs` },
@@ -2195,7 +2269,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'MOOD_RESPONSES', ok: dictDiffersFromDefault(config.moodResponses, defaults.moodResponses), val: `${Object.keys(config.moodResponses).length} moods` },
       { label: 'MAX_RESPONSE_LENGTH', ok: config.maxResponseLength !== defaults.maxResponseLength, val: config.maxResponseLength },
       { label: 'MAX_TOKENS', ok: config.maxTokens !== defaults.maxTokens, val: String(config.maxTokens) },
-      { label: 'MOOD', ok: config.mood !== defaults.mood, val: config.mood },
+      { label: 'MOOD', ok: !!config.mood && config.mood !== defaults.mood, val: config.mood },
       { label: 'RESPONSE_TONE', ok: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional), val: config.responseTone || 'default' },
       { label: 'CATCHPHRASES', ok: listDiffersFromDefault(config.catchphrases, defaults.catchphrases, 1), val: `${config.catchphrases.length} phrases` },
       { label: 'VOICE_ENABLED', ok: config.voiceEnabled === true, val: config.voiceEnabled ? 'True' : 'False' },
@@ -2203,11 +2277,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'WAKE_WORD', ok: !!config.wakeWord, val: config.wakeWord || '(empty)' },
       { label: 'VOICE_GENDER', ok: config.voiceGender !== defaults.voiceGender, val: config.voiceGender || 'default' },
       { label: 'FALLBACK_MESSAGE', ok: isFallbackMessageCustomized(config.fallbackMessage, defaults.fallbackMessage), val: config.fallbackMessage ? '✓ set' : '✗ default' },
-      { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > defaults.qaPairsFromCode.length, val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
+      { label: 'TOPIC_KEYWORDS', ok: config.hasTopicKeywordsLoop && listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1), val: config.hasTopicKeywordsLoop ? '✓ loop found' : '✗ missing' },
       { label: 'HYPE_PHRASES', ok: config.hasListComprehension && config.phraseIdeas.length > 0, val: `${config.phraseIdeas.length} ideas` },
       { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
       { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
-      { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && config.conversationRules.length > defaults.conversationRules.length, val: `${config.conversationRules.length} rules counted` },
+      { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && listDiffersFromDefault(config.conversationRules, defaults.conversationRules, ruleFloor), val: `${config.conversationRules.length} rules counted` },
       { label: 'PRINT + UPPER', ok: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement, val: config.printUpperStatement ? '✓ printed' : '✗ default' },
       { label: 'IS_EXPRESSIVE', ok: config.booleanLogicExpr !== '' && config.booleanLogicExpr !== defaults.booleanLogicExpr, val: config.booleanLogicExpr || '✗ default' },
       { label: 'NUMBERED RULES', ok: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint, val: config.whileLoopPrint ? '✓ while loop found' : '✗ missing' },
@@ -2281,6 +2355,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current);
     liveConfigTimerRef.current = setTimeout(() => {
       setDebouncedLiveConfig(extractConfigFromCode(files['main.py']));
+      setDebouncedMainPy(files['main.py']);
     }, 250);
     return () => { if (liveConfigTimerRef.current) clearTimeout(liveConfigTimerRef.current); };
   }, [files['main.py']]);
@@ -2303,10 +2378,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       const runId = ++consoleRunIdRef.current;
       runModule(files['main.py'], { timeoutMs: 400, maxSteps: 50000 }).then(r => {
         if (runId !== consoleRunIdRef.current) return; // a newer run already superseded this one
+        // Unlike the "Run Tests" syntax-check flow (which prints
+        // `File "main.py", line X`), this dropped errorLine entirely and
+        // showed a bare message with no line number — the one piece of
+        // information most likely to actually help a student find the bug.
         setConsoleResult(
           r.ok
             ? { status: 'ok', stdout: r.stdout }
-            : { status: 'error', message: r.errorMessage || 'Something went wrong running this code.' }
+            : { status: 'error', message: (r.errorMessage || 'Something went wrong running this code.') + (r.errorLine ? ` (line ${r.errorLine})` : '') }
         );
       });
     }, 250);
@@ -2358,11 +2437,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       cfg.wakeWord,
       cfg.voiceGender !== defaults.voiceGender,
       isFallbackMessageCustomized(cfg.fallbackMessage, defaults.fallbackMessage),
-      cfg.hasTopicKeywordsLoop && cfg.qaPairsFromCode.length > defaults.qaPairsFromCode.length,
+      cfg.hasTopicKeywordsLoop && listDiffersFromDefault(cfg.qaPairsFromCode, defaults.qaPairsFromCode, 1),
       cfg.hasListComprehension && cfg.phraseIdeas.length > 0,
       cfg.hasParameterizedFunction && !!cfg.personalizedIntro && cfg.personalizedIntro !== defaults.personalizedIntro,
       cfg.hasSafeDictLookup && !!cfg.moodInstruction && cfg.moodInstruction !== defaults.moodInstruction,
-      cfg.hasAccumulatorLoop && cfg.conversationRules.length > defaults.conversationRules.length,
+      cfg.hasAccumulatorLoop && listDiffersFromDefault(cfg.conversationRules, defaults.conversationRules, ruleFloor),
       cfg.printUpperStatement !== '' && cfg.printUpperStatement !== defaults.printUpperStatement,
       cfg.booleanLogicExpr !== '' && cfg.booleanLogicExpr !== defaults.booleanLogicExpr,
       cfg.whileLoopPrint !== '' && cfg.whileLoopPrint !== defaults.whileLoopPrint,
@@ -2388,6 +2467,42 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
     prevLevelRef.current = newLevel;
   }, [liveConfig, hasLiveEvent, projectType, getChallengeCount, restoreDone]);
+
+  // Announce newly-unlocked Achievement badges via toast — mirrors the
+  // level-up effect above (same restoreDone/hasLiveEvent gating, so a
+  // returning student's already-earned badges don't re-announce on load,
+  // and live-event mode stays quiet the same way level-ups already do).
+  // stats mirrors exactly what AchievementGrid itself computes further
+  // down in render (see that block's own comments on why each check
+  // compares against `defaults` rather than a bare non-empty check) — kept
+  // in sync deliberately rather than sharing a memo, since this effect
+  // needs to run regardless of whether that sidebar section is even open.
+  useEffect(() => {
+    if (hasLiveEvent || !restoreDone) return;
+    const defaults = extractConfigFromCode(scaffolds[projectType].main);
+    const stats = {
+      challengeCount: getChallengeCount(liveConfig, projectType),
+      hasCustomName: liveConfig.botName !== defaults.botName && liveConfig.botName !== 'AI Bot',
+      hasKnowledge: liveConfig.knowledgeBaseFromCode.trim() !== '' && liveConfig.knowledgeBaseFromCode !== defaults.knowledgeBaseFromCode,
+      hasQAPairs: listDiffersFromDefault(liveConfig.qaPairsFromCode, defaults.qaPairsFromCode, 1),
+      hasRules: listDiffersFromDefault(liveConfig.conversationRules, defaults.conversationRules, 1),
+      hasTested: terminalOutput.length > 0,
+      hasSaved: !!currentProjectId,
+      codeLength: Math.max(0, files['main.py'].split('\n').length - scaffolds[projectType].main.split('\n').length),
+    };
+    const achievements = getAchievements(stats);
+    const unlockedIds = new Set(achievements.filter(a => a.unlocked).map(a => a.id));
+    if (prevAchievementIdsRef.current === null) {
+      prevAchievementIdsRef.current = unlockedIds;
+      return;
+    }
+    for (const a of achievements) {
+      if (a.unlocked && !prevAchievementIdsRef.current.has(a.id)) {
+        toast.success(`🏆 Achievement unlocked: ${a.name}!`);
+      }
+    }
+    prevAchievementIdsRef.current = unlockedIds;
+  }, [liveConfig, hasLiveEvent, projectType, getChallengeCount, restoreDone, terminalOutput, currentProjectId, files, scaffolds]);
 
   const handleChatSend = async (directMessage?: string) => {
     const msg = directMessage || chatInput.trim();
@@ -2560,6 +2675,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       let assistantReply = '';
       let usedRealPython = false;
       let pythonErrorType: string | undefined;
+      let pythonErrorMessage: string | undefined;
       setChatMessages(prev => [...prev, { role: 'assistant', content: '...', _id: placeholderId }]);
 
       // Bug 7: Use code as source of truth to avoid sending duplicates
@@ -2616,7 +2732,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             const updated = [...prev];
             const idx = updated.findIndex(m => m._id === placeholderId);
             const targetIdx = idx !== -1 ? idx : updated.length - 1;
-            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId, usedRealPython, pythonErrorType };
+            updated[targetIdx] = { role: 'assistant', content: text, _id: placeholderId, usedRealPython, pythonErrorType, pythonErrorMessage };
             return updated;
           });
         },
@@ -2625,6 +2741,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           const status = headers.get('X-Python-Status');
           usedRealPython = status === 'handled';
           pythonErrorType = status === 'error' ? (headers.get('X-Python-Error-Type') || 'error') : undefined;
+          const rawMsg = headers.get('X-Python-Error-Message');
+          pythonErrorMessage = rawMsg ? decodeURIComponent(rawMsg) : undefined;
         },
       );
       // A stream that completes without ever emitting a content delta (an
@@ -2639,7 +2757,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           const updated = [...prev];
           const idx = updated.findIndex(m => m._id === placeholderId);
           const targetIdx = idx !== -1 ? idx : updated.length - 1;
-          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId, usedRealPython, pythonErrorType };
+          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId, usedRealPython, pythonErrorType, pythonErrorMessage };
           return updated;
         });
       }
@@ -2877,10 +2995,23 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     window.location.reload();
   };
 
-  const dismissOnboarding = () => {
+  // "Skip Tour"/X/backdrop-click and "Let's Build!" (finishing all 5 steps)
+  // both used to call this same function, which unconditionally chained
+  // straight into ForgeWalkthrough, a SECOND full onboarding tour covering
+  // nearly identical ground (Welcome/Identity/Test/Customize/Deploy vs this
+  // one's Configure/Code/Test/Knowledge/Deploy). A student who clicked
+  // "Skip Tour" specifically to get past onboarding was immediately
+  // ambushed by a second, differently-styled tour right after — "Skip"
+  // only skipped tour #1 of 2, not what the label promises. `skippedEntirely`
+  // lets an explicit skip also suppress the walkthrough, while completing
+  // the tour normally still chains into it as originally designed.
+  const dismissOnboarding = (skippedEntirely: boolean) => {
     setOnboardingStep(null);
     localStorage.setItem('buildstudio-onboarded', 'true');
-    // Now show the walkthrough if it hasn't been done
+    if (skippedEntirely) {
+      localStorage.setItem('forge-walkthrough-done', 'true');
+      return;
+    }
     if (!localStorage.getItem('forge-walkthrough-done')) {
       setShowWalkthrough(true);
     }
@@ -2889,7 +3020,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     if (onboardingStep !== null && onboardingStep < ONBOARDING_STEPS.length - 1) {
       setOnboardingStep(onboardingStep + 1);
     } else {
-      dismissOnboarding();
+      dismissOnboarding(false);
     }
   };
 
@@ -2962,7 +3093,32 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   ];
 
   return (
-    <div className="flex flex-col h-full bg-ide-bg">
+    <div className="relative flex flex-col h-full bg-ide-bg">
+      {/* ── Restore-in-progress overlay ── */}
+      {/* The restore-on-mount effect (further up) fetches a returning
+          student's saved project via get_own_project_by_id, but files['main.py']
+          initializes synchronously to the blank/default scaffold and only
+          swaps once that fetch resolves — with nothing gating the render in
+          between. On a slow connection, a returning student could briefly
+          see a fresh, empty template before their real saved work popped
+          in, which reads as "did my project get deleted?" for a few hundred
+          milliseconds. restoreDone flips true synchronously for a brand-new
+          project (no real network wait), so this only ever shows a flash
+          for exactly that case — it lingers only for the one path that
+          actually has a network round trip. */}
+      <AnimatePresence>
+        {!restoreDone && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-[90] bg-ide-bg flex flex-col items-center justify-center gap-3"
+          >
+            <div className="w-10 h-10 border-4 border-ide-accent border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-ide-text-muted">Loading your project...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* ── Onboarding Overlay ── */}
       <AnimatePresence>
         {onboardingStep !== null && (
@@ -2971,7 +3127,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4"
-            onClick={dismissOnboarding}
+            onClick={() => dismissOnboarding(true)}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -2982,7 +3138,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-mono text-ide-text-muted">Step {onboardingStep + 1} of {ONBOARDING_STEPS.length}</span>
-                <button onClick={dismissOnboarding} className="text-ide-text-muted hover:text-ide-text">
+                <button onClick={() => dismissOnboarding(true)} className="text-ide-text-muted hover:text-ide-text">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -2994,7 +3150,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               <h3 className="text-lg font-bold text-ide-text mb-2">{ONBOARDING_STEPS[onboardingStep].title}</h3>
               <p className="text-sm text-ide-text-muted leading-relaxed mb-6">{ONBOARDING_STEPS[onboardingStep].description}</p>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={dismissOnboarding} className="flex-1 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+                <Button variant="ghost" onClick={() => dismissOnboarding(true)} className="flex-1 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
                   Skip Tour
                 </Button>
                 <Button onClick={nextOnboardingStep} className="flex-1 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
@@ -3201,7 +3357,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         { emoji: '🎯', name: 'Mood Responses', done: dictDiffersFromDefault(config.moodResponses, defaults.moodResponses) },
                         { emoji: '📏', name: 'Response Length', done: config.maxResponseLength !== defaults.maxResponseLength },
                         { emoji: '🎛️', name: 'Max Tokens', done: config.maxTokens !== defaults.maxTokens },
-                        { emoji: '🎭', name: 'Mood', done: config.mood !== defaults.mood },
+                        { emoji: '🎭', name: 'Mood', done: config.mood !== '' && config.mood !== defaults.mood },
                         { emoji: '🎵', name: 'Response Tone', done: isResponseToneCustomized(config.responseTone, config.responseToneConditional, defaults.responseToneConditional) },
                         { emoji: '🗣️', name: 'Catchphrases', done: listDiffersFromDefault(config.catchphrases, defaults.catchphrases, 1) },
                         { emoji: '🔊', name: 'Voice Enabled', done: config.voiceEnabled === true },
@@ -3215,11 +3371,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         // those two, just mirrored here so the sidebar
                         // doesn't undercount what's actually customized.
                         { emoji: '💌', name: 'Fallback Message', done: isFallbackMessageCustomized(config.fallbackMessage, defaults.fallbackMessage) },
-                        { emoji: '🔑', name: 'Topic Keywords', done: config.hasTopicKeywordsLoop && config.qaPairsFromCode.length > defaults.qaPairsFromCode.length },
+                        { emoji: '🔑', name: 'Topic Keywords', done: config.hasTopicKeywordsLoop && listDiffersFromDefault(config.qaPairsFromCode, defaults.qaPairsFromCode, 1) },
                         { emoji: '🎉', name: 'Hype Phrases', done: config.hasListComprehension && config.phraseIdeas.length > 0 },
                         { emoji: '👤', name: 'Personalized Intro', done: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro },
                         { emoji: '🧭', name: 'Mood Instruction', done: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction },
-                        { emoji: '➕', name: 'Rule Count', done: config.hasAccumulatorLoop && config.conversationRules.length > defaults.conversationRules.length },
+                        { emoji: '➕', name: 'Rule Count', done: config.hasAccumulatorLoop && listDiffersFromDefault(config.conversationRules, defaults.conversationRules, ruleFloor) },
                         { emoji: '🔠', name: 'Print + Upper', done: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement },
                         { emoji: '⚖️', name: 'Is Expressive', done: config.booleanLogicExpr !== '' && config.booleanLogicExpr !== defaults.booleanLogicExpr },
                         { emoji: '🔢', name: 'Numbered Rules', done: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint },
@@ -3572,20 +3728,27 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
         {/* CENTER: Code Editor */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* File Tabs */}
-          <div className="flex items-center flex-shrink-0 h-9 bg-ide-sidebar border-b border-ide-border-subtle">
+          {/* File Tabs. Was a plain flex row with no overflow handling — on
+              a narrow phone the settings toggle, every file tab, and the
+              whole right-hand icon cluster (undo/redo/download/upload/
+              reset/search/tutorial/status/copy) all shrank to fit instead
+              of scrolling, squashing icons into an overlapping, unreadable
+              mess. overflow-x-auto plus flex-shrink-0 on every button/tab
+              turns that into a real horizontal scroll instead. */}
+          <div className="flex items-center flex-shrink-0 h-9 bg-ide-sidebar border-b border-ide-border-subtle overflow-x-auto">
             <Button variant="ghost" size="icon" onClick={() => setShowConfig(!showConfig)}
-              className="h-8 w-8 ml-1 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
+              title={showConfig ? 'Hide config panel' : 'Show config panel'} aria-label={showConfig ? 'Hide config panel' : 'Show config panel'}
+              className="h-8 w-8 ml-1 flex-shrink-0 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
               <Settings className={`w-3.5 h-3.5 transition-transform ${showConfig ? 'rotate-90' : ''}`} />
             </Button>
-            <div className="h-4 w-px mx-1 bg-ide-border" />
+            <div className="h-4 w-px mx-1 flex-shrink-0 bg-ide-border" />
             {FILE_TABS.map(tab => {
               const tabDirty = files[tab.id] !== (savedFiles[tab.id] ?? files[tab.id]);
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveFile(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors border-b-2 ${
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-mono transition-colors border-b-2 flex-shrink-0 whitespace-nowrap ${
                     activeFile === tab.id
                       ? 'bg-ide-editor text-ide-text border-ide-accent'
                       : 'text-ide-text-muted border-transparent hover:text-ide-text hover:bg-ide-border/30'
@@ -3597,8 +3760,8 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 </button>
               );
             })}
-            <div className="flex-1" />
-            <div className="flex items-center gap-1 pr-2">
+            <div className="flex-1 min-w-2" />
+            <div className="flex items-center gap-1 pr-2 flex-shrink-0">
               <Button variant="ghost" size="icon" onClick={handleUndo} title="Undo (Ctrl+Z)"
                 className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50">
                 <Undo2 className="w-3 h-3" />
@@ -3810,11 +3973,24 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               scrollContainer.scrollTop = Math.max(0, targetLine * 24 - 80);
                             }
                           }
+                        } else {
+                          // This step-by-step tutorial only walks through the
+                          // first 8 of 34 challenges — past that, tutorialStep
+                          // failed the render guard below and the banner just
+                          // silently vanished while tutorialActive stayed
+                          // true, leaving the toolbar's tutorial toggle lit
+                          // indefinitely with nothing left to show for it.
+                          // Turning it off here and saying so explicitly beats
+                          // a feature that looks like it broke.
+                          setTutorialActive(false);
+                          toast.success("That's the guided walkthrough! Check Mission Progress in the sidebar for the rest of the 34 challenges.");
                         }
                         return next;
                       });
                     }}
-                      className="h-5 text-[10px] text-ide-accent hover:bg-ide-accent/20 px-1.5">Next →</Button>
+                      className="h-5 text-[10px] text-ide-accent hover:bg-ide-accent/20 px-1.5">
+                      {tutorialStep >= CHATBOT_TUTORIAL_STEPS.length - 1 ? 'Finish' : 'Next →'}
+                    </Button>
                     <button onClick={() => setTutorialActive(false)} className="text-ide-text-muted hover:text-ide-text"><X className="w-3 h-3" /></button>
                   </div>
                 </motion.div>
@@ -4250,6 +4426,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent"
                         />
                         <Button size="sm" onClick={handleMentorChat} disabled={isAiLoading || !mentorInput.trim()}
+                          title="Send to mentor" aria-label="Send to mentor"
                           className="h-7 px-2 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                           {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                         </Button>
@@ -4271,6 +4448,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             <span className="text-xs font-bold uppercase tracking-wider" style={{ color: selectedTheme.accent }}>Live Preview</span>
             <div className="flex-1" />
             <Button variant="ghost" size="icon" onClick={() => { setShowMobilePreview(false); setShowPreview(false); }}
+              title="Close preview" aria-label="Close preview"
               className="h-6 w-6 text-ide-text-muted hover:text-ide-text hover:bg-ide-border/50 lg:hidden">
               <X className="w-3 h-3" />
             </Button>
@@ -4316,7 +4494,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             );
           })()}
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div role="log" aria-live="polite" aria-relevant="additions" className="flex-1 overflow-y-auto p-3 space-y-3">
             {chatMessages.length <= 1 && (
               <div className="text-center py-6 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-xl bg-ide-accent/10 flex items-center justify-center overflow-hidden">
@@ -4350,16 +4528,29 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               // Skip rendering the entire bubble for placeholder during streaming
               if (msg.role === 'assistant' && msg.content === '...' && isStreaming) return null;
               return (
-              <div key={msg._id || `chat-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+              <motion.div
+                key={msg._id || `chat-${i}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {/* Aligned with ProjectView.tsx's published-page bubbles —
+                    same corner radius, padding, text size, and the
+                    borderBottom*Radius "tail" — so Live Preview (what
+                    students actually look at while building) and the
+                    published bot don't visibly feel like two different
+                    apps for the same feature. msg.role === 'system' has no
+                    equivalent on the published page (a Live-Preview-only
+                    status/error role), so it keeps its own distinct style. */}
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   msg.role === 'system'
                     ? 'bg-ide-border text-ide-text-muted italic'
                     : ''
                 }`} style={
-                  msg.role === 'user' 
-                    ? { backgroundColor: selectedTheme.accent, color: '#fff' }
+                  msg.role === 'user'
+                    ? { backgroundColor: selectedTheme.accent, color: '#fff', borderBottomRightRadius: '4px' }
                     : msg.role === 'assistant'
-                    ? { backgroundColor: `${selectedTheme.accent}18`, border: `1px solid ${selectedTheme.accent}30`, color: '#e2e8f0' }
+                    ? { backgroundColor: `${selectedTheme.accent}18`, border: `1px solid ${selectedTheme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
                     : undefined
                 }>
                   {msg.role === 'assistant' ? (
@@ -4376,11 +4567,22 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             </div>
                           )}
                           {msg.pythonErrorType && (
-                            <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={`respond() didn't run (${msg.pythonErrorType}) — the AI answered instead. Check the Console tab or your function for bugs.`}>
-                              🐍 Python error ({msg.pythonErrorType}) — AI answered instead
+                            // Used to only ever show the coarse category
+                            // (runtime_error/timeout/etc.) — an IndexError,
+                            // KeyError, TypeError, and ZeroDivisionError all
+                            // rendered as the identical "Python error
+                            // (runtime_error)" with the real message only
+                            // ever reaching a server log the student has no
+                            // access to. Also no longer points them at the
+                            // Console tab — Console only runs top-level
+                            // main.py statements and never actually calls
+                            // respond(), so it can't reproduce the single
+                            // most common source of this exact badge.
+                            <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={msg.pythonErrorMessage || `respond() didn't run (${msg.pythonErrorType}) — the AI answered instead.`}>
+                              🐍 {msg.pythonErrorMessage ? `Python error: ${msg.pythonErrorMessage}` : `Python error (${msg.pythonErrorType})`} — AI answered instead
                             </div>
                           )}
-                          <div className="prose prose-invert prose-xs max-w-none [&_p]:m-0">
+                          <div className="prose prose-invert prose-sm max-w-none [&_p]:m-0">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
                         </div>
@@ -4390,7 +4592,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     <span className="whitespace-pre-wrap">{msg.content}</span>
                   )}
                 </div>
-              </div>
+              </motion.div>
               );
             })}
             {isStreaming && (() => { const last = chatMessages[chatMessages.length - 1]; return last?.role === 'assistant' && (last.content === '...' || last.content === ''); })() && (
@@ -4427,17 +4629,32 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
             {liveConfig.voiceEnabled && (
               <div className="flex items-center gap-1 px-1">
                 <Button size="sm" onClick={toggleListening} disabled={isStreaming}
-                  title={isListening ? 'Stop listening' : 'Tap to speak'}
+                  title={isListening ? 'Stop listening' : 'Tap to speak'} aria-label={isListening ? 'Stop listening' : 'Tap to speak'}
                   className={`h-6 w-6 p-0 flex-shrink-0 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
                   <Mic className="w-3 h-3" />
                 </Button>
-                <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
-                  title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
-                  className={`h-6 px-1.5 text-[9px] font-bold flex-shrink-0 ${voiceConversationMode ? 'bg-ide-green text-ide-bg-deep hover:bg-ide-green/80' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
-                  <Radio className="w-3 h-3" />
-                </Button>
+                {/* Gated on voiceMode === 'hands-free' — this used to render
+                    unconditionally whenever voiceEnabled was true, so a
+                    student could always find and test hands-free mode here
+                    regardless of what VOICE_MODE their own code actually
+                    set (including the default "push-to-talk"). The
+                    published page (ProjectView.tsx) only ever shows this
+                    button when VOICE_MODE is literally "hands-free", so a
+                    student who only ever tested hands-free through this
+                    button — without touching the VOICE_MODE variable —
+                    would publish a bot where the feature they just tested
+                    silently isn't there. Matching published behavior here
+                    is the same "preview should predict what ships"
+                    principle already applied to the chat interceptors. */}
+                {liveConfig.voiceMode === 'hands-free' && (
+                  <Button size="sm" onClick={toggleVoiceConversation} disabled={isStreaming}
+                    title={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'} aria-label={voiceConversationMode ? 'Disable hands-free' : 'Enable hands-free mode'}
+                    className={`h-6 px-1.5 text-[9px] font-bold flex-shrink-0 ${voiceConversationMode ? 'bg-ide-green text-ide-bg-deep hover:bg-ide-green/80' : 'bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection'}`}>
+                    <Radio className="w-3 h-3" />
+                  </Button>
+                )}
                 <Button size="sm" onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); } }}
-                  title={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
+                  title={ttsEnabled ? 'Mute voice' : 'Unmute voice'} aria-label={ttsEnabled ? 'Mute voice' : 'Unmute voice'}
                   className="h-6 w-6 p-0 flex-shrink-0 bg-ide-border text-ide-text-muted hover:text-ide-text hover:bg-ide-selection">
                   {ttsEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
                 </Button>
@@ -4450,6 +4667,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 disabled={isStreaming || isListening}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1 min-w-0" />
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
+                title="Send message" aria-label="Send message"
                 className="h-8 w-8 p-0 flex-shrink-0 bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90">
                 {isStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </Button>

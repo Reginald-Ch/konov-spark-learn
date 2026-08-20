@@ -204,7 +204,11 @@ class Parser {
     if (this.checkName('continue')) { this.advance(); this.expectNewline(); return { kind: 'Continue', line }; }
 
     const first = this.parseExpr();
-    const AUG_OPS = ['+=', '-=', '*=', '/='];
+    // aug.slice(0, -1) instead of aug[0] — `//=`/`**=` need their full
+    // 2-char operator (`//`, `**`), not just the first character, or
+    // `x //= 3` would silently apply regular division/multiplication
+    // instead of floor-division/power.
+    const AUG_OPS = ['+=', '-=', '*=', '/=', '//=', '%=', '**='];
     if (this.checkOp('=')) {
       this.advance();
       const value = this.parseExpr();
@@ -216,7 +220,7 @@ class Parser {
         this.advance();
         const value = this.parseExpr();
         this.expectNewline();
-        return { kind: 'AugAssign', target: first, op: aug[0], value, line };
+        return { kind: 'AugAssign', target: first, op: aug.slice(0, -1), value, line };
       }
     }
     this.expectNewline();
@@ -348,9 +352,40 @@ class Parser {
       } else if (this.checkOp('[')) {
         const line = this.current().line;
         this.advance();
-        const index = this.parseExpr();
-        this.expectOp(']');
-        expr = { kind: 'Subscript', obj: expr, index, line };
+        // Slicing (`s[1:5]`, `s[:5]`, `s[1:]`, `s[::-1]`, ...) used to fall
+        // straight into parseExpr() below and choke on the first `:` with
+        // "Expected ']' but found ':'" — a cryptic parser error instead of
+        // this interpreter's own established "'X' isn't supported here"
+        // pattern (used for lambda/yield/set literals/etc.), for what is
+        // one of the single most common Python idioms (string/list
+        // truncation, list reversal) and exactly the kind of thing a
+        // student pastes from a tutorial or an AI suggestion. Genuinely
+        // implementing it (below) beats a nicer error message for
+        // something this fundamental.
+        let first: Expr | null = null;
+        if (!this.checkOp(':') && !this.checkOp(']')) {
+          first = this.parseExpr();
+        }
+        if (this.checkOp(':')) {
+          this.advance();
+          let stop: Expr | null = null;
+          if (!this.checkOp(':') && !this.checkOp(']')) {
+            stop = this.parseExpr();
+          }
+          let step: Expr | null = null;
+          if (this.checkOp(':')) {
+            this.advance();
+            if (!this.checkOp(']')) {
+              step = this.parseExpr();
+            }
+          }
+          this.expectOp(']');
+          expr = { kind: 'Subscript', obj: expr, index: { kind: 'Slice', start: first, stop, step, line }, line };
+        } else {
+          if (first === null) throw new PySyntaxError('Subscript index cannot be empty', line);
+          this.expectOp(']');
+          expr = { kind: 'Subscript', obj: expr, index: first, line };
+        }
       } else if (this.checkOp('.')) {
         const line = this.current().line;
         this.advance();
@@ -406,7 +441,16 @@ class Parser {
       this.advance();
       const keys: Expr[] = []; const values: Expr[] = [];
       if (!this.checkOp('}')) {
-        keys.push(this.parseExpr()); this.expectOp(':'); values.push(this.parseExpr());
+        const firstKey = this.parseExpr();
+        // `{key: value}` is the only `{...}` literal this interpreter
+        // supports — a set literal (`{1, 2, 3}`) has no colon after its
+        // first element, and without this check it fell straight into
+        // expectOp(':') and threw a generic "Expected ':' but found ','" —
+        // technically true, but useless to a student who correctly knows
+        // `{1, 2, 3}` is valid Python syntax and has no idea why it failed.
+        if (!this.checkOp(':')) throw new UnsupportedSyntaxError('set literal ({...} without key: value pairs)', line);
+        this.expectOp(':');
+        keys.push(firstKey); values.push(this.parseExpr());
         while (this.checkOp(',')) { this.advance(); if (this.checkOp('}')) break; keys.push(this.parseExpr()); this.expectOp(':'); values.push(this.parseExpr()); }
       }
       this.expectOp('}');

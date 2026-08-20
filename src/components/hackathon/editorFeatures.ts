@@ -170,6 +170,22 @@ export const stripLineComment = (line: string): string => {
 export const codeDefinesRespond = (code: string): boolean =>
   code.split('\n').some(line => /^\s*def\s+respond\s*\(/.test(stripLineComment(line)));
 
+// Shared by ProjectEditor.tsx (Live Preview) and ProjectView.tsx (the
+// published bot page) — both retry a python-ai-assist 429 (the shared
+// 10-slot ai_gateway_slots pool being momentarily full, not a real error)
+// with backoff before giving up. Living here instead of being copy-pasted
+// into each file avoids yet another instance of the "fix landed in one
+// file, not its twin" drift this codebase has repeatedly hit elsewhere.
+// Rejects instead of hanging forever if the caller's AbortController fires
+// mid-wait (a newer message superseding this one, or the overall request
+// timeout) — a plain setTimeout-based sleep would otherwise keep waiting
+// for a request nobody wants anymore.
+export const abortableSleep = (ms: number, signal: AbortSignal): Promise<void> => new Promise((resolve, reject) => {
+  if (signal.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
+  const timer = setTimeout(resolve, ms);
+  signal.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+});
+
 export const lintPython = (code: string): LintError[] => {
   const errors: LintError[] = [];
   const lines = code.split('\n');
@@ -319,16 +335,18 @@ export const lintPython = (code: string): LintError[] => {
       }
     }
 
-    // Check: indentation (must be multiple of 4 spaces, no tabs)
+    // Check: tabs. The "must be a multiple of 4 spaces" check that used to
+    // live here was a pure style opinion the interpreter itself doesn't
+    // share — runModule executes 2-space-indented code (or any other
+    // consistent width) correctly, since real indentation validity is
+    // INDENT/DEDENT-token-based, not a fixed-width rule. A student who
+    // pasted 2-space-indented code from a tutorial or an AI suggestion —
+    // perfectly valid, runnable Python — saw an alarming red "N issues
+    // found" banner in the Problems panel for code that wasn't actually
+    // broken. Tabs are still worth flagging: this editor's line-jump/cursor
+    // math elsewhere assumes single-character-width indentation.
     if (line.includes('\t')) {
       errors.push({ line: i, message: 'Use spaces instead of tabs', severity: 'warning' });
-    } else {
-      // stripped is already known non-empty here (the empty-line branch
-      // above continues past this point), so no extra guard is needed.
-      const leadingSpaces = line.length - line.trimStart().length;
-      if (leadingSpaces % 4 !== 0) {
-        errors.push({ line: i, message: `Indentation should be a multiple of 4 spaces (found ${leadingSpaces})`, severity: 'warning' });
-      }
     }
 
     // Check: '=' in if/elif/while condition (common mistake: using = instead of ==)

@@ -1,6 +1,6 @@
 import type { Expr, Stmt, Program } from './ast.ts';
 import { parseProgram } from './parser.ts';
-import { PyError, PyRuntimeError, PySyntaxError, PyTimeoutError, PyErrorType } from './errors.ts';
+import { PyError, PyRuntimeError, PySyntaxError, PyTimeoutError, PyErrorType, UnsupportedSyntaxError } from './errors.ts';
 
 // ── Value representation ──
 // Primitives (number/string/boolean/null) are plain JS values — the
@@ -10,7 +10,7 @@ import { PyError, PyRuntimeError, PySyntaxError, PyTimeoutError, PyErrorType } f
 // a single field read.
 
 export interface PyList { __pytype: 'list'; items: PyValue[] }
-export interface PyDict { __pytype: 'dict'; map: Map<string | number | boolean, PyValue> }
+export interface PyDict { __pytype: 'dict'; map: Map<string | number, PyValue> }
 export interface PyFunction { __pytype: 'function'; name: string; params: string[]; body: Stmt[]; closure: Environment }
 // Builtins are always async — the only builtin that actually needs to await
 // anything is `ai_generate` (a real network call), but every builtin shares
@@ -46,9 +46,47 @@ function describeType(v: PyValue): string {
   return 'object';
 }
 
-function toDictKey(v: PyValue, line: number): string | number | boolean {
-  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return v;
+function toDictKey(v: PyValue, line: number): string | number {
+  // Python's hash(True) == hash(1) and hash(False) == hash(0), so {True: 'a'}
+  // and {1: 'a'} land in the SAME slot — a JS Map keyed on raw booleans keeps
+  // them distinct, which silently breaks `1 in {True: ...}` and lets a dict
+  // built with a mix of True/1 (or False/0) as keys (e.g. a quiz-answer
+  // lookup) end up with more entries than Python would produce.
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  if (typeof v === 'string' || typeof v === 'number') return v;
   throw new PyRuntimeError(`TypeError: unhashable type: '${describeType(v)}'`, line);
+}
+
+// JS strings are UTF-16 code units — anything outside the Basic Multilingual
+// Plane (basically all modern emoji) is stored as a surrogate PAIR, so
+// `.length`/`.split('')`/bracket-indexing silently split one Python
+// character into two garbage half-characters and over-count len(). Python
+// strings are codepoint sequences. Array.from (like `for...of`) iterates by
+// codepoint, correctly treating a surrogate pair as one element — using it
+// everywhere a string is walked/measured/indexed keeps len()/iteration/
+// indexing matching what a student sees typed in front of them, including
+// emoji in a chatbot's own messages.
+const strChars = (s: string): string[] => Array.from(s);
+
+// Python's round() rounds an exact .5 to the nearest EVEN result
+// ("banker's rounding"), not away from zero — round(2.5) is 2, not 3.
+// Math.round always rounds .5 away from zero (toward +Infinity, actually,
+// but the difference only matters at exact halfway points). Since
+// python-challenge-grade runs student submissions through this exact same
+// round() and compares against expected_output authored against real
+// CPython semantics, a plain Math.round could fail an objectively correct
+// submission right on a rounding boundary, not just print a surprising
+// number in Build Studio's console.
+function pyRound(value: number, digits: number): number {
+  const factor = Math.pow(10, digits);
+  const scaled = value * factor;
+  const floor = Math.floor(scaled);
+  const diff = scaled - floor;
+  let rounded: number;
+  if (diff < 0.5) rounded = floor;
+  else if (diff > 0.5) rounded = floor + 1;
+  else rounded = (floor % 2 === 0) ? floor : floor + 1;
+  return rounded / factor;
 }
 
 function isTruthy(v: PyValue): boolean {
@@ -361,7 +399,7 @@ class Interpreter {
         return makeList(items);
       }
       case 'DictLit': {
-        const map = new Map<string | number | boolean, PyValue>();
+        const map = new Map<string | number, PyValue>();
         for (let i = 0; i < expr.keys.length; i++) {
           const k = await this.evalExpr(expr.keys[i], env, budget, stdout);
           map.set(toDictKey(k, expr.line), await this.evalExpr(expr.values[i], env, budget, stdout));
@@ -403,9 +441,20 @@ class Interpreter {
         throw new PyRuntimeError(`AttributeError: '.${expr.attr}' is only supported as a direct method call, e.g. x.${expr.attr}(...)`, expr.line);
       case 'Subscript': {
         const obj = await this.evalExpr(expr.obj, env, budget, stdout);
+        if (expr.index.kind === 'Slice') {
+          const start = expr.index.start ? await this.evalExpr(expr.index.start, env, budget, stdout) : null;
+          const stop = expr.index.stop ? await this.evalExpr(expr.index.stop, env, budget, stdout) : null;
+          const step = expr.index.step ? await this.evalExpr(expr.index.step, env, budget, stdout) : null;
+          return this.subscriptGetSlice(obj, start, stop, step, expr.line);
+        }
         const idx = await this.evalExpr(expr.index, env, budget, stdout);
         return this.subscriptGet(obj, idx, expr.line);
       }
+      // Slice only ever appears as a Subscript's index (see the parser),
+      // never evaluated as a standalone expression — real Python has the
+      // same restriction.
+      case 'Slice':
+        throw new PyRuntimeError('SyntaxError: a slice can only appear inside [...]', expr.line);
     }
   }
 
@@ -447,6 +496,14 @@ class Interpreter {
   private async assignTo(target: Expr, value: PyValue, env: Environment, budget: Budget, stdout: string[]): Promise<void> {
     if (target.kind === 'Name') { env.set(target.name, value); return; }
     if (target.kind === 'Subscript') {
+      // Slice READS (s[1:3]) are supported below via subscriptGetSlice;
+      // slice ASSIGNMENT (lst[1:3] = [...]) is real Python but a rarer,
+      // meaningfully more complex feature (splicing a list in place,
+      // handling a step, etc.) — explicitly unsupported rather than
+      // silently doing the wrong thing.
+      if (target.index.kind === 'Slice') {
+        throw new UnsupportedSyntaxError('slice assignment (obj[a:b] = ...)', target.line);
+      }
       const obj = await this.evalExpr(target.obj, env, budget, stdout);
       const idx = await this.evalExpr(target.index, env, budget, stdout);
       this.subscriptSet(obj, idx, value, target.line);
@@ -457,7 +514,7 @@ class Interpreter {
 
   private toIterable(v: PyValue, line: number): PyValue[] {
     if (isList(v)) return v.items;
-    if (typeof v === 'string') return v.split('');
+    if (typeof v === 'string') return strChars(v);
     throw new PyRuntimeError(`TypeError: '${describeType(v)}' object is not iterable`, line);
   }
 
@@ -468,6 +525,49 @@ class Interpreter {
       throw new PyRuntimeError(`ValueError: expected ${target.length} values to unpack, got ${got}`, line);
     }
     target.forEach((name, i) => env.set(name, item.items[i]));
+  }
+
+  // Implements CPython's slice.indices() algorithm — the same normalization
+  // real Python applies to start/stop/step before walking a sequence: negative
+  // indices wrap from the end, out-of-range bounds clamp instead of erroring,
+  // and a negative step flips the defaults (start defaults to the last
+  // index, stop defaults to "one before the first") so `s[::-1]` reverses
+  // correctly instead of producing an empty result.
+  private resolveSliceIndices(startRaw: PyValue, stopRaw: PyValue, stepRaw: PyValue, length: number, line: number): { start: number; stop: number; step: number } {
+    if (startRaw !== null && typeof startRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
+    if (stopRaw !== null && typeof stopRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
+    if (stepRaw !== null && typeof stepRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
+    const step = stepRaw === null ? 1 : Math.trunc(stepRaw);
+    if (step === 0) throw new PyRuntimeError('ValueError: slice step cannot be zero', line);
+    const clamp = (i: number, lo: number, hi: number) => Math.min(Math.max(i, lo), hi);
+    const normalize = (raw: PyValue, lo: number, hi: number): number => {
+      let v = Math.trunc(raw as number);
+      if (v < 0) v += length;
+      return clamp(v, lo, hi);
+    };
+    let start: number, stop: number;
+    if (step > 0) {
+      start = startRaw === null ? 0 : normalize(startRaw, 0, length);
+      stop = stopRaw === null ? length : normalize(stopRaw, 0, length);
+    } else {
+      start = startRaw === null ? length - 1 : normalize(startRaw, -1, length - 1);
+      stop = stopRaw === null ? -1 : normalize(stopRaw, -1, length - 1);
+    }
+    return { start, stop, step };
+  }
+
+  private sliceItems<T>(items: T[], startRaw: PyValue, stopRaw: PyValue, stepRaw: PyValue, line: number): T[] {
+    const { start, stop, step } = this.resolveSliceIndices(startRaw, stopRaw, stepRaw, items.length, line);
+    const out: T[] = [];
+    if (step > 0) { for (let i = start; i < stop; i += step) out.push(items[i]); }
+    else { for (let i = start; i > stop; i += step) out.push(items[i]); }
+    return out;
+  }
+
+  private subscriptGetSlice(obj: PyValue, start: PyValue, stop: PyValue, step: PyValue, line: number): PyValue {
+    if (isList(obj)) return makeList(this.sliceItems(obj.items, start, stop, step, line));
+    if (typeof obj === 'string') return this.sliceItems(strChars(obj), start, stop, step, line).join('');
+    throw new PyRuntimeError(`TypeError: '${describeType(obj)}' object is not subscriptable`, line);
   }
 
   private subscriptGet(obj: PyValue, idx: PyValue, line: number): PyValue {
@@ -484,9 +584,10 @@ class Interpreter {
     }
     if (typeof obj === 'string') {
       if (typeof idx !== 'number') throw new PyRuntimeError('TypeError: string indices must be integers', line);
-      let i = idx; if (i < 0) i += obj.length;
-      if (i < 0 || i >= obj.length) throw new PyRuntimeError('IndexError: string index out of range', line);
-      return obj[i];
+      const chars = strChars(obj);
+      let i = idx; if (i < 0) i += chars.length;
+      if (i < 0 || i >= chars.length) throw new PyRuntimeError('IndexError: string index out of range', line);
+      return chars[i];
     }
     throw new PyRuntimeError(`TypeError: '${describeType(obj)}' object is not subscriptable`, line);
   }
@@ -647,7 +748,61 @@ const STRING_METHODS: Record<string, (s: string, args: PyValue[], line: number) 
     if (!isList(args[0])) throw new PyRuntimeError('TypeError: join() takes a list', line);
     return args[0].items.map(v => pyStr(v)).join(s);
   },
+  lstrip: (s) => s.replace(/^\s+/, ''),
+  rstrip: (s) => s.replace(/\s+$/, ''),
+  // Naive codepoint-array search rather than JS's native (UTF-16-code-unit)
+  // String.indexOf — these are brand-new methods, so implementing them
+  // straight on top of strChars keeps returned indices consistent with
+  // len()/indexing/iteration elsewhere in this interpreter (all fixed
+  // earlier this session to count codepoints, not UTF-16 units) instead of
+  // quietly reintroducing the same emoji-offset bug in a new spot.
+  find: (s, args, line) => {
+    if (typeof args[0] !== 'string') throw new PyRuntimeError('TypeError: find() takes a string', line);
+    return codepointIndexOf(strChars(s), args[0], typeof args[1] === 'number' ? Math.trunc(args[1]) : 0);
+  },
+  index: (s, args, line) => {
+    if (typeof args[0] !== 'string') throw new PyRuntimeError('TypeError: index() takes a string', line);
+    const idx = codepointIndexOf(strChars(s), args[0], typeof args[1] === 'number' ? Math.trunc(args[1]) : 0);
+    if (idx === -1) throw new PyRuntimeError('ValueError: substring not found', line);
+    return idx;
+  },
+  count: (s, args, line) => {
+    if (typeof args[0] !== 'string') throw new PyRuntimeError('TypeError: count() takes a string', line);
+    const chars = strChars(s);
+    const needle = strChars(args[0]);
+    if (needle.length === 0) return chars.length + 1;
+    let count = 0;
+    let from = 0;
+    while (true) {
+      const idx = codepointIndexOf(chars, args[0], from);
+      if (idx === -1) break;
+      count++;
+      from = idx + needle.length;
+    }
+    return count;
+  },
+  // Unicode-property-aware (\p{L}/\p{Nd} under the /u flag), not ASCII-only
+  // — real CPython's isalpha()/isdigit() are Unicode-aware too (e.g.
+  // 'café'.isalpha() is True), so an ASCII-only regex would silently
+  // diverge for any student text beyond plain English.
+  isdigit: (s) => s.length > 0 && /^\p{Nd}+$/u.test(s),
+  isalpha: (s) => s.length > 0 && /^\p{L}+$/u.test(s),
+  isalnum: (s) => s.length > 0 && /^[\p{L}\p{Nd}]+$/u.test(s),
 };
+
+function codepointIndexOf(haystackChars: string[], needle: string, fromCp: number): number {
+  const needleChars = strChars(needle);
+  const from = Math.max(fromCp < 0 ? haystackChars.length + fromCp : fromCp, 0);
+  if (needleChars.length === 0) return Math.min(from, haystackChars.length);
+  for (let i = from; i <= haystackChars.length - needleChars.length; i++) {
+    let matched = true;
+    for (let j = 0; j < needleChars.length; j++) {
+      if (haystackChars[i + j] !== needleChars[j]) { matched = false; break; }
+    }
+    if (matched) return i;
+  }
+  return -1;
+}
 
 const LIST_METHODS: Record<string, (l: PyList, args: PyValue[], line: number) => PyValue> = {
   append: (l, args, line) => {
@@ -723,7 +878,7 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
   }));
   env.set('len', builtin('len', async (args, line) => {
     const v = args[0];
-    if (typeof v === 'string') return v.length;
+    if (typeof v === 'string') return strChars(v).length;
     if (isList(v)) return v.items.length;
     if (isDict(v)) return v.map.size;
     throw new PyRuntimeError(`TypeError: object of type '${describeType(v)}' has no len()`, line);
@@ -754,14 +909,33 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
     const v = args[0];
     if (typeof v === 'number') return Math.trunc(v);
     if (typeof v === 'boolean') return v ? 1 : 0;
-    if (typeof v === 'string') { const n = parseInt(v.trim(), 10); if (Number.isNaN(n)) throw new PyRuntimeError(`ValueError: invalid literal for int(): '${v}'`, line); return n; }
+    if (typeof v === 'string') {
+      const trimmed = v.trim();
+      // parseInt() parses a valid PREFIX ("3.5" -> 3, "12abc" -> 12) instead
+      // of requiring the whole string to be a valid integer literal like
+      // real Python does — a student validating input with
+      // `try: age = int(user_input) except ValueError: ...` would find
+      // their except branch silently never firing for malformed-but-
+      // prefix-parseable input. Python does allow surrounding whitespace
+      // and a leading +/-, which this regex mirrors.
+      if (!/^[+-]?\d+$/.test(trimmed)) throw new PyRuntimeError(`ValueError: invalid literal for int() with base 10: '${v}'`, line);
+      return parseInt(trimmed, 10);
+    }
     throw new PyRuntimeError(`TypeError: int() argument must be a string or a number`, line);
   }));
   env.set('float', builtin('float', async (args, line) => {
     const v = args[0];
     if (typeof v === 'number') return v;
     if (typeof v === 'boolean') return v ? 1 : 0;
-    if (typeof v === 'string') { const n = parseFloat(v.trim()); if (Number.isNaN(n)) throw new PyRuntimeError(`ValueError: could not convert string to float: '${v}'`, line); return n; }
+    if (typeof v === 'string') {
+      const trimmed = v.trim();
+      // Same whole-string-must-be-valid requirement as int() above —
+      // parseFloat("3.5abc") silently returns 3.5 instead of raising.
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(trimmed) && !/^[+-]?(inf|infinity|nan)$/i.test(trimmed)) {
+        throw new PyRuntimeError(`ValueError: could not convert string to float: '${v}'`, line);
+      }
+      return parseFloat(trimmed);
+    }
     throw new PyRuntimeError(`TypeError: float() argument must be a string or a number`, line);
   }));
   env.set('bool', builtin('bool', async (args) => isTruthy(args[0] ?? null)));
@@ -769,8 +943,7 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
   env.set('round', builtin('round', async (args, line) => {
     if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: round() requires a number', line);
     const digits = typeof args[1] === 'number' ? args[1] : 0;
-    const factor = Math.pow(10, digits);
-    return Math.round(args[0] * factor) / factor;
+    return pyRound(args[0], digits);
   }));
   env.set('min', builtin('min', async (args, line) => reduceMinMax(args, line, 'min')));
   env.set('max', builtin('max', async (args, line) => reduceMinMax(args, line, 'max')));
@@ -826,7 +999,7 @@ export function jsonToPyValue(v: unknown): PyValue {
   if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') return v;
   if (Array.isArray(v)) return makeList(v.map(jsonToPyValue));
   if (typeof v === 'object') {
-    const map = new Map<string | number | boolean, PyValue>();
+    const map = new Map<string | number, PyValue>();
     for (const [k, val] of Object.entries(v as Record<string, unknown>)) map.set(k, jsonToPyValue(val));
     return { __pytype: 'dict', map };
   }

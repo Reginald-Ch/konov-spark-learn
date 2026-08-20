@@ -8,7 +8,8 @@ export interface Token {
   line: number;
 }
 
-const MULTI_CHAR_OPS = ['**', '//', '==', '!=', '<=', '>=', '+=', '-=', '*=', '/='];
+const THREE_CHAR_OPS = ['//=', '**='];
+const MULTI_CHAR_OPS = ['**', '//', '==', '!=', '<=', '>=', '+=', '-=', '*=', '/=', '%='];
 const SINGLE_CHAR_OPS = new Set(['+', '-', '*', '/', '%', '=', '<', '>', '(', ')', '[', ']', '{', '}', ':', ',', '.', '@']);
 
 function isIdentStart(ch: string) { return /[A-Za-z_]/.test(ch); }
@@ -148,6 +149,15 @@ export function tokenize(source: string): Token[] {
 
     if (ch === '(' || ch === '[' || ch === '{') { bracketDepth++; push('OP', ch); i++; continue; }
     if (ch === ')' || ch === ']' || ch === '}') { bracketDepth = Math.max(0, bracketDepth - 1); push('OP', ch); i++; continue; }
+
+    // Checked before the 2-char slice below — `//=`/`**=` are genuinely
+    // 3-char tokens (floor-div/power augmented assignment). Without this,
+    // `x //= 3` lexed as `//` (floor division, greedily matched first)
+    // followed by a bare `=`, and the parser choked on that stray `=` with
+    // a generic "Unexpected token" error — confusing for a student who
+    // correctly knows `//=` is valid Python syntax.
+    const three = source.slice(i, i + 3);
+    if (THREE_CHAR_OPS.includes(three)) { push('OP', three); i += 3; continue; }
 
     const two = source.slice(i, i + 2);
     if (MULTI_CHAR_OPS.includes(two)) { push('OP', two); i += 2; continue; }

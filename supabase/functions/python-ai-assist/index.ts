@@ -11,7 +11,7 @@ const corsHeaders = {
   // isn't on it, so ProjectEditor.tsx/ProjectView.tsx's `usedRealPython`
   // check always read false regardless of whether respond() actually ran.
   // The "🐍 Answered by your Python code" badge could never appear.
-  "Access-Control-Expose-Headers": "X-Python-Status, X-Python-Error-Type",
+  "Access-Control-Expose-Headers": "X-Python-Status, X-Python-Error-Type, X-Python-Error-Message",
 };
 
 // ── Concurrency gate ──
@@ -438,6 +438,15 @@ serve(async (req) => {
     // same AI-fallback response construction as a project with no
     // respond() at all.
     let pythonErrorType: string | null = null;
+    // The real exception message (e.g. "IndexError: list index out of
+    // range") used to be console.error'd server-side and never reach the
+    // client at all — only the coarse category (runtime_error/timeout/etc.)
+    // went out, so a KeyError, TypeError, ZeroDivisionError, and
+    // IndexError all rendered identically to the student as
+    // "🐍 Python error (runtime_error)". Header-encoded (encodeURIComponent)
+    // since HTTP header values can't safely carry arbitrary characters —
+    // decoded back on the client.
+    let pythonErrorMessage: string | null = null;
 
     // Build knowledge context string if available
     let knowledgeContext = "";
@@ -672,6 +681,7 @@ Format as plain terminal text with emojis. Under 300 words.`;
       if (pyReply.handled && "error" in pyReply) {
         console.error("respond() failed:", pyReply.error.type, pyReply.error.message);
         pythonErrorType = pyReply.error.type;
+        pythonErrorMessage = pyReply.error.message;
       }
 
       // ── Real tool calling for agent projects ──
@@ -890,6 +900,16 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
       slotId = acquiredSlot;
     }
 
+    // req.signal fires when the client disconnects (an abort, a tab close,
+    // a new message superseding this one — ProjectEditor.tsx/ProjectView.tsx
+    // both abort their previous request the moment a new one is sent).
+    // Without forwarding it here, a client-side abort only stopped the
+    // browser from reading the response — this fetch (and the billed
+    // upstream generation behind it) kept running to completion regardless,
+    // discarded unread. That's real AI Gateway spend a client-side abort
+    // was supposed to prevent, on top of never counting toward the
+    // "X/40 calls" guide rail since an aborted request throws before
+    // reaching the success-path increment.
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -897,6 +917,7 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
+      signal: req.signal,
     });
 
     if (!response.ok) {
@@ -930,7 +951,11 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
       headers: {
         ...corsHeaders,
         "Content-Type": "text/event-stream",
-        ...(pythonErrorType ? { "X-Python-Status": "error", "X-Python-Error-Type": pythonErrorType } : {}),
+        ...(pythonErrorType ? {
+          "X-Python-Status": "error",
+          "X-Python-Error-Type": pythonErrorType,
+          ...(pythonErrorMessage ? { "X-Python-Error-Message": encodeURIComponent(pythonErrorMessage) } : {}),
+        } : {}),
       },
     });
   } catch (e) {

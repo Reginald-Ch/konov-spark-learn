@@ -38,7 +38,12 @@ export type Expr =
   | { kind: 'Compare'; left: Expr; ops: string[]; comparators: Expr[]; line: number }
   | { kind: 'Call'; func: Expr; args: Expr[]; line: number }
   | { kind: 'Attribute'; obj: Expr; attr: string; line: number }
-  | { kind: 'Subscript'; obj: Expr; index: Expr; line: number };
+  | { kind: 'Subscript'; obj: Expr; index: Expr; line: number }
+  // `obj[start:stop:step]` — each part independently optional (`obj[:5]`,
+  // `obj[1:]`, `obj[::-1]`, ...). Only ever appears as a Subscript's
+  // `index`, never as a standalone expression on its own — real Python
+  // has the same restriction (a bare `1:2` is a syntax error outside `[]`).
+  | { kind: 'Slice'; start: Expr | null; stop: Expr | null; step: Expr | null; line: number };
 
 export type Stmt =
   | { kind: 'ExprStmt'; expr: Expr; line: number }
