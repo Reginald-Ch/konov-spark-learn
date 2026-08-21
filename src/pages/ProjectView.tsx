@@ -27,6 +27,15 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   _id?: number;
+  // Neither of these existed on the published page at all — the
+  // "🐍 Answered by your Python code" / "🐍 Python error" badges Live
+  // Preview shows were entirely absent here, so a bot's own creator
+  // checking their published page had no way to tell whether their real
+  // respond() function was actually running versus silently crashing and
+  // falling back to the AI every single message.
+  usedRealPython?: boolean;
+  pythonErrorType?: string;
+  pythonErrorMessage?: string;
 }
 
 // Token-based Python syntax highlighter
@@ -816,6 +825,17 @@ const ProjectView = () => {
 
       if (!resp.ok || !resp.body) throw new Error('AI service error');
 
+      // Neither of these was ever read on the published page — the
+      // "🐍 Answered by your Python code" / "🐍 Python error" badges Live
+      // Preview shows were entirely absent here, so a bot's own creator
+      // had no way to tell, from their published page, whether their real
+      // respond() function was actually running or silently crashing.
+      const pyStatus = resp.headers.get('X-Python-Status');
+      const usedRealPython = pyStatus === 'handled';
+      const pythonErrorType = pyStatus === 'error' ? (resp.headers.get('X-Python-Error-Type') || 'error') : undefined;
+      const rawPyErrorMsg = resp.headers.get('X-Python-Error-Message');
+      const pythonErrorMessage = rawPyErrorMsg ? decodeURIComponent(rawPyErrorMsg) : undefined;
+
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -844,7 +864,7 @@ const ProjectView = () => {
                 const updated = [...prev];
                 const idx = updated.findIndex(m => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId };
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId, usedRealPython, pythonErrorType, pythonErrorMessage };
                 return updated;
               });
             }
@@ -866,7 +886,7 @@ const ProjectView = () => {
                 const updated = [...prev];
                 const idx = updated.findIndex(m => m._id === placeholderId);
                 const targetIdx = idx !== -1 ? idx : updated.length - 1;
-                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId };
+                updated[targetIdx] = { role: 'assistant', content: fullText, _id: placeholderId, usedRealPython, pythonErrorType, pythonErrorMessage };
                 return updated;
               });
             }
@@ -886,7 +906,7 @@ const ProjectView = () => {
           const updated = [...prev];
           const idx = updated.findIndex(m => m._id === placeholderId);
           const targetIdx = idx !== -1 ? idx : updated.length - 1;
-          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId };
+          if (targetIdx >= 0) updated[targetIdx] = { role: 'assistant', content: fallback, _id: placeholderId, usedRealPython, pythonErrorType, pythonErrorMessage };
           return updated;
         });
       }
@@ -1101,12 +1121,30 @@ const ProjectView = () => {
                     }
                   >
                     {msg.role === 'assistant' ? (
-                      <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
-                        project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
-                          ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
-                          : ''
-                      }`}>
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div>
+                        {/* Live Preview (ProjectEditor.tsx) has shown these
+                            badges for a while — the published page never
+                            read the X-Python-* headers at all, so a bot's
+                            own creator had no way to tell, from their
+                            published page, whether their real respond()
+                            was actually answering or silently crashing. */}
+                        {msg.usedRealPython && (
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-400 mb-1" title="main.py's respond() answered this message directly — the AI wasn't called.">
+                            🐍 Answered by your Python code
+                          </div>
+                        )}
+                        {msg.pythonErrorType && (
+                          <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={msg.pythonErrorMessage || `respond() didn't run (${msg.pythonErrorType}) — the AI answered instead.`}>
+                            🐍 {msg.pythonErrorMessage ? `Python error: ${msg.pythonErrorMessage}` : `Python error (${msg.pythonErrorType})`} — AI answered instead
+                          </div>
+                        )}
+                        <div className={`prose prose-invert prose-sm max-w-none [&_p]:mb-1 [&_p]:mt-0 ${
+                          project.template_id === 'agent' && msg.content.includes('**🤔 Thought:**')
+                            ? '[&_strong]:text-ide-cyan [&_p:has(strong)]:border-l-2 [&_p:has(strong)]:border-ide-accent/40 [&_p:has(strong)]:pl-2 [&_p:has(strong)]:py-0.5'
+                            : ''
+                        }`}>
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
                       </div>
                     ) : msg.content}
                   </div>

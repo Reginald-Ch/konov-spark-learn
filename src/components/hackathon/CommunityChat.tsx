@@ -79,6 +79,31 @@ interface StaffInfo {
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '🎉', '🔥', '🚀', '⭐', '✨', '👏', '💯', '🤔', '😍', '🙌', '💪', '🎯', '💡'];
 
+// `.charAt(0)` indexes UTF-16 code units, not codepoints — a display name
+// starting with an emoji (e.g. "🚀Nova", a surrogate pair) yields half a
+// surrogate pair, rendering as a broken glyph in the fallback avatar
+// circle instead of the emoji or a real first letter. Array.from splits by
+// codepoint, matching the same fix already applied to the Python
+// interpreter's len()/indexing this session.
+const firstChar = (s: string): string => Array.from(s || '')[0] || '';
+
+// Matches send_community_message's own server-side check ("Messages can't
+// be longer than 4000 characters") — see supabase/migrations/
+// 20260818050000_community_chat_round2_fixes.sql. Keep in sync if that
+// ever changes.
+const MAX_MESSAGE_LENGTH = 4000;
+
+// One combined pass over the raw text — mentions, links, and basic
+// markdown all used to render as inert plain text (a pasted URL wasn't
+// even clickable). Named capture groups let a single regex own the whole
+// tokenization so nothing double-processes another token's output; every
+// branch renders as a real React element, never dangerouslySetInnerHTML.
+// Hoisted to module scope (was re-declared inside the component body on
+// every render) — safe with String.prototype.matchAll specifically (used
+// below), which takes its own internal copy of a global regex rather than
+// mutating this shared object's lastIndex across calls.
+const MESSAGE_TOKEN_RE = /@\[(?<mentionName>[^\]]+)\]\((?<mentionEmail>[^)]+)\)|(?<url>https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|\*\*(?<bold>[^*\n]+)\*\*|`(?<code>[^`\n]+)`|\*(?<italic>[^*\n]+)\*/g;
+
 const QUICK_EMOJIS = [
   { emoji: '👍', icon: ThumbsUp },
   { emoji: '❤️', icon: Heart },
@@ -154,6 +179,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [isConnectingVoice, setIsConnectingVoice] = useState(false);
   const [isJoiningVoice, setIsJoiningVoice] = useState(false);
   const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
+  // DiceBear (api.dicebear.com) is a third-party CDN that a school network
+  // can block, or that can simply be down — none of the profileAvatarUrl()
+  // <img> tags had an onError handler, so a failed load showed a plain
+  // broken-image icon in the round avatar slot instead of falling back to
+  // the initial-letter circle already used for participants with no
+  // profile at all. Tracked by seed (not per-message) since the same seed
+  // failing once means it'll fail everywhere it's used.
+  const [failedAvatarSeeds, setFailedAvatarSeeds] = useState<Set<string>>(new Set());
+  const markAvatarSeedFailed = (seed: string) => setFailedAvatarSeeds(prev => prev.has(seed) ? prev : new Set(prev).add(seed));
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showQuests, setShowQuests] = useState(false);
   const [quests, setQuests] = useState<Quest[]>([]);
@@ -230,6 +264,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [muteReason, setMuteReason] = useState('');
   const [isMuting, setIsMuting] = useState(false);
   const [mutedUntil, setMutedUntil] = useState<string | null>(null);
+  // The organizer's free-text reason (community_muted_users.reason) used
+  // to be captured and then discarded — get_my_mute_status only ever
+  // returned muted_until, so a moderated teen saw a countdown with no
+  // explanation of why. Same lifecycle as mutedUntil (cleared together,
+  // re-fetched together).
+  const [mutedReason, setMutedReason] = useState<string | null>(null);
 
   // Muted-users roster — mute_community_user existed with no way to see
   // who's currently muted or lift it early; an organizer had to wait out
@@ -259,9 +299,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   useEffect(() => { profileByEmailRef.current = profileByEmail; }, [profileByEmail]);
 
   // Same stale-closure class as profileByEmailRef, two more instances:
-  // (1) fetchMessages/loadOlderMessages/fetchPinnedMessages/
-  // fetchVoiceParticipants all capture whichever channelId they were
-  // called with, but nothing stopped a slower in-flight fetch from a
+  // (1) fetchMessages/loadOlderMessages/fetchPinnedMessages all capture
+  // whichever channelId they were called with, but nothing stopped a
+  // slower in-flight fetch from a
   // channel the user has since switched away from landing its result
   // (via setMessages/setPinnedMessages/etc.) under the NEW channel's
   // header after the fact — rapid A→B switching, or clicking "Load
@@ -325,6 +365,29 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     fetchStaffList();
   }, []);
 
+  // Voice presence used to only ever be fetched/subscribed for whichever
+  // channel was currently ACTIVE (see the old per-channel branch this
+  // replaced, further down) — the sidebar's per-voice-channel participant
+  // badge and the lobby list both already filter this same shared
+  // `voiceParticipants` array by channel_id, but the array itself only
+  // ever held ONE channel's rows at a time, reset to empty on every
+  // switch. Viewing any text channel showed every voice channel as 0
+  // participants regardless of who was actually in them, and being in
+  // Voice Room A meant joins/leaves in Voice Room B never appeared
+  // anywhere until you clicked into B. One global, unfiltered fetch +
+  // subscription for the whole session fixes this without needing a
+  // separate subscription per voice channel.
+  useEffect(() => {
+    fetchAllVoiceParticipants();
+    const globalVoiceChannel = supabase
+      .channel('voice-participants-global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_room_participants' }, () => {
+        fetchAllVoiceParticipants();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(globalVoiceChannel); };
+  }, []);
+
   // Enforcement is server-side (RLS blocks the insert regardless), but
   // without this the only feedback a muted person got was a cryptic
   // generic "Failed to send message" after typing the whole thing out.
@@ -346,7 +409,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const checkMuteStatus = async () => {
       const { data } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
       const row = Array.isArray(data) ? data[0] : data;
-      setMutedUntil(row?.muted_until && new Date(row.muted_until) > new Date() ? row.muted_until : null);
+      const stillMuted = row?.muted_until && new Date(row.muted_until) > new Date();
+      setMutedUntil(stillMuted ? row.muted_until : null);
+      setMutedReason(stillMuted ? (row.reason || null) : null);
     };
     checkMuteStatus();
     const pollId = setInterval(checkMuteStatus, 20000);
@@ -471,7 +536,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     setMessages([]);
     setPinnedMessages([]);
     setHasMoreMessages(false);
-    setVoiceParticipants([]);
+    // voiceParticipants is intentionally NOT reset here anymore — it's now
+    // a global, all-channels picture kept in sync by its own dedicated
+    // effect (see fetchAllVoiceParticipants above), not scoped to
+    // whichever channel is currently active.
+    // A draft typed in one channel used to survive switching to another
+    // channel untouched — Enter/Send there delivered it to whatever
+    // channel was now active, with no per-channel isolation and no
+    // warning. Discord/Slack deliberately keep drafts per-channel
+    // specifically to prevent exactly this kind of misdelivery; the
+    // simpler, safer fix here is just not letting a draft silently follow
+    // you to a channel you never meant to send it to.
+    setNewMessage('');
 
     // Announcement channels render through the exact same message-list/
     // composer JSX as text channels (just with posting locked to
@@ -588,29 +664,10 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
         typingTimeoutsRef.current = {};
       };
-    } else if (activeChannel && activeChannel.channel_type === 'voice') {
-      fetchVoiceParticipants(activeChannel.id);
-      
-      const voiceChannel = supabase
-        .channel(`voice-${activeChannel.id}`)
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'voice_room_participants',
-            filter: `channel_id=eq.${activeChannel.id}`
-          },
-          () => {
-            fetchVoiceParticipants(activeChannel.id);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(voiceChannel);
-      };
     }
+    // Voice channels need no per-channel fetch/subscription here anymore —
+    // the global voice-participants effect above covers every voice
+    // channel, active or not.
   }, [activeChannel]);
 
   const fetchChannels = async () => {
@@ -806,13 +863,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     setIsLoadingOlder(false);
   };
 
-  const fetchVoiceParticipants = async (channelId: string) => {
+  // Unfiltered — every voice channel's participants at once, not just the
+  // active one. Both the sidebar's per-channel badge and the active
+  // lobby's participant list already filter this shared array by
+  // channel_id client-side, so one global picture correctly serves both.
+  const fetchAllVoiceParticipants = async () => {
     const { data, error } = await supabase
       .from('voice_room_participants')
-      .select('*')
-      .eq('channel_id', channelId);
+      .select('*');
 
-    if (!error && data && activeChannelIdRef.current === channelId) {
+    if (!error && data) {
       setVoiceParticipants(data as unknown as VoiceParticipant[]);
     }
   };
@@ -937,7 +997,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // who's separately verified as staff can still send verified staff
     // messages, since that path carries its own real accountability.
     if (isCurrentlyMuted) {
-      toast({ title: 'You are muted', description: `You can post again after ${new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`, variant: 'destructive' });
+      toast({
+        title: 'You are muted',
+        description: `You can post again after ${new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.${mutedReason ? ` Reason: ${mutedReason}` : ''}`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -1508,13 +1572,6 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     return colors[index];
   };
 
-  // One combined pass over the raw text — mentions, links, and basic
-  // markdown all used to render as inert plain text (a pasted URL wasn't
-  // even clickable). Named capture groups let a single regex own the whole
-  // tokenization so nothing double-processes another token's output; every
-  // branch renders as a real React element, never dangerouslySetInnerHTML.
-  const MESSAGE_TOKEN_RE = /@\[(?<mentionName>[^\]]+)\]\((?<mentionEmail>[^)]+)\)|(?<url>https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|\*\*(?<bold>[^*\n]+)\*\*|`(?<code>[^`\n]+)`|\*(?<italic>[^*\n]+)\*/g;
-
   const renderMessageContent = (content: string): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -1633,6 +1690,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
               <Input
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                 placeholder="How others will see you"
                 className="h-11 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] transition-colors"
               />
@@ -1643,6 +1701,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 type="email"
                 value={userEmail}
                 onChange={(e) => setUserEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                 placeholder="your@email.com"
                 className="h-11 bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:border-[hsl(var(--discord-blurple))] transition-colors"
               />
@@ -1684,8 +1743,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         <div className="w-full max-w-[420px] rounded-xl border border-[hsl(var(--discord-light))] bg-[hsl(var(--discord-darker))] p-6">
           <div className="flex items-center gap-3 text-white text-xl font-semibold mb-1">
             <div className="w-12 h-12 rounded-xl bg-[hsl(var(--discord-blurple))] flex items-center justify-center overflow-hidden">
-              {profileAvatarInput ? (
-                <img src={profileAvatarUrl(profileAvatarInput)} alt="" className="w-full h-full" />
+              {profileAvatarInput && !failedAvatarSeeds.has(profileAvatarInput) ? (
+                <img src={profileAvatarUrl(profileAvatarInput)} alt="" className="w-full h-full" onError={() => markAvatarSeedFailed(profileAvatarInput)} />
               ) : (
                 <span className="text-lg">👤</span>
               )}
@@ -1722,7 +1781,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         : 'bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] hover:border-[hsl(var(--discord-blurple)/0.5)]'
                     }`}
                   >
-                    <img src={profileAvatarUrl(seed, 48)} alt={seed} loading="lazy" className="w-9 h-9" />
+                    {failedAvatarSeeds.has(seed) ? (
+                      <span className="text-sm font-bold text-[hsl(var(--discord-text-muted))]">{firstChar(seed).toUpperCase()}</span>
+                    ) : (
+                      <img src={profileAvatarUrl(seed, 48)} alt={seed} loading="lazy" className="w-9 h-9" onError={() => markAvatarSeedFailed(seed)} />
+                    )}
                   </button>
                 ))}
               </div>
@@ -1757,7 +1820,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             {/* Server Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-light)/0.15)] bg-[hsl(var(--discord-darker))]">
               <h3 className="font-bold text-white truncate">Hackathon Hub</h3>
-              <button onClick={() => setMobileSidebarOpen(false)} className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white p-1">
+              <button onClick={() => setMobileSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar" className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white p-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1789,7 +1852,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     {isOrganizer && (
                       <button
                         onClick={() => setCreateChannelType('text')}
-                        title="Create text channel"
+                        title="Create text channel" aria-label="Create text channel"
                         className="text-[hsl(var(--discord-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -1826,7 +1889,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     {isOrganizer && (
                       <button
                         onClick={() => setCreateChannelType('voice')}
-                        title="Create voice channel"
+                        title="Create voice channel" aria-label="Create voice channel"
                         className="text-[hsl(var(--discord-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -1869,7 +1932,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
                                 style={{ backgroundColor: getAvatarColor(participant.participant_name) }}
                               >
-                                {participant.participant_name.charAt(0).toUpperCase()}
+                                {firstChar(participant.participant_name).toUpperCase()}
                               </div>
                               <span className="truncate">{participant.participant_name}</span>
                               {participant.participant_email === userEmail && (
@@ -1922,7 +1985,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                     style={{ backgroundColor: getAvatarColor(userName) }}
                   >
-                    {userName.charAt(0).toUpperCase()}
+                    {firstChar(userName).toUpperCase()}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[hsl(var(--discord-green))] border-2 border-[hsl(var(--discord-dark))]" />
                 </div>
@@ -1971,7 +2034,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     setProfileChecked(false);
                     setIsJoined(false);
                   }}
-                  title="Not you? Switch identity"
+                  title="Not you? Switch identity" aria-label="Switch identity"
                   className="p-1 text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors"
                 >
                   <Settings className="w-4 h-4" />
@@ -1997,7 +2060,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       <Trophy className="w-4 h-4 text-[hsl(var(--discord-yellow))]" />
                       <span className="font-bold text-white">Community Quests</span>
                     </div>
-                    <button onClick={() => setShowQuests(false)} className="text-[hsl(var(--discord-text-muted))] hover:text-white">
+                    <button onClick={() => setShowQuests(false)} title="Close quests panel" aria-label="Close quests panel" className="text-[hsl(var(--discord-text-muted))] hover:text-white">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -2015,6 +2078,20 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white">{quest.title}</p>
                                 <p className="text-[11px] text-[hsl(var(--discord-text-muted))] mt-0.5">{quest.description}</p>
+                                {/* chat_action quests are verified server-side
+                                    by checking for a real post in
+                                    action_channel_name (claim_community_quest)
+                                    — but which channel that is used to appear
+                                    NOWHERE on the card itself, only in the
+                                    rejection message after a student clicked
+                                    "I've done this" and failed. They had to
+                                    guess, get rejected, then read the error
+                                    to find out where to actually post. */}
+                                {quest.quest_type === 'chat_action' && quest.action_channel_name && !done && (
+                                  <p className="text-[11px] text-[hsl(var(--discord-blurple))] mt-0.5">
+                                    Post in #{quest.action_channel_name} to complete this
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="mt-2 flex items-center gap-2">
@@ -2026,6 +2103,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                 <>
                                   {quest.quest_type === 'self_report' && quest.action_url && (
                                     <a href={quest.action_url} target="_blank" rel="noreferrer"
+                                      aria-label={`Open link for ${quest.title}`}
                                       className="text-[11px] text-[hsl(var(--discord-blurple))] hover:underline">
                                       Open link →
                                     </a>
@@ -2034,6 +2112,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                     size="sm"
                                     onClick={() => handleClaimQuest(quest)}
                                     disabled={claimingQuestId === quest.id}
+                                    aria-label={`Claim quest: ${quest.title}`}
                                     className="h-7 text-[11px] ml-auto"
                                   >
                                     {claimingQuestId === quest.id ? 'Checking...' : quest.quest_type === 'chat_action' ? "I've done this" : "I did this!"}
@@ -2053,7 +2132,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             {/* Channel Header */}
             <div className="h-14 px-4 flex items-center justify-between border-b border-[hsl(var(--discord-light)/0.15)] bg-[hsl(var(--discord-dark))]">
               <div className="flex items-center gap-3 min-w-0">
-                <button onClick={() => { setMobileSidebarOpen(true); setShowQuests(false); }} className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white flex-shrink-0">
+                <button onClick={() => { setMobileSidebarOpen(true); setShowQuests(false); }} title="Open channel list" aria-label="Open channel list" className="md:hidden text-[hsl(var(--discord-text-muted))] hover:text-white flex-shrink-0">
                   <Menu className="w-5 h-5" />
                 </button>
                 {activeChannel && (
@@ -2120,6 +2199,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     onClick={handleToggleNotifications}
                     disabled={isSubscribingPush}
                     title={isSubscribedPush ? "Notifications on — click to turn off" : "Get notified about community activity"}
+                    aria-label={isSubscribedPush ? "Turn off notifications" : "Turn on notifications"}
                     className={`${isSubscribedPush ? 'text-[hsl(var(--discord-green))]' : 'text-[hsl(var(--discord-text-muted))]'} hover:text-white`}
                   >
                     {isSubscribedPush ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
@@ -2128,6 +2208,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 <Button
                   variant="ghost"
                   onClick={() => { setShowQuests(s => !s); setMobileSidebarOpen(false); }}
+                  title="Community Quests" aria-label="Toggle Community Quests panel"
                   className={`${showQuests ? 'text-[hsl(var(--discord-yellow))]' : 'text-[hsl(var(--discord-text-muted))]'} hover:text-white gap-1.5 px-2.5`}
                 >
                   <Trophy className="w-5 h-5" />
@@ -2195,7 +2276,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                               className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white ring-2 ring-[hsl(var(--discord-green))] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]"
                               style={{ backgroundColor: getAvatarColor(participant.participant_name) }}
                             >
-                              {participant.participant_name.charAt(0).toUpperCase()}
+                              {firstChar(participant.participant_name).toUpperCase()}
                             </div>
                             <span className="text-sm text-white mt-2">{participant.participant_name}</span>
                             {participant.participant_email === userEmail && (
@@ -2251,11 +2332,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                             ? <Megaphone className="w-8 h-8 text-[hsl(var(--discord-text-muted))]" />
                             : <Hash className="w-8 h-8 text-[hsl(var(--discord-text-muted))]" />}
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">Welcome to #{activeChannel?.name}!</h3>
+                        <h3 className="text-xl font-bold text-white mb-2">Welcome to #{activeChannel?.name || 'channel'}!</h3>
                         <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto">
                           {activeChannel?.channel_type === 'announcement'
                             ? 'No announcements yet — check back here for official updates from the organizers.'
-                            : `This is the start of the #${activeChannel?.name} channel. Say hello to your fellow hackers!`}
+                            : `This is the start of the #${activeChannel?.name || 'channel'} channel. Say hello to your fellow hackers!`}
                         </p>
                       </motion.div>
                     )}
@@ -2282,22 +2363,39 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                             animate={{ opacity: 1, y: 0 }}
                             onMouseEnter={() => setHoveredMessage(message.id)}
                             onMouseLeave={() => setHoveredMessage(null)}
-                            className={`group relative ${showHeader ? 'mt-4 pt-1' : 'py-0.5'} hover:bg-[hsl(var(--discord-light)/0.05)] px-2 -mx-2 rounded`}
+                            // The edit/delete/pin/mute/remove toolbar below
+                            // only exists in the DOM at all when
+                            // hoveredMessage matches — mouse-only before
+                            // this, since nothing here was focusable and
+                            // the toolbar couldn't appear without a hover
+                            // event a keyboard user never generates. tabIndex
+                            // makes each message itself a tab stop; focusing
+                            // it reveals the toolbar the same way hovering
+                            // does, and the next Tab press lands on its
+                            // first real button. onBlur only hides it once
+                            // focus has left the WHOLE message subtree
+                            // (not just moved from one toolbar button to
+                            // the next), same "focus-within" logic
+                            // :focus-within CSS would give for free.
+                            onFocus={() => setHoveredMessage(message.id)}
+                            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setHoveredMessage(null); }}
+                            tabIndex={0}
+                            className={`group relative ${showHeader ? 'mt-4 pt-1' : 'py-0.5'} hover:bg-[hsl(var(--discord-light)/0.05)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--discord-blurple))] px-2 -mx-2 rounded`}
                           >
                             {showHeader ? (
                               <div className="flex items-start gap-4">
-                                {profileByEmail[message.sender_email]?.avatar_emoji ? (
+                                {profileByEmail[message.sender_email]?.avatar_emoji && !failedAvatarSeeds.has(profileByEmail[message.sender_email].avatar_emoji) ? (
                                   <div
                                     className={`w-10 h-10 rounded-full overflow-hidden bg-[hsl(var(--discord-darker))] flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
                                   >
-                                    <img src={profileAvatarUrl(profileByEmail[message.sender_email].avatar_emoji, 40)} alt="" className="w-full h-full" loading="lazy" />
+                                    <img src={profileAvatarUrl(profileByEmail[message.sender_email].avatar_emoji, 40)} alt="" className="w-full h-full" loading="lazy" onError={() => markAvatarSeedFailed(profileByEmail[message.sender_email].avatar_emoji)} />
                                   </div>
                                 ) : (
                                   <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${staffByEmail[message.sender_email] ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[hsl(var(--discord-dark))]' : ''}`}
                                     style={{ backgroundColor: getAvatarColor(message.sender_name) }}
                                   >
-                                    {message.sender_name.charAt(0).toUpperCase()}
+                                    {firstChar(message.sender_name).toUpperCase()}
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -2459,7 +2557,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       <div className="w-px h-4 bg-[hsl(var(--discord-light)/0.3)] mx-0.5" />
                                       <button
                                         onClick={() => handleStartEdit(message)}
-                                        title="Edit message"
+                                        title="Edit message" aria-label="Edit message"
                                         className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
                                       >
                                         <Pencil className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />
@@ -2467,7 +2565,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       <button
                                         onClick={() => handleDeleteMessage(message.id)}
                                         disabled={deletingMessageId === message.id}
-                                        title="Delete message"
+                                        title="Delete message" aria-label="Delete message"
                                         className="p-1.5 hover:bg-[hsl(var(--discord-red)/0.2)] transition-colors"
                                       >
                                         {deletingMessageId === message.id
@@ -2485,7 +2583,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       <button
                                         onClick={() => handleTogglePin(message)}
                                         disabled={pinningMessageId === message.id}
-                                        title={message.pinned_at ? 'Unpin message' : 'Pin message'}
+                                        title={message.pinned_at ? 'Unpin message' : 'Pin message'} aria-label={message.pinned_at ? 'Unpin message' : 'Pin message'}
                                         className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
                                       >
                                         {pinningMessageId === message.id
@@ -2498,7 +2596,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                         <>
                                           <button
                                             onClick={() => setMutingMessage(message)}
-                                            title={`Mute ${message.sender_name}`}
+                                            title={`Mute ${message.sender_name}`} aria-label={`Mute ${message.sender_name}`}
                                             className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
                                           >
                                             <VolumeX className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />
@@ -2506,7 +2604,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                           <button
                                             onClick={() => handleDeleteAnyMessage(message.id)}
                                             disabled={deletingAnyMessageId === message.id}
-                                            title="Remove message (organizer)"
+                                            title="Remove message (organizer)" aria-label="Remove message (organizer)"
                                             className="p-1.5 hover:bg-[hsl(var(--discord-red)/0.2)] transition-colors"
                                           >
                                             {deletingAnyMessageId === message.id
@@ -2531,7 +2629,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 {/* Typing Indicator */}
                 {typingUsers.length > 0 && (
                   <div className="px-4 py-1 text-xs text-[hsl(var(--discord-text-muted))]">
-                    <span className="font-semibold">{typingUsers.join(', ')}</span> is typing...
+                    <span className="font-semibold">{typingUsers.join(', ')}</span> {typingUsers.length > 1 ? 'are' : 'is'} typing...
+                  </div>
+                )}
+
+                {/* Mute banner — the disabled composer + its placeholder text
+                    ("Muted until...") were previously the ONLY signal a
+                    muted participant got, visually indistinguishable from
+                    any other disabled state, and never explained WHY. A
+                    persistent, visible banner (with the organizer's actual
+                    reason, when they gave one) beats a teen having to infer
+                    the reason entirely on their own from a countdown. */}
+                {isCurrentlyMuted && !isStaffEmail && (
+                  <div className="mx-4 mb-2 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-xs text-red-300">
+                    <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      You're muted until {new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                      {mutedReason ? ` Reason: ${mutedReason}` : ''}
+                    </span>
                   </div>
                 )}
 
@@ -2573,7 +2688,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                               className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
                               style={{ backgroundColor: getAvatarColor(c.name) }}
                             >
-                              {c.name.charAt(0).toUpperCase()}
+                              {firstChar(c.name).toUpperCase()}
                             </div>
                             <span className="text-white truncate">{c.name}</span>
                           </button>
@@ -2583,7 +2698,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     {/* Emoji Picker */}
                     <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                       <PopoverTrigger asChild>
-                        <button className="text-[hsl(var(--discord-text-muted))] hover:text-[hsl(var(--discord-text))] transition-colors">
+                        <button title="Add emoji" aria-label="Add emoji" className="text-[hsl(var(--discord-text-muted))] hover:text-[hsl(var(--discord-text))] transition-colors">
                           <Smile className="w-5 h-5" />
                         </button>
                       </PopoverTrigger>
@@ -2621,12 +2736,26 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       }}
                       disabled={isCurrentlyMuted && !isStaffEmail}
                       placeholder={isCurrentlyMuted && !isStaffEmail ? `Muted until ${new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : activeChannel?.channel_type === 'announcement' ? 'Post an announcement...' : `Message #${activeChannel?.name || 'channel'}`}
+                      maxLength={MAX_MESSAGE_LENGTH}
                       className="flex-1 bg-transparent border-none text-white placeholder:text-[hsl(var(--discord-text-muted))] focus-visible:ring-0 h-auto py-0"
                     />
+                    {/* Previously no client-side cap or counter at all — a
+                        student only discovered the server's 4000-char limit
+                        after hitting Send, via a generic rejection toast,
+                        with no warning as they approached it. maxLength
+                        above guarantees the server never rejects for length;
+                        this counter only appears once it's actually close
+                        enough to matter, not on every keystroke. */}
+                    {newMessage.length > MAX_MESSAGE_LENGTH - 200 && (
+                      <span className={`text-[10px] flex-shrink-0 tabular-nums ${newMessage.length >= MAX_MESSAGE_LENGTH ? 'text-[hsl(var(--discord-red))]' : 'text-[hsl(var(--discord-text-muted))]'}`}>
+                        {newMessage.length}/{MAX_MESSAGE_LENGTH}
+                      </span>
+                    )}
 
                     <motion.button
                       onClick={handleSendMessage}
                       disabled={isSending || isPostingAnnouncement || !newMessage.trim()}
+                      title="Send message" aria-label="Send message"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="text-[hsl(var(--discord-text-muted))] hover:text-[hsl(var(--discord-blurple))] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"

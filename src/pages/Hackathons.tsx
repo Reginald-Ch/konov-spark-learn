@@ -163,11 +163,31 @@ const Hackathons = () => {
   };
 
   const handleViewCode = (code: string) => {
-    if (buildCode) {
-      toast.info('Loading project code into the editor...');
-    }
+    // Loading a classmate's published code from the Gallery/Visual Builder
+    // replaces whatever's currently in the Build tab's editor outright —
+    // the same "disconnects from your saved project, a future save creates
+    // a duplicate instead of updating it" risk that handleTypeChange/
+    // handleResetToTemplate inside ProjectEditor itself both explicitly
+    // confirm before doing. This is the one entry point into that same
+    // risk that lived outside ProjectEditor and had no confirmation at
+    // all — a student mid-edit who curiously peeks at a classmate's bot
+    // from the Showcase got their in-progress work replaced with zero
+    // warning, only a toast that didn't even show on the very first swap.
+    // Gated on "has the Build tab been used this session" rather than
+    // activeTab — the click that triggers this always happens from the
+    // Gallery/Visual Builder tab, never from Build itself, so checking
+    // the CURRENT tab would never fire.
+    if ((buildCode !== undefined || buildTemplate !== undefined) && !window.confirm(
+      "Load this project's code into the Build Studio editor? This replaces what's currently open there — any unsaved changes in your own project will be lost. Your own saved projects stay safe on the server either way."
+    )) return;
     setBuildCode(code);
     setBuildTemplate(undefined);
+    // Forces a remount even when buildTemplate was already undefined from
+    // a previous View Code (its key alone wouldn't change in that case) —
+    // ProjectEditor only reads its initialCode prop once, on mount, so
+    // without this a second consecutive "View Code" click could silently
+    // fail to load the new code into an already-mounted editor.
+    setBuildKey(prev => prev + 1);
     setActiveTab('build');
   };
 

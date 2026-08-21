@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -630,6 +630,109 @@ function ReasoningTrace({ steps }: { steps: ReasoningStep[] }) {
   );
 }
 
+// Extracted and memoized so a keystroke in the code editor — which updates
+// `files` on every character via setFiles, several times a second — doesn't
+// force React to re-render (and ReactMarkdown to re-parse) every message
+// in a chat history that can run to 100+ turns, none of which changed.
+// Before this, the whole message list lived inline in ProjectEditor's own
+// ~4700-line render function with zero memoization boundary anywhere in
+// the file, so every keystroke paid that cost regardless of how long the
+// test conversation had gotten. Props are kept to exactly what this block
+// reads (chatMessages/isStreaming/projectType/accent) — none of them
+// change on a code keystroke, so React.memo's shallow comparison correctly
+// skips re-rendering this subtree for that case.
+const ChatMessageList = memo(function ChatMessageList({ chatMessages, isStreaming, projectType, accent }: {
+  chatMessages: ChatMessage[];
+  isStreaming: boolean;
+  projectType: ProjectType;
+  accent: string;
+}) {
+  return (
+    <>
+      {chatMessages.map((msg, i) => {
+        // Skip rendering the entire bubble for placeholder during streaming
+        if (msg.role === 'assistant' && msg.content === '...' && isStreaming) return null;
+        return (
+        <motion.div
+          key={msg._id || `chat-${i}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+        >
+          {/* Aligned with ProjectView.tsx's published-page bubbles —
+              same corner radius, padding, text size, and the
+              borderBottom*Radius "tail" — so Live Preview (what
+              students actually look at while building) and the
+              published bot don't visibly feel like two different
+              apps for the same feature. msg.role === 'system' has no
+              equivalent on the published page (a Live-Preview-only
+              status/error role), so it keeps its own distinct style. */}
+          <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+            msg.role === 'system'
+              ? 'bg-ide-border text-ide-text-muted italic'
+              : ''
+          }`} style={
+            msg.role === 'user'
+              ? { backgroundColor: accent, color: '#fff', borderBottomRightRadius: '4px' }
+              : msg.role === 'assistant'
+              ? { backgroundColor: `${accent}18`, border: `1px solid ${accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
+              : undefined
+          }>
+            {msg.role === 'assistant' ? (
+              (() => {
+                const reasoningSteps = projectType === 'agent' ? parseReasoningTrace(msg.content) : null;
+                if (reasoningSteps) {
+                  return <ReasoningTrace steps={reasoningSteps} />;
+                }
+                return (
+                  <div>
+                    {msg.usedRealPython && (
+                      <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-400 mb-1" title="main.py's respond() answered this message directly — the AI wasn't called.">
+                        🐍 Answered by your Python code
+                      </div>
+                    )}
+                    {msg.pythonErrorType && (
+                      // Used to only ever show the coarse category
+                      // (runtime_error/timeout/etc.) — an IndexError,
+                      // KeyError, TypeError, and ZeroDivisionError all
+                      // rendered as the identical "Python error
+                      // (runtime_error)" with the real message only
+                      // ever reaching a server log the student has no
+                      // access to. Also no longer points them at the
+                      // Console tab — Console only runs top-level
+                      // main.py statements and never actually calls
+                      // respond(), so it can't reproduce the single
+                      // most common source of this exact badge.
+                      <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={msg.pythonErrorMessage || `respond() didn't run (${msg.pythonErrorType}) — the AI answered instead.`}>
+                        🐍 {msg.pythonErrorMessage ? `Python error: ${msg.pythonErrorMessage}` : `Python error (${msg.pythonErrorType})`} — AI answered instead
+                      </div>
+                    )}
+                    <div className="prose prose-invert prose-sm max-w-none [&_p]:m-0">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <span className="whitespace-pre-wrap">{msg.content}</span>
+            )}
+          </div>
+        </motion.div>
+        );
+      })}
+      {isStreaming && (() => { const last = chatMessages[chatMessages.length - 1]; return last?.role === 'assistant' && (last.content === '...' || last.content === ''); })() && (
+        <div className="flex justify-start">
+          <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+});
+
 type FileTab = 'main.py' | 'config.json' | 'requirements.txt';
 type BottomTab = 'terminal' | 'console' | 'ai-mentor';
 
@@ -827,7 +930,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // is_published poll below — silently adopting a newer timestamp there
   // would defeat the whole point of conflict detection by making the next
   // save's stale-check pass even though the local edits are still stale.
-  const conflictAlertedRef = useRef(false);
+  // Timestamp of the last conflict toast, not a boolean — a plain "only
+  // ever once until a successful save" throttle meant that once the toast
+  // was dismissed or missed, EVERY later save attempt (manual Ctrl+S, the
+  // Save button, or the 2-minute autosave) that still conflicted produced
+  // no toast at all, only a line in Terminal output invisible unless that
+  // panel happens to be open — a student on a shared/multi-device setup
+  // could end up stuck silently failing to save indefinitely. Re-showing
+  // it periodically (see CONFLICT_TOAST_COOLDOWN_MS below) balances that
+  // against not re-spamming on every single autosave tick while blocked.
+  const conflictAlertedRef = useRef(0);
   // ── Publish-state visibility — a judge/organizer taking a project
   // offline (toggle_project_publish) used to be completely invisible in
   // Build Studio: nothing here tracked is_published at all, so the "Go
@@ -2817,24 +2929,26 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         });
         if (error) {
           if (error.message?.includes('CONFLICT')) {
-            if (!conflictAlertedRef.current) {
-              conflictAlertedRef.current = true;
+            const CONFLICT_TOAST_COOLDOWN_MS = 5 * 60 * 1000;
+            if (Date.now() - conflictAlertedRef.current > CONFLICT_TOAST_COOLDOWN_MS) {
+              conflictAlertedRef.current = Date.now();
               toast.error("This project was changed in another tab or device. Reload to see the latest version before saving — your local edits are still here, just not saved yet.", {
                 duration: 10000,
                 action: { label: 'Reload', onClick: () => window.location.reload() },
               });
             }
-            // The ref above only throttles the intrusive toast (so the
-            // 2-minute autosave timer doesn't re-spam it) — without this
-            // line, every save attempt after the first conflict returned
-            // with literally zero feedback of any kind, silent no-ops that
-            // looked identical to a successful save at a glance.
+            // The cooldown above only throttles the intrusive toast (so the
+            // 2-minute autosave timer doesn't re-spam it every single tick)
+            // — without this line, a save attempt inside the cooldown
+            // window returned with literally zero feedback of any kind, a
+            // silent no-op that looked identical to a successful save at a
+            // glance.
             setTerminalOutput(prev => [...prev, '⚠ Save blocked — conflict with another tab/device. Reload to continue.']);
             return;
           }
           throw error;
         }
-        conflictAlertedRef.current = false;
+        conflictAlertedRef.current = 0;
         if ((data as any)?.updated_at) setLastKnownUpdatedAt((data as any).updated_at);
       } else {
         // Attach whichever hackathon is currently live, same lookup
@@ -2992,6 +3106,18 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     localStorage.removeItem('forge-student-name');
     localStorage.removeItem('forge-current-project-id');
     localStorage.removeItem('forge-editor-code');
+    // handleTypeChange/handleResetToTemplate both clear these same four
+    // fields when switching templates — missed here, so on a shared
+    // classroom computer the NEXT student to start a brand-new project
+    // after someone switched identity would see the PREVIOUS student's
+    // Knowledge Base text, Q&A pairs, theme, and logo pre-populated,
+    // despite this dialog's explicit promise that switching "clears the
+    // cached name, email, and any unsaved draft" — exactly the class of
+    // leak this feature exists to prevent, just for the fields it forgot.
+    localStorage.removeItem('forge-knowledge-base');
+    localStorage.removeItem('forge-qa-data');
+    localStorage.removeItem('forge-theme');
+    localStorage.removeItem('forge-logo-url');
     window.location.reload();
   };
 
@@ -4524,86 +4650,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 </div>
               </div>
             )}
-            {chatMessages.map((msg, i) => {
-              // Skip rendering the entire bubble for placeholder during streaming
-              if (msg.role === 'assistant' && msg.content === '...' && isStreaming) return null;
-              return (
-              <motion.div
-                key={msg._id || `chat-${i}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {/* Aligned with ProjectView.tsx's published-page bubbles —
-                    same corner radius, padding, text size, and the
-                    borderBottom*Radius "tail" — so Live Preview (what
-                    students actually look at while building) and the
-                    published bot don't visibly feel like two different
-                    apps for the same feature. msg.role === 'system' has no
-                    equivalent on the published page (a Live-Preview-only
-                    status/error role), so it keeps its own distinct style. */}
-                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                  msg.role === 'system'
-                    ? 'bg-ide-border text-ide-text-muted italic'
-                    : ''
-                }`} style={
-                  msg.role === 'user'
-                    ? { backgroundColor: selectedTheme.accent, color: '#fff', borderBottomRightRadius: '4px' }
-                    : msg.role === 'assistant'
-                    ? { backgroundColor: `${selectedTheme.accent}18`, border: `1px solid ${selectedTheme.accent}30`, color: '#e2e8f0', borderBottomLeftRadius: '4px' }
-                    : undefined
-                }>
-                  {msg.role === 'assistant' ? (
-                    (() => {
-                      const reasoningSteps = projectType === 'agent' ? parseReasoningTrace(msg.content) : null;
-                      if (reasoningSteps) {
-                        return <ReasoningTrace steps={reasoningSteps} />;
-                      }
-                      return (
-                        <div>
-                          {msg.usedRealPython && (
-                            <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-400 mb-1" title="main.py's respond() answered this message directly — the AI wasn't called.">
-                              🐍 Answered by your Python code
-                            </div>
-                          )}
-                          {msg.pythonErrorType && (
-                            // Used to only ever show the coarse category
-                            // (runtime_error/timeout/etc.) — an IndexError,
-                            // KeyError, TypeError, and ZeroDivisionError all
-                            // rendered as the identical "Python error
-                            // (runtime_error)" with the real message only
-                            // ever reaching a server log the student has no
-                            // access to. Also no longer points them at the
-                            // Console tab — Console only runs top-level
-                            // main.py statements and never actually calls
-                            // respond(), so it can't reproduce the single
-                            // most common source of this exact badge.
-                            <div className="text-[9px] font-bold uppercase tracking-wide text-amber-400 mb-1" title={msg.pythonErrorMessage || `respond() didn't run (${msg.pythonErrorType}) — the AI answered instead.`}>
-                              🐍 {msg.pythonErrorMessage ? `Python error: ${msg.pythonErrorMessage}` : `Python error (${msg.pythonErrorType})`} — AI answered instead
-                            </div>
-                          )}
-                          <div className="prose prose-invert prose-sm max-w-none [&_p]:m-0">
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
-                  )}
-                </div>
-              </motion.div>
-              );
-            })}
-            {isStreaming && (() => { const last = chatMessages[chatMessages.length - 1]; return last?.role === 'assistant' && (last.content === '...' || last.content === ''); })() && (
-              <div className="flex justify-start">
-                <div className="bg-ide-editor rounded-lg px-3 py-2 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-ide-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
+            <ChatMessageList chatMessages={chatMessages} isStreaming={isStreaming} projectType={projectType} accent={selectedTheme.accent} />
             <div ref={chatEndRef} />
           </div>
 
