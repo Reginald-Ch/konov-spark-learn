@@ -919,13 +919,24 @@ Deno.serve(async (req) => {
         const { name, description, channel_type } = payload;
         const cleanName = name?.trim();
         if (!cleanName) throw new Error("Channel name is required");
+        // No length cap existed anywhere (DB column is plain TEXT, this was
+        // the only validation) — an unbounded name rendered without
+        // truncation in the active-channel header, overflowing that row.
+        if (cleanName.length > 50) throw new Error("Channel name must be 50 characters or fewer");
         if (!["text", "voice", "announcement"].includes(channel_type)) {
           throw new Error("channel_type must be text, voice, or announcement");
         }
+        // ilike, not eq — the old exact-match check let "General" and
+        // "general" coexist as confusingly-similar distinct channels. The
+        // UNIQUE index on lower(name) (see the matching migration) is what
+        // actually closes the TOCTOU race between this check and the
+        // insert below (two organizers submitting the same name at the
+        // same instant); this check just gives the common case a clean
+        // error instead of a raw constraint-violation message.
         const { data: existing } = await supabase
           .from("community_channels")
           .select("id")
-          .eq("name", cleanName)
+          .ilike("name", cleanName)
           .maybeSingle();
         if (existing) throw new Error(`A channel named "${cleanName}" already exists`);
 
@@ -939,7 +950,10 @@ Deno.serve(async (req) => {
           })
           .select()
           .single();
-        if (chErr) throw chErr;
+        if (chErr) {
+          if (chErr.code === "23505") throw new Error(`A channel named "${cleanName}" already exists`);
+          throw chErr;
+        }
         return json({ ok: true, data: channel });
       }
 

@@ -396,10 +396,21 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // comments), so one broad subscription refetching on any completion is a
   // simple, safe fix — badge/quest data is small and this app is
   // hackathon-scale, not high-frequency.
+  // Also covers community_quests itself (INSERT/UPDATE), not just
+  // completions — a quest being deactivated or edited used to leave a
+  // participant's already-open Quests panel showing stale content until
+  // something else (anyone completing any quest, or their own next claim)
+  // happened to trigger a refetch. Attempting to claim a since-deactivated
+  // quest was already handled gracefully server-side either way (a clean
+  // "not available right now" rejection, never a false success) — this
+  // closes the display-staleness gap on top of that.
   useEffect(() => {
     const questChannel = supabase
       .channel('quest-completions-global')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_quest_completions' }, () => {
+        fetchQuestsAndBadges(userEmailRef.current);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_quests' }, () => {
         fetchQuestsAndBadges(userEmailRef.current);
       })
       .subscribe();
@@ -719,7 +730,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // guarantees this one specific case (mine) is never wrong regardless
     // of how large the table gets, independent of the display-only query.
     const [{ data: questRows }, { data: completionRows }, { data: myRows }] = await Promise.all([
-      supabase.from('community_quests').select('*').eq('is_active', true).order('order_index'),
+      // order_index has no UNIQUE constraint — two quests sharing a value
+      // sorted in Postgres's unstable tie order (which can shift after any
+      // row UPDATE) with no secondary key to break the tie consistently.
+      // created_at as a tie-breaker keeps ordering stable across reloads
+      // even when order_index collides.
+      supabase.from('community_quests').select('*').eq('is_active', true).order('order_index').order('created_at'),
       supabase.from('community_quest_completions').select('participant_email, quest_id, community_quests(badge_emoji, badge_label)'),
       email ? supabase.from('community_quest_completions').select('quest_id').eq('participant_email', email) : Promise.resolve({ data: null }),
     ]);
@@ -987,11 +1003,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         return;
       }
       setIsSending(true);
+      const trimmedStaffContent = newMessage.trim();
       const { data, error } = await supabase.rpc('send_staff_message', {
         p_participant_email: userEmail,
         p_token: staffToken,
         p_channel_id: activeChannel.id,
-        p_content: newMessage.trim(),
+        p_content: trimmedStaffContent,
       });
       const result = Array.isArray(data) ? data[0] : data;
       if (error || !result?.ok) {
@@ -1004,6 +1021,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         if (!error && result?.ok === false) setStaffToken('');
       } else {
         setNewMessage('');
+        // This branch never called notify-mention at all — a staff
+        // member's @[name](email) mention rendered the pill fine but
+        // silently never notified anyone, inconsistent with regular
+        // participants' messages just below. send_staff_message needed to
+        // start returning message_id first (it didn't before).
+        if (result.message_id && /@\[[^\]]+\]\([^)]+\)/.test(trimmedStaffContent)) {
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-mention`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+            body: JSON.stringify({ message_id: result.message_id }),
+          }).catch(() => {});
+        }
       }
       setIsSending(false);
       return;
@@ -1437,7 +1466,51 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // forever, the same phantom-participant bug fixed for tab-close and
     // channel-switch, just via a third path we hadn't closed yet.
     api.addListener('readyToClose', () => { handleLeaveVoice(channel); });
-    setIsConnectingVoice(false);
+
+    // Previously nothing ever listened for whether the call actually
+    // CONNECTED — setIsConnectingVoice(false) ran the instant the
+    // constructor above returned, which only proves the iframe was
+    // created, not that the WebRTC/XMPP media connection behind it
+    // actually succeeded. A school firewall that allows HTTPS (so the
+    // script loads fine) but blocks the UDP/TURN traffic Jitsi's actual
+    // media connection needs — a real scenario for school-issued devices —
+    // used to make FORGE's "Connecting to voice…" overlay disappear
+    // almost immediately while the call itself silently never joined,
+    // with zero FORGE-level explanation either way. Now the overlay only
+    // clears on a real videoConferenceJoined confirmation, a genuine
+    // connectionFailed/conferenceFailed is reported clearly, and a
+    // timeout catches the case where neither ever fires at all.
+    // 45s, not something tighter — Jitsi's own prejoin screen (letting a
+    // student choose camera/mic settings before actually entering) means
+    // videoConferenceJoined legitimately doesn't fire until THEY click
+    // through it, which is real user deliberation time, not a stuck
+    // connection. Long enough to not false-positive on that, short enough
+    // to not leave someone staring at a truly broken connection forever.
+    let settled = false;
+    const connectTimeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      console.error('Jitsi connection timed out — videoConferenceJoined never fired');
+      toast({ title: 'Could not connect to voice', description: 'The call never connected — this can happen on school/work networks that block video call traffic. Try a different network, or try again.', variant: 'destructive' });
+      disposeJitsi();
+      setIsConnectingVoice(false);
+      handleLeaveVoice(channel);
+    }, 45000);
+    api.addListener('videoConferenceJoined', () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(connectTimeout);
+      setIsConnectingVoice(false);
+    });
+    api.addListener('connectionFailed', () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(connectTimeout);
+      toast({ title: 'Could not connect to voice', description: 'The connection failed — check your network and try again.', variant: 'destructive' });
+      disposeJitsi();
+      setIsConnectingVoice(false);
+      handleLeaveVoice(channel);
+    });
   };
 
   // connectJitsi needs jitsiContainerRef.current to already be in the DOM,
@@ -1663,7 +1736,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       );
     }
     return (
-      <p className="text-[hsl(var(--discord-text))] break-words leading-relaxed">
+      {/* whitespace-pre-wrap — without it, default white-space:normal
+          collapsed real newlines (now easy to type since the composer
+          became a multi-line Textarea with working Shift+Enter) into one
+          run-on line for every viewer. The DB always stored them correctly;
+          this was purely a display bug. */}
+      <p className="text-[hsl(var(--discord-text))] break-words whitespace-pre-wrap leading-relaxed">
         {renderMessageContent(message.content)}
         {message.edited_at && (
           <span className="text-[10px] text-[hsl(var(--discord-text-muted))] ml-1">(edited)</span>
@@ -2166,7 +2244,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       const Icon = getChannelIcon(activeChannel.channel_type);
                       return <Icon className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />;
                     })()}
-                    <span className="font-semibold text-white">{activeChannel.name}</span>
+                    {/* truncate + min-w-0 — channel names have no length
+                        cap (server only rejects empty/whitespace-only), so
+                        an organizer-created long name used to overflow this
+                        header's justify-between row uncontained, unlike the
+                        sidebar item and the description right next to this,
+                        which both already truncate. */}
+                    <span className="font-semibold text-white truncate min-w-0">{activeChannel.name}</span>
                     {activeChannel.description && (
                       <>
                         <div className="w-px h-5 bg-[hsl(var(--discord-light)/0.3)]" />
@@ -2210,7 +2294,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                 </button>
                               )}
                             </div>
-                            <p className="text-xs text-[hsl(var(--discord-text))] break-words line-clamp-3">{pm.content}</p>
+                            <p className="text-xs text-[hsl(var(--discord-text))] break-words whitespace-pre-wrap line-clamp-3">{pm.content}</p>
                           </div>
                         ))}
                       </div>
@@ -2599,10 +2683,21 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       </button>
                                     </>
                                   )}
-                                  {/* Organizer moderation — pinning applies to any
-                                      message; mute/remove only make sense for
-                                      someone else's message, not your own. */}
-                                  {isOrganizer && activeChannel?.channel_type !== 'announcement' && (
+                                  {/* Organizer moderation. Pin and Remove both
+                                      apply to ANY message including
+                                      announcements (a typo'd announcement was
+                                      otherwise permanent — pin_community_message/
+                                      delete_community_message place no
+                                      channel-type restriction server-side, this
+                                      whole block used to gate the entire
+                                      toolbar on channel_type !== 'announcement'
+                                      regardless, contradicting its own old
+                                      comment that "pinning applies to any
+                                      message"). Mute stays excluded for
+                                      announcements specifically — the sender
+                                      is the synthetic team@forge.internal
+                                      account, not a real muteable participant. */}
+                                  {isOrganizer && (
                                     <>
                                       <div className="w-px h-4 bg-[hsl(var(--discord-light)/0.3)] mx-0.5" />
                                       <button
@@ -2619,13 +2714,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       </button>
                                       {!isOwnEditableMessage && (
                                         <>
-                                          <button
-                                            onClick={() => setMutingMessage(message)}
-                                            title={`Mute ${message.sender_name}`} aria-label={`Mute ${message.sender_name}`}
-                                            className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
-                                          >
-                                            <VolumeX className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />
-                                          </button>
+                                          {activeChannel?.channel_type !== 'announcement' && (
+                                            <button
+                                              onClick={() => setMutingMessage(message)}
+                                              title={`Mute ${message.sender_name}`} aria-label={`Mute ${message.sender_name}`}
+                                              className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
+                                            >
+                                              <VolumeX className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />
+                                            </button>
+                                          )}
                                           <button
                                             onClick={() => handleDeleteAnyMessage(message.id)}
                                             disabled={deletingAnyMessageId === message.id}
@@ -2831,6 +2928,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                   value={newChannelName}
                   onChange={(e) => setNewChannelName(e.target.value)}
                   placeholder={createChannelType === 'voice' ? 'Study Room' : 'off-topic'}
+                  maxLength={50}
                   className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light))] text-white"
                 />
               </div>
