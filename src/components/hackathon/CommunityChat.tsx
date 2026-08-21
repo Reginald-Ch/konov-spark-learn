@@ -217,7 +217,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [claimingQuestId, setClaimingQuestId] = useState<string | null>(null);
   const [isPostingAnnouncement, setIsPostingAnnouncement] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -386,6 +386,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       })
       .subscribe();
     return () => { supabase.removeChannel(globalVoiceChannel); };
+  }, []);
+
+  // fetchQuestsAndBadges was only ever re-run on mount, on join/identity-set,
+  // and after your OWN successful claim — no realtime subscription. Another
+  // participant earning a badge mid-session never appeared next to their
+  // messages (badgesByEmail) until your own next fetch trigger, effectively
+  // a reload. This data is already public (see fetchQuestsAndBadges' own
+  // comments), so one broad subscription refetching on any completion is a
+  // simple, safe fix — badge/quest data is small and this app is
+  // hackathon-scale, not high-frequency.
+  useEffect(() => {
+    const questChannel = supabase
+      .channel('quest-completions-global')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_quest_completions' }, () => {
+        fetchQuestsAndBadges(userEmailRef.current);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(questChannel); };
   }, []);
 
   // Enforcement is server-side (RLS blocks the insert regardless), but
@@ -1075,13 +1093,20 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // Detects "@partial" right before the cursor (not preceded by another
   // word character, so a mid-word "@" like an email address doesn't
   // trigger it) to drive the autocomplete dropdown.
-  const handleMessageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMessageInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setNewMessage(value);
     handleTypingBroadcast();
     const cursor = e.target.selectionStart ?? value.length;
     const beforeCursor = value.slice(0, cursor);
-    const match = beforeCursor.match(/(?:^|\s)@(\w*)$/);
+    // \w only matches [A-Za-z0-9_] — typing "@José" only ever captured
+    // "@Jos" as the query before the accented character broke the match,
+    // so a display name distinguished by non-ASCII characters could never
+    // be found via autocomplete past that point. \p{L}/\p{N} (Unicode
+    // property escapes, same fix already applied to isalpha()/isdigit()
+    // in the Python interpreter) match any Unicode letter/digit, not just
+    // ASCII ones.
+    const match = beforeCursor.match(/(?:^|\s)@([\p{L}\p{N}_]*)$/u);
     if (match) {
       setMentionQuery(match[1]);
       setMentionActiveIndex(0);
@@ -2721,7 +2746,19 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       </PopoverContent>
                     </Popover>
 
-                    <Input
+                    {/* Was a single-line <Input> — the onKeyDown handler's
+                        own "!e.shiftKey" check on Enter implied Shift+Enter
+                        should insert a newline, but a native <input> can't
+                        hold newlines at all, so Shift+Enter silently did
+                        nothing. A <Textarea> actually supports that,
+                        matching Discord/Slack's own composer this UI
+                        otherwise imitates closely. rows={1} + a capped
+                        max-height keeps the common case (a short message)
+                        looking identical to the old single-line box; it
+                        only grows for genuinely multi-line content, then
+                        scrolls internally past ~5 lines instead of growing
+                        forever. */}
+                    <Textarea
                       ref={inputRef}
                       value={newMessage}
                       onChange={handleMessageInputChange}
@@ -2732,12 +2769,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                           if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); handleSelectMention(mentionCandidates[mentionActiveIndex]); return; }
                           if (e.key === 'Escape') { setMentionQuery(null); return; }
                         }
-                        if (e.key === 'Enter' && !e.shiftKey) handleSendMessage();
+                        // preventDefault matters here now in a way it didn't
+                        // on a single-line <input> — without it, Enter both
+                        // sends AND inserts a newline into the textarea a
+                        // moment before it's cleared.
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
                       }}
                       disabled={isCurrentlyMuted && !isStaffEmail}
                       placeholder={isCurrentlyMuted && !isStaffEmail ? `Muted until ${new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : activeChannel?.channel_type === 'announcement' ? 'Post an announcement...' : `Message #${activeChannel?.name || 'channel'}`}
                       maxLength={MAX_MESSAGE_LENGTH}
-                      className="flex-1 bg-transparent border-none text-white placeholder:text-[hsl(var(--discord-text-muted))] focus-visible:ring-0 h-auto py-0"
+                      rows={1}
+                      className="flex-1 bg-transparent border-none text-white placeholder:text-[hsl(var(--discord-text-muted))] focus-visible:ring-0 resize-none min-h-0 max-h-32 py-1.5 leading-snug"
                     />
                     {/* Previously no client-side cap or counter at all — a
                         student only discovered the server's 4000-char limit

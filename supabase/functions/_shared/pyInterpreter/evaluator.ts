@@ -804,6 +804,24 @@ function codepointIndexOf(haystackChars: string[], needle: string, fromCp: numbe
   return -1;
 }
 
+// Standalone equivalent of Interpreter.compareValues's number/string '<'
+// branches — needed by sort()/sorted() below, which are plain module-level
+// functions (not Interpreter methods) with no `this` to call back into.
+function pyLessThan(l: PyValue, r: PyValue, line: number): boolean {
+  if (typeof l === 'number' && typeof r === 'number') return l < r;
+  if (typeof l === 'string' && typeof r === 'string') return l < r;
+  throw new PyRuntimeError(`TypeError: '<' not supported between instances of '${describeType(l)}' and '${describeType(r)}'`, line);
+}
+
+// Standalone equivalent of Interpreter.toIterable — same reason: needed by
+// sorted()/enumerate()/sum()/any()/all() below, plain module-level
+// functions with no `this`.
+function pyToIterableItems(v: PyValue, line: number): PyValue[] {
+  if (isList(v)) return v.items;
+  if (typeof v === 'string') return strChars(v);
+  throw new PyRuntimeError(`TypeError: '${describeType(v)}' object is not iterable`, line);
+}
+
 const LIST_METHODS: Record<string, (l: PyList, args: PyValue[], line: number) => PyValue> = {
   append: (l, args, line) => {
     // args[0] silently pushed `undefined` when called with no arguments
@@ -827,13 +845,52 @@ const LIST_METHODS: Record<string, (l: PyList, args: PyValue[], line: number) =>
     if (idx === -1) throw new PyRuntimeError('ValueError: value not found in list', line);
     return idx;
   },
+  // The syntax highlighter and autocomplete both treat these as valid —
+  // colored/suggested exactly like append()/pop() — but none of them were
+  // actually implemented, so a student using any of them (a very ordinary
+  // thing to reach for) got a live AttributeError with no earlier warning.
+  // No key=/reverse= kwargs — this interpreter has no keyword-argument
+  // support at all, consistent with everywhere else that's true.
+  sort: (l, args, line) => {
+    if (args.length > 0) throw new PyRuntimeError('TypeError: sort() takes no positional arguments (key=/reverse= are not supported)', line);
+    l.items.sort((a, b) => pyLessThan(a, b, line) ? -1 : pyLessThan(b, a, line) ? 1 : 0);
+    return null;
+  },
+  remove: (l, args, line) => {
+    const idx = l.items.findIndex(v => pyEquals(v, args[0]));
+    if (idx === -1) throw new PyRuntimeError('ValueError: list.remove(x): x not in list', line);
+    l.items.splice(idx, 1);
+    return null;
+  },
+  extend: (l, args, line) => {
+    if (isList(args[0])) { l.items.push(...args[0].items); return null; }
+    if (typeof args[0] === 'string') { l.items.push(...strChars(args[0])); return null; }
+    throw new PyRuntimeError(`TypeError: '${describeType(args[0])}' object is not iterable`, line);
+  },
+  reverse: (l) => { l.items.reverse(); return null; },
+  insert: (l, args, line) => {
+    if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: insert() index must be an integer', line);
+    let i = Math.trunc(args[0]);
+    if (i < 0) i = Math.max(0, l.items.length + i);
+    i = Math.min(i, l.items.length);
+    l.items.splice(i, 0, args[1]);
+    return null;
+  },
 };
 
-const DICT_METHODS: Record<string, (d: PyDict, args: PyValue[]) => PyValue> = {
+const DICT_METHODS: Record<string, (d: PyDict, args: PyValue[], line: number) => PyValue> = {
   get: (d, args) => { const key = toDictKey(args[0], 0); return d.map.has(key) ? d.map.get(key)! : (args[1] ?? null); },
   keys: (d) => makeList([...d.map.keys()] as PyValue[]),
   values: (d) => makeList([...d.map.values()]),
   items: (d) => makeList([...d.map.entries()].map(([k, v]) => makeList([k as PyValue, v]))),
+  // Editor-advertised (BUILTINS/autocomplete) but previously missing, same
+  // as the list methods above.
+  pop: (d, args, line) => {
+    const key = toDictKey(args[0], line);
+    if (d.map.has(key)) { const v = d.map.get(key)!; d.map.delete(key); return v; }
+    if (args.length > 1) return args[1];
+    throw new PyRuntimeError(`KeyError: ${pyRepr(args[0])}`, line);
+  },
 };
 
 function builtin(name: string, fn: (args: PyValue[], line: number) => Promise<PyValue>): PyBuiltin {
@@ -939,6 +996,43 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
     throw new PyRuntimeError(`TypeError: float() argument must be a string or a number`, line);
   }));
   env.set('bool', builtin('bool', async (args) => isTruthy(args[0] ?? null)));
+  // list()/dict() as callable constructors — editor-advertised (BUILTINS)
+  // like str()/int()/float()/bool() above, but neither actually existed as
+  // a name at all before this (not just a missing-method gap — calling
+  // list(...) or dict(...) was a plain NameError). list("abc") copies by
+  // codepoint (consistent with this session's Unicode fixes elsewhere,
+  // not raw UTF-16 units).
+  env.set('list', builtin('list', async (args, line) => {
+    if (args.length === 0) return makeList([]);
+    if (isList(args[0])) return makeList([...args[0].items]);
+    if (typeof args[0] === 'string') return makeList(strChars(args[0]));
+    if (isDict(args[0])) return makeList([...args[0].map.keys()] as PyValue[]);
+    throw new PyRuntimeError(`TypeError: '${describeType(args[0])}' object is not iterable`, line);
+  }));
+  env.set('dict', builtin('dict', async (args, line) => {
+    if (args.length === 0) return { __pytype: 'dict', map: new Map() };
+    if (isDict(args[0])) return { __pytype: 'dict', map: new Map(args[0].map) };
+    throw new PyRuntimeError('TypeError: dict() only supports copying another dict here (no kwargs/pairs form)', line);
+  }));
+  // Editor-advertised but missing entirely. Only recognizes this
+  // interpreter's own six basic-type builtins as the second argument
+  // (real Python's isinstance also accepts a tuple of types — not
+  // supported here, matching the general no-tuple-literal stance
+  // elsewhere in this subset).
+  env.set('isinstance', builtin('isinstance', async (args, line) => {
+    const [obj, typeArg] = args;
+    if (!isBuiltin(typeArg)) throw new PyRuntimeError('TypeError: isinstance() arg 2 must be a type', line);
+    const actual = describeType(obj);
+    switch (typeArg.name) {
+      case 'int': return actual === 'int' || actual === 'bool';
+      case 'float': return actual === 'float' || actual === 'int';
+      case 'str': return actual === 'str';
+      case 'bool': return actual === 'bool';
+      case 'list': return actual === 'list';
+      case 'dict': return actual === 'dict';
+      default: throw new PyRuntimeError(`TypeError: isinstance() doesn't support '${typeArg.name}' here`, line);
+    }
+  }));
   env.set('abs', builtin('abs', async (args, line) => { if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: abs() requires a number', line); return Math.abs(args[0]); }));
   env.set('round', builtin('round', async (args, line) => {
     if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: round() requires a number', line);
@@ -947,6 +1041,42 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
   }));
   env.set('min', builtin('min', async (args, line) => reduceMinMax(args, line, 'min')));
   env.set('max', builtin('max', async (args, line) => reduceMinMax(args, line, 'max')));
+  // The rest of this block: all editor-advertised (syntax highlighter's
+  // BUILTINS set, autocomplete's PYTHON_BUILTINS list both color/suggest
+  // these) but previously missing entirely — same class of gap as the new
+  // list/dict methods above, just at the top-level-function layer instead
+  // of the method layer. No key=/reverse= kwargs on sorted(), matching
+  // list.sort() above and this interpreter's general lack of keyword-arg
+  // support.
+  env.set('sorted', builtin('sorted', async (args, line) => {
+    const items = [...pyToIterableItems(args[0], line)];
+    items.sort((a, b) => pyLessThan(a, b, line) ? -1 : pyLessThan(b, a, line) ? 1 : 0);
+    return makeList(items);
+  }));
+  env.set('enumerate', builtin('enumerate', async (args, line) => {
+    const start = typeof args[1] === 'number' ? Math.trunc(args[1]) : 0;
+    return makeList(pyToIterableItems(args[0], line).map((v, i) => makeList([start + i, v])));
+  }));
+  env.set('sum', builtin('sum', async (args, line) => {
+    const items = pyToIterableItems(args[0], line);
+    let total: number = typeof args[1] === 'number' ? args[1] : 0;
+    for (const v of items) {
+      if (typeof v !== 'number') throw new PyRuntimeError(`TypeError: unsupported operand type(s) for +: 'int' and '${describeType(v)}'`, line);
+      total += v;
+    }
+    return total;
+  }));
+  env.set('any', builtin('any', async (args, line) => pyToIterableItems(args[0], line).some(isTruthy)));
+  env.set('all', builtin('all', async (args, line) => pyToIterableItems(args[0], line).every(isTruthy)));
+  env.set('chr', builtin('chr', async (args, line) => {
+    if (typeof args[0] !== 'number') throw new PyRuntimeError('TypeError: chr() requires an integer', line);
+    try { return String.fromCodePoint(Math.trunc(args[0])); }
+    catch { throw new PyRuntimeError('ValueError: chr() arg not in range', line); }
+  }));
+  env.set('ord', builtin('ord', async (args, line) => {
+    if (typeof args[0] !== 'string' || strChars(args[0]).length !== 1) throw new PyRuntimeError('TypeError: ord() expected a character', line);
+    return args[0].codePointAt(0)!;
+  }));
 
   // Only installed when the host explicitly opts in (Build Studio's chat
   // path) — absent here, `ai_generate` simply isn't a name that exists, so
