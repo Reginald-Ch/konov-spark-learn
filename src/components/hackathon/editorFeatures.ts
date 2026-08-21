@@ -186,6 +186,21 @@ export const abortableSleep = (ms: number, signal: AbortSignal): Promise<void> =
   signal.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
 });
 
+// Shared by both files' recognition.onerror handlers — the exhausted-
+// retries branch used to surface the raw SpeechRecognitionErrorEvent.error
+// code verbatim (e.g. "audio-capture", "network", "service-not-allowed"),
+// the one place in either file where an unmodified dev-facing error code
+// reached a student directly instead of a hand-written sentence.
+export const describeMicError = (code: string): string => {
+  switch (code) {
+    case 'audio-capture': return "Couldn't access your microphone — check that one is plugged in and not being used by another app.";
+    case 'network': return 'A network problem interrupted voice recognition. Check your connection and try again.';
+    case 'service-not-allowed': return "This browser blocked voice recognition. Check your browser's site permissions.";
+    case 'language-not-supported': return "This browser doesn't support voice recognition in this language.";
+    default: return "Something went wrong with voice recognition. Try again, or use the keyboard instead.";
+  }
+};
+
 export const lintPython = (code: string): LintError[] => {
   const errors: LintError[] = [];
   const lines = code.split('\n');

@@ -31,7 +31,7 @@ import { runModule } from '../../../supabase/functions/_shared/pyInterpreter/eva
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
-import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, abortableSleep, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, abortableSleep, describeMicError, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -2231,7 +2231,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       if (e.error === 'aborted') return;
       if (retryCountRef.current >= MAX_RETRIES) {
-        toast.error(`Mic error: ${e.error}`);
+        toast.error(describeMicError(e.error));
         setIsListening(false);
         setWaitingForWakeWord(false);
         waitingForWakeWordRef.current = false;
@@ -2394,10 +2394,15 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       { label: 'PERSONALIZED_INTRO', ok: config.hasParameterizedFunction && !!config.personalizedIntro && config.personalizedIntro !== defaults.personalizedIntro, val: config.personalizedIntro ? '✓ set' : '✗ default' },
       { label: 'MOOD_INSTRUCTION', ok: config.hasSafeDictLookup && !!config.moodInstruction && config.moodInstruction !== defaults.moodInstruction, val: config.moodInstruction ? '✓ set' : '✗ default' },
       { label: 'RULE_COUNT', ok: config.hasAccumulatorLoop && listDiffersFromDefault(config.conversationRules, defaults.conversationRules, ruleFloor), val: `${config.conversationRules.length} rules counted` },
-      { label: 'PRINT + UPPER', ok: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement, val: config.printUpperStatement ? '✓ printed' : '✗ default' },
+      { label: 'PRINT_UPPER', ok: config.printUpperStatement !== '' && config.printUpperStatement !== defaults.printUpperStatement, val: config.printUpperStatement ? '✓ printed' : '✗ default' },
       { label: 'IS_EXPRESSIVE', ok: config.booleanLogicExpr !== '' && config.booleanLogicExpr !== defaults.booleanLogicExpr, val: config.booleanLogicExpr || '✗ default' },
-      { label: 'NUMBERED RULES', ok: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint, val: config.whileLoopPrint ? '✓ while loop found' : '✗ missing' },
-      { label: 'MAX TOKENS LINE', ok: config.typeCastPrint !== '' && config.typeCastPrint !== defaults.typeCastPrint, val: config.typeCastPrint ? '✓ printed' : '✗ default' },
+      // These three used to break the SCREAMING_SNAKE_CASE convention every
+      // other label in this scanner dump follows ('PRINT + UPPER',
+      // 'NUMBERED RULES', 'MAX TOKENS LINE') — spaces/plus-signs instead of
+      // underscores, visibly misaligning the padEnd(22)-formatted monospace
+      // column against everything above them once printed to the terminal.
+      { label: 'WHILE_LOOP_PRINT', ok: config.whileLoopPrint !== '' && config.whileLoopPrint !== defaults.whileLoopPrint, val: config.whileLoopPrint ? '✓ while loop found' : '✗ missing' },
+      { label: 'MAX_TOKENS_LINE', ok: config.typeCastPrint !== '' && config.typeCastPrint !== defaults.typeCastPrint, val: config.typeCastPrint ? '✓ printed' : '✗ default' },
     ];
     
     const completedCount = localChecks.filter(c => c.ok).length;
@@ -2608,10 +2613,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       prevAchievementIdsRef.current = unlockedIds;
       return;
     }
-    for (const a of achievements) {
-      if (a.unlocked && !prevAchievementIdsRef.current.has(a.id)) {
-        toast.success(`🏆 Achievement unlocked: ${a.name}!`);
-      }
+    // Batched into ONE toast, not one per newly-unlocked badge — this
+    // effect runs off the 250ms-debounced liveConfig, so a single paste of
+    // a mostly-finished script (custom name + knowledge base + rules +
+    // Q&A, all realistic at once) or one "apply suggestion" from the AI
+    // mentor could satisfy 5+ of the 8 achievement criteria in the same
+    // tick, firing that many separate toasts synchronously with no cap —
+    // unlike the 429-retry toast elsewhere in this file, which already
+    // uses a stable `id` to replace-in-place instead of stacking.
+    const newlyUnlocked = achievements.filter(a => a.unlocked && !prevAchievementIdsRef.current!.has(a.id));
+    if (newlyUnlocked.length === 1) {
+      toast.success(`🏆 Achievement unlocked: ${newlyUnlocked[0].name}!`, { id: 'achievement-unlocked' });
+    } else if (newlyUnlocked.length > 1) {
+      toast.success(`🏆 ${newlyUnlocked.length} achievements unlocked: ${newlyUnlocked.map(a => a.name).join(', ')}!`, { id: 'achievement-unlocked' });
     }
     prevAchievementIdsRef.current = unlockedIds;
   }, [liveConfig, hasLiveEvent, projectType, getChallengeCount, restoreDone, terminalOutput, currentProjectId, files, scaffolds]);
@@ -3586,7 +3600,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* ── Memory & State ── */}
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">🧠 Memory &amp; State</label>
-                      <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">What your bot carries between messages — the same idea Rasa calls "slots" or LangChain calls "memory."</p>
+                      <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">What your bot remembers and carries between messages, like a running memory of the conversation.</p>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between text-ide-text">
                           <span>Remembers your name</span>
@@ -3674,7 +3688,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         </Button>
                       </div>
                       <p className="text-[10px] text-ide-text-muted mb-0.5">Add exact trigger phrase → response pairs for precise answers.</p>
-                      <p className="text-[10px] text-ide-text-muted/70 italic mb-2">This is the same idea real conversational-AI tools like Rasa call an "intent."</p>
+                      <p className="text-[10px] text-ide-text-muted/70 italic mb-2">A trigger phrase your bot listens for, paired with the answer it should give back.</p>
 
                       {qaData.length === 0 && (
                         <button onClick={addQA} className="w-full p-3 rounded-lg border-2 border-dashed border-ide-border text-ide-text-muted text-xs hover:border-ide-accent hover:text-ide-accent transition-colors">

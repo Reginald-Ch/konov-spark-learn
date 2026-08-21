@@ -80,7 +80,12 @@ const WalkthroughCard = forwardRef<HTMLDivElement, WalkthroughCardProps>(
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       className="fixed bottom-20 right-4 z-50 max-w-xs"
     >
-      <div className="bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] rounded-xl shadow-2xl overflow-hidden">
+      {/* Matches the onboarding modal's own card styling (bg-ide-sidebar/
+          border-ide-border/rounded-xl, ProjectEditor.tsx) — this card used
+          to hand off straight from that modal into a visibly different
+          (Discord-token) color language for the second half of the same
+          tour. */}
+      <div className="bg-ide-sidebar border border-ide-border rounded-xl shadow-2xl overflow-hidden">
         {/* Progress dots */}
         <div className="flex items-center gap-1 px-4 pt-3">
           {Array.from({ length: totalSteps }).map((_, i) => (
@@ -88,7 +93,7 @@ const WalkthroughCard = forwardRef<HTMLDivElement, WalkthroughCardProps>(
               key={i}
               className="h-1 rounded-full flex-1 transition-all"
               style={{
-                backgroundColor: i <= currentStep ? step.color : 'hsl(var(--discord-light))',
+                backgroundColor: i <= currentStep ? step.color : 'hsl(var(--ide-border))',
               }}
             />
           ))}
@@ -119,7 +124,7 @@ const WalkthroughCard = forwardRef<HTMLDivElement, WalkthroughCardProps>(
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="text-xs text-[hsl(var(--discord-text-muted))] mt-1 leading-relaxed"
+                className="text-xs text-ide-text-muted mt-1 leading-relaxed"
               >
                 {step.message}
               </motion.p>
@@ -127,7 +132,7 @@ const WalkthroughCard = forwardRef<HTMLDivElement, WalkthroughCardProps>(
           </div>
 
           <div className="flex items-center justify-between mt-4">
-            <button onClick={onSkip} className="text-[10px] text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors">
+            <button onClick={onSkip} className="text-[10px] text-ide-text-muted hover:text-white transition-colors">
               Skip tour
             </button>
             <Button
@@ -144,7 +149,7 @@ const WalkthroughCard = forwardRef<HTMLDivElement, WalkthroughCardProps>(
       </div>
 
       {/* Speech bubble tail */}
-      <div className="absolute -bottom-2 right-8 w-4 h-4 bg-[hsl(var(--discord-dark))] border-r border-b border-[hsl(var(--discord-light)/0.3)] rotate-45" />
+      <div className="absolute -bottom-2 right-8 w-4 h-4 bg-ide-sidebar border-r border-b border-ide-border rotate-45" />
     </motion.div>
   )
 );

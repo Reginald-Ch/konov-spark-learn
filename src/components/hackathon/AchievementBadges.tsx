@@ -163,12 +163,12 @@ export const LevelBadge = ({ challengeCount, compact = false }: LevelBadgeProps)
         </div>
         <div>
           <p className="text-xs font-bold" style={{ color: config.color }}>{config.emoji} {config.name}</p>
-          <p className="text-[10px] text-[hsl(var(--discord-text-muted))]">{challengeCount}/34 challenges</p>
+          <p className="text-[10px] text-ide-text-muted">{challengeCount}/34 challenges</p>
         </div>
       </div>
       {nextConfig && (
         <div className="space-y-1">
-          <div className="h-1.5 rounded-full bg-[hsl(var(--discord-light))] overflow-hidden">
+          <div className="h-1.5 rounded-full bg-ide-border overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
@@ -177,7 +177,7 @@ export const LevelBadge = ({ challengeCount, compact = false }: LevelBadgeProps)
               style={{ backgroundColor: config.color }}
             />
           </div>
-          <p className="text-[9px] text-[hsl(var(--discord-text-muted))]">
+          <p className="text-[9px] text-ide-text-muted">
             {nextConfig.minPoints - challengeCount} more to reach {nextConfig.emoji} {nextConfig.name}
           </p>
         </div>
@@ -197,8 +197,8 @@ export const AchievementGrid = ({ stats }: AchievementGridProps) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-[hsl(var(--discord-text))]">
-          <Trophy className="w-3 h-3 inline mr-1 text-[hsl(var(--discord-yellow))]" />
+        <p className="text-xs font-bold text-ide-text">
+          <Trophy className="w-3 h-3 inline mr-1 text-ide-yellow" />
           Achievements ({unlockedCount}/{achievements.length})
         </p>
       </div>
@@ -211,13 +211,13 @@ export const AchievementGrid = ({ stats }: AchievementGridProps) => {
                 animate={{ scale: achievement.unlocked ? 1 : 0.85 }}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all cursor-help ${
                   achievement.unlocked
-                    ? 'border-[hsl(var(--discord-light)/0.4)]'
-                    : 'border-[hsl(var(--discord-light)/0.1)] opacity-30 grayscale'
+                    ? 'border-ide-border/40'
+                    : 'border-ide-border/10 opacity-30 grayscale'
                 }`}
                 style={achievement.unlocked ? { backgroundColor: `${achievement.color}10` } : {}}
               >
                 <achievement.icon className="w-4 h-4" style={{ color: achievement.unlocked ? achievement.color : '#555' }} />
-                <span className="text-[8px] font-bold text-center leading-tight text-[hsl(var(--discord-text-muted))]">
+                <span className="text-[8px] font-bold text-center leading-tight text-ide-text-muted">
                   {achievement.name}
                 </span>
               </motion.div>
