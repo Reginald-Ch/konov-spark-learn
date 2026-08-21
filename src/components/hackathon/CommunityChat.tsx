@@ -13,7 +13,7 @@ import {
   Phone, PhoneOff, X, Smile, MessageSquare,
   Settings, Plus, Heart, ThumbsUp,
   Laugh, PartyPopper, Flame, Rocket, Trophy, Bell, BellOff, Lock, Check, Menu, Crown, Loader2, SmilePlus,
-  Pencil, Trash2, Pin, PinOff, VolumeX, ShieldAlert,
+  Pencil, Trash2, Pin, PinOff, VolumeX, ShieldAlert, AlertTriangle,
 } from 'lucide-react';
 import { getStoredAdminRole, callAdminAction } from '@/lib/adminClient';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -175,6 +175,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // muted, toggleable from Jitsi's own native in-call toolbar, which has
   // always been fully functional — our old buttons were redundant AND fake).
   const jitsiApiRef = useRef<any>(null);
+  // Lets disposeJitsi cancel a still-pending 45s connect timeout when the
+  // user manually disconnects mid-connection — without this, clicking
+  // Disconnect while still "Connecting…" tore down the call cleanly, but
+  // the timeout fired anyway up to 45s later: a misleading "Could not
+  // connect" toast plus a redundant leave_voice_room call, potentially
+  // after the user had already joined a different voice channel.
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const [isConnectingVoice, setIsConnectingVoice] = useState(false);
   const [isJoiningVoice, setIsJoiningVoice] = useState(false);
@@ -240,6 +247,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // "Load earlier messages" affordance at the top of the list.
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  // Without these, a channel that's still loading its first page and a
+  // channel whose fetch just failed both rendered the identical "Welcome
+  // to #channel! Say hello..." empty state as a genuinely new channel —
+  // once the failure toast faded, a channel that actually had history
+  // looked like an inviting blank slate instead of a broken load.
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messagesLoadError, setMessagesLoadError] = useState(false);
   const scrollRootRef = useRef<HTMLDivElement>(null);
 
   // Channel creation — the sidebar's "+" buttons used to be pure decoration
@@ -345,7 +359,25 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // keep-in-sync effect just to avoid going stale the same way
       // voicePresenceRef's own doc comment already warns about.
       const token = localStorage.getItem('forge-device-token') || null;
-      supabase.rpc('leave_voice_room', { p_channel_id: channelId, p_participant_email: email, p_device_token: token }).then(() => {});
+      // Raw fetch with keepalive, not supabase.rpc() — browsers commonly
+      // abort in-flight non-keepalive requests once beforeunload returns
+      // and the page starts tearing down, so on an actual tab close (as
+      // opposed to switching tabs within the SPA, which keeps the JS
+      // runtime alive) the RPC call above was frequently never delivered,
+      // leaving exactly the phantom "still in voice" row this effect
+      // exists to prevent. keepalive is the standard mechanism for
+      // requests that must survive page unload, unlike sendBeacon which
+      // can't carry the apikey/Authorization headers PostgREST requires.
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/leave_voice_room`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ p_channel_id: channelId, p_participant_email: email, p_device_token: token }),
+      }).catch(() => {});
     };
     window.addEventListener('beforeunload', leaveVoiceBeacon);
     return () => {
@@ -436,7 +468,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // until a full page reload despite actually being clear. Polling on a
     // light interval instead, matching that same established pattern.
     const checkMuteStatus = async () => {
-      const { data } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
+      const { data, error } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
+      if (error) {
+        // Don't treat a failed check as "not muted" — that would silently
+        // clear a real mute's countdown/reason from the UI while the
+        // server-side block (which doesn't depend on this call) stays in
+        // effect, leaving someone confused about why sends still fail.
+        // Just skip this poll and keep whatever state we last knew.
+        console.error('get_my_mute_status failed:', error.message);
+        return;
+      }
       const row = Array.isArray(data) ? data[0] : data;
       const stillMuted = row?.muted_until && new Date(row.muted_until) > new Date();
       setMutedUntil(stillMuted ? row.muted_until : null);
@@ -565,6 +606,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     setMessages([]);
     setPinnedMessages([]);
     setHasMoreMessages(false);
+    setMessagesLoadError(false);
     // voiceParticipants is intentionally NOT reset here anymore — it's now
     // a global, all-channels picture kept in sync by its own dedicated
     // effect (see fetchAllVoiceParticipants above), not scoped to
@@ -616,7 +658,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             // loadOlderMessages' own scroll-position restoration below.
             const viewport = scrollRootRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
             const nearBottom = !viewport || viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 150;
-            setMessages(prev => [...prev, incoming]);
+            // Deduped by id — the send handler now also appends the
+            // sender's own message locally as soon as the RPC confirms it
+            // (see handleSendMessage), so this event and that optimistic
+            // append can both try to add the same row if both arrive.
+            setMessages(prev => (prev.some(m => m.id === incoming.id) ? prev : [...prev, incoming]));
             fetchProfilesForSenders([incoming.sender_email]);
             if (nearBottom || incoming.sender_email === userEmailRef.current) {
               requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
@@ -718,6 +764,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       if (defaultChannel) {
         setActiveChannel(defaultChannel);
       }
+    } else if (error) {
+      // The channel list rarely fails (mostly static), but a silent
+      // failure here previously just left the sidebar permanently empty
+      // with no explanation and no way to know a retry might help.
+      console.error('fetchChannels failed:', error.message);
+      toast({ title: 'Could not load channels', description: 'Try refreshing the page.', variant: 'destructive' });
     }
   };
 
@@ -827,6 +879,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   };
 
   const fetchMessages = async (channelId: string) => {
+    setIsLoadingMessages(true);
+    setMessagesLoadError(false);
     // Order DESC + limit so we grab the newest page, not the oldest one —
     // then reverse for display. Ascending+limit would permanently freeze any
     // channel past one page on its oldest batch for every fresh load.
@@ -839,12 +893,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       .order('created_at', { ascending: false })
       .limit(MESSAGE_PAGE_SIZE + 1);
 
-    if (!error && data && activeChannelIdRef.current === channelId) {
+    if (activeChannelIdRef.current !== channelId) return;
+
+    if (!error && data) {
       const hasMore = data.length > MESSAGE_PAGE_SIZE;
       const page = hasMore ? data.slice(0, MESSAGE_PAGE_SIZE) : data;
       const rows = (page as unknown as Message[]).reverse();
       setMessages(rows);
       setHasMoreMessages(hasMore);
+      setIsLoadingMessages(false);
       fetchReactionsForMessages(rows.map(m => m.id));
       fetchProfilesForSenders(rows.map(m => m.sender_email));
       // Fresh load — jump straight to the bottom, no animation (there's
@@ -852,10 +909,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }));
     } else if (error) {
       // messages/pinned/hasMore are already reset to empty before this
-      // runs (see the effect above), so a failure here now shows an empty
-      // channel instead of silently keeping a stale, wrongly-attributed
-      // previous channel's messages on screen — still worth telling the
-      // user explicitly rather than leaving them staring at "no messages".
+      // runs (see the effect above). messagesLoadError keeps the empty
+      // state from claiming this is a genuinely new, message-free channel
+      // once the toast below fades — a failed load and an empty channel
+      // used to be visually indistinguishable.
+      setIsLoadingMessages(false);
+      setMessagesLoadError(true);
       toast({ title: 'Could not load messages', description: 'Try switching channels again.', variant: 'destructive' });
     }
   };
@@ -871,6 +930,20 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const channelIdAtStart = activeChannel.id;
     setIsLoadingOlder(true);
     const oldest = messages[0];
+
+    // Anchor on the message currently at the top of the list, not on total
+    // scrollHeight — the old height-delta approach assumed every pixel
+    // added between "before" and "after" came from the prepended page. If
+    // a realtime message landed at the bottom during the network
+    // round-trip (or the brief window before the RAF fires), its height
+    // silently got folded into the same delta and pushed the viewport down
+    // past where the user was actually reading. Anchoring to a specific
+    // element's on-screen position is immune to unrelated height changes
+    // elsewhere in the list.
+    const viewport = scrollRootRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const anchorEl = viewport?.querySelector(`[data-message-id="${oldest.id}"]`) as HTMLElement | null;
+    const anchorOffset = anchorEl && viewport ? anchorEl.getBoundingClientRect().top - viewport.getBoundingClientRect().top : null;
+
     const { data, error } = await supabase
       .from('community_messages')
       .select('*')
@@ -884,18 +957,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       const page = hasMore ? data.slice(0, MESSAGE_PAGE_SIZE) : data;
       const older = (page as unknown as Message[]).reverse();
 
-      const viewport = scrollRootRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-      const prevScrollHeight = viewport?.scrollHeight ?? 0;
-      const prevScrollTop = viewport?.scrollTop ?? 0;
-
       setMessages(prev => [...older, ...prev]);
       setHasMoreMessages(hasMore);
       fetchReactionsForMessages(older.map(m => m.id));
       fetchProfilesForSenders(older.map(m => m.sender_email));
 
-      if (viewport) {
+      if (viewport && anchorOffset !== null) {
         requestAnimationFrame(() => {
-          viewport.scrollTop = viewport.scrollHeight - prevScrollHeight + prevScrollTop;
+          const newAnchorEl = viewport.querySelector(`[data-message-id="${oldest.id}"]`) as HTMLElement | null;
+          if (newAnchorEl) {
+            const newOffset = newAnchorEl.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+            viewport.scrollTop += newOffset - anchorOffset;
+          }
         });
       }
     }
@@ -1026,6 +1099,29 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         if (!error && result?.ok === false) setStaffToken('');
       } else {
         setNewMessage('');
+        // Append locally as soon as the send is confirmed, rather than
+        // relying solely on the realtime INSERT echo to ever show it. A
+        // missed/delayed event during a Realtime reconnect previously meant
+        // a message that genuinely saved (ok: true) could simply never
+        // appear on the sender's own screen until they switched channels or
+        // reloaded. Deduped by id against the INSERT handler above in case
+        // both arrive.
+        if (result.message_id && activeChannelIdRef.current === activeChannel.id) {
+          const optimistic: Message = {
+            id: result.message_id,
+            channel_id: activeChannel.id,
+            sender_name: userName,
+            sender_email: userEmail,
+            content: trimmedStaffContent,
+            message_type: 'text',
+            created_at: new Date().toISOString(),
+            edited_at: null,
+            pinned_at: null,
+            pinned_by: null,
+          };
+          setMessages(prev => (prev.some(m => m.id === optimistic.id) ? prev : [...prev, optimistic]));
+          requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
+        }
         // This branch never called notify-mention at all — a staff
         // member's @[name](email) mention rendered the pill fine but
         // silently never notified anyone, inconsistent with regular
@@ -1079,6 +1175,26 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // omits it on every later call once the identity is already claimed.
       if (result.new_device_token) setDeviceToken(result.new_device_token);
       setNewMessage('');
+      // Same reasoning as the staff-send branch above — append locally on
+      // confirmed send rather than depending solely on the realtime INSERT
+      // echo, which isn't guaranteed to arrive (e.g. a brief Realtime
+      // reconnect can drop an event). Deduped by id either way.
+      if (result.message_id && activeChannelIdRef.current === activeChannel.id) {
+        const optimistic: Message = {
+          id: result.message_id,
+          channel_id: activeChannel.id,
+          sender_name: userName,
+          sender_email: userEmail,
+          content: trimmedContent,
+          message_type: 'text',
+          created_at: new Date().toISOString(),
+          edited_at: null,
+          pinned_at: null,
+          pinned_by: null,
+        };
+        setMessages(prev => (prev.some(m => m.id === optimistic.id) ? prev : [...prev, optimistic]));
+        requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
+      }
       // Best-effort only — a mention still "worked" (the highlighted pill
       // renders regardless) even if the push fan-out fails or the mentioned
       // person never enabled notifications in the first place.
@@ -1385,6 +1501,10 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   };
 
   const disposeJitsi = () => {
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
     if (jitsiApiRef.current) {
       try { jitsiApiRef.current.dispose(); } catch { /* already gone */ }
       jitsiApiRef.current = null;
@@ -1492,9 +1612,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // connection. Long enough to not false-positive on that, short enough
     // to not leave someone staring at a truly broken connection forever.
     let settled = false;
-    const connectTimeout = setTimeout(() => {
+    // Stored in a ref (not just a local const) so disposeJitsi — called
+    // from a manual Disconnect click, not just the three paths below — can
+    // cancel it too. A local-only timer had no way for an external
+    // disconnect to reach in and clear it.
+    connectTimeoutRef.current = setTimeout(() => {
       if (settled) return;
       settled = true;
+      connectTimeoutRef.current = null;
       console.error('Jitsi connection timed out — videoConferenceJoined never fired');
       toast({ title: 'Could not connect to voice', description: 'The call never connected — this can happen on school/work networks that block video call traffic. Try a different network, or try again.', variant: 'destructive' });
       disposeJitsi();
@@ -1504,13 +1629,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     api.addListener('videoConferenceJoined', () => {
       if (settled) return;
       settled = true;
-      clearTimeout(connectTimeout);
+      if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
       setIsConnectingVoice(false);
     });
     api.addListener('connectionFailed', () => {
       if (settled) return;
       settled = true;
-      clearTimeout(connectTimeout);
+      if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
       toast({ title: 'Could not connect to voice', description: 'The connection failed — check your network and try again.', variant: 'destructive' });
       disposeJitsi();
       setIsConnectingVoice(false);
@@ -1740,12 +1865,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         </div>
       );
     }
+    // whitespace-pre-wrap — without it, default white-space:normal collapsed
+    // real newlines (now easy to type since the composer became a
+    // multi-line Textarea with working Shift+Enter) into one run-on line
+    // for every viewer. The DB always stored them correctly; this was
+    // purely a display bug.
     return (
-      {/* whitespace-pre-wrap — without it, default white-space:normal
-          collapsed real newlines (now easy to type since the composer
-          became a multi-line Textarea with working Shift+Enter) into one
-          run-on line for every viewer. The DB always stored them correctly;
-          this was purely a display bug. */}
       <p className="text-[hsl(var(--discord-text))] break-words whitespace-pre-wrap leading-relaxed">
         {renderMessageContent(message.content)}
         {message.edited_at && (
@@ -2299,7 +2424,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                 </button>
                               )}
                             </div>
-                            <p className="text-xs text-[hsl(var(--discord-text))] break-words whitespace-pre-wrap line-clamp-3">{pm.content}</p>
+                            {/* Through renderMessageContent, not raw text —
+                                this was the one render path in the whole
+                                file that skipped it, so a pinned message
+                                containing an @mention showed the literal
+                                "@[Name](email)" markup instead of the
+                                highlighted pill every other view renders. */}
+                            <p className="text-xs text-[hsl(var(--discord-text))] break-words whitespace-pre-wrap line-clamp-3">{renderMessageContent(pm.content)}</p>
                           </div>
                         ))}
                       </div>
@@ -2448,8 +2579,31 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         </button>
                       </div>
                     )}
-                    {/* Welcome message */}
-                    {messages.length === 0 && (
+                    {/* Loading / error / genuinely-empty — these three used
+                        to render identically once a failure toast faded,
+                        showing an inviting "be the first to post!" message
+                        over a channel whose history just failed to load. */}
+                    {messages.length === 0 && isLoadingMessages && (
+                      <div className="flex justify-center py-16">
+                        <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--discord-text-muted))]" />
+                      </div>
+                    )}
+                    {messages.length === 0 && !isLoadingMessages && messagesLoadError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center py-16"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center mx-auto mb-4">
+                          <AlertTriangle className="w-8 h-8 text-destructive" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Couldn't load messages</h3>
+                        <p className="text-[hsl(var(--discord-text-muted))] max-w-md mx-auto">
+                          Switch to another channel and back, or refresh the page to try again.
+                        </p>
+                      </motion.div>
+                    )}
+                    {messages.length === 0 && !isLoadingMessages && !messagesLoadError && (
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -2487,6 +2641,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         return (
                           <motion.div
                             key={message.id}
+                            data-message-id={message.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             onMouseEnter={() => setHoveredMessage(message.id)}

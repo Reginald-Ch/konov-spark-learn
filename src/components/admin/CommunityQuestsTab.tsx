@@ -162,11 +162,11 @@ export const CommunityQuestsTab = () => {
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2">
             <label className="text-sm font-medium mb-1 block">Title</label>
-            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Say Hello" />
+            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Say Hello" maxLength={80} />
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm font-medium mb-1 block">Description</label>
-            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Post an introduction in #introductions" className="min-h-[60px]" />
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Post an introduction in #introductions" className="min-h-[60px]" maxLength={500} />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Quest Type</label>
@@ -200,12 +200,18 @@ export const CommunityQuestsTab = () => {
                 value={form.action_channel_name}
                 onChange={e => setForm(f => ({ ...f, action_channel_name: e.target.value }))}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                disabled={textChannels.length === 0}
               >
                 <option value="">Select a channel…</option>
                 {textChannels.map(c => (
                   <option key={c.id} value={c.name}>#{c.name}</option>
                 ))}
               </select>
+              {textChannels.length === 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  No text channels exist yet — create one in the Text Channels tab first.
+                </p>
+              )}
             </div>
           ) : (
             <div className="sm:col-span-2">
@@ -215,11 +221,11 @@ export const CommunityQuestsTab = () => {
           )}
           <div>
             <label className="text-sm font-medium mb-1 block">Badge Emoji</label>
-            <Input value={form.badge_emoji} onChange={e => setForm(f => ({ ...f, badge_emoji: e.target.value }))} placeholder="🏅" />
+            <Input value={form.badge_emoji} onChange={e => setForm(f => ({ ...f, badge_emoji: e.target.value }))} placeholder="🏅" maxLength={8} />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Badge Label</label>
-            <Input value={form.badge_label} onChange={e => setForm(f => ({ ...f, badge_label: e.target.value }))} placeholder="Greeter" />
+            <Input value={form.badge_label} onChange={e => setForm(f => ({ ...f, badge_label: e.target.value }))} placeholder="Greeter" maxLength={24} />
           </div>
         </div>
         <div className="flex items-center gap-2">

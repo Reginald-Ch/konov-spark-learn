@@ -965,6 +965,7 @@ Deno.serve(async (req) => {
         if (!email) throw new Error("participant_email is required");
         const minutes = Number(duration_minutes);
         if (!minutes || minutes <= 0) throw new Error("duration_minutes must be a positive number");
+        if (reason && reason.trim().length > 200) throw new Error("Reason must be 200 characters or fewer");
         const mutedUntil = new Date(Date.now() + minutes * 60_000).toISOString();
 
         const { error: muteErr } = await supabase
@@ -1095,6 +1096,14 @@ Deno.serve(async (req) => {
           throw new Error("chat_action quests need a target channel name");
         }
         if (!badge_emoji?.trim() || !badge_label?.trim()) throw new Error("Badge emoji and label are required");
+        if (title.trim().length > 80) throw new Error("Title must be 80 characters or fewer");
+        if (description.trim().length > 500) throw new Error("Description must be 500 characters or fewer");
+        // badge_emoji/badge_label render inline next to every message from
+        // every participant who earned them — unlike everything else here,
+        // an oversized value there doesn't just look bad in this admin
+        // panel, it visibly breaks message rows across the whole channel.
+        if (badge_emoji.trim().length > 8) throw new Error("Badge emoji must be 8 characters or fewer");
+        if (badge_label.trim().length > 24) throw new Error("Badge label must be 24 characters or fewer");
         const { data, error } = await supabase
           .from("community_quests")
           .insert({
@@ -1119,16 +1128,32 @@ Deno.serve(async (req) => {
         const { id, title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index, is_active } = payload;
         if (!id) throw new Error("id is required");
         const updates: Record<string, unknown> = {};
-        if (title !== undefined) { if (!title.trim()) throw new Error("Title cannot be empty"); updates.title = title.trim(); }
-        if (description !== undefined) { if (!description.trim()) throw new Error("Description cannot be empty"); updates.description = description.trim(); }
+        if (title !== undefined) {
+          if (!title.trim()) throw new Error("Title cannot be empty");
+          if (title.trim().length > 80) throw new Error("Title must be 80 characters or fewer");
+          updates.title = title.trim();
+        }
+        if (description !== undefined) {
+          if (!description.trim()) throw new Error("Description cannot be empty");
+          if (description.trim().length > 500) throw new Error("Description must be 500 characters or fewer");
+          updates.description = description.trim();
+        }
         if (quest_type !== undefined) {
           if (!["chat_action", "self_report"].includes(quest_type)) throw new Error("quest_type must be chat_action or self_report");
           updates.quest_type = quest_type;
         }
         if (action_channel_name !== undefined) updates.action_channel_name = action_channel_name?.trim() || null;
         if (action_url !== undefined) updates.action_url = action_url?.trim() || null;
-        if (badge_emoji !== undefined) { if (!badge_emoji.trim()) throw new Error("Badge emoji cannot be empty"); updates.badge_emoji = badge_emoji.trim(); }
-        if (badge_label !== undefined) { if (!badge_label.trim()) throw new Error("Badge label cannot be empty"); updates.badge_label = badge_label.trim(); }
+        if (badge_emoji !== undefined) {
+          if (!badge_emoji.trim()) throw new Error("Badge emoji cannot be empty");
+          if (badge_emoji.trim().length > 8) throw new Error("Badge emoji must be 8 characters or fewer");
+          updates.badge_emoji = badge_emoji.trim();
+        }
+        if (badge_label !== undefined) {
+          if (!badge_label.trim()) throw new Error("Badge label cannot be empty");
+          if (badge_label.trim().length > 24) throw new Error("Badge label must be 24 characters or fewer");
+          updates.badge_label = badge_label.trim();
+        }
         if (order_index !== undefined && Number.isFinite(order_index)) updates.order_index = order_index;
         if (is_active !== undefined) updates.is_active = !!is_active;
         if (Object.keys(updates).length === 0) throw new Error("No fields to update");
