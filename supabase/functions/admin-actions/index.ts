@@ -1111,8 +1111,8 @@ Deno.serve(async (req) => {
       case "create_community_quest": {
         const { title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index } = payload;
         if (!title?.trim() || !description?.trim()) throw new Error("Title and description are required");
-        if (!["chat_action", "self_report"].includes(quest_type)) {
-          throw new Error("quest_type must be chat_action or self_report");
+        if (!["chat_action", "self_report", "proof_upload"].includes(quest_type)) {
+          throw new Error("quest_type must be chat_action, self_report, or proof_upload");
         }
         if (quest_type === "chat_action" && !action_channel_name?.trim()) {
           throw new Error("chat_action quests need a target channel name");
@@ -1161,7 +1161,7 @@ Deno.serve(async (req) => {
           updates.description = description.trim();
         }
         if (quest_type !== undefined) {
-          if (!["chat_action", "self_report"].includes(quest_type)) throw new Error("quest_type must be chat_action or self_report");
+          if (!["chat_action", "self_report", "proof_upload"].includes(quest_type)) throw new Error("quest_type must be chat_action, self_report, or proof_upload");
           updates.quest_type = quest_type;
         }
         if (action_channel_name !== undefined) updates.action_channel_name = action_channel_name?.trim() || null;
@@ -1186,6 +1186,73 @@ Deno.serve(async (req) => {
           .select()
           .single();
         if (error) throw error;
+        return json({ ok: true, data });
+      }
+
+      // proof_upload quest completions land as 'pending' (see
+      // claim_community_quest) — this lists them for organizer review.
+      // proof_image lives in community_quest_proof_reviews, a separate
+      // table with no anon/authenticated access at all (only service_role,
+      // which this function uses) — deliberately not embedded via
+      // PostgREST's automatic FK-join syntax here, since that relies on
+      // the schema cache having already picked up this brand-new FK
+      // (exactly the class of staleness this session hit more than once);
+      // two plain queries merged in JS sidesteps that risk entirely.
+      case "list_pending_quest_proofs": {
+        const { data: completions, error } = await supabase
+          .from("community_quest_completions")
+          .select("id, quest_id, participant_email, participant_name, completed_at, community_quests(title, badge_emoji, badge_label)")
+          .eq("status", "pending")
+          .order("completed_at", { ascending: true });
+        if (error) throw error;
+        const ids = (completions || []).map((c: any) => c.id);
+        const proofsById: Record<string, string> = {};
+        if (ids.length > 0) {
+          const { data: proofs, error: proofErr } = await supabase
+            .from("community_quest_proof_reviews")
+            .select("completion_id, proof_image")
+            .in("completion_id", ids);
+          if (proofErr) throw proofErr;
+          (proofs || []).forEach((p: any) => { proofsById[p.completion_id] = p.proof_image; });
+        }
+        const merged = (completions || []).map((c: any) => ({ ...c, proof_image: proofsById[c.id] || null }));
+        return json({ ok: true, data: merged });
+      }
+
+      case "approve_quest_proof": {
+        const { completion_id } = payload;
+        if (!completion_id) throw new Error("completion_id is required");
+        const { data, error } = await supabase
+          .from("community_quest_completions")
+          .update({ status: "approved" })
+          .eq("id", completion_id)
+          .eq("status", "pending") // no-op if it was already reviewed/resubmitted since this list was fetched
+          .select()
+          .single();
+        if (error) throw error;
+        await supabase
+          .from("community_quest_proof_reviews")
+          .update({ reviewed_at: new Date().toISOString(), reviewed_by: "Organizer", rejection_reason: null })
+          .eq("completion_id", completion_id);
+        return json({ ok: true, data });
+      }
+
+      case "reject_quest_proof": {
+        const { completion_id, rejection_reason } = payload;
+        if (!completion_id) throw new Error("completion_id is required");
+        if (rejection_reason && rejection_reason.trim().length > 300) throw new Error("Reason must be 300 characters or fewer");
+        const { data, error } = await supabase
+          .from("community_quest_completions")
+          .update({ status: "rejected" })
+          .eq("id", completion_id)
+          .eq("status", "pending")
+          .select()
+          .single();
+        if (error) throw error;
+        await supabase
+          .from("community_quest_proof_reviews")
+          .update({ reviewed_at: new Date().toISOString(), reviewed_by: "Organizer", rejection_reason: rejection_reason?.trim() || null })
+          .eq("completion_id", completion_id);
         return json({ ok: true, data });
       }
 

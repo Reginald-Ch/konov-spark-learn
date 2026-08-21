@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Trophy, Loader2, Pencil, X, Check, EyeOff, Eye, AlertTriangle } from 'lucide-react';
+import { Trophy, Loader2, Pencil, X, Check, EyeOff, Eye, AlertTriangle, ImageIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Quest {
   id: string;
   title: string;
   description: string;
-  quest_type: 'chat_action' | 'self_report';
+  quest_type: 'chat_action' | 'self_report' | 'proof_upload';
   action_channel_name: string | null;
   action_url: string | null;
   badge_emoji: string;
@@ -20,10 +20,20 @@ interface Quest {
   is_active: boolean;
 }
 
+interface PendingProof {
+  id: string;
+  quest_id: string;
+  participant_email: string;
+  participant_name: string;
+  completed_at: string;
+  proof_image: string;
+  community_quests: { title: string; badge_emoji: string; badge_label: string } | null;
+}
+
 const emptyForm = {
   title: '',
   description: '',
-  quest_type: 'chat_action' as 'chat_action' | 'self_report',
+  quest_type: 'chat_action' as 'chat_action' | 'self_report' | 'proof_upload',
   action_channel_name: '',
   action_url: '',
   badge_emoji: '🏅',
@@ -53,6 +63,16 @@ export const CommunityQuestsTab = () => {
   // avoid.
   const [textChannels, setTextChannels] = useState<{ id: string; name: string }[]>([]);
 
+  // proof_upload submissions awaiting organizer review — separate loading
+  // lifecycle from the quest list above since they're fetched from a
+  // different action and can fail/refresh independently.
+  const [pendingProofs, setPendingProofs] = useState<PendingProof[]>([]);
+  const [isLoadingProofs, setIsLoadingProofs] = useState(true);
+  const [proofsLoadError, setProofsLoadError] = useState(false);
+  const [reviewingIds, setReviewingIds] = useState<Set<string>>(new Set());
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
   const fetchQuests = useCallback(async () => {
     setIsLoading(true);
     setLoadError(false);
@@ -67,13 +87,56 @@ export const CommunityQuestsTab = () => {
     }
   }, []);
 
+  const fetchPendingProofs = useCallback(async () => {
+    setIsLoadingProofs(true);
+    setProofsLoadError(false);
+    try {
+      const data = await callAdminAction<PendingProof[]>('list_pending_quest_proofs');
+      setPendingProofs(data || []);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load pending proof submissions');
+      setProofsLoadError(true);
+    } finally {
+      setIsLoadingProofs(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchQuests();
+    fetchPendingProofs();
     // community_channels has public SELECT (anon/authenticated) already —
     // no admin action needed just to read channel names for this dropdown.
     supabase.from('community_channels').select('id, name').eq('channel_type', 'text').order('name')
       .then(({ data }) => setTextChannels(data || []));
-  }, [fetchQuests]);
+  }, [fetchQuests, fetchPendingProofs]);
+
+  const handleApproveProof = async (proof: PendingProof) => {
+    setReviewingIds(prev => new Set(prev).add(proof.id));
+    try {
+      await callAdminAction('approve_quest_proof', { completion_id: proof.id });
+      toast.success(`Approved ${proof.participant_name}'s submission`);
+      setPendingProofs(prev => prev.filter(p => p.id !== proof.id));
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to approve');
+    } finally {
+      setReviewingIds(prev => { const next = new Set(prev); next.delete(proof.id); return next; });
+    }
+  };
+
+  const handleRejectProof = async (proof: PendingProof) => {
+    setReviewingIds(prev => new Set(prev).add(proof.id));
+    try {
+      await callAdminAction('reject_quest_proof', { completion_id: proof.id, rejection_reason: rejectReason.trim() || undefined });
+      toast.success(`Rejected ${proof.participant_name}'s submission`);
+      setPendingProofs(prev => prev.filter(p => p.id !== proof.id));
+      setRejectingId(null);
+      setRejectReason('');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to reject');
+    } finally {
+      setReviewingIds(prev => { const next = new Set(prev); next.delete(proof.id); return next; });
+    }
+  };
 
   const resetForm = () => { setForm(emptyForm); setEditingId(null); };
 
@@ -109,7 +172,9 @@ export const CommunityQuestsTab = () => {
     // in this form only changes which input is SHOWN, it never clears the
     // hidden one's own state, so without this a chat_action quest edited
     // into self_report (or vice versa) could save with both fields set,
-    // one of them stale from before the switch.
+    // one of them stale from before the switch. proof_upload needs
+    // neither — verification is the uploaded screenshot itself, not a
+    // channel post or a link.
     const payload = {
       ...form,
       action_channel_name: form.quest_type === 'chat_action' ? form.action_channel_name.trim() : null,
@@ -154,6 +219,8 @@ export const CommunityQuestsTab = () => {
           Quests earn participants a badge that shows next to their name in Community Chat. "chat_action" quests are
           verified live against real posts in the named channel — no one can fake a claim. "self_report" quests are
           honor-system (an optional link plus "I did this!") for anything that can't be checked automatically.
+          "proof_upload" quests (e.g. "Follow us on Instagram") need a screenshot, which you approve or reject below
+          before the badge is granted.
         </p>
       </div>
 
@@ -173,11 +240,12 @@ export const CommunityQuestsTab = () => {
             <select
               id="quest-type"
               value={form.quest_type}
-              onChange={e => setForm(f => ({ ...f, quest_type: e.target.value as 'chat_action' | 'self_report' }))}
+              onChange={e => setForm(f => ({ ...f, quest_type: e.target.value as 'chat_action' | 'self_report' | 'proof_upload' }))}
               className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="chat_action">chat_action — verified automatically</option>
               <option value="self_report">self_report — honor system</option>
+              <option value="proof_upload">proof_upload — screenshot + your review</option>
             </select>
           </div>
           <div>
@@ -215,10 +283,18 @@ export const CommunityQuestsTab = () => {
                 </p>
               )}
             </div>
-          ) : (
+          ) : form.quest_type === 'self_report' ? (
             <div className="sm:col-span-2">
               <label htmlFor="quest-url" className="text-sm font-medium mb-1 block">Link (optional)</label>
               <Input id="quest-url" value={form.action_url} onChange={e => setForm(f => ({ ...f, action_url: e.target.value }))} placeholder="https://..." />
+            </div>
+          ) : (
+            <div className="sm:col-span-2">
+              <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+                No target needed — the participant attaches a screenshot when they claim this quest, and it lands here
+                for you to approve or reject below. Use the description above to say exactly what the screenshot
+                should show.
+              </p>
             </div>
           )}
           <div>
@@ -243,6 +319,78 @@ export const CommunityQuestsTab = () => {
         </div>
       </div>
 
+      {/* proof_upload submissions land here as 'pending' the moment a
+          participant claims — nothing about them is visible/approved
+          anywhere else until an organizer acts on them here. */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-amber-500" /> Pending Proof Reviews
+          {pendingProofs.length > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">{pendingProofs.length}</span>
+          )}
+        </h3>
+        {isLoadingProofs ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : proofsLoadError ? (
+          <p className="text-sm text-destructive text-center py-6 flex items-center justify-center gap-1.5">
+            <AlertTriangle className="w-4 h-4" /> Couldn't load pending submissions — try refreshing this tab.
+          </p>
+        ) : pendingProofs.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Nothing waiting on review right now.</p>
+        ) : (
+          <div className="space-y-2">
+            {pendingProofs.map((proof) => (
+              <div key={proof.id} className="bg-card rounded-lg border p-4 flex flex-col sm:flex-row gap-3">
+                <img
+                  src={proof.proof_image}
+                  alt={`Proof submitted by ${proof.participant_name}`}
+                  className="w-full sm:w-40 h-40 object-cover rounded-md border flex-shrink-0 bg-muted"
+                />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      <span>{proof.community_quests?.badge_emoji}</span> {proof.community_quests?.title || 'Deleted quest'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{proof.participant_name} ({proof.participant_email})</p>
+                    <p className="text-[11px] text-muted-foreground">Submitted {new Date(proof.completed_at).toLocaleString()}</p>
+                  </div>
+                  {rejectingId === proof.id ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        placeholder="Why? (shown to the participant, optional)"
+                        maxLength={300}
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="destructive" onClick={() => handleRejectProof(proof)} disabled={reviewingIds.has(proof.id)}>
+                          {reviewingIds.has(proof.id) ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                          Confirm reject
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setRejectingId(null); setRejectReason(''); }} disabled={reviewingIds.has(proof.id)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => handleApproveProof(proof)} disabled={reviewingIds.has(proof.id)}>
+                        {reviewingIds.has(proof.id) ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5 mr-1" />}
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setRejectingId(proof.id)} disabled={reviewingIds.has(proof.id)}>
+                        <ThumbsDown className="w-3.5 h-3.5 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
       ) : (
@@ -257,7 +405,9 @@ export const CommunityQuestsTab = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">{q.description}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {q.quest_type === 'chat_action' ? `Verified: post in #${q.action_channel_name}` : 'Self-report'}
+                  {q.quest_type === 'chat_action' ? `Verified: post in #${q.action_channel_name}`
+                    : q.quest_type === 'proof_upload' ? 'Screenshot + your review'
+                    : 'Self-report'}
                 </p>
               </div>
               <div className="flex items-center gap-2">

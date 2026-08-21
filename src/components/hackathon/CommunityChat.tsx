@@ -58,7 +58,7 @@ interface Quest {
   id: string;
   title: string;
   description: string;
-  quest_type: 'chat_action' | 'self_report';
+  quest_type: 'chat_action' | 'self_report' | 'proof_upload';
   action_channel_name: string | null;
   action_url: string | null;
   badge_emoji: string;
@@ -205,7 +205,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // "No quests available right now" a hackathon with zero quests would.
   const [questsLoading, setQuestsLoading] = useState(true);
   const [questsError, setQuestsError] = useState(false);
-  const [completedQuestIds, setCompletedQuestIds] = useState<Set<string>>(new Set());
+  // Replaced the old plain Set<questId> — proof_upload quests need a
+  // richer per-quest state than a binary "done or not" (pending awaiting
+  // review, approved, or rejected-with-a-reason-to-show), and chat_action/
+  // self_report quests just always land as 'approved' immediately, so this
+  // is a strict superset of what the old Set tracked.
+  const [myQuestStatus, setMyQuestStatus] = useState<Record<string, { status: 'pending' | 'approved' | 'rejected'; rejection_reason: string | null }>>({});
+  // Hidden file input shared by every proof_upload quest card — which
+  // quest the next file selection is FOR is tracked separately rather than
+  // one input per card, since only one upload can be in flight at a time
+  // anyway.
+  const proofFileInputRef = useRef<HTMLInputElement>(null);
+  const [proofUploadQuestId, setProofUploadQuestId] = useState<string | null>(null);
   const [badgesByEmail, setBadgesByEmail] = useState<Record<string, Badge[]>>({});
   const [staffByEmail, setStaffByEmail] = useState<Record<string, StaffInfo>>({});
   // Bearer token from redeeming a one-time staff invite link — kept in
@@ -822,7 +833,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // completionRows is unscoped (every completion, every participant) —
     // fine for badgesByEmail (display-only, and this app is hackathon-
     // scale, not thousands of rows), but PostgREST's default row cap means
-    // it can silently truncate. completedQuestIds derived from that same
+    // it can silently truncate. myQuestStatus derived from that same
     // truncated set is a real bug, not just cosmetic: past the cap, an
     // already-earned quest reads as unclaimed in the Quests panel, and
     // clicking it returns `ok: true, 'Already claimed'` — a success toast
@@ -837,8 +848,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // created_at as a tie-breaker keeps ordering stable across reloads
       // even when order_index collides.
       supabase.from('community_quests').select('*').eq('is_active', true).order('order_index').order('created_at'),
-      supabase.from('community_quest_completions').select('participant_email, quest_id, community_quests(badge_emoji, badge_label)'),
-      email ? supabase.from('community_quest_completions').select('quest_id').eq('participant_email', email) : Promise.resolve({ data: null }),
+      // status='approved' only — proof_upload completions land as
+      // 'pending' and must NOT grant the visible badge until an organizer
+      // actually reviews the screenshot.
+      supabase.from('community_quest_completions').select('participant_email, quest_id, community_quests(badge_emoji, badge_label)').eq('status', 'approved'),
+      // Via RPC, not a direct table select — this needs rejection_reason
+      // too now (so a participant can see why a proof was rejected before
+      // resubmitting), and that column's public SELECT grant was
+      // deliberately revoked (see the proof_upload migration) since it's
+      // organizer feedback, not a public broadcast. get_my_quest_status
+      // scopes it to the caller's own rows only, same pattern as the
+      // pre-existing get_my_mute_status.
+      email ? supabase.rpc('get_my_quest_status', { p_participant_email: email }) : Promise.resolve({ data: null }),
     ]);
 
     if (questRows) {
@@ -858,10 +879,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       });
       setBadgesByEmail(badgeMap);
     }
-    setCompletedQuestIds(new Set((myRows as any[] | null)?.map(r => r.quest_id) || []));
+    const statusMap: Record<string, { status: 'pending' | 'approved' | 'rejected'; rejection_reason: string | null }> = {};
+    (myRows as any[] | null)?.forEach((r) => { statusMap[r.quest_id] = { status: r.status, rejection_reason: r.rejection_reason }; });
+    setMyQuestStatus(statusMap);
   };
 
-  const handleClaimQuest = async (quest: Quest) => {
+  const handleClaimQuest = async (quest: Quest, proofImage?: string) => {
     if (!userEmail.trim() || !userName.trim()) {
       toast({ title: 'Join first', description: 'Enter your name and email to claim quests.', variant: 'destructive' });
       return;
@@ -876,12 +899,21 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
         p_participant_name: userName,
         p_quest_id: quest.id,
         p_device_token: deviceToken || null,
+        p_proof_image: proofImage || null,
       });
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
       if (result?.new_device_token) setDeviceToken(result.new_device_token);
       if (result?.ok) {
-        toast({ title: `${result.badge_emoji || '🏅'} ${result.message}`, description: result.badge_label ? `You earned the "${result.badge_label}" badge!` : undefined });
+        // proof_upload lands as 'pending' (no badge yet, nothing to claim
+        // credit for until an organizer reviews the screenshot) — distinct
+        // toast, no badge_emoji/badge_label on this path since the RPC
+        // deliberately doesn't return them until approval.
+        if (result.status === 'pending') {
+          toast({ title: '📤 Submitted for review', description: result.message });
+        } else {
+          toast({ title: `${result.badge_emoji || '🏅'} ${result.message}`, description: result.badge_label ? `You earned the "${result.badge_label}" badge!` : undefined });
+        }
         await fetchQuestsAndBadges();
       } else {
         toast({ title: 'Not yet', description: result?.message || 'Could not claim this quest.', variant: 'destructive' });
@@ -891,6 +923,38 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     } finally {
       setClaimingQuestId(null);
     }
+  };
+
+  // Triggered by the hidden file input below the quest list — validation
+  // mirrors ProjectEditor's one existing image-upload precedent in this app
+  // (MIME-type allowlist + a hard size cap), scaled up since a screenshot
+  // naturally runs larger than a logo. No Supabase Storage bucket exists in
+  // this app; base64-into-a-TEXT-column (same as ProjectEditor's logo
+  // field) is the established pattern here, not a new one invented for
+  // this feature.
+  const handleProofFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const quest = quests.find(q => q.id === proofUploadQuestId);
+    setProofUploadQuestId(null);
+    if (!file || !quest) return;
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)) {
+      toast({ title: 'Unsupported file', description: 'Please upload a PNG, JPG, GIF, or WEBP screenshot.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast({ title: 'Screenshot too large', description: 'Please upload an image under 1.5MB.', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      handleClaimQuest(quest, dataUrl);
+    };
+    reader.onerror = () => {
+      toast({ title: 'Could not read that file', description: 'Try a different image.', variant: 'destructive' });
+    };
+    reader.readAsDataURL(file);
   };
 
   // Used to be one-directional — subscribing disabled the button for good,
@@ -2426,9 +2490,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         <p className="text-xs text-[hsl(var(--discord-text-muted))] text-center py-8">No quests available right now.</p>
                       )}
                       {quests.map((quest) => {
-                        const done = completedQuestIds.has(quest.id);
+                        const myStatus = myQuestStatus[quest.id];
+                        const done = myStatus?.status === 'approved';
+                        const pending = myStatus?.status === 'pending';
+                        const rejected = myStatus?.status === 'rejected';
                         return (
-                          <div key={quest.id} className={`rounded-lg p-3 border ${done ? 'bg-[hsl(var(--discord-green)/0.1)] border-[hsl(var(--discord-green)/0.3)]' : 'bg-[hsl(var(--discord-light)/0.08)] border-[hsl(var(--discord-light)/0.2)]'}`}>
+                          <div key={quest.id} className={`rounded-lg p-3 border ${
+                            done ? 'bg-[hsl(var(--discord-green)/0.1)] border-[hsl(var(--discord-green)/0.3)]'
+                            : pending ? 'bg-[hsl(var(--discord-yellow)/0.08)] border-[hsl(var(--discord-yellow)/0.25)]'
+                            : rejected ? 'bg-[hsl(var(--discord-red)/0.08)] border-[hsl(var(--discord-red)/0.25)]'
+                            : 'bg-[hsl(var(--discord-light)/0.08)] border-[hsl(var(--discord-light)/0.2)]'
+                          }`}>
                             <div className="flex items-start gap-2">
                               <span className="text-xl leading-none">{quest.badge_emoji}</span>
                               <div className="flex-1 min-w-0">
@@ -2448,12 +2520,21 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                     Post in #{quest.action_channel_name} to complete this
                                   </p>
                                 )}
+                                {rejected && (
+                                  <p className="text-[11px] text-[hsl(var(--discord-red))] mt-0.5">
+                                    Not approved{myStatus?.rejection_reason ? `: ${myStatus.rejection_reason}` : ''} — try uploading a clearer screenshot.
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="mt-2 flex items-center gap-2">
                               {done ? (
                                 <span className="text-[11px] font-bold text-[hsl(var(--discord-green))] flex items-center gap-1">
                                   <Check className="w-3.5 h-3.5" /> {quest.badge_label} earned
+                                </span>
+                              ) : pending ? (
+                                <span className="text-[11px] font-bold text-[hsl(var(--discord-yellow))] flex items-center gap-1">
+                                  <Loader2 className="w-3.5 h-3.5" /> Waiting for organizer review
                                 </span>
                               ) : (
                                 <>
@@ -2466,12 +2547,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                   )}
                                   <Button
                                     size="sm"
-                                    onClick={() => handleClaimQuest(quest)}
+                                    onClick={() => {
+                                      if (quest.quest_type === 'proof_upload') {
+                                        setProofUploadQuestId(quest.id);
+                                        proofFileInputRef.current?.click();
+                                      } else {
+                                        handleClaimQuest(quest);
+                                      }
+                                    }}
                                     disabled={claimingQuestId === quest.id}
-                                    aria-label={`Claim quest: ${quest.title}`}
+                                    aria-label={quest.quest_type === 'proof_upload' ? `Upload proof for ${quest.title}` : `Claim quest: ${quest.title}`}
                                     className="h-7 text-[11px] ml-auto"
                                   >
-                                    {claimingQuestId === quest.id ? 'Checking...' : quest.quest_type === 'chat_action' ? "I've done this" : "I did this!"}
+                                    {claimingQuestId === quest.id
+                                      ? 'Uploading...'
+                                      : quest.quest_type === 'chat_action' ? "I've done this"
+                                      : quest.quest_type === 'proof_upload' ? (rejected ? 'Try again' : 'Upload screenshot')
+                                      : "I did this!"}
                                   </Button>
                                 </>
                               )}
@@ -2481,6 +2573,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       })}
                     </div>
                   </ScrollArea>
+                  {/* Shared by every proof_upload quest card — see
+                      handleProofFileSelected/proofUploadQuestId. */}
+                  <input
+                    ref={proofFileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    className="hidden"
+                    onChange={handleProofFileSelected}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
