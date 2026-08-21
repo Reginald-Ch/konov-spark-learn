@@ -1911,6 +1911,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const target = channel ?? activeChannel;
     if (!target) return;
 
+    // Set synchronously, before the RPC call — voicePresenceRef is
+    // otherwise only kept in sync by a separate effect that flushes AFTER
+    // isInVoice's setState below actually commits. The cross-tab-eviction
+    // check in fetchAllVoiceParticipants reads this ref the instant any
+    // realtime change lands, including the DELETE this very call is about
+    // to cause — without updating it here first, a normal, intentional
+    // Disconnect (or a channel switch) could race that realtime echo and
+    // show a confusing "disconnected from another device" toast for a
+    // disconnect the user just triggered themselves.
+    voicePresenceRef.current = { ...voicePresenceRef.current, inVoice: false };
     disposeJitsi();
     // leave_voice_room now returns (ok, message) instead of RETURNS VOID —
     // it used to do a bare, no-error RETURN on a device-token mismatch
