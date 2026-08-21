@@ -36,7 +36,14 @@ export function usePushNotifications() {
       try {
         const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
         const existing = await registration?.pushManager.getSubscription();
-        if (!cancelled && existing) setIsSubscribed(true);
+        // A pushManager subscription object can outlive the user actually
+        // revoking notification permission through the browser's own UI
+        // (out-of-band, not through this app) — Notification.permission
+        // flips to "denied" immediately either way, even when the
+        // subscription object itself isn't cleaned up right away. Without
+        // this check, the bell kept showing "on" with nothing able to
+        // actually arrive.
+        if (!cancelled && existing && Notification.permission === "granted") setIsSubscribed(true);
       } catch {
         // No existing registration/subscription — leave isSubscribed false.
       }
@@ -88,6 +95,15 @@ export function usePushNotifications() {
         return false;
       }
 
+      // Fallback identity for unsubscribe() below, for the case where the
+      // browser has already dropped the local pushManager subscription
+      // object by the time someone clicks "turn off" — without a stored
+      // endpoint there's no way to know which push_subscriptions row to
+      // delete, so unsubscribing showed a success toast while silently
+      // leaving the stale row (and the real subscription, if the browser
+      // hadn't actually dropped it) behind.
+      localStorage.setItem("forge-push-endpoint", subJson.endpoint!);
+
       setIsSubscribed(true);
       setIsSubscribing(false);
       return true;
@@ -109,7 +125,16 @@ export function usePushNotifications() {
         const endpoint = existing.endpoint;
         await existing.unsubscribe();
         await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+      } else {
+        // Browser already auto-unsubscribed (permission revoked out of
+        // band, or the subscription simply expired) — nothing to unsubscribe
+        // locally, but the DB row can still be stale. Fall back to the
+        // endpoint stored at subscribe time so it actually gets cleaned up
+        // instead of a success toast over a silently-orphaned row.
+        const storedEndpoint = localStorage.getItem("forge-push-endpoint");
+        if (storedEndpoint) await supabase.from("push_subscriptions").delete().eq("endpoint", storedEndpoint);
       }
+      localStorage.removeItem("forge-push-endpoint");
       setIsSubscribed(false);
       return true;
     } catch (err) {

@@ -144,20 +144,20 @@ export const CommunityStaffTab = () => {
       <div className="bg-card rounded-lg border p-4 space-y-3">
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium mb-1 block">Email (used to join community chat)</label>
-            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="sarah@forge.com" />
+            <label htmlFor="staff-email" className="text-sm font-medium mb-1 block">Email (used to join community chat)</label>
+            <Input id="staff-email" value={email} onChange={e => setEmail(e.target.value)} placeholder="sarah@forge.com" />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Display Name</label>
-            <Input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Sarah" />
+            <label htmlFor="staff-display-name" className="text-sm font-medium mb-1 block">Display Name</label>
+            <Input id="staff-display-name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Sarah" />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Role Label</label>
-            <Input value={roleLabel} onChange={e => setRoleLabel(e.target.value)} placeholder="Community Manager" />
+            <label htmlFor="staff-role-label" className="text-sm font-medium mb-1 block">Role Label</label>
+            <Input id="staff-role-label" value={roleLabel} onChange={e => setRoleLabel(e.target.value)} placeholder="Community Manager" />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Badge Emoji</label>
-            <Input value={badgeEmoji} onChange={e => setBadgeEmoji(e.target.value)} placeholder="👑" />
+            <label htmlFor="staff-badge-emoji" className="text-sm font-medium mb-1 block">Badge Emoji</label>
+            <Input id="staff-badge-emoji" value={badgeEmoji} onChange={e => setBadgeEmoji(e.target.value)} placeholder="👑" />
           </div>
         </div>
         <Button onClick={handleAdd} disabled={saving} className="w-full sm:w-auto">

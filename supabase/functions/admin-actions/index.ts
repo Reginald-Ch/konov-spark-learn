@@ -871,6 +871,11 @@ Deno.serve(async (req) => {
       case "post_community_announcement": {
         const { channel_name, sender_name, content } = payload;
         if (!channel_name || !content?.trim()) throw new Error("channel_name and content are required");
+        // Every other send path (send_community_message, send_staff_message,
+        // edit_own_community_message) caps at 4000 server-side; this one
+        // never did — only the client composer's maxLength enforced it, so
+        // a direct call to this action could insert an unbounded message.
+        if (content.trim().length > 4000) throw new Error("Announcement is too long (4000 character limit)");
         const { data: channel, error: chErr } = await supabase
           .from("community_channels")
           .select("id, channel_type")
@@ -906,6 +911,23 @@ Deno.serve(async (req) => {
           });
         } catch (e) {
           console.error("community announcement push trigger failed:", e);
+        }
+
+        // The regular and staff send paths both scan for @[Name](email)
+        // markup and notify that specific person — this branch never did,
+        // so an organizer @mentioning someone in an announcement got a
+        // correctly-rendered pill but that person was never actually
+        // pushed a notification, arguably the case this matters most for.
+        if (/@\[[^\]]+\]\([^)]+\)/.test(content)) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/notify-mention`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+              body: JSON.stringify({ message_id: msg.id }),
+            });
+          } catch (e) {
+            console.error("announcement mention notify failed:", e);
+          }
         }
 
         return json({ ok: true, data: msg });

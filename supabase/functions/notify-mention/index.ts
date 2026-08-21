@@ -27,15 +27,23 @@ Deno.serve(async (req) => {
 
     const { data: message, error } = await supabase
       .from("community_messages")
-      .select("id, content, sender_name, sender_email, created_at, community_channels(name)")
+      .select("id, content, sender_name, sender_email, created_at, edited_at, community_channels(name)")
       .eq("id", message_id)
       .maybeSingle();
     if (error || !message) throw new Error("Message not found");
 
-    // Only ever act on a message from the last couple of minutes — closes
-    // off replaying the same message_id over and over to re-spam whoever
-    // it mentions long after the fact.
-    const ageMs = Date.now() - new Date(message.created_at).getTime();
+    // Only ever act on a message sent/edited in the last couple of minutes
+    // — closes off replaying the same message_id over and over to re-spam
+    // whoever it mentions long after the fact. Checking edited_at too
+    // (not just created_at) matters now that editing a message to ADD a
+    // mention also calls this — without it, editing an older message to
+    // mention someone would always fail this freshness check and silently
+    // never notify, even though the edit itself is a genuine, ownership-
+    // gated action, not a free replay of an old message_id.
+    const referenceTime = message.edited_at && new Date(message.edited_at) > new Date(message.created_at)
+      ? message.edited_at
+      : message.created_at;
+    const ageMs = Date.now() - new Date(referenceTime).getTime();
     if (ageMs > 2 * 60 * 1000) {
       return new Response(JSON.stringify({ ok: true, notified: 0, reason: "message too old" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

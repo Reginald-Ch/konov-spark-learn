@@ -198,6 +198,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showQuests, setShowQuests] = useState(false);
   const [quests, setQuests] = useState<Quest[]>([]);
+  // The messages list and the admin quest tab both got a real 3-way
+  // loading/error/empty distinction; this panel never did — it only ever
+  // checked quests.length === 0, so a panel opened before the first fetch
+  // resolves (or one whose fetch genuinely failed) showed the identical
+  // "No quests available right now" a hackathon with zero quests would.
+  const [questsLoading, setQuestsLoading] = useState(true);
+  const [questsError, setQuestsError] = useState(false);
   const [completedQuestIds, setCompletedQuestIds] = useState<Set<string>>(new Set());
   const [badgesByEmail, setBadgesByEmail] = useState<Record<string, Badge[]>>({});
   const [staffByEmail, setStaffByEmail] = useState<Record<string, StaffInfo>>({});
@@ -447,6 +454,33 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       })
       .subscribe();
     return () => { supabase.removeChannel(questChannel); };
+  }, []);
+
+  // community_channels and community_staff were both fetch-once-on-mount
+  // with no realtime subscription at all — an organizer creating a channel
+  // (handleCreateChannel already refetches, but only for the creator) or
+  // adding/removing someone from staff was invisible to every OTHER
+  // already-open tab until a manual reload. Both tables are small and
+  // low-frequency (organizer actions, not participant chat volume), so one
+  // broad refetch-on-any-change subscription each is a simple, safe fix —
+  // same reasoning as the quest subscription above.
+  useEffect(() => {
+    const channelsChannel = supabase
+      .channel('community-channels-global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_channels' }, () => {
+        fetchChannels();
+      })
+      .subscribe();
+    const staffChannel = supabase
+      .channel('community-staff-global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_staff' }, () => {
+        fetchStaffList();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channelsChannel);
+      supabase.removeChannel(staffChannel);
+    };
   }, []);
 
   // Enforcement is server-side (RLS blocks the insert regardless), but
@@ -760,9 +794,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     if (!error && data) {
       const channelData = data as unknown as Channel[];
       setChannels(channelData);
-      const defaultChannel = channelData.find(c => c.is_default && c.channel_type === 'text');
-      if (defaultChannel) {
-        setActiveChannel(defaultChannel);
+      // Only auto-select the default on a genuine first load (nothing
+      // active yet) — activeChannelIdRef, not the activeChannel state
+      // closure, since this now also runs from a realtime subscription
+      // whose closure is fixed at mount and would otherwise always see a
+      // stale null here. Guarding on it matters now that fetchChannels can
+      // also fire from ANY other participant's channel create/edit: without
+      // this, every already-open tab would get yanked back to the default
+      // channel mid-conversation every time an organizer touched channels.
+      if (!activeChannelIdRef.current) {
+        const defaultChannel = channelData.find(c => c.is_default && c.channel_type === 'text');
+        if (defaultChannel) setActiveChannel(defaultChannel);
       }
     } else if (error) {
       // The channel list rarely fails (mostly static), but a silent
@@ -775,6 +817,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
   const fetchQuestsAndBadges = async (emailOverride?: string) => {
     const email = emailOverride ?? userEmail;
+    setQuestsLoading(true);
+    setQuestsError(false);
     // completionRows is unscoped (every completion, every participant) —
     // fine for badgesByEmail (display-only, and this app is hackathon-
     // scale, not thousands of rows), but PostgREST's default row cap means
@@ -786,7 +830,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // caller's own completions as a SEPARATE, always-scoped query
     // guarantees this one specific case (mine) is never wrong regardless
     // of how large the table gets, independent of the display-only query.
-    const [{ data: questRows }, { data: completionRows }, { data: myRows }] = await Promise.all([
+    const [{ data: questRows, error: questErr }, { data: completionRows }, { data: myRows }] = await Promise.all([
       // order_index has no UNIQUE constraint — two quests sharing a value
       // sorted in Postgres's unstable tie order (which can shift after any
       // row UPDATE) with no secondary key to break the tie consistently.
@@ -797,7 +841,12 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       email ? supabase.from('community_quest_completions').select('quest_id').eq('participant_email', email) : Promise.resolve({ data: null }),
     ]);
 
-    if (questRows) setQuests(questRows as unknown as Quest[]);
+    if (questRows) {
+      setQuests(questRows as unknown as Quest[]);
+    } else if (questErr) {
+      setQuestsError(true);
+    }
+    setQuestsLoading(false);
 
     if (completionRows) {
       const badgeMap: Record<string, Badge[]> = {};
@@ -992,8 +1041,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const handleJoin = () => {
     if (!userName.trim() || !userEmail.trim()) {
       toast({
-        title: 'Required',
-        description: 'Please enter your name and email to join.',
+        title: 'Join first',
+        description: 'Enter your name and email to join the community.',
         variant: 'destructive',
       });
       return;
@@ -1005,8 +1054,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const cleanName = userName.trim();
     setUserName(cleanName);
     setUserEmail(cleanEmail);
-    localStorage.setItem('forge-student-name', cleanName);
-    localStorage.setItem('forge-student-email', cleanEmail);
+    // Every other mutating action in this file wraps its outcome in a
+    // try/catch + toast; this one didn't. A localStorage write can throw
+    // (Safari private-mode quota, storage blocked by browser settings) —
+    // without a catch, that stops execution before setIsJoined(true),
+    // leaving someone stuck on the join screen with no error shown and a
+    // retry that would just fail identically every time.
+    try {
+      localStorage.setItem('forge-student-name', cleanName);
+      localStorage.setItem('forge-student-email', cleanEmail);
+    } catch (e) {
+      console.error('Failed to persist join info to localStorage:', e);
+      toast({
+        title: 'Could not save your info',
+        description: "Your browser is blocking local storage, so you'll need to rejoin next visit — you can still chat now.",
+        variant: 'destructive',
+      });
+    }
     setIsJoined(true);
     fetchQuestsAndBadges(cleanEmail);
   };
@@ -1165,11 +1229,28 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     const result = Array.isArray(data) ? data[0] : data;
 
     if (error || !result?.ok) {
-      toast({
-        title: 'Could not send',
-        description: result?.message || error?.message || 'Failed to send message.',
-        variant: 'destructive',
-      });
+      // community_staff only gets fetched once on mount/join — if an
+      // organizer adds this email as staff while this tab is already open,
+      // isStaffEmail stays stale/false, this branch keeps getting chosen
+      // instead of the staff-send one, and the server (correctly) rejects
+      // every attempt with this exact message forever, with nothing here
+      // ever re-fetching to notice the promotion. Refetching on this
+      // specific rejection lets the very next send attempt route correctly
+      // instead of requiring a manual page reload to un-stick.
+      if (result?.message === 'This email belongs to a staff account — use your staff invite link to chat') {
+        fetchStaffList();
+        toast({
+          title: "You're now community staff",
+          description: 'Open your staff invite link (ask your organizer to resend it) to unlock chatting with your badge.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Could not send',
+          description: result?.message || error?.message || 'Failed to send message.',
+          variant: 'destructive',
+        });
+      }
     } else {
       // Only set on this browser's first-ever send as this email — the RPC
       // omits it on every later call once the identity is already claimed.
@@ -1278,7 +1359,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // party content forgery inside something they never typed, worse on a
     // platform where that message might carry a staff badge.
     const safeName = candidate.name.replace(/[\]\)\r\n]/g, '').trim() || 'user';
-    const replaced = beforeCursor.replace(/(?:^|\s)@(\w*)$/, (m) => `${m[0] === '@' ? '' : m[0]}@[${safeName}](${candidate.email}) `);
+    // Same \p{L}/\p{N} fix as the detection regex above (handleMessageInputChange)
+    // — this one was missed when that fix went in. It stayed ASCII-only
+    // (\w*), so selecting a candidate while the just-typed query contained
+    // any non-ASCII letter (e.g. "@José") silently no-op'd: the string
+    // came back unchanged, no @[Name](email) markup was ever inserted, and
+    // that person was never notified — the detection side got fixed, this
+    // replace side didn't.
+    const replaced = beforeCursor.replace(/(?:^|\s)@([\p{L}\p{N}_]*)$/u, (m) => `${m[0] === '@' ? '' : m[0]}@[${safeName}](${candidate.email}) `);
     setNewMessage(replaced + afterCursor);
     setMentionQuery(null);
     inputRef.current?.focus();
@@ -1393,6 +1481,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // Realtime UPDATE will also land, but this keeps the editor's own view
     // snappy instead of waiting on the round trip back through Realtime.
     setMessages(prev => prev.map(m => (m.id === editingMessageId ? { ...m, content: result?.content ?? editingContent.trim(), edited_at: result?.edited_at ?? new Date().toISOString() } : m)));
+    // All three send paths (regular/staff/announcement) scan for a new
+    // @[Name](email) and notify — editing a message to ADD a mention never
+    // did, so someone mentioned only via an edit was silently never told.
+    if (/@\[[^\]]+\]\([^)]+\)/.test(editingContent.trim())) {
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-mention`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ message_id: editingMessageId }),
+      }).catch(() => {});
+    }
     setEditingMessageId(null);
     setEditingContent('');
   };
@@ -1421,7 +1519,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       await callAdminAction('delete_community_message', { message_id: messageId });
       setMessages(prev => prev.filter(m => m.id !== messageId));
     } catch (e: any) {
-      toast({ title: 'Could not delete', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not delete', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setDeletingAnyMessageId(null);
     }
@@ -1445,7 +1543,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       setMutingMessage(null);
       setMuteReason('');
     } catch (e: any) {
-      toast({ title: 'Could not mute', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not mute', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setIsMuting(false);
     }
@@ -1461,7 +1559,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // "muted" entry for someone who can post again.
       setMutedUsersList((data || []).filter(m => new Date(m.muted_until) > new Date()));
     } catch (e: any) {
-      toast({ title: 'Could not load muted users', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not load muted users', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setLoadingMutedUsers(false);
     }
@@ -1474,7 +1572,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       setMutedUsersList(prev => prev.filter(m => m.participant_email !== email));
       toast({ title: `Unmuted ${email}` });
     } catch (e: any) {
-      toast({ title: 'Could not unmute', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not unmute', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setUnmutingEmail(null);
     }
@@ -1494,7 +1592,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // instead of waiting on the round trip back through it.
       setPinnedMessages(prev => (merged.pinned_at ? [merged, ...prev.filter(m => m.id !== merged.id)] : prev.filter(m => m.id !== merged.id)));
     } catch (e: any) {
-      toast({ title: 'Could not update pin', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not update pin', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setPinningMessageId(null);
     }
@@ -1753,7 +1851,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       setNewChannelDescription('');
       fetchChannels();
     } catch (e: any) {
-      toast({ title: 'Could not create channel', description: e.message || 'Something went wrong.', variant: 'destructive' });
+      toast({ title: 'Could not create channel', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setIsCreatingChannel(false);
     }
@@ -1919,8 +2017,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
           <div className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Display Name</label>
+              <label htmlFor="community-join-name" className="text-sm font-medium text-[hsl(var(--discord-text))]">Display Name</label>
               <Input
+                id="community-join-name"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
@@ -1929,8 +2028,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Email Address</label>
+              <label htmlFor="community-join-email" className="text-sm font-medium text-[hsl(var(--discord-text))]">Email Address</label>
               <Input
+                id="community-join-email"
                 type="email"
                 value={userEmail}
                 onChange={(e) => setUserEmail(e.target.value)}
@@ -1990,8 +2090,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
           <div className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Username</label>
+              <label htmlFor="community-profile-username" className="text-sm font-medium text-[hsl(var(--discord-text))]">Username</label>
               <Input
+                id="community-profile-username"
                 value={profileUsernameInput}
                 onChange={(e) => setProfileUsernameInput(e.target.value)}
                 placeholder="3-20 letters, numbers, underscores"
@@ -2000,8 +2101,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[hsl(var(--discord-text))]">Avatar</label>
-              <div className="grid grid-cols-6 gap-2">
+              <span className="text-sm font-medium text-[hsl(var(--discord-text))]" id="community-profile-avatar-label">Avatar</span>
+              <div className="grid grid-cols-6 gap-2" role="group" aria-labelledby="community-profile-avatar-label">
                 {PROFILE_AVATAR_OPTIONS.map((seed) => (
                   <button
                     key={seed}
@@ -2086,7 +2187,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       <button
                         onClick={() => setCreateChannelType('text')}
                         title="Create text channel" aria-label="Create text channel"
-                        className="text-[hsl(var(--discord-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                        // opacity-100 on mobile (no md: prefix) — hover has no
+                        // touch equivalent, so a purely hover-gated button was
+                        // technically tappable but invisible/undiscoverable on
+                        // a touchscreen. md:opacity-0 restores the clean
+                        // hover-to-reveal behavior on desktop, and
+                        // group-focus-within covers keyboard users tabbing to it.
+                        className="text-[hsl(var(--discord-text-muted))] opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity hover:text-white"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -2123,7 +2230,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       <button
                         onClick={() => setCreateChannelType('voice')}
                         title="Create voice channel" aria-label="Create voice channel"
-                        className="text-[hsl(var(--discord-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"
+                        // opacity-100 on mobile (no md: prefix) — hover has no
+                        // touch equivalent, so a purely hover-gated button was
+                        // technically tappable but invisible/undiscoverable on
+                        // a touchscreen. md:opacity-0 restores the clean
+                        // hover-to-reveal behavior on desktop, and
+                        // group-focus-within covers keyboard users tabbing to it.
+                        className="text-[hsl(var(--discord-text-muted))] opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity hover:text-white"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -2299,7 +2412,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="p-3 space-y-2">
-                      {quests.length === 0 && (
+                      {quests.length === 0 && questsLoading && (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="w-5 h-5 animate-spin text-[hsl(var(--discord-text-muted))]" />
+                        </div>
+                      )}
+                      {quests.length === 0 && !questsLoading && questsError && (
+                        <p className="text-xs text-[hsl(var(--discord-red))] text-center py-8 flex items-center justify-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5" /> Couldn't load quests — try reopening this panel.
+                        </p>
+                      )}
+                      {quests.length === 0 && !questsLoading && !questsError && (
                         <p className="text-xs text-[hsl(var(--discord-text-muted))] text-center py-8">No quests available right now.</p>
                       )}
                       {quests.map((quest) => {
@@ -2888,7 +3011,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                       </button>
                                       {!isOwnEditableMessage && (
                                         <>
-                                          {activeChannel?.channel_type !== 'announcement' && (
+                                          {/* Muting only ever blocked send_community_message —
+                                              send_staff_message has never checked
+                                              community_muted_users (a verified staff
+                                              credential carries its own accountability).
+                                              The button previously still rendered and
+                                              "succeeded" for a staff-authored message,
+                                              giving the organizer a false "Muted {name}"
+                                              toast while that person kept posting
+                                              immediately through their staff path. */}
+                                          {activeChannel?.channel_type !== 'announcement' && !staffByEmail[message.sender_email] && (
                                             <button
                                               onClick={() => setMutingMessage(message)}
                                               title={`Mute ${message.sender_name}`} aria-label={`Mute ${message.sender_name}`}
@@ -2937,7 +3069,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                     reason, when they gave one) beats a teen having to infer
                     the reason entirely on their own from a countdown. */}
                 {isCurrentlyMuted && !isStaffEmail && (
-                  <div className="mx-4 mb-2 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-xs text-red-300">
+                  <div className="mx-4 mb-2 flex items-start gap-2 rounded-lg bg-[hsl(var(--discord-red)/0.1)] border border-[hsl(var(--discord-red)/0.25)] px-3 py-2 text-xs text-[hsl(var(--discord-red))]">
                     <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     <span>
                       You're muted until {new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
@@ -2972,10 +3104,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         literal character, with no way to address someone
                         specifically in a busy channel. */}
                     {mentionQuery !== null && mentionCandidates.length > 0 && (
-                      <div className="absolute bottom-full left-0 mb-2 w-56 bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.3)] rounded-md shadow-lg overflow-hidden z-10">
+                      <div
+                        role="listbox"
+                        id="mention-candidate-list"
+                        aria-label="Mention suggestions"
+                        className="absolute bottom-full left-0 mb-2 w-56 bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.3)] rounded-md shadow-lg overflow-hidden z-10"
+                      >
                         {mentionCandidates.map((c, i) => (
                           <button
                             key={c.email}
+                            id={`mention-option-${i}`}
+                            role="option"
+                            aria-selected={i === mentionActiveIndex}
                             onClick={() => handleSelectMention(c)}
                             onMouseEnter={() => setMentionActiveIndex(i)}
                             className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${i === mentionActiveIndex ? 'bg-[hsl(var(--discord-blurple)/0.3)]' : 'hover:bg-[hsl(var(--discord-light)/0.15)]'}`}
@@ -2986,7 +3126,14 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                             >
                               {firstChar(c.name).toUpperCase()}
                             </div>
-                            <span className="text-white truncate">{c.name}</span>
+                            <div className="min-w-0">
+                              <p className="text-white truncate leading-tight">{c.name}</p>
+                              {/* Display names are self-asserted with no
+                                  uniqueness check (see handleJoin) — showing
+                                  the email is the only way to tell two
+                                  same-named people apart in this dropdown. */}
+                              <p className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate leading-tight">{c.email}</p>
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -3033,6 +3180,10 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                       ref={inputRef}
                       value={newMessage}
                       onChange={handleMessageInputChange}
+                      role={mentionQuery !== null && mentionCandidates.length > 0 ? 'combobox' : undefined}
+                      aria-expanded={mentionQuery !== null && mentionCandidates.length > 0}
+                      aria-controls={mentionQuery !== null && mentionCandidates.length > 0 ? 'mention-candidate-list' : undefined}
+                      aria-activedescendant={mentionQuery !== null && mentionCandidates.length > 0 ? `mention-option-${mentionActiveIndex}` : undefined}
                       onKeyDown={(e) => {
                         if (mentionQuery !== null && mentionCandidates.length > 0) {
                           if (e.key === 'ArrowDown') { e.preventDefault(); setMentionActiveIndex(i => (i + 1) % mentionCandidates.length); return; }
@@ -3108,8 +3259,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             </DialogHeader>
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Name</label>
+                <label htmlFor="community-new-channel-name" className="text-sm font-medium mb-1 block">Name</label>
                 <Input
+                  id="community-new-channel-name"
                   value={newChannelName}
                   onChange={(e) => setNewChannelName(e.target.value)}
                   placeholder={createChannelType === 'voice' ? 'Study Room' : 'off-topic'}
@@ -3118,8 +3270,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Description (optional)</label>
+                <label htmlFor="community-new-channel-description" className="text-sm font-medium mb-1 block">Description (optional)</label>
                 <Input
+                  id="community-new-channel-description"
                   value={newChannelDescription}
                   onChange={(e) => setNewChannelDescription(e.target.value)}
                   placeholder="What's this channel for?"
@@ -3151,8 +3304,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             </DialogHeader>
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Duration (minutes)</label>
+                <label htmlFor="community-mute-minutes" className="text-sm font-medium mb-1 block">Duration (minutes)</label>
                 <Input
+                  id="community-mute-minutes"
                   type="number"
                   min="1"
                   value={muteMinutes}
@@ -3161,8 +3315,9 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Reason (optional)</label>
+                <label htmlFor="community-mute-reason" className="text-sm font-medium mb-1 block">Reason (optional)</label>
                 <Input
+                  id="community-mute-reason"
                   value={muteReason}
                   onChange={(e) => setMuteReason(e.target.value)}
                   placeholder="Spam, harassment, etc."
