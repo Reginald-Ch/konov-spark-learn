@@ -1069,6 +1069,79 @@ Deno.serve(async (req) => {
         return json({ ok: true, data });
       }
 
+      // community_quests has public SELECT (anon/authenticated) but no
+      // INSERT/UPDATE grant for them at all — only this service-role
+      // client can write, matching create_community_channel's own posture.
+      // Before this, quest management had no path through the app
+      // whatsoever; a quest could only ever be created/edited/deactivated
+      // via raw database access outside FORGE entirely.
+      case "list_community_quests": {
+        const { data, error } = await supabase
+          .from("community_quests")
+          .select("*")
+          .order("order_index")
+          .order("created_at");
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
+      case "create_community_quest": {
+        const { title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index } = payload;
+        if (!title?.trim() || !description?.trim()) throw new Error("Title and description are required");
+        if (!["chat_action", "self_report"].includes(quest_type)) {
+          throw new Error("quest_type must be chat_action or self_report");
+        }
+        if (quest_type === "chat_action" && !action_channel_name?.trim()) {
+          throw new Error("chat_action quests need a target channel name");
+        }
+        if (!badge_emoji?.trim() || !badge_label?.trim()) throw new Error("Badge emoji and label are required");
+        const { data, error } = await supabase
+          .from("community_quests")
+          .insert({
+            title: title.trim(),
+            description: description.trim(),
+            quest_type,
+            action_channel_name: quest_type === "chat_action" ? action_channel_name.trim() : null,
+            action_url: action_url?.trim() || null,
+            badge_emoji: badge_emoji.trim(),
+            badge_label: badge_label.trim(),
+            order_index: Number.isFinite(order_index) ? order_index : 0,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
+      // Also the only way to deactivate/reactivate a quest (is_active is
+      // just another field here) — no separate toggle action needed.
+      case "update_community_quest": {
+        const { id, title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index, is_active } = payload;
+        if (!id) throw new Error("id is required");
+        const updates: Record<string, unknown> = {};
+        if (title !== undefined) { if (!title.trim()) throw new Error("Title cannot be empty"); updates.title = title.trim(); }
+        if (description !== undefined) { if (!description.trim()) throw new Error("Description cannot be empty"); updates.description = description.trim(); }
+        if (quest_type !== undefined) {
+          if (!["chat_action", "self_report"].includes(quest_type)) throw new Error("quest_type must be chat_action or self_report");
+          updates.quest_type = quest_type;
+        }
+        if (action_channel_name !== undefined) updates.action_channel_name = action_channel_name?.trim() || null;
+        if (action_url !== undefined) updates.action_url = action_url?.trim() || null;
+        if (badge_emoji !== undefined) { if (!badge_emoji.trim()) throw new Error("Badge emoji cannot be empty"); updates.badge_emoji = badge_emoji.trim(); }
+        if (badge_label !== undefined) { if (!badge_label.trim()) throw new Error("Badge label cannot be empty"); updates.badge_label = badge_label.trim(); }
+        if (order_index !== undefined && Number.isFinite(order_index)) updates.order_index = order_index;
+        if (is_active !== undefined) updates.is_active = !!is_active;
+        if (Object.keys(updates).length === 0) throw new Error("No fields to update");
+        const { data, error } = await supabase
+          .from("community_quests")
+          .update(updates)
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
       case "preview_lesson": {
         const { lesson_id } = payload;
         if (!lesson_id) throw new Error("lesson_id is required");

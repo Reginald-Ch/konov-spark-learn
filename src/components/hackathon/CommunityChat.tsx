@@ -577,6 +577,11 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // simpler, safer fix here is just not letting a draft silently follow
     // you to a channel you never meant to send it to.
     setNewMessage('');
+    // The mention dropdown itself wasn't cleared alongside the draft — a
+    // stale query could linger open, now recomputed against the NEW
+    // channel's messages/staff, floating over an emptied composer.
+    setMentionQuery(null);
+    setMentionActiveIndex(0);
 
     // Announcement channels render through the exact same message-list/
     // composer JSX as text channels (just with posting locked to
@@ -2395,14 +2400,28 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         ))}
                     </div>
 
-                    <Button
-                      onClick={handleJoinVoice}
-                      disabled={isJoiningVoice}
-                      className="bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] px-8 py-6 text-lg disabled:opacity-60"
-                    >
-                      {isJoiningVoice ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Phone className="w-5 h-5 mr-2" />}
-                      {isJoiningVoice ? 'Joining…' : 'Join Voice Channel'}
-                    </Button>
+                    {/* Mute used to only ever disable the text composer —
+                        join_voice_room had no mute check at all, so a
+                        muted participant could freely join and talk over
+                        real Jitsi audio with nothing telling them mute was
+                        text-only. Now enforced server-side too; this
+                        proactively shows why instead of letting them click
+                        through to a rejection toast. */}
+                    {isCurrentlyMuted && !isStaffEmail ? (
+                      <p className="text-sm text-[hsl(var(--discord-text-muted))]">
+                        You're muted until {new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — this includes voice channels.
+                        {mutedReason ? ` Reason: ${mutedReason}` : ''}
+                      </p>
+                    ) : (
+                      <Button
+                        onClick={handleJoinVoice}
+                        disabled={isJoiningVoice}
+                        className="bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] px-8 py-6 text-lg disabled:opacity-60"
+                      >
+                        {isJoiningVoice ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Phone className="w-5 h-5 mr-2" />}
+                        {isJoiningVoice ? 'Joining…' : 'Join Voice Channel'}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -2872,6 +2891,17 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                         // moment before it's cleared.
                         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
                       }}
+                      // The dropdown used to only ever close via the regex
+                      // ceasing to match (more typing), Escape, or actually
+                      // selecting a candidate — clicking the emoji-picker
+                      // button, Send, a message bubble, or anywhere else
+                      // left it visibly stuck open. A short delay (not an
+                      // immediate close) lets a click ON a dropdown item
+                      // (handleSelectMention, triggered by onClick) still
+                      // register first — blur fires before click completes
+                      // when moving focus by mouse, so closing instantly
+                      // here would occasionally beat the selection to it.
+                      onBlur={() => { setTimeout(() => setMentionQuery(null), 150); }}
                       disabled={isCurrentlyMuted && !isStaffEmail}
                       placeholder={isCurrentlyMuted && !isStaffEmail ? `Muted until ${new Date(mutedUntil!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : activeChannel?.channel_type === 'announcement' ? 'Post an announcement...' : `Message #${activeChannel?.name || 'channel'}`}
                       maxLength={MAX_MESSAGE_LENGTH}
