@@ -26,7 +26,10 @@ interface PendingProof {
   participant_email: string;
   participant_name: string;
   completed_at: string;
-  proof_image: string;
+  // admin-actions defaults this to null when no matching
+  // community_quest_proof_reviews row is found for a completion id — the
+  // type previously claimed this could never happen.
+  proof_image: string | null;
   community_quests: { title: string; badge_emoji: string; badge_label: string } | null;
 }
 
@@ -110,6 +113,21 @@ export const CommunityQuestsTab = () => {
       .then(({ data }) => setTextChannels(data || []));
   }, [fetchQuests, fetchPendingProofs]);
 
+  // Fetch-once-on-mount meant a new submission arriving (or another
+  // organizer reviewing one) while this tab was open never showed up
+  // without navigating away and back — every other admin-visible list
+  // added this session (channels, staff, quests themselves) already gets
+  // this same realtime-refetch treatment.
+  useEffect(() => {
+    const proofsChannel = supabase
+      .channel('quest-proofs-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_quest_completions' }, () => {
+        fetchPendingProofs();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(proofsChannel); };
+  }, [fetchPendingProofs]);
+
   const handleApproveProof = async (proof: PendingProof) => {
     setReviewingIds(prev => new Set(prev).add(proof.id));
     try {
@@ -118,6 +136,12 @@ export const CommunityQuestsTab = () => {
       setPendingProofs(prev => prev.filter(p => p.id !== proof.id));
     } catch (e: any) {
       toast.error(e.message || 'Failed to approve');
+      // A failure here (most commonly: someone else already reviewed this
+      // one) previously left the stale item sitting in the list with live
+      // Approve/Reject buttons that would just fail identically again — a
+      // full refetch clears it out (or leaves it, correctly, if it's some
+      // other transient error).
+      fetchPendingProofs();
     } finally {
       setReviewingIds(prev => { const next = new Set(prev); next.delete(proof.id); return next; });
     }
@@ -133,6 +157,7 @@ export const CommunityQuestsTab = () => {
       setRejectReason('');
     } catch (e: any) {
       toast.error(e.message || 'Failed to reject');
+      fetchPendingProofs();
     } finally {
       setReviewingIds(prev => { const next = new Set(prev); next.delete(proof.id); return next; });
     }
@@ -341,11 +366,17 @@ export const CommunityQuestsTab = () => {
           <div className="space-y-2">
             {pendingProofs.map((proof) => (
               <div key={proof.id} className="bg-card rounded-lg border p-4 flex flex-col sm:flex-row gap-3">
-                <img
-                  src={proof.proof_image}
-                  alt={`Proof submitted by ${proof.participant_name}`}
-                  className="w-full sm:w-40 h-40 object-cover rounded-md border flex-shrink-0 bg-muted"
-                />
+                {proof.proof_image ? (
+                  <img
+                    src={proof.proof_image}
+                    alt={`Proof submitted by ${proof.participant_name}`}
+                    className="w-full sm:w-40 h-40 object-cover rounded-md border flex-shrink-0 bg-muted"
+                  />
+                ) : (
+                  <div className="w-full sm:w-40 h-40 flex items-center justify-center rounded-md border flex-shrink-0 bg-muted text-xs text-muted-foreground text-center p-2">
+                    No image found for this submission
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 space-y-2">
                   <div>
                     <p className="text-sm font-semibold flex items-center gap-1.5">

@@ -933,6 +933,36 @@ Deno.serve(async (req) => {
         return json({ ok: true, data: msg });
       }
 
+      // Announcements are always sender_email='team@forge.internal', so
+      // edit_own_community_message's per-person ownership check (ANY real
+      // participant's email never equals that string) meant NO ONE could
+      // ever edit an announcement, including the organizer who posted it —
+      // the only fix was delete-and-repost, which re-fires the full
+      // "New FORGE Announcement" push AND a duplicate mention notify for a
+      // fresh copy of the same content, and loses any existing pin. This
+      // is the real, ownership-check-free edit path for that one sender.
+      case "edit_community_announcement": {
+        const { message_id, content } = payload;
+        if (!message_id) throw new Error("message_id is required");
+        if (!content?.trim()) throw new Error("Content cannot be empty");
+        if (content.trim().length > 4000) throw new Error("Announcement is too long (4000 character limit)");
+        const { data: existing, error: fetchErr } = await supabase
+          .from("community_messages")
+          .select("id, sender_email")
+          .eq("id", message_id)
+          .single();
+        if (fetchErr || !existing) throw new Error("Message not found");
+        if (existing.sender_email !== "team@forge.internal") throw new Error("This action only edits announcements");
+        const { data, error } = await supabase
+          .from("community_messages")
+          .update({ content: content.trim(), edited_at: new Date().toISOString() })
+          .eq("id", message_id)
+          .select()
+          .single();
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
       case "create_community_channel": {
         // community_channels has no INSERT policy at all — by design, only
         // the service role (this function) can create one. The sidebar's
@@ -1222,18 +1252,33 @@ Deno.serve(async (req) => {
       case "approve_quest_proof": {
         const { completion_id } = payload;
         if (!completion_id) throw new Error("completion_id is required");
+        // maybeSingle, not single — two organizers reviewing the same
+        // submission (or one double-clicking fast) both pass the status=
+        // 'pending' guard's intent safely at the DB level (only the first
+        // UPDATE actually matches a row), but .single() on the SECOND
+        // request's now-zero-row result threw a raw Postgrest "no rows"
+        // error surfaced verbatim to the organizer, and the stale item
+        // never left CommunityQuestsTab's pendingProofs list either.
         const { data, error } = await supabase
           .from("community_quest_completions")
           .update({ status: "approved" })
           .eq("id", completion_id)
-          .eq("status", "pending") // no-op if it was already reviewed/resubmitted since this list was fetched
+          .eq("status", "pending")
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
-        await supabase
+        if (!data) throw new Error("Already reviewed by someone else — refresh the list.");
+        const { error: reviewErr } = await supabase
           .from("community_quest_proof_reviews")
           .update({ reviewed_at: new Date().toISOString(), reviewed_by: "Organizer", rejection_reason: null })
           .eq("completion_id", completion_id);
+        // Previously unchecked — community_quest_proof_reviews is the
+        // newest table in the schema, most likely to hit a stale-schema-
+        // cache error on its first live calls, and swallowing it here
+        // meant a genuine failure here still returned ok:true with a
+        // success toast while reviewed_at/reviewed_by silently never got
+        // written.
+        if (reviewErr) throw reviewErr;
         return json({ ok: true, data });
       }
 
@@ -1247,12 +1292,14 @@ Deno.serve(async (req) => {
           .eq("id", completion_id)
           .eq("status", "pending")
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
-        await supabase
+        if (!data) throw new Error("Already reviewed by someone else — refresh the list.");
+        const { error: reviewErr } = await supabase
           .from("community_quest_proof_reviews")
           .update({ reviewed_at: new Date().toISOString(), reviewed_by: "Organizer", rejection_reason: rejection_reason?.trim() || null })
           .eq("completion_id", completion_id);
+        if (reviewErr) throw reviewErr;
         return json({ ok: true, data });
       }
 

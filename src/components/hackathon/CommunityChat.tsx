@@ -457,7 +457,13 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   useEffect(() => {
     const questChannel = supabase
       .channel('quest-completions-global')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_quest_completions' }, () => {
+      // '*', not just INSERT — proof_upload completions land as 'pending'
+      // (an INSERT) but only ever become visibly earned via an organizer's
+      // approve_quest_proof, which is an UPDATE on this same row. INSERT-only
+      // meant a participant sitting on the Quests panel after submitting a
+      // screenshot never found out it was approved/rejected without an
+      // unrelated action happening to trigger a refetch first.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_quest_completions' }, () => {
         fetchQuestsAndBadges(userEmailRef.current);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_quests' }, () => {
@@ -942,8 +948,16 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       toast({ title: 'Unsupported file', description: 'Please upload a PNG, JPG, GIF, or WEBP screenshot.', variant: 'destructive' });
       return;
     }
-    if (file.size > 1.5 * 1024 * 1024) {
-      toast({ title: 'Screenshot too large', description: 'Please upload an image under 1.5MB.', variant: 'destructive' });
+    // 1.3MB raw, not 1.5MB — base64 encoding expands a file by ~4/3 plus a
+    // ~25-char "data:image/...;base64," prefix. 1.5MB raw encodes to
+    // *exactly* the server's 2MB cap on the full string (claim_community_
+    // quest checks length(p_proof_image) > 2*1024*1024), before even
+    // adding the prefix — meaning a maximal upload passed this check but
+    // was then rejected server-side as "too large" every time. 1.3MB
+    // leaves real headroom (~1.82MB encoded) instead of landing exactly on
+    // the boundary.
+    if (file.size > 1.3 * 1024 * 1024) {
+      toast({ title: 'Screenshot too large', description: 'Please upload an image under 1.3MB.', variant: 'destructive' });
       return;
     }
     const reader = new FileReader();
@@ -1099,6 +1113,31 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
 
     if (!error && data) {
       setVoiceParticipants(data as unknown as VoiceParticipant[]);
+      // join_voice_room now enforces single-room-at-a-time at the DB level
+      // (deletes the caller's OTHER voice_room_participants rows before
+      // inserting the new one) — but that's a server-side presence fix
+      // only. If this identity joins a different room from another tab or
+      // device, THIS tab's presence row gets silently deleted while its
+      // local isInVoice/jitsiApiRef state has no idea anything happened —
+      // a real, still-connected Jitsi WebRTC session with live audio kept
+      // running, invisible to everyone (including this tab's own user),
+      // backed by no presence row at all. voicePresenceRef (kept in sync
+      // via its own effect) lets this stale-closure-safe check compare the
+      // fresh fetch against what THIS tab currently believes about itself.
+      const { inVoice, channelId, email } = voicePresenceRef.current;
+      if (inVoice && channelId && email) {
+        const stillPresent = (data as any[]).some(p => p.channel_id === channelId && p.participant_email === email);
+        if (!stillPresent) {
+          disposeJitsi();
+          setIsInVoice(false);
+          setIsConnectingVoice(false);
+          toast({
+            title: 'Disconnected from voice',
+            description: "You joined a voice channel from another tab or device, so this one was disconnected.",
+            variant: 'destructive',
+          });
+        }
+      }
     }
   };
 
@@ -1526,16 +1565,32 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const handleSaveEdit = async () => {
     if (!editingMessageId || !editingContent.trim()) return;
     setIsSavingEdit(true);
-    // Routed through an RPC, not a raw table .update() — the RPC actually
-    // checks the row's sender_email against what we're claiming here before
-    // touching anything, instead of RLS that (before this fix) let anyone
-    // edit any non-staff message with no ownership check at all.
-    const { data, error } = await supabase.rpc('edit_own_community_message', {
-      p_message_id: editingMessageId,
-      p_participant_email: userEmail,
-      p_content: editingContent.trim(),
-      p_device_token: deviceToken || null,
-    });
+    // Announcements are always sender_email='team@forge.internal' — no
+    // real participant's email ever matches that, so edit_own_community_
+    // message's ownership check would reject this for literally everyone
+    // including the organizer who posted it. Routed through the
+    // organizer-only edit_community_announcement admin action instead,
+    // which checks sender_email === the synthetic account rather than a
+    // per-person match.
+    let data: any, error: any;
+    if (activeChannel?.channel_type === 'announcement') {
+      try {
+        data = [await callAdminAction('edit_community_announcement', { message_id: editingMessageId, content: editingContent.trim() })];
+      } catch (e: any) {
+        error = e;
+      }
+    } else {
+      // Routed through an RPC, not a raw table .update() — the RPC actually
+      // checks the row's sender_email against what we're claiming here before
+      // touching anything, instead of RLS that (before this fix) let anyone
+      // edit any non-staff message with no ownership check at all.
+      ({ data, error } = await supabase.rpc('edit_own_community_message', {
+        p_message_id: editingMessageId,
+        p_participant_email: userEmail,
+        p_content: editingContent.trim(),
+        p_device_token: deviceToken || null,
+      }));
+    }
     setIsSavingEdit(false);
     if (error) {
       toast({ title: 'Could not save edit', description: error.message || 'Something went wrong — try again.', variant: 'destructive' });
@@ -2560,7 +2615,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                     className="h-7 text-[11px] ml-auto"
                                   >
                                     {claimingQuestId === quest.id
-                                      ? 'Uploading...'
+                                      ? (quest.quest_type === 'proof_upload' ? 'Uploading...' : 'Checking...')
                                       : quest.quest_type === 'chat_action' ? "I've done this"
                                       : quest.quest_type === 'proof_upload' ? (rejected ? 'Try again' : 'Upload screenshot')
                                       : "I did this!"}
@@ -3098,6 +3153,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                   {isOrganizer && (
                                     <>
                                       <div className="w-px h-4 bg-[hsl(var(--discord-light)/0.3)] mx-0.5" />
+                                      {/* Announcements are always sender_email
+                                          ='team@forge.internal', so
+                                          isOwnEditableMessage above is never
+                                          true for them — without this, fixing
+                                          a typo meant deleting and reposting,
+                                          which re-fires the full announcement
+                                          push AND a duplicate mention notify,
+                                          and loses any existing pin. */}
+                                      {activeChannel?.channel_type === 'announcement' && (
+                                        <button
+                                          onClick={() => handleStartEdit(message)}
+                                          title="Edit announcement" aria-label="Edit announcement"
+                                          className="p-1.5 hover:bg-[hsl(var(--discord-light)/0.3)] transition-colors"
+                                        >
+                                          <Pencil className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))]" />
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => handleTogglePin(message)}
                                         disabled={pinningMessageId === message.id}
