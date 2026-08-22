@@ -247,8 +247,10 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
       supabase.rpc('get_my_point_events', { p_participant_email: email, p_hackathon_id: hackathonId }),
       // reward_boxes has no public SELECT policy (a participant could otherwise
       // list everyone's boxes and open them) — this RPC is scoped to the
-      // caller's own claimed email server-side.
-      supabase.rpc('get_my_reward_boxes', { p_participant_email: email, p_hackathon_id: hackathonId }),
+      // caller's own claimed email server-side. p_device_token added
+      // (security audit) — it used to trust the bare email alone, with no
+      // proof of identity behind that server-side scoping at all.
+      supabase.rpc('get_my_reward_boxes', { p_participant_email: email, p_hackathon_id: hackathonId, p_device_token: localStorage.getItem('forge-device-token') || null }),
     ]);
 
     const next: Stats = { ...emptyStats, badges: [] };
@@ -281,7 +283,10 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
   const handleOpenBox = async (box: UnopenedBox) => {
     if (!email) return;
     setOpeningBoxId(box.id);
-    const { error } = await supabase.rpc('open_reward_box', { p_box_id: box.id, p_participant_email: email });
+    // p_device_token added (security audit) — this RPC used to trust a bare
+    // email with no proof of identity, letting anyone open another
+    // participant's reward box just by knowing their email.
+    const { error } = await supabase.rpc('open_reward_box', { p_box_id: box.id, p_participant_email: email, p_device_token: localStorage.getItem('forge-device-token') || null });
     setOpeningBoxId(null);
     if (!error) {
       setUnopenedBoxes(prev => prev.filter(b => b.id !== box.id));

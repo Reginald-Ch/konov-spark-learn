@@ -81,8 +81,11 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       // ai_projects' public SELECT policy is published-only now — draft
       // projects (which is most of them, until "Go Live") need the owner-
       // checked RPC instead of a raw table read.
+      // p_device_token added (security audit) — this RPC used to trust a
+      // bare email with no proof of identity, letting anyone list another
+      // participant's private project names just by knowing their email.
       email
-        ? supabase.rpc('get_my_projects', { p_participant_email: email })
+        ? supabase.rpc('get_my_projects', { p_participant_email: email, p_device_token: deviceToken || null })
         : Promise.resolve({ data: [] as MyProject[] }),
     ]);
     const chs = (challengesRes.data as Challenge[]) || [];

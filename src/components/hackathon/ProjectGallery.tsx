@@ -47,7 +47,9 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
   useEffect(() => {
     if (!currentEmail) { setMyProjectIds(new Set()); return; }
-    supabase.rpc('get_my_projects', { p_participant_email: currentEmail }).then(({ data }) => {
+    // p_device_token added (security audit) — this RPC used to trust a bare
+    // email with no proof of identity.
+    supabase.rpc('get_my_projects', { p_participant_email: currentEmail, p_device_token: localStorage.getItem('forge-device-token') || null }).then(({ data }) => {
       if (data) setMyProjectIds(new Set((data as { id: string }[]).map(p => p.id)));
     });
   }, [currentEmail]);
@@ -98,10 +100,14 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       // used to rely on let anyone delete anyone's project by id; the UI's
       // currentEmail === project.author_email check above was the only
       // thing actually stopping that, and it's trivially bypassed via
-      // devtools/a raw API call.
+      // devtools/a raw API call. p_device_token added (security audit) —
+      // the RPC's own ownership check still only verified the CLAIMED
+      // email textually matched author_email, with no proof of identity
+      // behind that claim at all.
       const { error } = await supabase.rpc('delete_own_project', {
         p_project_id: deleteTarget.id,
         p_participant_email: currentEmail,
+        p_device_token: localStorage.getItem('forge-device-token') || null,
       });
       if (error) throw error;
       setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));

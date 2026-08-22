@@ -1152,7 +1152,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     }
     // ai_projects' public SELECT policy is published-only — an in-progress
     // (unpublished) draft needs the owner-checked RPC, not a raw table read.
-    supabase.rpc('get_own_project_by_id', { p_project_id: savedId, p_participant_email: authorEmail }).then(({ data: rawData, error }) => {
+    // p_device_token added (security audit) — this RPC used to trust a bare
+    // email with no proof of identity, letting anyone read another
+    // participant's private project code just by knowing/guessing their
+    // email.
+    supabase.rpc('get_own_project_by_id', { p_project_id: savedId, p_participant_email: authorEmail, p_device_token: localStorage.getItem('forge-device-token') || null }).then(({ data: rawData, error }) => {
       const data = rawData as any;
       const draft = readDraft();
       const localDraftForThisProject = draft && draft.projectId === savedId ? draft.code : null;
@@ -1198,7 +1202,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   useEffect(() => {
     if (!currentProjectId) return;
     const checkPublishState = () => {
-      supabase.rpc('get_own_project_by_id', { p_project_id: currentProjectId, p_participant_email: authorEmail }).then(({ data }) => {
+      supabase.rpc('get_own_project_by_id', { p_project_id: currentProjectId, p_participant_email: authorEmail, p_device_token: localStorage.getItem('forge-device-token') || null }).then(({ data }) => {
         if (data) applyPublishState(!!(data as any).is_published);
       });
     };
@@ -2924,6 +2928,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         // p_expected_updated_at guards against a second tab/device having
         // saved since we last loaded — a stale baseline gets rejected
         // instead of silently overwriting whatever they wrote.
+        // p_device_token added (security audit) — this RPC used to trust a
+        // bare email with no proof of identity, letting anyone overwrite
+        // another participant's project just by knowing/guessing their
+        // email. Mints a token on first use (like claim_community_quest
+        // does) rather than requiring one to already exist, since going
+        // straight to Build Studio without ever touching Community
+        // Chat/Daily Challenges/Lessons first is a completely normal path
+        // that would otherwise have no token yet.
         const { data, error } = await supabase.rpc('save_own_project', {
           p_project_id: currentProjectId,
           p_participant_email: email,
@@ -2940,7 +2952,11 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           p_template_id: projectType,
           p_author_name: authorName,
           p_expected_updated_at: lastKnownUpdatedAt,
+          p_device_token: localStorage.getItem('forge-device-token') || null,
         });
+        if (!error && (data as any)?.new_device_token) {
+          localStorage.setItem('forge-device-token', (data as any).new_device_token);
+        }
         if (error) {
           if (error.message?.includes('CONFLICT')) {
             const CONFLICT_TOAST_COOLDOWN_MS = 5 * 60 * 1000;

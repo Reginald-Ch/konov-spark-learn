@@ -146,6 +146,18 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         // p_expected_updated_at guards Go Live the same way ProjectEditor's
         // own Save already does — without it, publishing from a stale tab
         // could silently overwrite a newer save made elsewhere.
+        // p_publish -> p_is_published (bug found during a security audit):
+        // the old name didn't match ANY parameter on the live function —
+        // confirmed via direct signature introspection, not assumed — so
+        // this call was silently failing, and even if it hadn't, the
+        // function's UPDATE never touched is_published at all. Since
+        // ProjectEditor's autosave creates the project row (and sets
+        // currentProjectId) well before "Publish" is ever clicked, this
+        // "existing project" branch is the realistic path for most real
+        // publish attempts — meaning Go Live was very likely broken for
+        // most users, not just a rare edge case. p_device_token added in
+        // the same pass — this RPC used to trust a bare email with no
+        // proof of identity.
         const { data: updateData, error } = await supabase.rpc('save_own_project', {
           p_project_id: currentProjectId,
           p_participant_email: finalEmail,
@@ -154,9 +166,13 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           p_code: code,
           p_template_id: templateId,
           p_author_name: finalName,
-          p_publish: true,
+          p_is_published: true,
           p_expected_updated_at: lastKnownUpdatedAt,
+          p_device_token: localStorage.getItem('forge-device-token') || null,
         });
+        if (!error && (updateData as any)?.new_device_token) {
+          localStorage.setItem('forge-device-token', (updateData as any).new_device_token);
+        }
 
         if (error?.message?.includes('CONFLICT')) {
           toast.error('This project changed elsewhere since you last loaded it. Reload the page to see the latest version before going live.', { duration: 10000 });
