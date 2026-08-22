@@ -519,7 +519,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
     // until a full page reload despite actually being clear. Polling on a
     // light interval instead, matching that same established pattern.
     const checkMuteStatus = async () => {
-      const { data, error } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail });
+      // Reads localStorage directly, not the deviceToken state closure —
+      // this effect's deps don't include deviceToken, so a token minted
+      // AFTER this polling interval was set up would otherwise never be
+      // picked up. Also required now: get_my_mute_status used to take no
+      // proof of identity at all, letting anyone read anyone's mute status
+      // and the organizer's private reason just by passing their email —
+      // now verified server-side against this same token.
+      const token = localStorage.getItem('forge-device-token') || null;
+      const { data, error } = await supabase.rpc('get_my_mute_status', { p_participant_email: userEmail, p_device_token: token });
       if (error) {
         // Don't treat a failed check as "not muted" — that would silently
         // clear a real mute's countdown/reason from the UI while the
@@ -864,8 +872,15 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       // deliberately revoked (see the proof_upload migration) since it's
       // organizer feedback, not a public broadcast. get_my_quest_status
       // scopes it to the caller's own rows only, same pattern as the
-      // pre-existing get_my_mute_status.
-      email ? supabase.rpc('get_my_quest_status', { p_participant_email: email }) : Promise.resolve({ data: null }),
+      // pre-existing get_my_mute_status — and (security audit) now also
+      // requires the caller's device token, same as that fix. It used to
+      // take a bare email with no proof of identity at all, letting anyone
+      // read anyone's quest rejection reasons just by passing their email.
+      // Read directly from localStorage, not the deviceToken state
+      // closure — fetchQuestsAndBadges is called from several mount-time
+      // effects with empty dep arrays, whose closures would otherwise
+      // never see a token minted after they were set up.
+      email ? supabase.rpc('get_my_quest_status', { p_participant_email: email, p_device_token: localStorage.getItem('forge-device-token') || null }) : Promise.resolve({ data: null }),
     ]);
 
     if (questRows) {
