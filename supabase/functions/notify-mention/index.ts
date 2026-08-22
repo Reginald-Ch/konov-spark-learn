@@ -50,10 +50,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const emails = new Set<string>();
+    const rawEmails = new Set<string>();
     for (const match of message.content.matchAll(MENTION_RE)) {
       const email = match[2]?.trim().toLowerCase();
-      if (email && email !== message.sender_email) emails.add(email);
+      if (email && email !== message.sender_email) rawEmails.add(email);
+    }
+
+    // The @[Name](email) sanitization (stripping ], ), newlines) only ever
+    // runs when a mention is chosen from the composer's autocomplete —
+    // nothing stops someone from hand-typing this markup directly with an
+    // arbitrary email that was never actually offered as a candidate.
+    // Cosmetically harmless (a plain, non-clickable span, no XSS/redirect
+    // path), but it let anyone with the anon key trigger a real push
+    // notification toward any address just by mentioning it, whether or
+    // not that address ever participated in this chat. Only notifying
+    // emails that are genuine known identities here (sent a message here
+    // before, or a real staff account) closes that off without touching
+    // legitimate mentions, since every real autocomplete candidate is
+    // necessarily already one of these.
+    const emails = new Set<string>();
+    if (rawEmails.size > 0) {
+      const candidates = Array.from(rawEmails);
+      const [{ data: knownParticipants }, { data: knownStaff }] = await Promise.all([
+        supabase.from("participant_device_tokens").select("participant_email").in("participant_email", candidates),
+        supabase.from("community_staff").select("participant_email").in("participant_email", candidates),
+      ]);
+      const known = new Set<string>([
+        ...(knownParticipants || []).map((r: any) => r.participant_email),
+        ...(knownStaff || []).map((r: any) => r.participant_email),
+      ]);
+      for (const email of rawEmails) {
+        if (known.has(email)) emails.add(email);
+      }
     }
 
     const channelName = (message as any).community_channels?.name || "community";

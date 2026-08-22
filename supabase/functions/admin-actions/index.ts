@@ -1010,8 +1010,12 @@ Deno.serve(async (req) => {
       }
 
       case "mute_community_user": {
-        // Enforcement lives in the community_messages INSERT policy (see the
-        // moderation migration) — this just writes the row that policy checks.
+        // Enforcement lives inside send_community_message and
+        // join_voice_room (both check community_muted_users directly) —
+        // this just writes the row those RPCs check. The raw INSERT
+        // policy this comment used to reference was dropped once every
+        // write path moved behind SECURITY DEFINER RPCs; enforcement
+        // moved with it, this is just the note catching up.
         const { participant_email, duration_minutes, reason } = payload;
         const email = participant_email?.trim().toLowerCase();
         if (!email) throw new Error("participant_email is required");
