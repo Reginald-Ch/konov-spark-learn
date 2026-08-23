@@ -20,6 +20,12 @@ export const getStoredAdminRole = (): AdminRole | null => {
 };
 const setStoredAdminRole = (role: AdminRole) => sessionStorage.setItem(ROLE_KEY, role);
 
+// Marks a thrown error as "this session's passphrase was rejected/expired"
+// so callers can tell it apart from an ordinary failure (validation error,
+// network blip) and prompt a clean re-login instead of showing a generic
+// toast while the UI keeps rendering as if still logged in.
+export class AdminSessionExpiredError extends Error {}
+
 export async function callAdminAction<T = unknown>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   const passphrase = getStoredAdminPassphrase();
   const resp = await fetch(FUNCTIONS_URL, {
@@ -32,7 +38,10 @@ export async function callAdminAction<T = unknown>(action: string, payload: Reco
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data?.ok) {
-    if (resp.status === 401) clearStoredAdminPassphrase();
+    if (resp.status === 401) {
+      clearStoredAdminPassphrase();
+      throw new AdminSessionExpiredError(data?.error || 'Your session has expired — please log in again.');
+    }
     throw new Error(data?.error || `Admin action failed (${resp.status})`);
   }
   return data.data as T;

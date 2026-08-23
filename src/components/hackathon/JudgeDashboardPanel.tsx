@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   verifyAdminPassphrase,
+  attemptAdminStepUp,
   hasStoredAdminPassphrase,
   getStoredAdminPassphrase,
   getStoredAdminRole,
   clearStoredAdminPassphrase,
   callAdminAction,
+  AdminSessionExpiredError,
   type AdminRole,
 } from '@/lib/adminClient';
 import { Button } from '@/components/ui/button';
@@ -41,7 +43,6 @@ interface Project {
   project_name: string;
   description: string | null;
   author_name: string;
-  author_email: string;
   template_id: string | null;
   code: string;
   is_published: boolean;
@@ -168,8 +169,26 @@ export const JudgeDashboardPanel = () => {
   const [newJudgeName, setNewJudgeName] = useState('');
   const [savingJudge, setSavingJudge] = useState(false);
 
+  // callAdminAction clears the stored passphrase itself on a 401 (e.g. an
+  // organizer rotated the passphrase mid-event), but every call site here
+  // used to just show a generic error toast with the component's `role`
+  // state left untouched — the UI kept rendering as fully logged in while
+  // every subsequent action failed the same way, with no path back to the
+  // login screen short of a manual refresh. Centralized so every catch
+  // block below can react the same way: drop back to the login screen with
+  // a clear explanation instead of a cryptic "(401)" toast.
+  const handleAdminError = (e: unknown, fallbackMessage: string) => {
+    if (e instanceof AdminSessionExpiredError) {
+      setRole(null);
+      toast.error(e.message);
+      return;
+    }
+    toast.error((e as any)?.message || fallbackMessage);
+  };
+
   const fetchJudgeRoster = useCallback(async () => {
-    const { data } = await supabase.from('gallery_judges').select('judge_name').order('judge_name');
+    const { data, error } = await supabase.from('gallery_judges').select('judge_name').order('judge_name');
+    if (error) { console.error('Failed to load judge roster:', error); toast.error('Failed to load judge roster'); return; }
     setJudgeRoster((data || []).map((r: any) => r.judge_name));
   }, []);
 
@@ -183,8 +202,8 @@ export const JudgeDashboardPanel = () => {
       toast.success(`"${newJudgeName.trim()}" added to the judge roster`);
       setNewJudgeName('');
       fetchJudgeRoster();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to add judge');
+    } catch (e) {
+      handleAdminError(e, 'Failed to add judge');
     } finally {
       setSavingJudge(false);
     }
@@ -195,8 +214,8 @@ export const JudgeDashboardPanel = () => {
       await callAdminAction('remove_gallery_judge', { judge_name: name });
       toast.success(`"${name}" removed from the judge roster`);
       fetchJudgeRoster();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to remove judge');
+    } catch (e) {
+      handleAdminError(e, 'Failed to remove judge');
     }
   };
 
@@ -299,7 +318,15 @@ export const JudgeDashboardPanel = () => {
       // now calls fixes both by joining to ai_projects server-side and
       // dropping the unused column.
       const [projectsRes, existingScores] = await Promise.all([
-        supabase.from('ai_projects').select('id, project_name, description, author_name, author_email, template_id, is_published, points_earned, created_at, code').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
+        // author_email intentionally left out — nothing in this UI ever
+        // displays it, and submit_gallery_score now resolves it server-side
+        // from project_id instead of trusting/needing the client to send
+        // it (see admin-actions/index.ts). Previously every judge login
+        // fetched every participant's raw email whether or not they scored
+        // that project — the same PII-minimization fix already applied to
+        // Leaderboard.tsx (hashed author_key instead of raw email) for the
+        // identical reason.
+        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at, code').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
         callAdminAction<{ points: number; metadata: any }[]>('list_gallery_judge_scores', { hackathon_id: hackathonId }),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
