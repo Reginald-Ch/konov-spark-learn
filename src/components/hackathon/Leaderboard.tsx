@@ -115,6 +115,16 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  // isMountedRef alone isn't enough to stop a stale response: it's reset
+  // back to true at the top of every effect run (below), not scoped to a
+  // particular hackathonId. hackathonId is a prop that can change while
+  // mounted (Hackathons.tsx passes the current live event's id, which
+  // shifts as events start/end) — without this, a slow in-flight fetch for
+  // the PREVIOUS hackathon could resolve after the effect for the NEW one
+  // has already reset isMountedRef to true, and clobber the just-loaded
+  // leaderboard with stale data for an event no longer being viewed.
+  const latestHackathonIdRef = useRef(hackathonId);
+  useEffect(() => { latestHackathonIdRef.current = hackathonId; }, [hackathonId]);
 
   const fetchLeaderboardData = useCallback(async () => {
     if (!hackathonId) {
@@ -139,7 +149,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
           .rpc('get_hackathon_judge_scores', { p_hackathon_id: hackathonId }),
       ]);
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current || latestHackathonIdRef.current !== hackathonId) return;
 
       if (projectsRes.error) {
         console.error('ai_projects fetch error:', projectsRes.error);
@@ -404,7 +414,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{
-                    background: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#5865F2'
+                    background: index === 0 ? 'hsl(var(--discord-yellow))' : index === 1 ? 'hsl(var(--discord-text))' : index === 2 ? 'hsl(var(--discord-text-muted))' : 'hsl(var(--discord-blurple))'
                   }}>
                     {p.name.charAt(0).toUpperCase()}
                   </div>

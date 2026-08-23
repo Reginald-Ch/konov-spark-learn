@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,12 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
   const [urlCopied, setUrlCopied] = useState(false);
   const [deployMsgIndex, setDeployMsgIndex] = useState(0);
   const [showNameInput, setShowNameInput] = useState(false);
+  const isMountedRef = useRef(true);
+  const deployedHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,6 +87,18 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     return () => clearInterval(interval);
   }, [deployStep]);
 
+  // The Submit button (focused when 'deploying' starts) unmounts the
+  // instant that step ends — with nothing else claiming focus, a keyboard/
+  // screen-reader user lost their place entirely and had no indication the
+  // publish succeeded beyond re-exploring the DOM from scratch. tabIndex=-1
+  // on the heading makes it focusable programmatically without adding it to
+  // the normal tab order.
+  useEffect(() => {
+    if (deployStep === 'deployed') {
+      deployedHeadingRef.current?.focus();
+    }
+  }, [deployStep]);
+
   const projectUrl = publishedId ? `${window.location.origin}/projects/${publishedId}` : '';
 
   const handleCopyUrl = () => {
@@ -92,30 +110,49 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
 
   const handleShareNative = () => {
     if (navigator.share) {
-      navigator.share({ title: projectName, text: `Check out my AI project: ${projectName}`, url: projectUrl });
+      // Canceling the native share sheet is a routine user action, not a
+      // real failure — it rejects the promise, so swallow it rather than
+      // surfacing an unhandled-rejection console entry for normal use.
+      navigator.share({ title: projectName, text: `Check out my AI project: ${projectName}`, url: projectUrl }).catch(() => {});
     } else {
       handleCopyUrl();
     }
   };
 
+  // The dialog refuses to close and hides its close button for the whole
+  // 'deploying' step (see the Dialog's onOpenChange below) — without a
+  // timeout on the network calls that step runs, a genuinely hung request
+  // (dropped connection, backend stall) left the student stuck on the
+  // spinner with no escape hatch at all. 20s is generous for a plain DB
+  // write/insert (these aren't LLM calls); on timeout it falls into the
+  // same catch block as any other failure, which already resets to the
+  // form and re-enables closing.
+  const withTimeout = <T,>(promise: PromiseLike<T>, ms: number): Promise<T> =>
+    Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms)),
+    ]);
+
   const handlePublish = async () => {
     if (!projectName.trim()) { toast.error('Give your project a name!'); return; }
+    // No <form> wraps these inputs (Submit is a plain button, not a
+    // submit event), so the browser's native type="email" constraint
+    // validation on the Email input never actually runs — without this
+    // check "asdf" was silently accepted, lowercased, and written straight
+    // to the DB with no feedback that anything looked wrong. Only checked
+    // when the student actually typed something — an empty field still
+    // falls back to prefillEmail/the auto-generated placeholder below,
+    // both already-trusted values that don't need re-validating.
+    const typedEmail = authorEmail.trim();
+    if (typedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typedEmail)) {
+      toast.error("That email doesn't look right — double-check it.");
+      return;
+    }
     const finalName = authorName.trim() || prefillAuthorName || 'Student';
     // Lowercase — matches every other identity-aware surface (registration,
     // Lessons, Community, Daily Challenges). Inconsistent casing here would
     // fragment this author's projects/points from the rest of their identity.
-    const finalEmail = (authorEmail.trim() || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`).toLowerCase();
-    
-    if (finalName && !finalName.startsWith('Student-')) {
-      localStorage.setItem('forge-student-name', finalName);
-    }
-    if (finalEmail) {
-      localStorage.setItem('forge-student-email', finalEmail);
-    }
-    // Keep ProjectEditor's in-memory authorEmail/authorName in sync — see
-    // this prop's own doc comment for why a stale editor-side value here
-    // permanently broke every save after the first real-identity publish.
-    onIdentityChange?.(finalEmail, finalName);
+    const finalEmail = (typedEmail || prefillEmail || `student-${Math.random().toString(36).slice(2, 8)}@forge.local`).toLowerCase();
 
     // Seeds the organizer's roster (CoinsTab, LessonsLeaderboard) for
     // whoever's publishing right now, even if they skipped "Register for
@@ -123,10 +160,14 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     // default flow most students actually take. Only for a genuine
     // identity (not the auto-generated Student-XXXX / *@forge.local
     // fallback), so this never pollutes the roster with ghost accounts.
-    // Fire-and-forget — never blocks the publish flow on it.
+    // Fire-and-forget — never blocks the publish flow on it. The .catch is
+    // defensive only: supabase-js resolves rather than throws on query
+    // errors in practice, but there's no reason to risk an unhandled
+    // rejection for a call whose result nothing here waits on.
     if (finalName && !finalName.startsWith('Student-') && finalEmail && !finalEmail.endsWith('@forge.local')) {
       supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle()
-        .then(({ data }) => ensureHackathonRegistration(finalEmail, finalName, data?.id || null));
+        .then(({ data }) => ensureHackathonRegistration(finalEmail, finalName, data?.id || null))
+        .catch((err) => console.warn('ensureHackathonRegistration failed:', err));
     }
 
     setDeployStep('deploying');
@@ -134,6 +175,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
 
     try {
       await new Promise(r => setTimeout(r, 3000));
+      if (!isMountedRef.current) return;
       let resultId: string | null = null;
 
       if (currentProjectId) {
@@ -158,7 +200,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         // most users, not just a rare edge case. p_device_token added in
         // the same pass — this RPC used to trust a bare email with no
         // proof of identity.
-        const { data: updateData, error } = await supabase.rpc('save_own_project', {
+        const { data: updateData, error } = await withTimeout(supabase.rpc('save_own_project', {
           p_project_id: currentProjectId,
           p_participant_email: finalEmail,
           p_project_name: projectName,
@@ -169,7 +211,8 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
           p_is_published: true,
           p_expected_updated_at: lastKnownUpdatedAt,
           p_device_token: localStorage.getItem('forge-device-token') || null,
-        });
+        }), 20000);
+        if (!isMountedRef.current) return;
         if (!error && (updateData as any)?.new_device_token) {
           localStorage.setItem('forge-device-token', (updateData as any).new_device_token);
         }
@@ -196,19 +239,32 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         // judging and the leaderboard can scope to "this event" instead of
         // showing every project ever published mixed together. No live event
         // = a practice/non-event project, left unattached (null).
-        const { data: liveHackathon } = await supabase
+        // A trivial single-row lookup — 8s (vs. the 20s given to the actual
+        // write below) keeps the worst-case wait for this branch reasonable
+        // (3s intro + up to 8s + up to 20s, not 3+20+20=43s).
+        const { data: liveHackathon, error: hackathonLookupError } = await withTimeout(supabase
           .from('hackathons')
           .select('id')
           .eq('status', 'live')
           .order('start_date', { ascending: false })
           .limit(1)
-          .maybeSingle();
+          .maybeSingle(), 8000);
+        if (!isMountedRef.current) return;
+        // A silent failure here used to fall through to hackathon_id: null
+        // — indistinguishable from "no live event right now" — so the
+        // project published successfully but was invisible to the
+        // leaderboard/judges for the event it should have counted toward,
+        // with no error and no way for the student to know. Treating it as
+        // a real failure (same as any other publish error) means they see
+        // an error and can retry, instead of a silent misfile.
+        if (hackathonLookupError) throw hackathonLookupError;
 
-        const { data, error } = await supabase
+        const { data, error } = await withTimeout(supabase
           .from('ai_projects')
           .insert({ project_name: projectName, description, code, template_id: templateId, author_name: finalName, author_email: finalEmail, demo_url: null, is_published: true, hackathon_id: liveHackathon?.id || null })
           .select('id, updated_at')
-          .single();
+          .single(), 20000);
+        if (!isMountedRef.current) return;
         if (error) throw error;
         resultId = data?.id || null;
         if (resultId) {
@@ -218,6 +274,23 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
         }
       }
 
+      // Deferred until here — success is now confirmed for both branches
+      // (every failure path above returns/throws before reaching this
+      // point). Writing these earlier meant a timed-out or rejected
+      // publish still left localStorage AND ProjectEditor's live state
+      // pointing at the new identity while the DB row kept the old one —
+      // reproducing, via the failure path, the exact "every save after
+      // rejected forever" bug this sync was originally added to prevent,
+      // except worse: a page reload (the old escape hatch) no longer
+      // recovered it since localStorage itself now held the mismatch.
+      if (finalName && !finalName.startsWith('Student-')) {
+        localStorage.setItem('forge-student-name', finalName);
+      }
+      if (finalEmail) {
+        localStorage.setItem('forge-student-email', finalEmail);
+      }
+      onIdentityChange?.(finalEmail, finalName);
+
       setPublishedId(resultId);
       setDeployStep('deployed');
       toast.success('🎉 Your AI is live!');
@@ -226,6 +299,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
       // ledger noise. Removed rather than left generating rows forever.
     } catch (e) {
       console.error(e);
+      if (!isMountedRef.current) return;
       toast.error('Deploy failed. Try again!');
       setDeployStep('form');
     }
@@ -259,7 +333,11 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 </div>
               </div>
               <h3 className="text-base font-bold text-white mb-4">Deploying Your AI...</h3>
-              <div className="space-y-1 text-left max-w-[280px] mx-auto">
+              {/* This progress list previously updated only visually — a
+                  screen-reader user got zero announcements during the up-to
+                  ~30s wait. aria-live="polite" reads each new step as it
+                  appears without interrupting whatever the user is doing. */}
+              <div className="space-y-1 text-left max-w-[280px] mx-auto" aria-live="polite">
                 {DEPLOY_MESSAGES.slice(0, deployMsgIndex + 1).map((msg, i) => (
                   <motion.div
                     key={i}
@@ -298,7 +376,7 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                 >
                   <CheckCircle2 className="w-7 h-7 text-white" />
                 </motion.div>
-                <h3 className="text-lg font-bold text-white">You're Live! 🎉</h3>
+                <h3 ref={deployedHeadingRef} tabIndex={-1} className="text-lg font-bold text-white outline-none">You're Live! 🎉</h3>
                 <p className="text-xs text-white/50 mt-0.5">Your AI app is deployed and visible to judges</p>
               </div>
 
