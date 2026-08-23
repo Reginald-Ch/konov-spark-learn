@@ -49,3 +49,23 @@ export async function verifyAdminPassphrase(passphrase: string): Promise<AdminRo
     return null;
   }
 }
+
+// For "step up" from an already-valid session (e.g. a judge unlocking
+// organizer access in place) rather than a fresh login. verifyAdminPassphrase
+// writes the attempted passphrase to storage immediately — needed so
+// callAdminAction's 'verify' call picks it up — and wipes storage entirely
+// on failure. That's correct for a fresh login (nothing valid to protect
+// yet), but for a step-up it silently invalidated the caller's still-good
+// session on a mistyped passphrase, while the UI kept showing them as
+// logged in until their next action failed with an unexplained 401.
+export async function attemptAdminStepUp(passphrase: string): Promise<AdminRole | null> {
+  const previousPassphrase = getStoredAdminPassphrase();
+  const previousRole = getStoredAdminRole();
+  const role = await verifyAdminPassphrase(passphrase);
+  if (role) return role;
+  if (previousPassphrase) {
+    setStoredAdminPassphrase(previousPassphrase);
+    if (previousRole) setStoredAdminRole(previousRole);
+  }
+  return null;
+}
