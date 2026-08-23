@@ -244,7 +244,7 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
       // wide-open SELECT policy, so a raw client-side select here worked
       // fine but meant the same anon key could be used outside this app to
       // pull every participant's events, not just the caller's own.
-      supabase.rpc('get_my_point_events', { p_participant_email: email, p_hackathon_id: hackathonId }),
+      supabase.rpc('get_my_point_events', { p_participant_email: email, p_hackathon_id: hackathonId, p_device_token: localStorage.getItem('forge-device-token') || null }),
       // reward_boxes has no public SELECT policy (a participant could otherwise
       // list everyone's boxes and open them) — this RPC is scoped to the
       // caller's own claimed email server-side. p_device_token added

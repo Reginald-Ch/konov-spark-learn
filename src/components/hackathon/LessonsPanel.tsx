@@ -291,7 +291,9 @@ export const LessonsPanel = () => {
       // Routed through an RPC — hackathon_registrations has a wide-open
       // SELECT policy, so this raw select worked but let the same anon key
       // read any participant's registration, not just the caller's own.
-      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email });
+      // p_device_token added (security audit) — this RPC used to trust a
+      // bare email with no proof of identity.
+      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email, p_device_token: deviceToken || null });
       hId = regs?.[0]?.hackathon_id || null;
     }
     if (!hId) {
@@ -338,8 +340,9 @@ export const LessonsPanel = () => {
       const [{ data: prog }, { data: coinRows }] = await Promise.all([
         supabase.rpc('get_my_lesson_progress', { p_participant_email: email }),
         // Same RPC-not-raw-select fix as the registration lookup above —
-        // point_events also has a wide-open SELECT policy.
-        supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email }),
+        // point_events also has a wide-open SELECT policy. p_device_token
+        // added (security audit) — no proof of identity existed before.
+        supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: deviceToken || null }),
       ]);
       if (requestId !== fetchAllRequestRef.current) return;
       const map: Record<string, Progress> = {};

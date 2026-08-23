@@ -106,9 +106,14 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       // The RPC returns flat columns instead of an embedded relationship,
       // so it's reassembled into the same submission_scores shape below —
       // singleScore() and everything downstream is unchanged either way.
+      // p_device_token added (security audit) — this RPC used to trust a
+      // bare email with no proof of identity, letting anyone read another
+      // participant's submission notes/content_url just by knowing their
+      // email.
       const { data: subs } = await supabase.rpc('get_my_challenge_submissions', {
         p_participant_email: email,
         p_challenge_ids: chs.map(c => c.id),
+        p_device_token: deviceToken || null,
       });
       const map: Record<string, MySubmission> = {};
       (subs || []).forEach((s: any) => {
