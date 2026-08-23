@@ -765,17 +765,34 @@ Deno.serve(async (req) => {
       }
 
       case "submit_gallery_score": {
-        const { project_id, participant_email, points, project_name, judge_name, feedback } = payload;
-        if (!project_id || !participant_email) throw new Error("project_id and participant_email are required");
+        const { project_id, points, project_name, judge_name, feedback } = payload;
+        if (!project_id) throw new Error("project_id is required");
         if (!judge_name?.trim()) throw new Error("judge_name is required");
         const score = clamp(Number(points) || 0, 0, 70);
+
+        // participant_email used to be trusted straight from the client
+        // payload — JudgeDashboardPanel.tsx fetched every project's
+        // author_email on every login just to echo it back here, even
+        // though nothing in that UI ever displays it. Any judge-passphrase
+        // holder (plausibly shared among several volunteer judges) could
+        // read every participant's raw email out of the network response
+        // regardless of which projects they actually scored. Resolving it
+        // server-side from project_id means the client never needs to see
+        // it at all, matching this session's Leaderboard.tsx hardening
+        // (hashed author_key instead of raw email for the same reason).
+        const { data: projectRow, error: projectErr } = await supabase
+          .from("ai_projects")
+          .select("author_email")
+          .eq("id", project_id)
+          .single();
+        if (projectErr || !projectRow) throw new Error("Project not found");
 
         // Locked RPC (see migration) — scoped to THIS judge's own prior
         // score for THIS project only, and race-safe against a double
         // submission instead of a raw delete-then-insert.
         const { error } = await supabase.rpc("submit_gallery_score", {
           p_project_id: project_id,
-          p_participant_email: participant_email,
+          p_participant_email: projectRow.author_email,
           p_points: score,
           p_project_name: project_name,
           p_judge_name: judge_name,
