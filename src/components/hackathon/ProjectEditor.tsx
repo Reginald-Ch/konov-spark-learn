@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { PublishModal } from './PublishModal';
 import { LevelBadge, AchievementGrid, getForgeLevel, getAchievements } from './AchievementBadges';
 import { ForgeWalkthrough, MilestoneCelebration } from './ForgeWalkthrough';
@@ -1024,6 +1028,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // ── Problems panel — clickable list of lint issues, not just a count ──
   const [problemsPanelOpen, setProblemsPanelOpen] = useState(false);
 
+  // Shared by every destructive-action confirmation in this file (switch
+  // project type, reset to template, switch identity) — these used to be
+  // native window.confirm() dialogs, an unstyled OS popup jarringly out of
+  // place in an otherwise fully custom dark IDE. One themed AlertDialog
+  // driven by this state replaces all three call sites.
+  const [pendingConfirm, setPendingConfirm] = useState<{ title: string; description: string; onConfirm: () => void } | null>(null);
+
   // ── Autocomplete state ──
   const [autocompleteItems, setAutocompleteItems] = useState<AutocompleteItem[]>([]);
   const [autocompletePos, setAutocompletePos] = useState<{ top: number; left: number } | null>(null);
@@ -1512,67 +1523,87 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // as a highlighted "current selection" indicator, not an obviously
     // destructive button, so nothing below should fire for a no-op click.
     if (type === projectType) return;
+    const proceed = () => {
+      const scaffold = scaffolds[type];
+      setProjectType(type);
+      setSystemPrompt(scaffold.systemPrompt);
+      setFiles({
+        'main.py': scaffold.main,
+        'config.json': scaffold.config,
+        'requirements.txt': scaffold.requirements,
+      });
+      setSavedFiles({
+        'main.py': scaffold.main,
+        'config.json': scaffold.config,
+        'requirements.txt': scaffold.requirements,
+      });
+      setChatMessages([
+        { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
+      ]);
+      setTerminalOutput([`> Loaded ${scaffold.name} template`, `> 3 files ready`]);
+      setConsoleResult(null); // avoid a stale flash of the previous template's printed output
+      setShowBottomPanel(true);
+      setBottomTab('terminal');
+      setAiOutput('');
+      setMentorHistory([]);
+      // Clear project ID to prevent cross-template overwrites on save
+      setCurrentProjectId(null);
+      localStorage.removeItem('forge-current-project-id');
+      // Also drop the old draft — otherwise a reload before the next keystroke
+      // could resurrect the pre-switch code (it was tagged projectId: null too).
+      localStorage.removeItem('forge-editor-code');
+      // A pending debounced snapshot from typing right before switching would
+      // otherwise fire after this and push the pre-switch content back onto
+      // lastSnapshotRef, letting a later Undo resurrect the discarded template.
+      if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
+      setKnowledgeBase('');
+      setQaData([]);
+      // Reset Design tab state to avoid leaking across templates
+      setSelectedTheme(THEMES[0]);
+      setLogoUrl('');
+      // Reset refs
+      prevSystemPromptRef.current = scaffold.systemPrompt;
+      prevKnowledgeRef.current = '';
+      prevQARef.current = '[]';
+      themeSyncRef.current = 'default';
+      // Every other per-project baseline gets reset here except these two —
+      // left stale, a badge/level earned on the OLD project stayed in
+      // prevAchievementIdsRef/prevLevelRef's "already announced" set, so
+      // re-earning that same achievement on the NEW project after a
+      // template switch silently never re-toasted it (the sidebar's
+      // AchievementGrid tile still showed it unlocked correctly — only the
+      // celebratory toast was missed). null makes the next run of both
+      // effects treat this as a fresh baseline, the same as a genuinely
+      // new page load.
+      prevLevelRef.current = null;
+      prevAchievementIdsRef.current = null;
+      // Reset undo/redo stacks
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      lastSnapshotRef.current = scaffold.main;
+      // Imperatively reset textarea to match new scaffold
+      if (textareaRef.current) textareaRef.current.value = scaffold.main;
+      // Immediately update debounced config to prevent stale AI responses
+      setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
+      toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
+    };
     // No confirmation existed at all — every unsaved edit, the full undo
     // history, the local draft, AND the link to any already-saved project
     // (currentProjectId gets nulled below, same "orphans a published
     // link" risk as Reset to Template) were destroyed in one click on a
-    // tile that reads as a selector, not a destructive action.
-    if ((isDirty || currentProjectId) && !window.confirm(
-      currentProjectId
-        ? 'Switch project type? Your current project and any unsaved edits will be replaced with a fresh template — this does NOT delete what\'s already saved on the server, but this editor will disconnect from it (a new save creates a separate project).'
-        : 'Switch project type? Your unsaved edits will be replaced with a fresh template.'
-    )) return;
-    const scaffold = scaffolds[type];
-    setProjectType(type);
-    setSystemPrompt(scaffold.systemPrompt);
-    setFiles({
-      'main.py': scaffold.main,
-      'config.json': scaffold.config,
-      'requirements.txt': scaffold.requirements,
-    });
-    setSavedFiles({
-      'main.py': scaffold.main,
-      'config.json': scaffold.config,
-      'requirements.txt': scaffold.requirements,
-    });
-    setChatMessages([
-      { role: 'system', content: `⚡ ${scaffold.icon} ${scaffold.name} project loaded. Ready to build!` },
-    ]);
-    setTerminalOutput([`> Loaded ${scaffold.name} template`, `> 3 files ready`]);
-    setConsoleResult(null); // avoid a stale flash of the previous template's printed output
-    setShowBottomPanel(true);
-    setBottomTab('terminal');
-    setAiOutput('');
-    setMentorHistory([]);
-    // Clear project ID to prevent cross-template overwrites on save
-    setCurrentProjectId(null);
-    localStorage.removeItem('forge-current-project-id');
-    // Also drop the old draft — otherwise a reload before the next keystroke
-    // could resurrect the pre-switch code (it was tagged projectId: null too).
-    localStorage.removeItem('forge-editor-code');
-    // A pending debounced snapshot from typing right before switching would
-    // otherwise fire after this and push the pre-switch content back onto
-    // lastSnapshotRef, letting a later Undo resurrect the discarded template.
-    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
-    setKnowledgeBase('');
-    setQaData([]);
-    // Reset Design tab state to avoid leaking across templates
-    setSelectedTheme(THEMES[0]);
-    setLogoUrl('');
-    // Reset refs
-    prevSystemPromptRef.current = scaffold.systemPrompt;
-    prevKnowledgeRef.current = '';
-    prevQARef.current = '[]';
-    themeSyncRef.current = 'default';
-    // Reset undo/redo stacks
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    lastSnapshotRef.current = scaffold.main;
-    // Imperatively reset textarea to match new scaffold
-    if (textareaRef.current) textareaRef.current.value = scaffold.main;
-    // Immediately update debounced config to prevent stale AI responses
-    setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
-    toast.success(`${scaffold.icon} Switched to ${scaffold.name}`);
+    // tile that reads as a selector, not a destructive action. Now routed
+    // through the shared themed confirm dialog instead of window.confirm().
+    if (isDirty || currentProjectId) {
+      setPendingConfirm({
+        title: 'Switch project type?',
+        description: currentProjectId
+          ? 'Your current project and any unsaved edits will be replaced with a fresh template — this does NOT delete what\'s already saved on the server, but this editor will disconnect from it (a new save creates a separate project).'
+          : 'Your unsaved edits will be replaced with a fresh template.',
+        onConfirm: proceed,
+      });
+      return;
+    }
+    proceed();
   };
 
   // Reset current file to original template code
@@ -1585,44 +1616,57 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     // pre-reset version with nothing telling the student the connection
     // was severed. Only worth the extra sentence when there's an actual
     // saved project to disconnect from.
-    const confirmMsg = currentProjectId
-      ? 'Reset to original template? Your current edits will be lost, AND this editor will disconnect from your saved project (if you\'ve already published it, that link keeps working but stops reflecting new changes — publishing again creates a separate project).'
-      : 'Reset to original template? Your current edits will be lost.';
-    if (!window.confirm(confirmMsg)) return;
-    // window.confirm blocks the event loop long enough for a pending
-    // debounced snapshot (from typing right before Reset) to still be
-    // queued — left running, it fires right after this completes and sets
-    // lastSnapshotRef back to the pre-reset text, letting Ctrl+Z resurrect
-    // code this action explicitly says is not undoable.
-    if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
-    // Clear undo/redo stacks — reset is not undoable (prevents stale state restoration)
-    undoStackRef.current = [];
-    redoStackRef.current = [];
-    lastSnapshotRef.current = scaffold.main;
-    setConsoleResult(null); // avoid a stale flash of the pre-reset code's printed output
-    setFiles({
-      'main.py': scaffold.main,
-      'config.json': scaffold.config,
-      'requirements.txt': scaffold.requirements,
+    const proceed = () => {
+      // A native window.confirm() used to block the event loop long enough
+      // for a pending debounced snapshot (from typing right before Reset)
+      // to still be queued — left running, it fired right after this
+      // completed and set lastSnapshotRef back to the pre-reset text,
+      // letting Ctrl+Z resurrect code this action explicitly says is not
+      // undoable. The themed dialog's confirm click doesn't block the
+      // event loop the same way, but clearing the pending timer here
+      // remains the correct, race-proof fix regardless of which UI asked.
+      if (snapshotTimerRef.current) { clearTimeout(snapshotTimerRef.current); snapshotTimerRef.current = null; }
+      // Clear undo/redo stacks — reset is not undoable (prevents stale state restoration)
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      lastSnapshotRef.current = scaffold.main;
+      setConsoleResult(null); // avoid a stale flash of the pre-reset code's printed output
+      setFiles({
+        'main.py': scaffold.main,
+        'config.json': scaffold.config,
+        'requirements.txt': scaffold.requirements,
+      });
+      setSystemPrompt(scaffold.systemPrompt);
+      prevSystemPromptRef.current = scaffold.systemPrompt;
+      setKnowledgeBase('');
+      prevKnowledgeRef.current = '';
+      setQaData([]);
+      prevQARef.current = '[]';
+      setSelectedTheme(THEMES[0]);
+      themeSyncRef.current = 'default';
+      // Same reset as handleTypeChange, same reason — without this, a badge
+      // re-earned after Reset to Template never re-toasts since the stale
+      // "already announced" baseline survives the reset.
+      prevLevelRef.current = null;
+      prevAchievementIdsRef.current = null;
+      if (textareaRef.current) textareaRef.current.value = scaffold.main;
+      // Immediately update debounced config to prevent stale AI responses
+      setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
+      // Clear project ID on reset so next save creates a fresh project
+      setCurrentProjectId(null);
+      localStorage.removeItem('forge-current-project-id');
+      // Also drop the old draft — otherwise a reload before the next keystroke
+      // could resurrect the pre-reset code (it was tagged projectId: null too).
+      localStorage.removeItem('forge-editor-code');
+      toast.success('🔄 Code reset to original template');
+    };
+    setPendingConfirm({
+      title: 'Reset to original template?',
+      description: currentProjectId
+        ? 'Your current edits will be lost, AND this editor will disconnect from your saved project (if you\'ve already published it, that link keeps working but stops reflecting new changes — publishing again creates a separate project).'
+        : 'Your current edits will be lost.',
+      onConfirm: proceed,
     });
-    setSystemPrompt(scaffold.systemPrompt);
-    prevSystemPromptRef.current = scaffold.systemPrompt;
-    setKnowledgeBase('');
-    prevKnowledgeRef.current = '';
-    setQaData([]);
-    prevQARef.current = '[]';
-    setSelectedTheme(THEMES[0]);
-    themeSyncRef.current = 'default';
-    if (textareaRef.current) textareaRef.current.value = scaffold.main;
-    // Immediately update debounced config to prevent stale AI responses
-    setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
-    // Clear project ID on reset so next save creates a fresh project
-    setCurrentProjectId(null);
-    localStorage.removeItem('forge-current-project-id');
-    // Also drop the old draft — otherwise a reload before the next keystroke
-    // could resurrect the pre-reset code (it was tagged projectId: null too).
-    localStorage.removeItem('forge-editor-code');
-    toast.success('🔄 Code reset to original template');
   }, [projectType, files, scaffolds, currentProjectId]);
 
   const updateFile = (content: string) => {
@@ -2307,6 +2351,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     return () => {
       if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
       window.speechSynthesis?.cancel();
+      // Every other long-lived resource here gets aborted on unmount except
+      // this one — an in-flight AI chat stream kept running to completion
+      // regardless if a student navigated away from Build Studio mid-reply,
+      // holding a shared ai_gateway_slots concurrency slot for the full
+      // duration instead of releasing it promptly (see python-ai-assist's
+      // own comment on why the server-side slot release depends on the
+      // client actually aborting).
+      if (chatAbortRef.current) { try { chatAbortRef.current.abort(); } catch {} }
     };
   }, []);
 
@@ -3131,24 +3183,29 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
   // quietly overwrites their real project. This is the one explicit,
   // discoverable way to notice and back out before that happens.
   const handleSwitchIdentity = () => {
-    if (!window.confirm("Switch to a different student? This clears the cached name, email, and any unsaved draft on THIS BROWSER. Your own saved projects stay safe on the server either way.")) return;
-    localStorage.removeItem('forge-student-email');
-    localStorage.removeItem('forge-student-name');
-    localStorage.removeItem('forge-current-project-id');
-    localStorage.removeItem('forge-editor-code');
-    // handleTypeChange/handleResetToTemplate both clear these same four
-    // fields when switching templates — missed here, so on a shared
-    // classroom computer the NEXT student to start a brand-new project
-    // after someone switched identity would see the PREVIOUS student's
-    // Knowledge Base text, Q&A pairs, theme, and logo pre-populated,
-    // despite this dialog's explicit promise that switching "clears the
-    // cached name, email, and any unsaved draft" — exactly the class of
-    // leak this feature exists to prevent, just for the fields it forgot.
-    localStorage.removeItem('forge-knowledge-base');
-    localStorage.removeItem('forge-qa-data');
-    localStorage.removeItem('forge-theme');
-    localStorage.removeItem('forge-logo-url');
-    window.location.reload();
+    setPendingConfirm({
+      title: 'Switch to a different student?',
+      description: 'This clears the cached name, email, and any unsaved draft on THIS BROWSER. Your own saved projects stay safe on the server either way.',
+      onConfirm: () => {
+        localStorage.removeItem('forge-student-email');
+        localStorage.removeItem('forge-student-name');
+        localStorage.removeItem('forge-current-project-id');
+        localStorage.removeItem('forge-editor-code');
+        // handleTypeChange/handleResetToTemplate both clear these same four
+        // fields when switching templates — missed here, so on a shared
+        // classroom computer the NEXT student to start a brand-new project
+        // after someone switched identity would see the PREVIOUS student's
+        // Knowledge Base text, Q&A pairs, theme, and logo pre-populated,
+        // despite this dialog's explicit promise that switching "clears the
+        // cached name, email, and any unsaved draft" — exactly the class of
+        // leak this feature exists to prevent, just for the fields it forgot.
+        localStorage.removeItem('forge-knowledge-base');
+        localStorage.removeItem('forge-qa-data');
+        localStorage.removeItem('forge-theme');
+        localStorage.removeItem('forge-logo-url');
+        window.location.reload();
+      },
+    });
   };
 
   // "Skip Tour"/X/backdrop-click and "Let's Build!" (finishing all 5 steps)
@@ -3347,6 +3404,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Shared destructive-action confirm dialog ── */}
+      <AlertDialog open={pendingConfirm !== null} onOpenChange={(open) => { if (!open) setPendingConfirm(null); }}>
+        <AlertDialogContent className="bg-ide-sidebar border-ide-border text-ide-text">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-ide-text">{pendingConfirm?.title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-ide-text-muted">{pendingConfirm?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-transparent border-ide-border text-ide-text-muted hover:bg-ide-border/50 hover:text-ide-text">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { pendingConfirm?.onConfirm(); setPendingConfirm(null); }}
+              className="bg-ide-accent text-ide-bg-deep hover:bg-ide-accent/90"
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-3 h-10 flex-shrink-0 bg-ide-bg-deep border-b border-ide-border-subtle">

@@ -167,8 +167,39 @@ export const stripLineComment = (line: string): string => {
 // their function never ran. Living here (rather than duplicated in both
 // files) means preview and published behavior can't drift apart on this
 // again the way they already had on match-strictness elsewhere.
-export const codeDefinesRespond = (code: string): boolean =>
-  code.split('\n').some(line => /^\s*def\s+respond\s*\(/.test(stripLineComment(line)));
+// stripLineComment alone isn't enough here — it's quote-aware WITHIN a
+// single line but has no memory of a triple-quoted string still open from
+// a PREVIOUS line. A student pasting example code as documentation (e.g.
+// SYSTEM_MESSAGE = """\ndef respond(message, history):\n    ...\n"""), or
+// leaving themselves a note in a docstring, made this return a false
+// positive: main.py never actually defines a callable respond(), but this
+// said it did, so ProjectEditor's chat handler skipped secret responses/
+// Q&A/blocked-topic checks it should have run. Tracks open/close state
+// across lines the same way stripComments (ProjectEditor.tsx) does for
+// the sidebar sync effects, so a "def respond(" only counts when it's
+// genuinely top-level code, not text sitting inside a string.
+export const codeDefinesRespond = (code: string): boolean => {
+  let inMultiLineString = false;
+  let multiLineDelim = '"""';
+  for (const line of code.split('\n')) {
+    if (inMultiLineString) {
+      const closeIdx = line.indexOf(multiLineDelim);
+      if (closeIdx === -1) continue;
+      inMultiLineString = false;
+      const rest = line.slice(closeIdx + multiLineDelim.length);
+      const restStripped = tokenizeLine(rest).filter(t => t.type !== 'comment').map(t => t.value).join('');
+      if (/^\s*def\s+respond\s*\(/.test(restStripped)) return true;
+      continue;
+    }
+    const strippedLine = tokenizeLine(line).filter(t => t.type !== 'comment').map(t => t.value).join('');
+    const tripleDoubleCount = (strippedLine.match(/"""/g) || []).length;
+    const tripleSingleCount = (strippedLine.match(/'''/g) || []).length;
+    if (tripleDoubleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = '"""'; }
+    else if (tripleSingleCount % 2 !== 0) { inMultiLineString = true; multiLineDelim = "'''"; }
+    if (/^\s*def\s+respond\s*\(/.test(strippedLine)) return true;
+  }
+  return false;
+};
 
 // Shared by ProjectEditor.tsx (Live Preview) and ProjectView.tsx (the
 // published bot page) — both retry a python-ai-assist 429 (the shared
