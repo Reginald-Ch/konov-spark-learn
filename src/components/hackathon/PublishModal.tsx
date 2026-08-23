@@ -378,28 +378,28 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
                   stay hidden and get submitted to judges under their name. */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-medium text-white/70 mb-1 block">Your Name</label>
-                  <Input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
+                  <label htmlFor="publish-author-name" className="text-xs font-medium text-white/70 mb-1 block">Your Name</label>
+                  <Input id="publish-author-name" value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="What's your name?"
                     className="h-9 bg-black/30 border-[#30363d] text-white text-sm" autoFocus={showNameInput} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-white/70 mb-1 block">Your Email</label>
-                  <Input value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="you@example.com" type="email"
+                  <label htmlFor="publish-author-email" className="text-xs font-medium text-white/70 mb-1 block">Your Email</label>
+                  <Input id="publish-author-email" value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="you@example.com" type="email"
                     className="h-9 bg-black/30 border-[#30363d] text-white text-sm" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-white/70 mb-1 block">Project Name</label>
-                <Input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
+                <label htmlFor="publish-project-name" className="text-xs font-medium text-white/70 mb-1 block">Project Name</label>
+                <Input id="publish-project-name" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="My AI Chatbot"
                   className="h-9 bg-black/30 border-[#30363d] text-white text-sm" autoFocus={!showNameInput} />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-white/70 mb-1 block">
+                <label htmlFor="publish-description" className="text-xs font-medium text-white/70 mb-1 block">
                   What does your AI do? <span className="text-white/30 font-normal">(1-2 sentences)</span>
                 </label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)}
+                <Textarea id="publish-description" value={description} onChange={e => setDescription(e.target.value)}
                   placeholder="My AI helps students study for exams by explaining difficult concepts."
                   rows={2}
                   className="bg-black/30 border-[#30363d] text-white text-sm resize-none" />

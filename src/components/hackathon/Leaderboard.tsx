@@ -25,9 +25,9 @@ const SCORING_CRITERIA = [
 type ScoringKey = typeof SCORING_CRITERIA[number]['key'];
 
 const TIER_META = [
-  { tier: 1, name: 'System Message', max: 10, textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/15', borderColor: 'border-cyan-500/30' },
-  { tier: 2, name: 'Knowledge & Conversation', max: 15, textColor: 'text-amber-400', bgColor: 'bg-amber-500/15', borderColor: 'border-amber-500/30' },
-  { tier: 4, name: 'Judge Score', max: 70, textColor: 'text-yellow-400', bgColor: 'bg-yellow-500/15', borderColor: 'border-yellow-500/30' },
+  { tier: 1, name: 'System Message', max: 10, textColor: 'text-[hsl(var(--discord-blurple))]', bgColor: 'bg-[hsl(var(--discord-blurple)/0.15)]', borderColor: 'border-[hsl(var(--discord-blurple)/0.3)]' },
+  { tier: 2, name: 'Knowledge & Conversation', max: 15, textColor: 'text-[hsl(var(--discord-green))]', bgColor: 'bg-[hsl(var(--discord-green)/0.15)]', borderColor: 'border-[hsl(var(--discord-green)/0.3)]' },
+  { tier: 4, name: 'Judge Score', max: 70, textColor: 'text-[hsl(var(--discord-yellow))]', bgColor: 'bg-[hsl(var(--discord-yellow)/0.15)]', borderColor: 'border-[hsl(var(--discord-yellow)/0.3)]' },
 ];
 
 const MAX_SCORE = 95;
@@ -146,6 +146,13 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
         setError('Failed to load leaderboard data');
         return;
       }
+      // judgeEventsRes.error was never checked — a failure here (network
+      // blip, permissions) silently rendered every project with 0 judge
+      // points, indistinguishable from "no judges have scored yet" instead
+      // of a real fetch failure.
+      if (judgeEventsRes.error) {
+        console.error('judge scores fetch error:', judgeEventsRes.error);
+      }
 
       // Multiple judges can now independently score the same project (the
       // judge role is shared by several people) — average their scores per
@@ -206,30 +213,53 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
     const channel = supabase
       .channel(`leaderboard-updates-${hackathonId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
       .subscribe();
+
+    // point_events' own postgres_changes subscription used to live here
+    // too, but a later security fix (20260903000001) correctly revoked
+    // ALL anon/authenticated privileges on that table — Supabase Realtime
+    // evaluates each row against the connecting role's own grants before
+    // ever broadcasting it, so with zero privileges that channel silently
+    // stopped firing entirely. A judge submitting a score no longer
+    // touches ai_projects at all, so without a substitute the leaderboard
+    // would only update on a full page reload. Light polling is the same
+    // fallback this app already uses elsewhere for the identical RLS-vs-
+    // realtime conflict (e.g. ProjectEditor's publish-state check).
+    const pollId = setInterval(() => fetchLeaderboardData(), 20000);
 
     return () => {
       isMountedRef.current = false;
       supabase.removeChannel(channel);
+      clearInterval(pollId);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [fetchLeaderboardData, debouncedFetch]);
 
+  // Rank was conveyed by icon shape/color alone for the top 3 — a
+  // screen-reader user got no indication a row was 1st/2nd/3rd place,
+  // unlike rank 4+ which already had a visible "#4" text fallback. sr-only
+  // adds the same information as real (if visually hidden) text for every
+  // rank, not just the ones already using a number. Also swaps raw
+  // Tailwind palette colors (yellow-400/slate-200/amber-600) for this
+  // file's own discord-* tokens, which it already uses correctly
+  // elsewhere — no bronze/silver token exists in this app's palette, so
+  // gold/silver/bronze map onto the three progressively dimmer tones
+  // (yellow, text, text-muted) actually available rather than inventing
+  // new colors outside the design system.
   const getRankIcon = (index: number) => {
     switch (index) {
-      case 0: return <Crown className="w-5 h-5 text-yellow-400" />;
-      case 1: return <Medal className="w-5 h-5 text-slate-200" />;
-      case 2: return <Medal className="w-5 h-5 text-amber-600" />;
+      case 0: return <><Crown className="w-5 h-5 text-[hsl(var(--discord-yellow))]" /><span className="sr-only">1st place</span></>;
+      case 1: return <><Medal className="w-5 h-5 text-[hsl(var(--discord-text))]" /><span className="sr-only">2nd place</span></>;
+      case 2: return <><Medal className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" /><span className="sr-only">3rd place</span></>;
       default: return <span className="text-[hsl(var(--discord-text-muted))] font-medium w-5 text-center text-sm">#{index + 1}</span>;
     }
   };
 
   const getRankBg = (index: number) => {
     switch (index) {
-      case 0: return 'bg-yellow-500/20 border-yellow-500/30';
-      case 1: return 'bg-gray-400/15 border-gray-400/25';
-      case 2: return 'bg-amber-600/20 border-amber-600/30';
+      case 0: return 'bg-[hsl(var(--discord-yellow)/0.2)] border-[hsl(var(--discord-yellow)/0.3)]';
+      case 1: return 'bg-[hsl(var(--discord-text)/0.15)] border-[hsl(var(--discord-text)/0.25)]';
+      case 2: return 'bg-[hsl(var(--discord-text-muted)/0.2)] border-[hsl(var(--discord-text-muted)/0.3)]';
       default: return 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)]';
     }
   };
@@ -266,7 +296,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
                 return (
                   <div key={criterion.key} className="flex items-center gap-2 text-xs">
                     {isAchieved
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--discord-green))] flex-shrink-0" />
                       : <Circle className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
                     }
                     <span className={isAchieved ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}>
@@ -334,7 +364,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-400 mb-2">{error}</p>
+            <p className="text-[hsl(var(--discord-red))] mb-2">{error}</p>
             <button onClick={() => { setIsLoading(true); fetchLeaderboardData(); }} className="text-sm text-[hsl(var(--discord-blurple))] hover:underline">
               Retry
             </button>
@@ -358,8 +388,18 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
             {participants.map((p, index) => (
               <div
                 key={p.authorKey}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedKey === p.authorKey}
+                aria-label={`${p.name}, rank ${index + 1}`}
                 className={`rounded-lg border transition-all cursor-pointer ${getRankBg(index)} ${selectedKey === p.authorKey ? 'ring-1 ring-[hsl(var(--discord-blurple))]' : ''}`}
                 onClick={() => setSelectedKey(selectedKey === p.authorKey ? null : p.authorKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedKey(selectedKey === p.authorKey ? null : p.authorKey);
+                  }
+                }}
               >
                 <div className="flex items-center gap-3 p-3">
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
