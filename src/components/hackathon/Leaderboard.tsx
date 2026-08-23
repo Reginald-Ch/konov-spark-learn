@@ -3,6 +3,7 @@ import { Trophy, Medal, Star, Users, Crown, Award, Flame, CheckCircle2, Circle, 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { stripLineComment } from './editorFeatures';
 import { isSafeExternalUrl } from '@/lib/utils';
 
@@ -15,9 +16,16 @@ import { isSafeExternalUrl } from '@/lib/utils';
 // input + RPC parameter I can't test live, matching how this session
 // already handled other reward mechanics with no real way to earn them
 // (Forge Keys, Boost Tokens).
+// "Knowledge Accuracy" (10 pts, keyed off is_published) was the mirror-
+// image bug: get_hackathon_leaderboard_projects only ever returns rows
+// WHERE is_published = true (see 20260903000000_restore_leaderboard_
+// privacy_fix.sql) — a project can't reach this client at all without
+// already being published, so the check was tautologically true for
+// every row the leaderboard ever renders. Not a differentiator, just a
+// restatement of "you're on this list," so it's cut for the same reason
+// Creativity & Personality was: zero real variance across participants.
 const SCORING_CRITERIA = [
   { key: 'system_message', points: 10, tier: 1, label: 'System Message Quality', icon: '🧠', desc: 'Clear, well-crafted system prompt (code length > 200 chars)' },
-  { key: 'knowledge_accuracy', points: 10, tier: 2, label: 'Knowledge Accuracy', icon: '📚', desc: 'Project is published & deployed' },
   { key: 'conversation_quality', points: 5, tier: 2, label: 'Conversation Quality', icon: '💬', desc: 'Project has a description' },
   { key: 'judge_score', points: 70, tier: 4, label: 'Judge Score', icon: '⭐', desc: 'Scored by judges' },
 ] as const;
@@ -26,11 +34,11 @@ type ScoringKey = typeof SCORING_CRITERIA[number]['key'];
 
 const TIER_META = [
   { tier: 1, name: 'System Message', max: 10, textColor: 'text-[hsl(var(--discord-blurple))]', bgColor: 'bg-[hsl(var(--discord-blurple)/0.15)]', borderColor: 'border-[hsl(var(--discord-blurple)/0.3)]' },
-  { tier: 2, name: 'Knowledge & Conversation', max: 15, textColor: 'text-[hsl(var(--discord-green))]', bgColor: 'bg-[hsl(var(--discord-green)/0.15)]', borderColor: 'border-[hsl(var(--discord-green)/0.3)]' },
+  { tier: 2, name: 'Conversation Quality', max: 5, textColor: 'text-[hsl(var(--discord-green))]', bgColor: 'bg-[hsl(var(--discord-green)/0.15)]', borderColor: 'border-[hsl(var(--discord-green)/0.3)]' },
   { tier: 4, name: 'Judge Score', max: 70, textColor: 'text-[hsl(var(--discord-yellow))]', bgColor: 'bg-[hsl(var(--discord-yellow)/0.15)]', borderColor: 'border-[hsl(var(--discord-yellow)/0.3)]' },
 ];
 
-const MAX_SCORE = 95;
+const MAX_SCORE = 85;
 
 interface ParticipantScore {
   authorKey: string;
@@ -67,11 +75,6 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
     achieved.add('system_message');
     tier1 = 10;
   }
-  // 📚 Knowledge Accuracy: project is published
-  if (project.is_published) {
-    achieved.add('knowledge_accuracy');
-    tier2 += 10;
-  }
   // 💬 Conversation Quality: has a description
   if (project.description && project.description.trim().length > 0) {
     achieved.add('conversation_quality');
@@ -104,6 +107,69 @@ function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore,
   };
 }
 
+// Hoisted to module scope — this used to be declared inside Leaderboard's
+// render body, which gave it a brand-new function identity every render.
+// Since <TierBreakdown .../> compiles to createElement(TierBreakdown, ...),
+// a changed `type` between renders forces React to unmount/remount the
+// whole subtree instead of reconciling it. That fired on every 20s
+// polling refresh (Leaderboard.tsx's fetchLeaderboardData interval) even
+// when no score actually changed, silently remounting any expanded row —
+// losing focus if a keyboard user had tabbed into its "Demo" link, and
+// snapping the Progress bar's transition instead of animating it. A
+// stable module-level identity fixes this the same way TIER_META/
+// SCORING_CRITERIA already live at module scope rather than being
+// recreated per render.
+function TierBreakdown({ participant }: { participant: ParticipantScore }) {
+  return (
+    <div className="space-y-3 mt-3">
+      {participant.projectName && (
+        <div className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text-muted))] mb-1 min-w-0">
+          <span className="text-white font-medium truncate min-w-0">{participant.projectName}</span>
+          {participant.demoUrl && isSafeExternalUrl(participant.demoUrl) && (
+            <a href={participant.demoUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1 text-[hsl(var(--discord-blurple))] hover:underline flex-shrink-0"
+            >
+              <ExternalLink className="w-3 h-3" /> Demo
+            </a>
+          )}
+        </div>
+      )}
+      {TIER_META.map(tier => {
+        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : tier.tier === 3 ? participant.tier3 : participant.tier4;
+        const pct = Math.round((tierPts / tier.max) * 100);
+        const tierCriteria = SCORING_CRITERIA.filter(c => c.tier === tier.tier);
+        return (
+          <div key={tier.tier} className={`rounded-lg p-3 border ${tier.bgColor} ${tier.borderColor}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`text-xs font-bold ${tier.textColor}`}>TIER {tier.tier} — {tier.name}</span>
+              <span className={`text-xs font-mono font-bold ${tier.textColor}`}>{tierPts}/{tier.max}</span>
+            </div>
+            <Progress value={pct} className="h-1.5 mb-2" />
+            <div className="space-y-1">
+              {tierCriteria.map(criterion => {
+                const isAchieved = participant.achieved.has(criterion.key);
+                return (
+                  <div key={criterion.key} className="flex items-center gap-2 text-xs">
+                    {isAchieved
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--discord-green))] flex-shrink-0" />
+                      : <Circle className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
+                    }
+                    <span className={isAchieved ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}>
+                      {criterion.icon} {criterion.label}
+                    </span>
+                    <span className="ml-auto text-[hsl(var(--discord-text-muted))]">+{criterion.points}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface LeaderboardProps {
   hackathonId?: string | null;
 }
@@ -125,6 +191,10 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
   // leaderboard with stale data for an event no longer being viewed.
   const latestHackathonIdRef = useRef(hackathonId);
   useEffect(() => { latestHackathonIdRef.current = hackathonId; }, [hackathonId]);
+  // Tracks whether the last judge-score fetch failed, so a persistent
+  // failure across repeated polls doesn't stack a new toast every 20s —
+  // and so recovery (the next successful poll) can quietly dismiss it.
+  const judgeFetchErrorShownRef = useRef(false);
 
   const fetchLeaderboardData = useCallback(async () => {
     if (!hackathonId) {
@@ -156,12 +226,26 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
         setError('Failed to load leaderboard data');
         return;
       }
-      // judgeEventsRes.error was never checked — a failure here (network
-      // blip, permissions) silently rendered every project with 0 judge
-      // points, indistinguishable from "no judges have scored yet" instead
-      // of a real fetch failure.
+      // judgeEventsRes.error used to be logged only, with no user-facing
+      // signal — a failure here (network blip, permissions) silently
+      // rendered every project with 0 judge points, indistinguishable from
+      // "no judges have scored yet" instead of a real fetch failure, and
+      // judge_score is the highest-weight criterion (70 of 85 points). Not
+      // treated as a full-page error like projectsRes above — the project
+      // list itself still loaded fine — but a toast makes the degraded
+      // state visible instead of silently zeroing everyone's top score.
+      // Deduped by a fixed toast id + a ref flag so a persistent failure
+      // across repeated 20s polls doesn't stack a new toast each time, and
+      // clears itself the moment a poll succeeds again.
       if (judgeEventsRes.error) {
         console.error('judge scores fetch error:', judgeEventsRes.error);
+        if (!judgeFetchErrorShownRef.current) {
+          judgeFetchErrorShownRef.current = true;
+          toast.error('Judge scores failed to load — scores shown may be incomplete.', { id: 'leaderboard-judge-fetch-error' });
+        }
+      } else if (judgeFetchErrorShownRef.current) {
+        judgeFetchErrorShownRef.current = false;
+        toast.dismiss('leaderboard-judge-fetch-error');
       }
 
       // Multiple judges can now independently score the same project (the
@@ -274,55 +358,6 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
     }
   };
 
-  const TierBreakdown = ({ participant }: { participant: ParticipantScore }) => (
-    <div className="space-y-3 mt-3">
-      {participant.projectName && (
-        <div className="flex items-center gap-2 text-xs text-[hsl(var(--discord-text-muted))] mb-1">
-          <span className="text-white font-medium truncate">{participant.projectName}</span>
-          {participant.demoUrl && isSafeExternalUrl(participant.demoUrl) && (
-            <a href={participant.demoUrl} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1 text-[hsl(var(--discord-blurple))] hover:underline flex-shrink-0"
-            >
-              <ExternalLink className="w-3 h-3" /> Demo
-            </a>
-          )}
-        </div>
-      )}
-      {TIER_META.map(tier => {
-        const tierPts = tier.tier === 1 ? participant.tier1 : tier.tier === 2 ? participant.tier2 : tier.tier === 3 ? participant.tier3 : participant.tier4;
-        const pct = Math.round((tierPts / tier.max) * 100);
-        const tierCriteria = SCORING_CRITERIA.filter(c => c.tier === tier.tier);
-        return (
-          <div key={tier.tier} className={`rounded-lg p-3 border ${tier.bgColor} ${tier.borderColor}`}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-xs font-bold ${tier.textColor}`}>TIER {tier.tier} — {tier.name}</span>
-              <span className={`text-xs font-mono font-bold ${tier.textColor}`}>{tierPts}/{tier.max}</span>
-            </div>
-            <Progress value={pct} className="h-1.5 mb-2" />
-            <div className="space-y-1">
-              {tierCriteria.map(criterion => {
-                const isAchieved = participant.achieved.has(criterion.key);
-                return (
-                  <div key={criterion.key} className="flex items-center gap-2 text-xs">
-                    {isAchieved
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--discord-green))] flex-shrink-0" />
-                      : <Circle className="w-3.5 h-3.5 text-[hsl(var(--discord-text-muted))] flex-shrink-0" />
-                    }
-                    <span className={isAchieved ? 'text-white' : 'text-[hsl(var(--discord-text-muted))]'}>
-                      {criterion.icon} {criterion.label}
-                    </span>
-                    <span className="ml-auto text-[hsl(var(--discord-text-muted))]">+{criterion.points}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   const stats = useMemo(() => ({
     total: participants.length,
     perfect: participants.filter(p => p.points >= MAX_SCORE).length,
@@ -423,7 +458,6 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(({ hacka
                     <p className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate">{p.projectName}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {p.achieved.has('system_message') && <span className="text-[10px]">🧠</span>}
-                      {p.achieved.has('knowledge_accuracy') && <span className="text-[10px]">📚</span>}
                       {p.achieved.has('conversation_quality') && <span className="text-[10px]">💬</span>}
                       {p.achieved.has('judge_score') && <span className="text-[10px]">⭐</span>}
                       {p.points >= MAX_SCORE && <span className="text-[10px]">🏆</span>}
