@@ -1049,6 +1049,20 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
     const seen = localStorage.getItem('buildstudio-onboarded');
     return seen ? null : 0;
   });
+  const onboardingModalRef = useRef<HTMLDivElement>(null);
+  // An inline `ref={el => el.focus()}` callback here was the original a11y
+  // fix, but React treats an inline arrow function as a new identity every
+  // render and re-invokes it each time — including once a SECOND from this
+  // component's own always-running autosave countdown interval. That
+  // yanked focus back to this container mid-Tab, away from whichever
+  // button a keyboard user had just reached, roughly once a second while
+  // the modal was open — the fix intermittently broke the exact
+  // navigation it was meant to enable. Depending on the boolean (not the
+  // raw step number) means this only re-runs on the actual open
+  // transition, not on every step-forward click or unrelated re-render.
+  useEffect(() => {
+    if (onboardingStep !== null) onboardingModalRef.current?.focus();
+  }, [onboardingStep !== null]);
 
   const [showPromptHelp, setShowPromptHelp] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(() => !localStorage.getItem('forge-walkthrough-done') && !!localStorage.getItem('buildstudio-onboarded'));
@@ -1203,6 +1217,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       }
       if (data.project_name) setProjectName(data.project_name);
       applyPublishState(!!data.is_published);
+      setRestoreDone(true);
+    }).catch((err) => {
+      // No .catch() existed at all — the .then() only handled a RESOLVED
+      // promise carrying { data: null, error }, not the promise itself
+      // REJECTING (a plausible outcome for some network/DNS failure
+      // classes). Without this, restoreDone never flips true on that path
+      // and the full-screen "Loading your project..." overlay (no
+      // pointer-events-none) blocked the entire editor indefinitely with
+      // no error shown and no way out except a reload. Same local-draft
+      // recovery as the handled-error branch above, so a genuine network
+      // failure doesn't ALSO lose real unsaved work sitting in the draft.
+      console.error('Failed to restore project:', err);
+      localStorage.removeItem('forge-current-project-id');
+      const draft = readDraft();
+      const localDraftForThisProject = draft && draft.projectId === savedId ? draft.code : null;
+      if (localDraftForThisProject && localDraftForThisProject.trim()) {
+        setFiles(prev => ({ ...prev, 'main.py': localDraftForThisProject }));
+        if (textareaRef.current) textareaRef.current.value = localDraftForThisProject;
+      }
       setRestoreDone(true);
     });
   }, []);
@@ -1581,7 +1614,19 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       undoStackRef.current = [];
       redoStackRef.current = [];
       lastSnapshotRef.current = scaffold.main;
-      // Imperatively reset textarea to match new scaffold
+      // Force back to main.py, not just imperatively write into whatever
+      // DOM node is currently showing — the direct write below used to run
+      // unconditionally regardless of which FILE TAB was actually active.
+      // If a student had config.json or requirements.txt open when
+      // switching types, the tab still read "config.json" but the visible,
+      // editable textarea silently got overwritten with the new Python
+      // scaffold — typing there from then on corrupted files['config.json']
+      // with a garbled Python/JSON mix. setActiveFile('main.py') here means
+      // the tab-sync effect (`useEffect(..., [activeFile])` below) takes
+      // over and keeps the visible file and its label consistent; the
+      // direct write stays too since that effect won't re-fire when
+      // main.py was ALREADY the active tab (its dependency doesn't change).
+      setActiveFile('main.py');
       if (textareaRef.current) textareaRef.current.value = scaffold.main;
       // Immediately update debounced config to prevent stale AI responses
       setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
@@ -1649,6 +1694,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // "already announced" baseline survives the reset.
       prevLevelRef.current = null;
       prevAchievementIdsRef.current = null;
+      // Same fix as handleTypeChange, same reason: this write used to run
+      // regardless of which file tab was active, so resetting while
+      // config.json/requirements.txt was open silently overwrote the
+      // visible textarea with the Python scaffold under a mislabeled tab —
+      // typing there then corrupted files['config.json']/['requirements.txt']
+      // with garbled content. Forcing the tab back to main.py keeps the
+      // label and the visible content in agreement.
+      setActiveFile('main.py');
       if (textareaRef.current) textareaRef.current.value = scaffold.main;
       // Immediately update debounced config to prevent stale AI responses
       setDebouncedLiveConfig(extractConfigFromCode(scaffold.main));
@@ -3351,7 +3404,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               aria-modal="true"
               aria-labelledby="onboarding-modal-title"
               tabIndex={-1}
-              ref={el => { if (el) el.focus(); }}
+              ref={onboardingModalRef}
               onKeyDown={e => {
                 // No focus trap or Escape handling existed at all — a
                 // keyboard user could Tab straight through this modal's
