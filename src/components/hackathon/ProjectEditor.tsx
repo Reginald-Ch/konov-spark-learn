@@ -3421,14 +3421,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
-                      <Input value={projectName} onChange={e => setProjectName(e.target.value)}
+                      <label htmlFor="editor-project-name" className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Name</label>
+                      <Input id="editor-project-name" value={projectName} onChange={e => setProjectName(e.target.value)}
                         className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Type</label>
-                      <div className="space-y-1">
+                      <span id="editor-project-type-label" className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Project Type</span>
+                      <div className="space-y-1" role="group" aria-labelledby="editor-project-type-label">
                         {([
                           { id: 'chatbot' as ProjectType, icon: Bot, label: '🤖 AI Chatbot', cls: 'text-ide-accent' },
                           { id: 'agent' as ProjectType, icon: Brain, label: '🧠 AI Agent', cls: 'text-ide-green' },
@@ -3451,9 +3451,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     <div>
                       <div className="flex items-center gap-1 mb-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">System Prompt</label>
+                        <label htmlFor="editor-system-prompt" className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">System Prompt</label>
                         <button
                           onClick={() => setShowPromptHelp(!showPromptHelp)}
+                          title="What is this?" aria-label="What is this?"
                           className="text-ide-text-muted hover:text-ide-accent transition-colors"
                         >
                           <HelpCircle className="w-3 h-3" />
@@ -3476,7 +3477,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                           </motion.div>
                         )}
                       </AnimatePresence>
-                      <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
+                      <Textarea id="editor-system-prompt" value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4}
                         className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" />
                       <p className={`text-[10px] mt-0.5 ${systemPrompt.length < 20 ? 'text-ide-orange' : systemPrompt.length > 500 ? 'text-ide-orange' : 'text-ide-text-muted'}`}>
                         {systemPrompt.length} chars {systemPrompt.length < 20 ? '— try to be more descriptive!' : systemPrompt.length > 500 ? '— consider being more concise' : ''}
@@ -3543,9 +3544,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                       return (
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">
+                          {/* h3, not label — this heads a read-only progress
+                              display, not a form control; a <label> with no
+                              associated control confuses screen readers
+                              expecting one. */}
+                          <h3 className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">
                             🎯 Mission Progress
-                          </label>
+                          </h3>
                           <div className="flex items-center gap-2 mb-2">
                             <div className="flex-1 h-2 rounded-full bg-ide-border">
                               <div
@@ -3615,7 +3620,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     {/* ── Memory & State ── */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">🧠 Memory &amp; State</label>
+                      <h3 className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">🧠 Memory &amp; State</h3>
                       <p className="text-[10px] text-ide-text-muted/70 italic mb-1.5">What your bot remembers and carries between messages, like a running memory of the conversation.</p>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between text-ide-text">
@@ -3640,7 +3645,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</label>
+                      <h3 className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">Resources Used</h3>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between text-ide-text">
                           <span>AI Calls</span>
@@ -3670,11 +3675,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
 
                     {/* Knowledge Base */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">Knowledge Base</label>
+                      <label htmlFor="editor-knowledge-base" className="text-[10px] font-bold uppercase tracking-wider mb-1 block text-ide-text-muted">Knowledge Base</label>
                       <p className="text-[10px] text-ide-text-muted mb-1.5">Paste any text your bot should know — notes, formulas, facts.</p>
-                      <Textarea 
-                        value={knowledgeBase} 
-                        onChange={e => setKnowledgeBase(e.target.value)} 
+                      <Textarea
+                        id="editor-knowledge-base"
+                        value={knowledgeBase}
+                        onChange={e => setKnowledgeBase(e.target.value)}
                         rows={5}
                         placeholder={"e.g.\nPythagoras theorem: a² + b² = c²\nIt applies to right-angled triangles.\n\nOhm's law: V = IR\nVoltage equals current times resistance."}
                         className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
@@ -3698,7 +3704,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     {/* Q&A Pairs, framed as Intents */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">Intents</label>
+                        <span id="editor-intents-label" className="text-[10px] font-bold uppercase tracking-wider text-ide-text-muted">Intents</span>
                         <Button size="sm" variant="ghost" onClick={addQA} className="h-5 px-1.5 text-[10px] text-ide-accent hover:bg-ide-border/50">
                           <Plus className="w-3 h-3 mr-0.5" /> Add
                         </Button>
@@ -3712,12 +3718,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         </button>
                       )}
 
-                      <div className="space-y-2">
+                      <div className="space-y-2" role="group" aria-labelledby="editor-intents-label">
                         {qaData.map((pair, idx) => (
                           <div key={pair.id} className="bg-ide-editor rounded-lg p-2 space-y-1.5 border border-ide-border/50">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold text-ide-accent">Intent {idx + 1}</span>
-                              <button onClick={() => removeQA(pair.id)} className="text-ide-text-muted hover:text-red-400">
+                              <button onClick={() => removeQA(pair.id)} title={`Remove intent ${idx + 1}`} aria-label={`Remove intent ${idx + 1}`} className="text-ide-text-muted hover:text-red-400">
                                 <Minus className="w-3 h-3" />
                               </button>
                             </div>
@@ -3725,12 +3731,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                               value={pair.q}
                               onChange={e => updateQA(pair.id, 'q', e.target.value)}
                               placeholder="Q: What is Pythagoras theorem?"
+                              aria-label={`Trigger phrase for intent ${idx + 1}`}
                               className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
                             />
                             <Input
                               value={pair.a}
                               onChange={e => updateQA(pair.id, 'a', e.target.value)}
                               placeholder="A: a² + b² = c² for right triangles"
+                              aria-label={`Response for intent ${idx + 1}`}
                               className="h-7 text-[11px] border-0 bg-ide-bg text-ide-text focus-visible:ring-1 focus-visible:ring-ide-accent"
                             />
                           </div>
@@ -3756,13 +3764,14 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                 {configTab === 'theme' && (
                   <>
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🎨 App Theme</label>
+                      <span id="editor-app-theme-label" className="text-[10px] font-bold uppercase tracking-wider mb-2 block text-ide-text-muted">🎨 App Theme</span>
                       <p className="text-[10px] text-ide-text-muted mb-3">Choose a color theme for your deployed AI app.</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="editor-app-theme-label">
                         {THEMES.map(theme => (
                           <button
                             key={theme.id}
                             onClick={() => setSelectedTheme(theme)}
+                            aria-pressed={selectedTheme.id === theme.id}
                             className={`p-2 rounded-lg border-2 transition-all ${
                               selectedTheme.id === theme.id ? 'border-ide-accent' : 'border-ide-border hover:border-ide-text-muted'
                             }`}
@@ -3776,12 +3785,13 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">📝 App Title</label>
-                      <Input 
-                        value={projectName} 
+                      <label htmlFor="editor-app-title" className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">📝 App Title</label>
+                      <Input
+                        id="editor-app-title"
+                        value={projectName}
                         onChange={e => setProjectName(e.target.value)}
                         placeholder="My AI Assistant"
-                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                        className="h-7 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent"
                       />
                     </div>
 
@@ -3799,11 +3809,12 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         Rather than build a second, competing mechanism for
                         the same two things, this just points at the real one. */}
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🖼️ Logo</label>
+                      <label htmlFor="editor-logo-url" className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block text-ide-text-muted">🖼️ Logo</label>
                       <p className="text-[10px] text-ide-text-muted mb-1.5">Shown here in Build Studio's preview — not yet part of the published app.</p>
                       <div className="space-y-2">
                         <div className="flex gap-1.5">
                           <Input
+                            id="editor-logo-url"
                             value={logoUrl}
                             onChange={e => setLogoUrl(e.target.value)}
                             placeholder="Paste URL or upload below"
@@ -4311,6 +4322,21 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         if (e.key === 'Escape') { setAutocompleteItems([]); return; }
                       }
 
+                      // Keyboard-only users had NO way to leave this textarea at all —
+                      // Tab always inserted spaces (see below), Shift+Tab was swallowed
+                      // identically since modifier keys don't change e.key, and Escape did
+                      // nothing unless search/autocomplete happened to be open. A mouse
+                      // click elsewhere or a full page reload were the only exits. Escape
+                      // blurring the field (when nothing else claims it above) is the same
+                      // convention real code editors use — CodeMirror/Monaco's own
+                      // accessibility docs recommend exactly "Esc to exit, then Tab moves
+                      // focus normally" rather than giving up Tab-to-indent, which is core,
+                      // expected behavior for anyone actually typing code here.
+                      if (e.key === 'Escape') {
+                        (e.target as HTMLTextAreaElement).blur();
+                        return;
+                      }
+
                       // Ctrl/Cmd+Tab is the browser's tab-switch shortcut — without this
                       // check it got preventDefault()-ed and 4 spaces were inserted into
                       // the code instead of switching tabs.
@@ -4320,6 +4346,25 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                         const start = target.selectionStart;
                         const end = target.selectionEnd;
                         const value = target.value;
+                        if (e.shiftKey) {
+                          // Outdent — previously indistinguishable from Tab since
+                          // shift doesn't change e.key, so Shift+Tab silently inserted
+                          // spaces instead of removing them like every real editor.
+                          const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                          const removable = value.slice(lineStart, lineStart + 4).match(/^ {1,4}/);
+                          if (removable) {
+                            const removedLen = removable[0].length;
+                            const newValue = value.substring(0, lineStart) + value.substring(lineStart + removedLen);
+                            target.value = newValue;
+                            updateFile(newValue);
+                            const shift = Math.min(removedLen, start - lineStart);
+                            requestAnimationFrame(() => {
+                              target.selectionStart = target.selectionEnd = start - shift;
+                              updateCursorInfo(target);
+                            });
+                          }
+                          return;
+                        }
                         const newValue = value.substring(0, start) + '    ' + value.substring(end);
                         target.value = newValue;
                         updateFile(newValue);
