@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle } from 'lucide-react';
+import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,13 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   // platform — actively misleading every visitor during a real outage
   // into thinking the platform has zero submissions.
   const [fetchError, setFetchError] = useState(false);
+  // A card that's filtered out by search fully unmounts (only matching
+  // items are rendered below); typing then clearing a query remounted it
+  // fresh and replayed its fade/slide-in entrance, making ordinary search
+  // refinement look janky. IDs in here skip the entrance animation on any
+  // later render — only a genuinely first-ever appearance (initial load,
+  // or a newly-published project arriving via realtime) still animates in.
+  const animatedIdsRef = useRef<Set<string>>(new Set());
 
   const currentEmail = localStorage.getItem('forge-student-email') || '';
 
@@ -160,11 +168,14 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
     }
   };
 
-  const filtered = projects.filter(p =>
-    p.project_name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.description || '').toLowerCase().includes(search.toLowerCase()) ||
-    p.author_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = search.toLowerCase();
+  const filtered = projects.filter(p => {
+    const meta = TEMPLATE_META[p.template_id || ''];
+    return p.project_name.toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      p.author_name.toLowerCase().includes(q) ||
+      (meta?.label.toLowerCase().includes(q) ?? false);
+  });
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -188,19 +199,29 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search projects..."
-          className="pl-10 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
+          className="pl-10 pr-9 bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white"
         />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+        <div className="text-center py-20">
+          <div className="w-10 h-10 mx-auto mb-4 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[hsl(var(--discord-text-muted))]">Loading projects...</p>
         </div>
       ) : fetchError ? (
         <div className="text-center py-20">
           <Code className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--discord-text-muted))]" />
           <h3 className="text-lg font-semibold text-white mb-2">Couldn't load projects</h3>
-          <p className="text-[hsl(var(--discord-text-muted))] mb-4">Something went wrong — this isn't the same as there being no projects.</p>
+          <p className="text-[hsl(var(--discord-text-muted))] mb-4">We ran into a problem loading the showcase. Please try again.</p>
           <Button size="sm" onClick={() => fetchProjects()} className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]">Retry</Button>
         </div>
       ) : filtered.length === 0 ? (
@@ -209,34 +230,46 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {projects.length === 0 ? 'No submitted projects yet' : 'No matching projects'}
           </h3>
-          <p className="text-[hsl(var(--discord-text-muted))]">
-            {projects.length === 0 ? 'Be the first to submit a project from the Build tab!' : 'Try a different search term'}
+          <p className="text-[hsl(var(--discord-text-muted))] mb-4">
+            {projects.length === 0 ? 'Be the first to submit a project from the Build tab!' : `No results for "${search}".`}
           </p>
+          {projects.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setSearch('')} className="border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text-muted))] hover:text-white">
+              Clear search
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((project, index) => {
             const meta = TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project', color: '#5865F2' };
+            // Only a genuinely first-ever appearance animates in — see
+            // animatedIdsRef above for why (search remount replay).
+            const alreadyAnimated = animatedIdsRef.current.has(project.id);
+            if (!alreadyAnimated) animatedIdsRef.current.add(project.id);
             return (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={alreadyAnimated ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.2)] rounded-lg overflow-hidden hover:border-[hsl(var(--discord-blurple)/0.5)] transition-all group"
+                // Capped — with up to 500 results, an uncapped per-index
+                // delay left later cards invisible for many seconds after
+                // mount, even ones already in the viewport on a fast scroll.
+                transition={{ delay: Math.min(index, 12) * 0.05 }}
+                className="bg-[hsl(var(--discord-darker))] border border-[hsl(var(--discord-light)/0.2)] rounded-lg overflow-hidden transition-all"
               >
                 <div className="p-4 border-b border-[hsl(var(--discord-light)/0.1)]">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-white group-hover:text-[hsl(var(--discord-blurple))] transition-colors truncate">
+                    <h4 className="font-semibold text-white truncate min-w-0 flex-1">
                       {project.project_name}
                     </h4>
                     <Badge className="text-[10px] flex-shrink-0" style={{ backgroundColor: `${meta.color}30`, color: meta.color, border: `1px solid ${meta.color}50` }}>
                       {meta.icon} {meta.label}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))]">
-                    <User className="w-3 h-3" />
-                    {project.author_name}
+                  <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] min-w-0">
+                    <User className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{project.author_name}</span>
                   </div>
                 </div>
 
@@ -244,14 +277,14 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                   {project.description && (
                     <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-4">{project.description}</p>
                   )}
-                    <div className="flex items-center justify-between">
-                     <span className="text-xs text-[hsl(var(--discord-text-muted))]">
-                       {new Date(project.created_at).toLocaleDateString()}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                     <span className="text-xs text-[hsl(var(--discord-text-muted))]" title={new Date(project.created_at).toLocaleString()}>
+                       {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
                      </span>
-                     <div className="flex gap-2">
+                     <div className="flex gap-2 flex-wrap">
                        {myProjectIds.has(project.id) && (
-                         <Button 
-                           size="sm" 
+                         <Button
+                           size="sm"
                            variant="outline"
                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(project); }}
                            className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
@@ -293,8 +326,16 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm">
+      {/* Cancel/overlay-close disabled while isDeleting — previously both
+          stayed active mid-request, so closing and opening a DIFFERENT
+          project's delete dialog before the first RPC resolved left the
+          new dialog showing a stale "Deleting..."/disabled state that
+          actually belonged to the first, unrelated request. isDeleting
+          isn't scoped per-project, so blocking the switch entirely (rather
+          than trying to track per-id state for a single-dialog-at-a-time
+          UI) is the simplest correct fix. */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}>
+        <DialogContent className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white sm:max-w-sm" hideCloseButton={isDeleting}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white">
               <AlertTriangle className="w-5 h-5 text-red-400" /> Delete Project
@@ -304,7 +345,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
+            <Button variant="ghost" disabled={isDeleting} onClick={() => setDeleteTarget(null)} className="flex-1 text-[hsl(var(--discord-text-muted))]">Cancel</Button>
             <Button onClick={handleDelete} disabled={isDeleting} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
