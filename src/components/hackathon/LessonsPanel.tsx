@@ -488,14 +488,22 @@ export const LessonsPanel = () => {
       p_lesson_id: lesson.id,
       p_device_token: deviceToken || null,
     });
+    const row = Array.isArray(data) ? data[0] : data;
+    // Captured BEFORE the staleness check below, deliberately. A freshly
+    // minted token is already durably committed server-side the instant
+    // this RPC succeeds — if this response gets discarded as "superseded"
+    // (e.g. a double-click on a lesson card firing openLesson twice before
+    // the first reply lands), the mint itself isn't undone, only lost from
+    // the client's view of it. With no in-app recovery path, that silently
+    // locks the participant out of their own identity on every later call
+    // ("already active on another device") with nothing to reset it.
+    if (row?.new_device_token) setDeviceToken(row.new_device_token);
     if (requestId !== contentRequestRef.current) return; // superseded by a newer open
     setContentLoading(false);
     if (contentErr) {
       toast.error(contentErr.message || 'Failed to load lesson content');
       return;
     }
-    const row = Array.isArray(data) ? data[0] : data;
-    if (row?.new_device_token) setDeviceToken(row.new_device_token);
     setActiveContent((row?.content as LessonContent) || null);
   };
 
@@ -540,11 +548,14 @@ export const LessonsPanel = () => {
         p_lesson_id: activeLesson.id,
         p_device_token: deviceToken || null,
       });
-      if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
-      if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
       const rows = (data as any[]) || [];
+      // Same reasoning as get_lesson_content above — capture a minted token
+      // before the staleness check can discard the response, since the
+      // mint is already committed server-side either way.
       const mintedToken = rows[0]?.new_device_token;
       if (mintedToken) setDeviceToken(mintedToken);
+      if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
+      if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
       const questions = rows as any as QuizQuestion[];
       // A published, unlockable lesson with no quiz questions authored yet
       // used to still flip phase to 'quiz' here — the render guard requires
