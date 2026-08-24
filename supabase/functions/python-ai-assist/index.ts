@@ -328,19 +328,32 @@ User message: "${userMessage}"
 Response (JSON array only):`;
 
   try {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [{ role: "user", content: toolDecisionPrompt }],
-        temperature: 0,
-        max_tokens: 200,
-      }),
-    });
+    // Every other outbound call in this file is bounded (webSearch/
+    // wikiSearch via fetchWithTimeout, the main gateway call has its own
+    // deadline) — this one wasn't, despite holding an ai_slot for its
+    // duration. A hung gateway connection here blocked the whole request
+    // (and the slot) with no application-level ceiling.
+    const toolRoutingController = new AbortController();
+    const toolRoutingTimer = setTimeout(() => toolRoutingController.abort(), 8000);
+    let resp: Response;
+    try {
+      resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [{ role: "user", content: toolDecisionPrompt }],
+          temperature: 0,
+          max_tokens: 200,
+        }),
+        signal: toolRoutingController.signal,
+      });
+    } finally {
+      clearTimeout(toolRoutingTimer);
+    }
 
     if (!resp.ok) return { toolResults: "", toolsUsed: [] };
     const data = await resp.json();
@@ -424,10 +437,53 @@ serve(async (req) => {
     if (error) console.error("release_ai_slot failed:", error);
   };
 
+  // This function has no auth barrier (verify_jwt=false, required so an
+  // anonymous visitor on a published bot's public ProjectView page can
+  // chat with it) and, unlike every SECURITY DEFINER RPC elsewhere in this
+  // app, takes the content that shapes its prompt directly from the
+  // request body with no scoping to a real project. That combination — no
+  // auth AND no size limit — meant a caller bypassing the UI entirely
+  // could submit an arbitrarily large payload (a multi-MB knowledgeBase,
+  // thousands of qaData/conversationHistory entries) and inflate per-call
+  // token cost on the platform's shared paid key with zero friction. This
+  // rejects oversized requests outright, before they reach the gateway —
+  // a real hackathon bot config never remotely approaches this size, so
+  // it costs nothing for legitimate use.
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  const MAX_REQUEST_BYTES = 200_000; // ~200KB — generous for a real config, not for abuse
+  if (contentLength > MAX_REQUEST_BYTES) {
+    return new Response(JSON.stringify({ error: "Request too large" }), {
+      status: 413,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { code, model, action, systemPrompt, messages: conversationHistory, knowledgeBase, qaData, projectType, projectName, botConfig, studentCode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Content-Length can be absent/unreliable (chunked transfer, a client
+    // that omits it) — re-check the actual parsed field sizes too. Caps
+    // chosen generously above any real FORGE project's actual shape
+    // (34-challenge configs, typical knowledge bases/Q&A lists seen
+    // elsewhere in this codebase's own limits, e.g. calculate()'s 500-char
+    // cap) while still bounding worst-case prompt-injection/cost surface.
+    if (typeof knowledgeBase === "string" && knowledgeBase.length > 20_000) {
+      return new Response(JSON.stringify({ error: "Knowledge base is too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (Array.isArray(qaData) && qaData.length > 200) {
+      return new Response(JSON.stringify({ error: "Too many Q&A pairs" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (Array.isArray(conversationHistory) && conversationHistory.length > 100) {
+      return new Response(JSON.stringify({ error: "Conversation history is too long" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (typeof code === "string" && code.length > 8_000) {
+      return new Response(JSON.stringify({ error: "Message is too long" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (typeof studentCode === "string" && studentCode.length > 100_000) {
+      return new Response(JSON.stringify({ error: "Project code is too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     let sysPrompt = "";
     let userPrompt = "";
@@ -856,9 +912,14 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
       userPrompt = code;
     }
 
-    // Temperature from bot config
-    const modelTemperature = (action === "test-agent" && botConfig?.temperature !== undefined) 
-      ? Math.min(Math.max(botConfig.temperature, 0), 1.5) 
+    // Temperature from bot config — Math.min/Math.max on a non-numeric
+    // value (a string that doesn't coerce, an object, an array) produces
+    // NaN, which JSON.stringify silently turns into `requestBody.temperature`
+    // being absent-looking `null` in the outgoing gateway request, causing a
+    // confusing gateway 400 instead of a clear validation message.
+    const rawTemperature = Number(botConfig?.temperature);
+    const modelTemperature = (action === "test-agent" && botConfig?.temperature !== undefined && Number.isFinite(rawTemperature))
+      ? Math.min(Math.max(rawTemperature, 0), 1.5)
       : undefined;
 
     const aiMessages = [
@@ -875,9 +936,10 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
     if (modelTemperature !== undefined) {
       requestBody.temperature = modelTemperature;
     }
-    // Max tokens from bot config
-    const maxTokens = (action === "test-agent" && botConfig?.maxTokens !== undefined)
-      ? Math.min(Math.max(botConfig.maxTokens, 50), 4096)
+    // Max tokens from bot config — same NaN guard as temperature above.
+    const rawMaxTokens = Number(botConfig?.maxTokens);
+    const maxTokens = (action === "test-agent" && botConfig?.maxTokens !== undefined && Number.isFinite(rawMaxTokens))
+      ? Math.min(Math.max(rawMaxTokens, 50), 4096)
       : undefined;
     if (maxTokens !== undefined) {
       requestBody.max_tokens = maxTokens;
@@ -961,7 +1023,12 @@ Return in a \`\`\`python code block. Make it creative and complete!`;
   } catch (e) {
     await releaseSlot();
     console.error("python-ai-assist error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    // This endpoint has no auth barrier — an unfiltered internal exception
+    // message (e.g. "LOVABLE_API_KEY is not configured", or any unhandled
+    // Deno/Supabase error text) used to go straight to any caller, not
+    // just a legitimate one. Full detail stays server-side in the log;
+    // the client gets a generic message instead.
+    return new Response(JSON.stringify({ error: "AI service error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

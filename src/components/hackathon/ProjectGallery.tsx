@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle } from 'lucide-react';
@@ -38,6 +38,11 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   // Delete button can be shown without ever needing author_email on the
   // client — see fetchProjects below for why that column is off-limits.
   const [myProjectIds, setMyProjectIds] = useState<Set<string>>(new Set());
+  // A failed fetchProjects() used to fall straight through to the same
+  // "No submitted projects yet" empty state as a genuinely empty
+  // platform — actively misleading every visitor during a real outage
+  // into thinking the platform has zero submissions.
+  const [fetchError, setFetchError] = useState(false);
 
   const currentEmail = localStorage.getItem('forge-student-email') || '';
 
@@ -57,17 +62,30 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   // Without this, republishing/unpublishing/deleting a project elsewhere
   // never showed up here until you navigated away and back — this gallery
   // isn't scoped to one hackathon (fetchProjects has no hackathon_id
-  // filter), so the subscription below isn't either.
+  // filter), so the subscription below isn't either. Debounced: every
+  // student's private-draft autosave (ProjectEditor.tsx, every 2 min per
+  // active editor) also writes to this same table, so an undebounced
+  // refetch here re-queried the full public gallery on unrelated,
+  // unpublished activity platform-wide.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    const debouncedRefetch = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchProjects(), 800);
+    };
     const channel = supabase
       .channel('project-gallery-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, () => fetchProjects())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_projects' }, debouncedRefetch)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
   const fetchProjects = async () => {
     setIsLoading(true);
+    setFetchError(false);
     try {
       // Explicit column list — author_email must never reach the client here.
       // It's the app's entire ownership credential for save/delete/publish
@@ -82,11 +100,13 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
       if (error) {
         console.error('Failed to fetch projects:', error);
+        setFetchError(true);
       } else if (data) {
         setProjects(data);
       }
     } catch (e) {
       console.error('Unexpected error fetching projects:', e);
+      setFetchError(true);
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +174,13 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-10 h-10 border-4 border-[hsl(var(--discord-blurple))] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : fetchError ? (
+        <div className="text-center py-20">
+          <Code className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--discord-text-muted))]" />
+          <h3 className="text-lg font-semibold text-white mb-2">Couldn't load projects</h3>
+          <p className="text-[hsl(var(--discord-text-muted))] mb-4">Something went wrong — this isn't the same as there being no projects.</p>
+          <Button size="sm" onClick={() => fetchProjects()} className="bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.8)]">Retry</Button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">

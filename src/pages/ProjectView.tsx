@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Code, User, Calendar, Trophy, ExternalLink, Copy, Check, Send, MessageSquare, Loader2, Bot, ChevronDown, ChevronUp, Share2, Globe, Mic, Volume2, VolumeX, Radio, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { codeDefinesRespond, abortableSleep, describeMicError } from '@/components/hackathon/editorFeatures';
+import { codeDefinesRespond, describeMicError } from '@/components/hackathon/editorFeatures';
 
 interface Project {
   id: string;
@@ -115,6 +115,12 @@ const ProjectView = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // A transient fetch failure (network blip, DB error) used to render
+  // identically to "this project doesn't exist" — on the app's highest-
+  // traffic public page, a judge or family member opening a shared link
+  // during a momentary hiccup would see a false "not found" with no way
+  // to tell it apart from a genuinely broken/missing link.
+  const [fetchError, setFetchError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
 
@@ -144,39 +150,48 @@ const ProjectView = () => {
   // clears isSpeaking mid-playback.
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  useEffect(() => {
+  const fetchProject = useCallback(async () => {
     if (!id) return;
-    const fetchProject = async () => {
-      try {
-        // Explicit column list — author_email is the app's entire ownership
-        // credential for the save/delete/publish RPCs, so it must never be
-        // sent to this public, unauthenticated page.
-        const { data, error } = await supabase
-          .from('ai_projects')
-          .select('id, project_name, description, code, author_name, template_id, created_at, demo_url, points_earned')
-          .eq('id', id)
-          .eq('is_published', true)
-          .single();
-        if (!error && data) {
-          setProject(data as Project);
-        }
-        // No fallback "check if it exists but is unpublished" query here —
-        // ai_projects' SELECT policy is is_published=true only, so that
-        // query would always return nothing for a genuinely-private
-        // project regardless of whether it exists. It can't distinguish
-        // "doesn't exist" from "exists but private" any more than this
-        // query already can't, so it was silently dead code — every visit
-        // to an unpublished link showed generic "not found" already, this
-        // just stops pretending otherwise. Not distinguishing the two
-        // cases is also the more privacy-preserving default anyway.
-      } catch (e) {
-        console.error('Failed to fetch project:', e);
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setFetchError(false);
+    try {
+      // Explicit column list — author_email is the app's entire ownership
+      // credential for the save/delete/publish RPCs, so it must never be
+      // sent to this public, unauthenticated page.
+      const { data, error } = await supabase
+        .from('ai_projects')
+        .select('id, project_name, description, code, author_name, template_id, created_at, demo_url, points_earned')
+        .eq('id', id)
+        .eq('is_published', true)
+        .single();
+      // PGRST116 = no row matched (genuinely doesn't exist / unpublished) —
+      // expected and not an error. Anything else (network blip, a real DB
+      // error) sets fetchError instead of silently falling through to the
+      // same "not found" state as a truly missing project.
+      if (error && error.code !== 'PGRST116') {
+        console.error('Failed to fetch project:', error);
+        setFetchError(true);
+      } else if (data) {
+        setProject(data as Project);
       }
-    };
-    fetchProject();
+      // No fallback "check if it exists but is unpublished" query here —
+      // ai_projects' SELECT policy is is_published=true only, so that
+      // query would always return nothing for a genuinely-private
+      // project regardless of whether it exists. It can't distinguish
+      // "doesn't exist" from "exists but private" any more than this
+      // query already can't, so it was silently dead code — every visit
+      // to an unpublished link showed generic "not found" already, this
+      // just stops pretending otherwise. Not distinguishing the two
+      // cases is also the more privacy-preserving default anyway.
+    } catch (e) {
+      console.error('Failed to fetch project:', e);
+      setFetchError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => { fetchProject(); }, [fetchProject]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -798,30 +813,26 @@ const ProjectView = () => {
           greeting: config.greeting,
         },
       });
-      const MAX_429_RETRIES = 3;
-      let resp: Response;
-      let attempt = 0;
-      while (true) {
-        resp = await fetchAIEndpoint(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: requestBody,
-            signal: controller.signal,
-          }
-        );
-        if (resp.status === 429 && attempt < MAX_429_RETRIES) {
-          attempt++;
-          toast.info('This app is busy — retrying automatically...', { id: 'ai-busy-retry' });
-          await abortableSleep(1200 * attempt + Math.random() * 500, controller.signal);
-          continue;
+      // fetchAIEndpoint already retries on 429 internally (up to 3 times,
+      // with backoff) — this used to be wrapped in a SECOND, identical
+      // retry loop here, so one 429 could trigger up to 3 outer × (1 + 3
+      // inner) = 16 real fetches against the shared gateway slot pool,
+      // amplifying load hardest on exactly the congestion this was meant
+      // to smooth. onRetry is the utility's own intended hook for the
+      // "busy, retrying..." toast, not a second retry mechanism.
+      const resp = await fetchAIEndpoint(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: requestBody,
+          signal: controller.signal,
+          onRetry: () => toast.info('This app is busy — retrying automatically...', { id: 'ai-busy-retry' }),
         }
-        break;
-      }
+      );
 
       if (!resp.ok || !resp.body) throw new Error('AI service error');
 
@@ -834,7 +845,15 @@ const ProjectView = () => {
       const usedRealPython = pyStatus === 'handled';
       const pythonErrorType = pyStatus === 'error' ? (resp.headers.get('X-Python-Error-Type') || 'error') : undefined;
       const rawPyErrorMsg = resp.headers.get('X-Python-Error-Message');
-      const pythonErrorMessage = rawPyErrorMsg ? decodeURIComponent(rawPyErrorMsg) : undefined;
+      // A malformed percent-encoding here used to throw inside the same
+      // try block that reads the (already successful) response stream
+      // below — the generic catch would then discard a valid answer that
+      // was sitting unread, showing "Failed to get a response" instead.
+      let pythonErrorMessage: string | undefined;
+      if (rawPyErrorMsg) {
+        try { pythonErrorMessage = decodeURIComponent(rawPyErrorMsg); }
+        catch { pythonErrorMessage = rawPyErrorMsg; }
+      }
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -944,6 +963,22 @@ const ProjectView = () => {
     return (
       <div className="min-h-screen bg-ide-bg flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-ide-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-ide-bg flex items-center justify-center text-center p-6">
+        <div>
+          <h1 className="text-2xl font-bold text-ide-text mb-2">Couldn't load this project</h1>
+          <p className="text-ide-text-muted mb-4">
+            Something went wrong loading this page — this isn't the same as the project not existing. Try again.
+          </p>
+          <Button onClick={() => fetchProject()} className="bg-ide-accent text-ide-bg-deep">
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
@@ -1190,6 +1225,7 @@ const ProjectView = () => {
                 onKeyDown={e => e.key === 'Enter' && handleChatSend()}
                 placeholder={isListening ? '🎤 Listening...' : 'Type a message...'}
                 disabled={isStreaming || isListening}
+                maxLength={2000}
                 className="h-10 text-sm border-0 text-white rounded-full px-4 focus-visible:ring-1"
                 style={{ backgroundColor: `${theme.accent}10`, boxShadow: `0 0 0 0px ${theme.accent}` }}
               />
