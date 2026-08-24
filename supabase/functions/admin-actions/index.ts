@@ -398,6 +398,29 @@ Deno.serve(async (req) => {
       case "grade_submission": {
         const { submission_id, auto_score, auto_breakdown, judge_score, judge_breakdown, judge_name, confirm_override } = payload;
 
+        // submit_gallery_score (gallery judging) validates judge_name
+        // against the gallery_judges roster server-side — this RPC never
+        // did, so any judge-passphrase holder could self-report as any
+        // name, including a specific other judge's, which both misattributes
+        // the score in the UI and silently defeats the "a different judge
+        // already scored this" overwrite-confirmation check (that check is
+        // just a string match against whatever name was sent last time).
+        // Both surfaces share the same roster and the same sessionStorage
+        // display-name key by design (see SubmissionsTab.tsx), so gating
+        // this the same way closes the gap without introducing a second
+        // roster concept.
+        if (role === "judge") {
+          const trimmedName = typeof judge_name === "string" ? judge_name.trim() : "";
+          if (!trimmedName) throw new Error("judge_name is required");
+          const { data: rosterMatch, error: rosterErr } = await supabase
+            .from("gallery_judges")
+            .select("judge_name")
+            .eq("judge_name", trimmedName)
+            .maybeSingle();
+          if (rosterErr) throw rosterErr;
+          if (!rosterMatch) throw new Error(`"${trimmedName}" isn't on the approved judge roster`);
+        }
+
         const { data: submission, error: subErr } = await supabase
           .from("challenge_submissions")
           .select("id, challenge_id, hackathon_id, participant_email, submitted_at")

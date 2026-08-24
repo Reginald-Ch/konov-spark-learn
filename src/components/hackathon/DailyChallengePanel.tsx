@@ -61,6 +61,19 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
   const [submissions, setSubmissions] = useState<Record<string, MySubmission>>({});
   const [myProjects, setMyProjects] = useState<MyProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // fetchAll below wipes the entire challenge list to a loading spinner
+  // (setIsLoading(true)) and fires two RPC calls every time it re-runs.
+  // With email in its deps and the Input's onChange updating email on
+  // every keystroke with no debounce, typing an 18-character address used
+  // to trigger ~18 full refetches — the challenge list flickering/
+  // disappearing repeatedly before the participant could even click
+  // Submit. debouncedEmail only updates 500ms after typing stops, and
+  // that's what fetchAll actually keys off of.
+  const [debouncedEmail, setDebouncedEmail] = useState(email);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedEmail(email), 500);
+    return () => clearTimeout(t);
+  }, [email]);
 
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
   const [projectId, setProjectId] = useState<string>('');
@@ -84,10 +97,17 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       // p_device_token added (security audit) — this RPC used to trust a
       // bare email with no proof of identity, letting anyone list another
       // participant's private project names just by knowing their email.
-      email
-        ? supabase.rpc('get_my_projects', { p_participant_email: email, p_device_token: deviceToken || null })
-        : Promise.resolve({ data: [] as MyProject[] }),
+      debouncedEmail
+        ? supabase.rpc('get_my_projects', { p_participant_email: debouncedEmail, p_device_token: deviceToken || null })
+        : Promise.resolve({ data: [] as MyProject[], error: null }),
     ]);
+    if (challengesRes.error) {
+      console.error('daily_challenges fetch error:', challengesRes.error);
+      toast.error('Could not load daily challenges — try refreshing.');
+    }
+    if (projectsRes.error) {
+      console.error('get_my_projects fetch error:', projectsRes.error);
+    }
     const chs = (challengesRes.data as Challenge[]) || [];
     setChallenges(chs);
     // get_my_projects is shared with ProjectGallery (which legitimately
@@ -96,10 +116,12 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     // this, the "link a project" dropdown showed every project the
     // participant has ever built in ANY past hackathon, not just this one,
     // which is confusing at best (old, unrelated projects cluttering the
-    // list for a challenge that has nothing to do with them).
+    // list for a challenge that has nothing to do with them). This filter
+    // was always correct — the RPC just never returned hackathon_id at all
+    // (fixed in migration 20260904000000), so it silently matched nothing.
     setMyProjects(((projectsRes.data as MyProject[]) || []).filter(p => p.hackathon_id === hackathonId));
 
-    if (email && chs.length > 0) {
+    if (debouncedEmail && chs.length > 0) {
       // Routed through an RPC — challenge_submissions has a wide-open
       // SELECT policy, so this raw select worked but let the same anon key
       // read any participant's submissions, not just the caller's own.
@@ -110,11 +132,19 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       // bare email with no proof of identity, letting anyone read another
       // participant's submission notes/content_url just by knowing their
       // email.
-      const { data: subs } = await supabase.rpc('get_my_challenge_submissions', {
-        p_participant_email: email,
+      const { data: subs, error: subsErr } = await supabase.rpc('get_my_challenge_submissions', {
+        p_participant_email: debouncedEmail,
         p_challenge_ids: chs.map(c => c.id),
         p_device_token: deviceToken || null,
       });
+      if (subsErr) {
+        // Used to be silently swallowed — a transient failure here made a
+        // participant's own "Submitted — awaiting grading" badge revert to
+        // a bare "Submit" button with zero indication anything went wrong,
+        // risking a confusing re-submit or the belief they never submitted.
+        console.error('get_my_challenge_submissions fetch error:', subsErr);
+        toast.error('Could not load your submissions — try refreshing.');
+      }
       const map: Record<string, MySubmission> = {};
       (subs || []).forEach((s: any) => {
         map[s.challenge_id] = {
@@ -132,7 +162,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       setSubmissions({});
     }
     setIsLoading(false);
-  }, [hackathonId, email]);
+  }, [hackathonId, debouncedEmail]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -144,6 +174,15 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
   // publication for point_events), so this just wires up the subscription
   // that was missing. Debounced since a grading run or a challenge close
   // can touch many rows in quick succession.
+  //
+  // challenge_submissions and submission_scores lost their anon/
+  // authenticated table privileges in a later security fix
+  // (20260903000001) — Supabase Realtime evaluates each row against the
+  // connecting role's own grants before broadcasting it, so with zero
+  // privileges on those two tables their postgres_changes events silently
+  // stopped arriving; only daily_challenges (still granted) still live-
+  // updates. Same bug class already found and fixed in Leaderboard.tsx —
+  // a 20s poll is the same fallback used there.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!hackathonId) return;
@@ -157,8 +196,10 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_submissions', filter: `hackathon_id=eq.${hackathonId}` }, debouncedRefetch)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'submission_scores' }, debouncedRefetch)
       .subscribe();
+    const pollId = setInterval(() => fetchAll(), 20000);
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollId);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [hackathonId, fetchAll]);
@@ -236,9 +277,11 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       <div className="bg-[hsl(var(--discord-darker))] rounded-lg border border-[hsl(var(--discord-light)/0.2)] p-4">
         <p className="text-sm font-semibold text-white mb-2">Who's submitting?</p>
         <div className="grid grid-cols-2 gap-2">
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
+          <label htmlFor="daily-challenge-name" className="sr-only">Your name</label>
+          <Input id="daily-challenge-name" value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
             className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email (must match registration)"
+          <label htmlFor="daily-challenge-email" className="sr-only">Your email</label>
+          <Input id="daily-challenge-email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email (must match registration)"
             className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
         </div>
       </div>
@@ -278,7 +321,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="w-3 h-3" /> Submitted — awaiting grading</Badge>
                     ) : null}
                     {score?.auto_breakdown?.timeliness === 10 && (
-                      <Badge variant="outline" className="gap-1 text-amber-400 border-amber-400/40">⚡ On Time</Badge>
+                      <Badge variant="outline" className="gap-1 text-[hsl(var(--discord-yellow))] border-[hsl(var(--discord-yellow)/0.4)]">⚡ On Time</Badge>
                     )}
                     {c.status === 'live' ? (
                       <Button size="sm" onClick={() => openSubmit(c)}>
@@ -298,19 +341,23 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
       )}
 
       <Dialog open={!!activeChallenge} onOpenChange={(open) => !open && setActiveChallenge(null)}>
-        <DialogContent className="sm:max-w-md">
+        {/* Every other dialog in this dark hackathon shell explicitly
+            overrides shadcn's default light-theme DialogContent (see
+            LessonsPanel.tsx) — this one never did, so it rendered as a
+            stray light-mode popup floating over the dark UI. */}
+        <DialogContent className="sm:max-w-md bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
           <DialogHeader>
             <DialogTitle>Day {activeChallenge?.day_number}: {activeChallenge?.title}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
               Scored out of {(activeChallenge?.auto_max_points ?? 70) + (activeChallenge?.judge_max_points ?? 30)} SP — automated checks plus a judge rubric. You can edit this until it's graded.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             {myProjects.length > 0 && (
               <div>
-                <label className="text-sm font-medium mb-1 block">Link one of your FORGE projects (optional)</label>
+                <label htmlFor="daily-challenge-project" className="text-sm font-medium mb-1 block">Link one of your FORGE projects (optional)</label>
                 <Select value={projectId || '__none__'} onValueChange={v => setProjectId(v === '__none__' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger id="daily-challenge-project" className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">None</SelectItem>
                     {myProjects.map(p => (
@@ -318,16 +365,18 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">Linking a project lets Auto-Grade actually test your bot's behavior, not just read your notes.</p>
+                <p className="text-xs text-[hsl(var(--discord-text-muted))] mt-1">Linking a project lets Auto-Grade actually test your bot's behavior, not just read your notes.</p>
               </div>
             )}
             <div>
-              <label className="text-sm font-medium mb-1 block">Link (demo, video, repo — optional)</label>
-              <Input value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..." />
+              <label htmlFor="daily-challenge-link" className="text-sm font-medium mb-1 block">Link (demo, video, repo — optional)</label>
+              <Input id="daily-challenge-link" value={contentUrl} onChange={e => setContentUrl(e.target.value)} placeholder="https://..."
+                className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Notes for the judges (optional)</label>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="What did you build? Anything judges should know?" />
+              <label htmlFor="daily-challenge-notes" className="text-sm font-medium mb-1 block">Notes for the judges (optional)</label>
+              <Textarea id="daily-challenge-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="What did you build? Anything judges should know?"
+                className="bg-[hsl(var(--discord-dark))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setActiveChallenge(null)} className="flex-1">Cancel</Button>

@@ -62,28 +62,44 @@ export const RegistrationModal = ({
       // breaking coin balance / hackathon resolution for that participant.
       const normalizedEmail = validated.participant_email.toLowerCase();
 
-      const { error } = await supabase
-        .from('hackathon_registrations')
-        .insert({
-          hackathon_id: hackathonId,
-          participant_name: validated.participant_name,
-          participant_email: normalizedEmail,
-          participant_phone: validated.participant_phone || null,
-          skills: validated.skills || null,
-          experience_level: validated.experience_level || null,
-          looking_for_team: validated.looking_for_team,
+      // Routed through an RPC — hackathon_registrations' anon/authenticated
+      // table privileges were revoked by an earlier security fix (closing
+      // an "anyone can write anything" open-policy hole), which silently
+      // broke this raw insert with no replacement ever added. TOFU device
+      // token: mints on first use, since registering is usually a
+      // participant's very first identity-establishing action.
+      const deviceToken = localStorage.getItem('forge-device-token') || null;
+      const { data, error } = await supabase.rpc('register_for_hackathon', {
+        p_hackathon_id: hackathonId,
+        p_participant_name: validated.participant_name,
+        p_participant_email: normalizedEmail,
+        p_device_token: deviceToken,
+        p_participant_phone: validated.participant_phone || null,
+        p_skills: validated.skills || null,
+        p_experience_level: validated.experience_level || null,
+        p_looking_for_team: validated.looking_for_team,
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result?.new_device_token) localStorage.setItem('forge-device-token', result.new_device_token);
+      // ok:false is a real failure (bad input, or this email's device token
+      // doesn't match — someone else already claimed it). already_registered
+      // is a distinct, successful no-op: the row already existed, which is
+      // the expected outcome of registering twice, not an error.
+      if (!result?.ok) {
+        toast({
+          title: 'Error',
+          description: result?.message || 'Failed to register. Please try again.',
+          variant: 'destructive',
         });
-
-      if (error) {
-        if (error.code === '23505') {
-          toast({
-            title: 'Already Registered',
-            description: 'You have already registered for this hackathon.',
-            variant: 'destructive',
-          });
-        } else {
-          throw error;
-        }
+        return;
+      }
+      if (result.already_registered) {
+        toast({
+          title: 'Already Registered',
+          description: 'You have already registered for this hackathon.',
+          variant: 'destructive',
+        });
         return;
       }
 

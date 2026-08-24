@@ -62,7 +62,7 @@ const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   agent: { icon: '🧠', label: 'Agent' },
 };
 
-const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish, isOrganizer }: {
+const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbackText, onScoreChange, onFeedbackChange, onSubmitScore, onTogglePublish, isOrganizer, isSubmitting }: {
   project: Project;
   meta: { icon: string; label: string };
   isScored: boolean;
@@ -74,8 +74,9 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
   onSubmitScore: (project: Project) => void;
   onTogglePublish: (project: Project) => void;
   isOrganizer: boolean;
+  isSubmitting: boolean;
 }) => (
-  <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-green-500/30 bg-green-500/5' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
+  <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-[hsl(var(--discord-green)/0.3)] bg-[hsl(var(--discord-green)/0.05)]' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
     <div className="p-4">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
@@ -83,10 +84,10 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
           <p className="text-xs text-[hsl(var(--discord-text-muted))]">by {project.author_name}</p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Badge className="text-[10px]" style={{ backgroundColor: '#5865F220', color: '#5865F2' }}>
+          <Badge className="text-[10px] bg-[hsl(var(--discord-blurple)/0.13)] text-[hsl(var(--discord-blurple))]">
             {meta.icon} {meta.label}
           </Badge>
-          <Badge className={`text-[10px] ${project.is_published ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+          <Badge className={`text-[10px] ${project.is_published ? 'bg-[hsl(var(--discord-green)/0.2)] text-[hsl(var(--discord-green))] border-[hsl(var(--discord-green)/0.3)]' : 'bg-[hsl(var(--discord-red)/0.2)] text-[hsl(var(--discord-red))] border-[hsl(var(--discord-red)/0.3)]'}`}>
             {project.is_published ? '🟢 Live' : '🔴 Offline'}
           </Badge>
         </div>
@@ -94,7 +95,7 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
       {project.description && (
         <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
       )}
-      
+
       <div className="flex gap-1.5 mb-3">
         <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
           <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
@@ -108,7 +109,7 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
             "Judges cannot perform this action". */}
         {isOrganizer && (
           <Button size="sm" variant="outline" onClick={() => onTogglePublish(project)}
-            className={`h-7 text-xs ${project.is_published ? 'text-red-400 border-red-500/30 hover:bg-red-500/10' : 'text-green-400 border-green-500/30 hover:bg-green-500/10'}`}>
+            className={`h-7 text-xs ${project.is_published ? 'text-[hsl(var(--discord-red))] border-[hsl(var(--discord-red)/0.3)] hover:bg-[hsl(var(--discord-red)/0.1)]' : 'text-[hsl(var(--discord-green))] border-[hsl(var(--discord-green)/0.3)] hover:bg-[hsl(var(--discord-green)/0.1)]'}`}>
             {project.is_published ? '⏸ Take Offline' : '▶ Make Live'}
           </Button>
         )}
@@ -121,24 +122,26 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
           </p>
         )}
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-70)</label>
-          {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />}
+          <label id={`score-label-${project.id}`} className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--discord-text-muted))]">Score (0-70)</label>
+          {isScored && <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--discord-green))]" aria-label="Scored" />}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap" role="group" aria-labelledby={`score-label-${project.id}`}>
           {[10, 20, 30, 40, 50, 60, 70].map(val => (
             <button key={val} onClick={() => onScoreChange(project.id, val)}
-              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${score === val ? 'bg-[#FFD700] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'}`}>
+              aria-pressed={score === val} aria-label={`Score ${val}`}
+              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${score === val ? 'bg-[hsl(var(--discord-yellow))] text-black' : 'bg-[hsl(var(--discord-darker))] text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light))]'}`}>
               {val}
             </button>
           ))}
         </div>
         <Textarea value={feedbackText} onChange={e => onFeedbackChange(project.id, e.target.value)}
-          placeholder="Optional feedback..." rows={2}
+          placeholder="Optional feedback..." rows={2} aria-label="Feedback"
           className="text-xs bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)] text-white resize-none" />
-        <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined}
+        <Button size="sm" onClick={() => onSubmitScore(project)} disabled={score === undefined || isSubmitting}
           className="w-full h-8 text-xs font-bold"
           style={{ background: score !== undefined ? 'hsl(var(--secondary))' : undefined }}>
-          <Send className="w-3 h-3 mr-1" /> {isScored ? 'Update Score' : 'Submit Score'}
+          {isSubmitting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
+          {isSubmitting ? 'Submitting...' : isScored ? 'Update Score' : 'Submit Score'}
         </Button>
       </div>
     </div>
@@ -154,6 +157,12 @@ export const JudgeDashboardPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+  // Submit was only ever disabled by `score === undefined` — a slow
+  // network plus a double-click could fire submit_gallery_score twice
+  // concurrently for the same project. The RPC is a race-safe replace, not
+  // insert-only, so this wasn't a data-corruption risk, but it's still
+  // worth a proper pending guard rather than relying on that.
+  const [submittingIds, setSubmittingIds] = useState<Set<string>>(new Set());
   // Every judge's score per project — multiple judges can independently
   // score the same project now, so this is no longer "last submission wins".
   const [judgeScoresByProject, setJudgeScoresByProject] = useState<Record<string, { judgeName: string; points: number }[]>>({});
@@ -235,8 +244,8 @@ export const JudgeDashboardPanel = () => {
       setPassphraseDialogOpen(false);
       setNewPassphrase('');
       setConfirmPassphrase('');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to update passphrase');
+    } catch (e) {
+      handleAdminError(e, 'Failed to update passphrase');
     } finally {
       setSavingPassphrase(false);
     }
@@ -252,7 +261,11 @@ export const JudgeDashboardPanel = () => {
   const handleAdminStepUp = async () => {
     if (!adminStepUpPassphrase.trim()) { toast.error('Enter the organizer passphrase'); return; }
     setSteppingUp(true);
-    const resolvedRole = await verifyAdminPassphrase(adminStepUpPassphrase.trim());
+    // attemptAdminStepUp (not verifyAdminPassphrase) — this session is
+    // already validly logged in as a judge; a mistyped organizer
+    // passphrase here must not wipe that still-good session out from
+    // under the user. See adminClient.ts for the full explanation.
+    const resolvedRole = await attemptAdminStepUp(adminStepUpPassphrase.trim());
     setSteppingUp(false);
     if (resolvedRole !== 'organizer') {
       toast.error(resolvedRole === 'judge' ? "That's the judge passphrase — enter the organizer one instead." : 'Invalid passphrase');
@@ -266,7 +279,8 @@ export const JudgeDashboardPanel = () => {
   };
 
   const fetchHackathonOptions = useCallback(async () => {
-    const { data } = await supabase.from('hackathons').select('id, title, status').order('start_date', { ascending: false });
+    const { data, error } = await supabase.from('hackathons').select('id, title, status').order('start_date', { ascending: false });
+    if (error) { console.error('Failed to load hackathons:', error); toast.error('Failed to load hackathon list'); }
     const options = (data as HackathonOption[]) || [];
     setHackathonOptions(options);
     setSelectedHackathonId(prev => {
@@ -351,7 +365,8 @@ export const JudgeDashboardPanel = () => {
       }
     } catch (e) {
       console.error('Failed to fetch data:', e);
-      toast.error('Failed to load data. Please refresh.');
+      if (e instanceof AdminSessionExpiredError) { setRole(null); toast.error(e.message); }
+      else toast.error('Failed to load data. Please refresh.');
     } finally {
       setIsLoading(false);
     }
@@ -367,10 +382,11 @@ export const JudgeDashboardPanel = () => {
       toast.error('Score must be between 0 and 70');
       return;
     }
+    if (submittingIds.has(project.id)) return;
+    setSubmittingIds(prev => new Set(prev).add(project.id));
     try {
       await callAdminAction('submit_gallery_score', {
         project_id: project.id,
-        participant_email: project.author_email,
         points: score,
         project_name: project.project_name,
         judge_name: judgeName,
@@ -381,11 +397,14 @@ export const JudgeDashboardPanel = () => {
         return { ...prev, [project.id]: [...existing, { judgeName, points: score }] };
       });
       toast.success(`Score submitted for ${project.project_name}`);
-    } catch (e: any) {
+    } catch (e) {
       console.error('Score submit exception:', e);
-      toast.error(`Failed to submit score: ${e?.message || 'Unknown error'}`);
+      if (e instanceof AdminSessionExpiredError) { setRole(null); toast.error(e.message); }
+      else toast.error(`Failed to submit score: ${(e as any)?.message || 'Unknown error'}`);
+    } finally {
+      setSubmittingIds(prev => { const next = new Set(prev); next.delete(project.id); return next; });
     }
-  }, [scores, feedback, judgeName]);
+  }, [scores, feedback, judgeName, submittingIds]);
 
   const handleTogglePublish = useCallback(async (project: Project) => {
     const newStatus = !project.is_published;
@@ -393,7 +412,7 @@ export const JudgeDashboardPanel = () => {
       await callAdminAction('toggle_project_publish', { project_id: project.id, is_published: newStatus });
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, is_published: newStatus } : p));
       toast.success(newStatus ? 'Project is now LIVE' : 'Project taken offline');
-    } catch (e: any) { toast.error(e.message || 'Failed to update project status'); }
+    } catch (e) { handleAdminError(e, 'Failed to update project status'); }
   }, []);
 
   const handleScoreChange = useCallback((id: string, val: number) => {
@@ -416,9 +435,11 @@ export const JudgeDashboardPanel = () => {
             <p className="text-sm text-[hsl(var(--discord-text-muted))]">Enter your name and the judge passphrase to continue</p>
           </div>
           <div className="space-y-3">
-            <Input value={judgeName} onChange={e => setJudgeName(e.target.value)} placeholder="Your name"
+            <label htmlFor="judge-login-name" className="sr-only">Your name</label>
+            <Input id="judge-login-name" value={judgeName} onChange={e => setJudgeName(e.target.value)} placeholder="Your name"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
-            <Input value={passphraseInput} onChange={e => setPassphraseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            <label htmlFor="judge-login-passphrase" className="sr-only">Judge passphrase</label>
+            <Input id="judge-login-passphrase" value={passphraseInput} onChange={e => setPassphraseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Judge passphrase" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             <Button onClick={handleLogin} disabled={verifying} className="w-full bg-secondary hover:bg-secondary/90">
               {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />} Enter Dashboard
@@ -469,7 +490,7 @@ export const JudgeDashboardPanel = () => {
               ))}
             </SelectContent>
           </Select>
-          <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">{projects.length} Projects</Badge>
+          <Badge className="bg-[hsl(var(--discord-yellow)/0.2)] text-[hsl(var(--discord-yellow))] border-[hsl(var(--discord-yellow)/0.3)]">{projects.length} Projects</Badge>
           {role === 'judge' && (
             <Button size="sm" variant="outline" onClick={() => setAdminStepUpOpen(true)}
               className="h-8 text-xs border-[hsl(var(--discord-light)/0.3)] text-[hsl(var(--discord-text))] hover:bg-[hsl(var(--discord-light)/0.2)]">
@@ -511,11 +532,11 @@ export const JudgeDashboardPanel = () => {
 
         <TabsContent value="gallery" className="mt-4">
           <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#FFD700]" /> Projects to Score
+            <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" /> Projects to Score
             <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
           </h2>
           {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.includes(judgeName.trim()) && (
-            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2 mb-3">
+            <p className="text-xs text-[hsl(var(--discord-red))] bg-[hsl(var(--discord-red)/0.1)] border border-[hsl(var(--discord-red)/0.3)] rounded-md px-3 py-2 mb-3">
               "{judgeName}" isn't on the approved judge roster — scores will be rejected until an organizer adds you
               {role === 'organizer' ? ' (Judges tab, above).' : '.'}
             </p>
@@ -528,7 +549,7 @@ export const JudgeDashboardPanel = () => {
           ) : projects.length === 0 ? (
             <div className="text-center py-12 text-[hsl(var(--discord-text-muted))]">
               <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No published projects yet</p>
+              <p>No projects submitted to this hackathon yet</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -546,6 +567,7 @@ export const JudgeDashboardPanel = () => {
                   onSubmitScore={handleSubmitScore}
                   onTogglePublish={handleTogglePublish}
                   isOrganizer={role === 'organizer'}
+                  isSubmitting={submittingIds.has(project.id)}
                 />
               ))}
             </div>
@@ -585,7 +607,8 @@ export const JudgeDashboardPanel = () => {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Input value={newJudgeName} onChange={e => setNewJudgeName(e.target.value)}
+                  <label htmlFor="new-judge-name" className="sr-only">Judge's name</label>
+                  <Input id="new-judge-name" value={newJudgeName} onChange={e => setNewJudgeName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleAddJudge()}
                     placeholder="Judge's name" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
                   <Button onClick={handleAddJudge} disabled={savingJudge || !newJudgeName.trim()}>
@@ -599,8 +622,8 @@ export const JudgeDashboardPanel = () => {
                   {judgeRoster.map(name => (
                     <div key={name} className="flex items-center justify-between bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.2)] rounded-md px-3 py-2">
                       <span className="text-sm text-white">{name}</span>
-                      <Button size="sm" variant="outline" onClick={() => handleRemoveJudge(name)}
-                        className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10">
+                      <Button size="sm" variant="outline" onClick={() => handleRemoveJudge(name)} aria-label={`Remove ${name}`}
+                        className="h-7 text-xs text-[hsl(var(--discord-red))] border-[hsl(var(--discord-red)/0.3)] hover:bg-[hsl(var(--discord-red)/0.1)]">
                         Remove
                       </Button>
                     </div>

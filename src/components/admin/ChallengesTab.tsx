@@ -102,6 +102,18 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
   const handleSave = async () => {
     if (!form.title?.trim()) { toast.error('Title is required'); return; }
     if (!form.day_number) { toast.error('Day number is required'); return; }
+    // The Day Number field is freely editable (not just auto-suggested),
+    // and nothing checked it against existing challenges before saving —
+    // two challenges could silently end up as "Day 3", confusing both the
+    // organizer's own list and participants.
+    if (challenges.some(c => c.day_number === form.day_number && c.id !== editingId)) {
+      toast.error(`Day ${form.day_number} already exists — pick a different day number`);
+      return;
+    }
+    if (form.opens_at && form.closes_at && new Date(form.closes_at) <= new Date(form.opens_at)) {
+      toast.error('Closes At must be after Opens At');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -226,13 +238,13 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
           <div className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Day Number *</label>
-                <Input type="number" min={1} value={form.day_number || 1} onChange={e => setForm(f => ({ ...f, day_number: parseInt(e.target.value) || 1 }))} />
+                <label htmlFor="challenge-day-number" className="text-sm font-medium mb-1 block">Day Number *</label>
+                <Input id="challenge-day-number" type="number" min={1} value={form.day_number || 1} onChange={e => setForm(f => ({ ...f, day_number: parseInt(e.target.value) || 1 }))} />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Status</label>
+                <label htmlFor="challenge-status" className="text-sm font-medium mb-1 block">Status</label>
                 <Select value={form.status || 'draft'} onValueChange={(v) => setForm(f => ({ ...f, status: v as Challenge['status'] }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="challenge-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="live">Live</SelectItem>
@@ -242,21 +254,21 @@ export const ChallengesTab = ({ hackathonId }: { hackathonId: string }) => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Title *</label>
-              <Input value={form.title || ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Build a support chatbot" />
+              <label htmlFor="challenge-title" className="text-sm font-medium mb-1 block">Title *</label>
+              <Input id="challenge-title" value={form.title || ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Build a support chatbot" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Description</label>
-              <Textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="What participants need to build/submit today..." />
+              <label htmlFor="challenge-description" className="text-sm font-medium mb-1 block">Description</label>
+              <Textarea id="challenge-description" value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="What participants need to build/submit today..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Opens At</label>
-                <Input type="datetime-local" value={form.opens_at || ''} onChange={e => setForm(f => ({ ...f, opens_at: e.target.value }))} />
+                <label htmlFor="challenge-opens-at" className="text-sm font-medium mb-1 block">Opens At</label>
+                <Input id="challenge-opens-at" type="datetime-local" value={form.opens_at || ''} onChange={e => setForm(f => ({ ...f, opens_at: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Closes At</label>
-                <Input type="datetime-local" value={form.closes_at || ''} onChange={e => setForm(f => ({ ...f, closes_at: e.target.value }))} />
+                <label htmlFor="challenge-closes-at" className="text-sm font-medium mb-1 block">Closes At</label>
+                <Input id="challenge-closes-at" type="datetime-local" value={form.closes_at || ''} onChange={e => setForm(f => ({ ...f, closes_at: e.target.value }))} />
               </div>
             </div>
             {/* Not editable — the auto-grader and the manual grading form

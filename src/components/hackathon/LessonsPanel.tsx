@@ -337,14 +337,26 @@ export const LessonsPanel = () => {
       // they left it. Lessons are a learning record, not a per-event
       // competition score (that's what SP and Project Score are for), so
       // the coin total now follows the same lifetime scope progress does.
-      const [{ data: prog }, { data: coinRows }] = await Promise.all([
-        supabase.rpc('get_my_lesson_progress', { p_participant_email: email }),
+      const [{ data: prog, error: progErr }, { data: coinRows, error: coinErr }] = await Promise.all([
+        // p_device_token added (security audit) — this RPC used to trust a
+        // bare email with no proof of identity, letting anyone read any
+        // participant's full lesson completion history just by knowing
+        // their email. It sat right next to get_my_lesson_coin_points below
+        // (already hardened) and was missed in that pass.
+        supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: deviceToken || null }),
         // Same RPC-not-raw-select fix as the registration lookup above —
         // point_events also has a wide-open SELECT policy. p_device_token
         // added (security audit) — no proof of identity existed before.
         supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: deviceToken || null }),
       ]);
       if (requestId !== fetchAllRequestRef.current) return;
+      // Both used to be destructured for .data only — a transient failure
+      // (network blip, or deviceToken momentarily stale right after a mint)
+      // silently fell through to setProgress({}), making a student's whole
+      // completion history appear to vanish with zero indication it was a
+      // fetch error rather than an actual reset.
+      if (progErr) { console.error('lesson progress fetch error:', progErr); toast.error('Could not load your lesson progress — try refreshing.'); }
+      if (coinErr) { console.error('lesson coins fetch error:', coinErr); }
       const map: Record<string, Progress> = {};
       (prog || []).forEach((p: any) => { map[p.lesson_id] = p; });
       setProgress(map);
@@ -465,9 +477,16 @@ export const LessonsPanel = () => {
     setPracticePick(null);
     setActiveContent(null);
     setContentLoading(true);
-    const { data: content, error: contentErr } = await supabase.rpc('get_lesson_content', {
+    // p_device_token added (security audit) — this RPC used to trust a bare
+    // email with no proof of identity, letting anyone pass a classmate's
+    // email to read lesson content for any lesson that email has unlocked.
+    // Return shape is now one row wrapping the content (see migration
+    // 20260904000000) rather than a bare JSONB blob, so a freshly-minted
+    // token has somewhere to travel back to the client.
+    const { data, error: contentErr } = await supabase.rpc('get_lesson_content', {
       p_participant_email: email.trim().toLowerCase(),
       p_lesson_id: lesson.id,
+      p_device_token: deviceToken || null,
     });
     if (requestId !== contentRequestRef.current) return; // superseded by a newer open
     setContentLoading(false);
@@ -475,7 +494,9 @@ export const LessonsPanel = () => {
       toast.error(contentErr.message || 'Failed to load lesson content');
       return;
     }
-    setActiveContent((content as LessonContent) || null);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row?.new_device_token) setDeviceToken(row.new_device_token);
+    setActiveContent((row?.content as LessonContent) || null);
   };
 
   // Organizer-only: view a lesson's content and quiz (with answers) without
@@ -511,13 +532,20 @@ export const LessonsPanel = () => {
     const requestId = contentRequestRef.current; // no new "open" here, just piggyback the current one
     setStartingQuiz(true);
     try {
+      // p_device_token added (security audit) — same missing-auth pattern as
+      // get_lesson_content, letting anyone pass a classmate's email to read
+      // quiz questions for any lesson that email has unlocked.
       const { data, error } = await supabase.rpc('get_quiz_questions', {
         p_participant_email: email.trim().toLowerCase(),
         p_lesson_id: activeLesson.id,
+        p_device_token: deviceToken || null,
       });
       if (requestId !== contentRequestRef.current) return; // the lesson dialog was closed/switched while this was in flight
       if (error) { toast.error(error.message || 'Failed to load quiz'); return; }
-      const questions = (data as any as QuizQuestion[]) || [];
+      const rows = (data as any[]) || [];
+      const mintedToken = rows[0]?.new_device_token;
+      if (mintedToken) setDeviceToken(mintedToken);
+      const questions = rows as any as QuizQuestion[];
       // A published, unlockable lesson with no quiz questions authored yet
       // used to still flip phase to 'quiz' here — the render guard requires
       // quizQuestions.length > 0, so nothing in the content/quiz/results
@@ -609,7 +637,7 @@ export const LessonsPanel = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <CurrencyBadge icon={<CoinIcon size={12} />} value={lessonCoinsEarned} className="bg-amber-500/20 text-amber-400 border-amber-500/30" />
+            <CurrencyBadge icon={<CoinIcon size={12} />} value={lessonCoinsEarned} className="bg-[hsl(var(--discord-yellow)/0.2)] text-[hsl(var(--discord-yellow))] border-[hsl(var(--discord-yellow)/0.3)]" />
             <div className="flex items-center gap-1.5">
               <ProgressRing value={passedCount} total={lessons.length} color="#00B894" />
               <span className="text-[9px] text-white/50 uppercase tracking-wide">lessons</span>
@@ -618,9 +646,11 @@ export const LessonsPanel = () => {
         </div>
         {editingIdentity ? (
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
+            <label htmlFor="lessons-name" className="sr-only">Your name</label>
+            <Input id="lessons-name" value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
-            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email"
+            <label htmlFor="lessons-email" className="sr-only">Your email</label>
+            <Input id="lessons-email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white h-9 text-sm" />
             {name.trim() && email.trim() && (
               <Button
@@ -660,6 +690,7 @@ export const LessonsPanel = () => {
           const complete = modLessons.length > 0 && modDone === modLessons.length;
           return (
             <button key={modNum} onClick={() => jumpToModule(modNum)}
+              aria-label={`Module ${modNum}${complete ? ' — complete' : ''}`}
               className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full text-white transition-opacity hover:opacity-80 flex items-center gap-1"
               style={{ backgroundColor: meta.color, opacity: complete ? 0.55 : 1 }}>
               {complete && <CheckCircle2 className="w-3 h-3 animate-bounce-in" />}
@@ -679,6 +710,8 @@ export const LessonsPanel = () => {
             <div key={modNum} id={`module-${modNum}`} className="scroll-mt-4">
               <button
                 onClick={() => setCollapsedModules(c => ({ ...c, [modNum]: !c[modNum] }))}
+                aria-expanded={!isCollapsed}
+                aria-controls={`module-${modNum}-lessons`}
                 className="flex items-center gap-2 mb-2 w-full text-left"
               >
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: meta.color }}>
@@ -689,7 +722,7 @@ export const LessonsPanel = () => {
                 <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
               </button>
               {!isCollapsed && (
-              <div className="grid gap-2 md:grid-cols-2">
+              <div id={`module-${modNum}-lessons`} className="grid gap-2 md:grid-cols-2">
                 {modLessons.map((lesson, i) => {
                   const p = progress[lesson.id];
                   const available = isLessonAvailable(lesson);
@@ -699,6 +732,7 @@ export const LessonsPanel = () => {
                       <button
                         onClick={(e) => { e.stopPropagation(); openPreview(lesson); }}
                         title="Preview content (organizer only)"
+                        aria-label={`Preview "${lesson.title}" (organizer only)`}
                         className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-black/50 hover:bg-black/70 text-white/70 hover:text-white transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -1241,7 +1275,7 @@ const ResultsStep = ({ result, lessonTitle, questions, wasRetake, onReview, onCl
           className="bg-gradient-to-r from-[#FFD700]/15 to-[#F7941D]/15 border border-[#FFD700]/30 rounded-lg p-4 mb-4">
           <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 0.6, delay: 0.5 }} className="mb-1 flex justify-center"><CoinIcon size={36} /></motion.div>
           <p className="text-sm font-bold text-white">+{result.bonus_coins_awarded} bonus Forge Coins!</p>
-          <p className="text-xs text-white/60">Every 3rd lesson passed earns a coin bonus — keep going to unlock more.</p>
+          <p className="text-xs text-white/60">Every lesson you pass for the first time earns a coin bonus — keep going!</p>
         </motion.div>
       )}
     </AnimatePresence>

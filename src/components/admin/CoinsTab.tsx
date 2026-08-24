@@ -99,7 +99,8 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
         <h2 className="text-lg font-bold flex items-center gap-2"><CoinIcon size={20} /> Forge Coins</h2>
         <div className="relative w-64">
           <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search participants..." className="pl-8" />
+          <label htmlFor="coins-search" className="sr-only">Search participants</label>
+          <Input id="coins-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search participants..." className="pl-8" />
         </div>
       </div>
 
@@ -129,12 +130,12 @@ export const CoinsTab = ({ hackathonId }: { hackathonId: string }) => {
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <label className="text-sm font-medium mb-1 block">Amount (negative to deduct)</label>
-              <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 25 or -10" />
+              <label htmlFor="coins-amount" className="text-sm font-medium mb-1 block">Amount (negative to deduct)</label>
+              <Input id="coins-amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 25 or -10" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Reason</label>
-              <Textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Optional note for the audit log" />
+              <label htmlFor="coins-reason" className="text-sm font-medium mb-1 block">Reason</label>
+              <Textarea id="coins-reason" value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Optional note for the audit log" />
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setAdjustTarget(null)} className="flex-1">Cancel</Button>

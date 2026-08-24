@@ -62,6 +62,9 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
   const [saving, setSaving] = useState(false);
   const [resetTarget, setResetTarget] = useState<Hackathon | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [statusChangeTarget, setStatusChangeTarget] = useState<{ hackathon: Hackathon; status: 'upcoming' | 'live' | 'ended' } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -98,16 +101,35 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
 
   const handleSave = async () => {
     if (!form.title?.trim()) { toast.error('Title is required'); return; }
+    const startDate = new Date(form.start_date!);
+    const endDate = new Date(form.end_date!);
+    const regDeadline = new Date(form.registration_deadline!);
+    // A cleared datetime-local field (backspaced to '') parses to an
+    // Invalid Date — every comparison against it is false, so the ordering
+    // checks below would silently pass and the raw RangeError from
+    // .toISOString() further down would surface as an ugly "Invalid time
+    // value" toast instead of a real validation message.
+    if ([startDate, endDate, regDeadline].some(d => Number.isNaN(d.getTime()))) {
+      toast.error('Start Date, End Date, and Registration Deadline are all required');
+      return;
+    }
+    if (endDate <= startDate) { toast.error('End date must be after the start date'); return; }
+    if (regDeadline > startDate) { toast.error('Registration deadline must be on or before the start date'); return; }
     setSaving(true);
     try {
       const payload = {
         title: form.title,
         description: form.description || null,
         theme: form.theme || null,
-        start_date: new Date(form.start_date!).toISOString(),
-        end_date: new Date(form.end_date!).toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         registration_deadline: new Date(form.registration_deadline!).toISOString(),
-        max_participants: form.max_participants || 100,
+        // `|| 100` silently replaced an organizer's explicit "0" with the
+        // default, since parseInt('0') is falsy — no warning, the typed
+        // value just vanished. `?? 100` only falls back on a genuinely
+        // missing value (form.max_participants set to undefined below on a
+        // bad parseInt), not on a real, intentional 0.
+        max_participants: form.max_participants ?? 100,
         prizes: form.prizes || null,
         rules: form.rules || null,
         settings: form.settings || defaultSettings(),
@@ -130,6 +152,7 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await callAdminAction('delete_hackathon', { id: deleteTarget.id });
       toast.success('Event deleted');
@@ -137,17 +160,33 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
       refreshAll();
     } catch (e: any) {
       toast.error(e.message || 'Failed to delete event');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleSetStatus = async (id: string, status: 'upcoming' | 'live' | 'ended') => {
+    setChangingStatus(true);
     try {
       await callAdminAction('set_hackathon_status', { id, status });
       toast.success(status === 'live' ? 'Hackathon is now LIVE!' : 'Hackathon ended');
+      setStatusChangeTarget(null);
       refreshAll();
     } catch (e: any) {
       toast.error(e.message || 'Failed to update status');
+    } finally {
+      setChangingStatus(false);
     }
+  };
+
+  // "Go Live"/"Restart" are reversible and low-stakes to misclick — this
+  // only gates "End Hackathon", the one status change that actually stops
+  // a potentially-live event for every active participant. Matches the
+  // confirmation this file already requires for Delete and Reset
+  // Leaderboard, both less consequential than cutting off a live event.
+  const requestSetStatus = (h: Hackathon, status: 'upcoming' | 'live' | 'ended') => {
+    if (status === 'ended') { setStatusChangeTarget({ hackathon: h, status }); return; }
+    handleSetStatus(h.id, status);
   };
 
   const handleResetLeaderboard = async () => {
@@ -186,19 +225,21 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
             <p className="text-xs text-muted-foreground mb-3"><Calendar className="w-3 h-3 inline mr-1" /> {new Date(h.start_date).toLocaleDateString()} — {new Date(h.end_date).toLocaleDateString()}</p>
             <div className="flex gap-2 flex-wrap">
               {h.status === 'upcoming' && (
-                <Button size="sm" onClick={() => handleSetStatus(h.id, 'live')} className="flex-1"><Play className="w-3 h-3 mr-1" /> Go Live</Button>
+                <Button size="sm" disabled={changingStatus} onClick={() => requestSetStatus(h, 'live')} className="flex-1"><Play className="w-3 h-3 mr-1" /> Go Live</Button>
               )}
               {h.status === 'live' && (
-                <Button size="sm" variant="destructive" onClick={() => handleSetStatus(h.id, 'ended')} className="flex-1">End Hackathon</Button>
+                <Button size="sm" variant="destructive" disabled={changingStatus} onClick={() => requestSetStatus(h, 'ended')} className="flex-1">End Hackathon</Button>
               )}
               {h.status === 'ended' && (
-                <Button size="sm" onClick={() => handleSetStatus(h.id, 'live')} className="flex-1"><Play className="w-3 h-3 mr-1" /> Restart</Button>
+                <Button size="sm" disabled={changingStatus} onClick={() => requestSetStatus(h, 'live')} className="flex-1"><Play className="w-3 h-3 mr-1" /> Restart</Button>
               )}
               <Button size="sm" variant="outline" onClick={() => openEdit(h)}><Pencil className="w-3 h-3 mr-1" /> Edit</Button>
               <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setResetTarget(h)} title="Reset this event's SP, coins, keys, badges & tokens">
                 <AlertTriangle className="w-3 h-3" />
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDeleteTarget(h)}><Trash2 className="w-3 h-3" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setDeleteTarget(h)} aria-label={`Delete ${h.title}`} title="Delete event">
+                <Trash2 className="w-3 h-3" />
+              </Button>
             </div>
           </div>
         ))}
@@ -222,55 +263,56 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
-              <label className="text-sm font-medium mb-1 block">Title *</label>
-              <Input value={form.title || ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="AI Innovation Hackathon" />
+              <label htmlFor="event-title" className="text-sm font-medium mb-1 block">Title *</label>
+              <Input id="event-title" value={form.title || ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="AI Innovation Hackathon" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Description</label>
-              <Textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Build innovative AI solutions..." rows={2} />
+              <label htmlFor="event-description" className="text-sm font-medium mb-1 block">Description</label>
+              <Textarea id="event-description" value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Build innovative AI solutions..." rows={2} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Theme</label>
-                <Input value={form.theme || ''} onChange={e => setForm(f => ({ ...f, theme: e.target.value }))} placeholder="Education, Health..." />
+                <label htmlFor="event-theme" className="text-sm font-medium mb-1 block">Theme</label>
+                <Input id="event-theme" value={form.theme || ''} onChange={e => setForm(f => ({ ...f, theme: e.target.value }))} placeholder="Education, Health..." />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Max Participants</label>
-                <Input type="number" value={form.max_participants || 100} onChange={e => setForm(f => ({ ...f, max_participants: parseInt(e.target.value) || 100 }))} />
+                <label htmlFor="event-max-participants" className="text-sm font-medium mb-1 block">Max Participants</label>
+                <Input id="event-max-participants" type="number" value={form.max_participants ?? 100} onChange={e => { const n = parseInt(e.target.value, 10); setForm(f => ({ ...f, max_participants: Number.isNaN(n) ? undefined : n })); }} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Start Date</label>
-                <Input type="datetime-local" value={form.start_date || ''} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+                <label htmlFor="event-start-date" className="text-sm font-medium mb-1 block">Start Date</label>
+                <Input id="event-start-date" type="datetime-local" value={form.start_date || ''} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">End Date</label>
-                <Input type="datetime-local" value={form.end_date || ''} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+                <label htmlFor="event-end-date" className="text-sm font-medium mb-1 block">End Date</label>
+                <Input id="event-end-date" type="datetime-local" value={form.end_date || ''} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Registration Deadline</label>
-              <Input type="datetime-local" value={form.registration_deadline || ''} onChange={e => setForm(f => ({ ...f, registration_deadline: e.target.value }))} />
+              <label htmlFor="event-registration-deadline" className="text-sm font-medium mb-1 block">Registration Deadline</label>
+              <Input id="event-registration-deadline" type="datetime-local" value={form.registration_deadline || ''} onChange={e => setForm(f => ({ ...f, registration_deadline: e.target.value }))} />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Prizes</label>
-              <Textarea value={form.prizes || ''} onChange={e => setForm(f => ({ ...f, prizes: e.target.value }))} placeholder="1st: Certificate + Feature, 2nd: Certificate..." rows={2} />
+              <label htmlFor="event-prizes" className="text-sm font-medium mb-1 block">Prizes</label>
+              <Textarea id="event-prizes" value={form.prizes || ''} onChange={e => setForm(f => ({ ...f, prizes: e.target.value }))} placeholder="1st: Certificate + Feature, 2nd: Certificate..." rows={2} />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Rules</label>
-              <Textarea value={form.rules || ''} onChange={e => setForm(f => ({ ...f, rules: e.target.value }))} placeholder="1. Teams of 1-5 members..." rows={2} />
+              <label htmlFor="event-rules" className="text-sm font-medium mb-1 block">Rules</label>
+              <Textarea id="event-rules" value={form.rules || ''} onChange={e => setForm(f => ({ ...f, rules: e.target.value }))} placeholder="1. Teams of 1-5 members..." rows={2} />
             </div>
 
             <div className="border rounded-lg p-3 space-y-3">
               <h4 className="text-sm font-bold flex items-center gap-2"><Settings2 className="w-4 h-4" /> Gamification Settings</h4>
               <div>
-                <label className="text-sm font-medium mb-1 block">Mission Bonus — top N per day</label>
+                <label htmlFor="event-mission-bonus" className="text-sm font-medium mb-1 block">Mission Bonus — top N per day</label>
                 <Input
+                  id="event-mission-bonus"
                   type="number"
                   min={1}
                   value={form.settings?.mission_bonus_top_n ?? 5}
-                  onChange={e => setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), mission_bonus_top_n: parseInt(e.target.value) || 5 } }))}
+                  onChange={e => { const n = parseInt(e.target.value, 10); setForm(f => ({ ...f, settings: { ...(f.settings || defaultSettings()), mission_bonus_top_n: Math.max(1, Number.isNaN(n) ? 5 : n) } })); }}
                   className="w-24"
                 />
                 <p className="text-xs text-muted-foreground mt-1">How many top finishers each daily challenge get a Mission Bonus box. Everyone who completes still gets an Issue Box.</p>
@@ -315,7 +357,28 @@ export const EventsTab = ({ onHackathonsChanged }: { onHackathonsChanged: () => 
           </DialogHeader>
           <div className="flex gap-2 mt-2">
             <Button variant="ghost" onClick={() => setDeleteTarget(null)} className="flex-1">Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} className="flex-1">Delete</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting} className="flex-1">
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statusChangeTarget} onOpenChange={() => setStatusChangeTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-destructive" /> End Hackathon</DialogTitle>
+            <DialogDescription>
+              End "{statusChangeTarget?.hackathon.title}" now? This stops the event for every currently active participant — they'll no longer be able to submit or register. You can restart it later, but anyone mid-session will be interrupted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setStatusChangeTarget(null)} className="flex-1">Cancel</Button>
+            <Button variant="destructive" disabled={changingStatus} onClick={() => statusChangeTarget && handleSetStatus(statusChangeTarget.hackathon.id, statusChangeTarget.status)} className="flex-1">
+              {changingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              End Hackathon
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

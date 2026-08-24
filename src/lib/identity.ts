@@ -18,16 +18,33 @@ export async function ensureHackathonRegistration(email: string, name: string, h
   const trimmedName = name.trim();
   if (!normalizedEmail || !trimmedName) return;
 
-  const { error } = await supabase.from('hackathon_registrations').insert({
-    hackathon_id: hackathonId,
-    participant_name: trimmedName,
-    participant_email: normalizedEmail,
+  // Was a raw insert until a security audit found it silently broken:
+  // hackathon_registrations' anon/authenticated table privileges were
+  // correctly revoked to close a real "anyone can write anything" hole,
+  // but nothing replaced this specific write path with an RPC, so every
+  // call here (and every direct registration via RegistrationModal.tsx)
+  // has been failing with a permission-denied error since. Routed through
+  // register_for_hackathon, the same device-token TOFU pattern every other
+  // write RPC in the app uses — mints on first use, so this can still run
+  // as the very first identity-establishing action for someone who lands
+  // on Publish/Lessons/Daily Challenges before ever registering formally.
+  const deviceToken = localStorage.getItem('forge-device-token') || null;
+  const { data, error } = await supabase.rpc('register_for_hackathon', {
+    p_hackathon_id: hackathonId,
+    p_participant_name: trimmedName,
+    p_participant_email: normalizedEmail,
+    p_device_token: deviceToken,
   });
-  // 23505 = already registered for this event, which is success, not an
-  // error. Anything else is logged but not surfaced — this call is a
-  // side-effect of some other action (publishing, saving a lesson, etc.),
-  // never something the student is waiting on a result from.
-  if (error && error.code !== '23505') {
+  const result = Array.isArray(data) ? data[0] : data;
+  if (result?.new_device_token) localStorage.setItem('forge-device-token', result.new_device_token);
+  // This call is a side-effect of some other action (publishing, saving a
+  // lesson, etc.), never something the student is waiting on a result
+  // from — a failure (including "already active on another device", which
+  // just means this email's real owner is on a different browser) is
+  // logged but not surfaced.
+  if (error) {
     console.error('ensureHackathonRegistration failed:', error);
+  } else if (result && !result.ok) {
+    console.error('ensureHackathonRegistration failed:', result.message);
   }
 }

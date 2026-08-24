@@ -65,7 +65,26 @@ const normalizeJudgeBreakdown = (b: any) => ({
   impact: b?.impact ?? 0,
 });
 
-export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonId: string; role?: AdminRole | null }) => {
+// Judges need enough identity to avoid mis-grading, not a contactable email
+// — full addresses let a judge-passphrase holder reach a participant
+// outside the platform, which most judging setups deliberately avoid.
+// Organizers still see the full address (legitimately needed for
+// shipping/contact). Client-side masking only, matching this component's
+// existing role-gated field visibility (auto-score fields are similarly
+// disabled-not-hidden for judges) — the RPC already returns the address to
+// whoever holds a valid passphrase, so this narrows what's *displayed*, not
+// what's technically retrievable by an already-trusted caller.
+const maskEmail = (email: string) => {
+  // split('@') on a malformed multi-@ address (e.g. "a@b@c") destructures
+  // to only local="a", domain="b", silently dropping "@c" instead of
+  // masking the address as a whole — indexOf/slice keeps everything after
+  // the first '@' intact regardless of how many more appear.
+  const at = email.indexOf('@');
+  if (at === -1) return email;
+  return `${email.slice(0, 1)}***${email.slice(at)}`;
+};
+
+export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: string; role?: AdminRole | null }) => {
   const isOrganizer = role === 'organizer';
   const isJudge = role === 'judge';
 
@@ -215,8 +234,9 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
     }
   };
 
-  const handleAutoGrade = async () => {
-    if (!selectedChallengeId) return;
+  const [forceRegradeConfirmOpen, setForceRegradeConfirmOpen] = useState(false);
+
+  const runAutoGrade = async () => {
     setAutoGrading(true);
     try {
       const result = await callAdminAction<{ graded: number; skipped: number; errors: { submission_id: string; error: string }[]; warnings: { submission_id: string; warning: string }[] }>('auto_grade_challenge', {
@@ -241,7 +261,19 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
       toast.error(e.message || 'Auto-grading failed');
     } finally {
       setAutoGrading(false);
+      // Left checked, this silently re-overwrites every already-graded
+      // submission — including any auto score an organizer hand-corrected
+      // in the Grade dialog — on the very next click of Auto-Grade All,
+      // with no diff shown and no undo. Resetting after every run means
+      // it has to be deliberately re-checked each time, not left armed.
+      setForceRegrade(false);
     }
+  };
+
+  const handleAutoGrade = () => {
+    if (!selectedChallengeId) return;
+    if (forceRegrade) { setForceRegradeConfirmOpen(true); return; }
+    runAutoGrade();
   };
 
   const handleCloseChallenge = async () => {
@@ -252,7 +284,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
         challenge_id: selectedChallengeId,
         issue_box_label: 'Issue Box',
         mission_box_label: 'Mission Bonus',
-        mission_bonus_coin_value: parseInt(bonusCoinValue, 10) || 0,
+        mission_bonus_coin_value: Math.max(0, parseInt(bonusCoinValue, 10) || 0),
       });
       toast.success(`Challenge closed. ${result.awarded} reward box(es) awarded — top winners: ${result.topWinners.join(', ') || 'none'}`);
       // Not finalized (missing an auto score, judge score, or both) means
@@ -331,7 +363,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
               <div key={s.id} className="bg-card rounded-lg border p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex-1 min-w-[200px]">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">{s.participant_email}</span>
+                    <span className="font-semibold text-sm">{isOrganizer ? s.participant_email : maskEmail(s.participant_email)}</span>
                     {isFinalized && <Badge className="gap-1"><CheckCircle2 className="w-3 h-3" /> {score.total_sp} SP</Badge>}
                     {!isFinalized && score?.auto_score != null && <Badge variant="outline">Auto-graded: {score.auto_score} — awaiting judge</Badge>}
                     {/* Replaces the old Boost Token currency — same
@@ -387,7 +419,7 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Grade Submission</DialogTitle>
-            <DialogDescription>{gradingSubmission?.participant_email}</DialogDescription>
+            <DialogDescription>{gradingSubmission?.participant_email && (isOrganizer ? gradingSubmission.participant_email : maskEmail(gradingSubmission.participant_email))}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {isJudge && (
@@ -476,6 +508,23 @@ export const SubmissionsTab = ({ hackathonId, role = 'organizer' }: { hackathonI
                 Close &amp; Award
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={forceRegradeConfirmOpen} onOpenChange={setForceRegradeConfirmOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Re-grade already-graded submissions?</DialogTitle>
+            <DialogDescription>
+              This overwrites the automated score for every submission in this challenge that already has one — including any auto-score an organizer hand-corrected in the Grade dialog. There's no undo. Only do this if you fixed a benchmark test and need it reapplied retroactively.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="ghost" onClick={() => setForceRegradeConfirmOpen(false)} className="flex-1">Cancel</Button>
+            <Button variant="destructive" onClick={() => { setForceRegradeConfirmOpen(false); runAutoGrade(); }} className="flex-1">
+              Re-grade All
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
