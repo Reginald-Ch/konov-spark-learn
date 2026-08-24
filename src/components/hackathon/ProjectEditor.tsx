@@ -35,7 +35,7 @@ import { runModule } from '../../../supabase/functions/_shared/pyInterpreter/eva
 import { useIsMobile } from '@/hooks/use-mobile';
 
 import { ProjectType, PROJECT_SCAFFOLDS, PROJECT_SCAFFOLDS_BLANK } from './projectScaffolds';
-import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, abortableSleep, describeMicError, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
+import { computeLineDiffs, lintPython, getAutocompleteItems, findAllMatches, findLineForVariable, CHATBOT_TUTORIAL_STEPS, tokenizeLine, TOKEN_COLORS, codeDefinesRespond, describeMicError, type LintError, type AutocompleteItem, type SearchMatch, type Token } from './editorFeatures';
 export type { ProjectType } from './projectScaffolds';
 
 interface ProjectEditorProps {
@@ -2118,30 +2118,27 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       // reads as "the platform is broken" to a student, especially in a
       // synchronized-burst moment like "everyone test your bot now"), retry
       // a few times with backoff before giving up for real.
-      const MAX_429_RETRIES = 3;
-      let resp: Response;
-      let attempt = 0;
-      while (true) {
-        resp = await fetchAIEndpoint(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify(body),
-            signal: controller.signal,
-          }
-        );
-        if (resp.status === 429 && attempt < MAX_429_RETRIES) {
-          attempt++;
-          toast.info('FORGE is busy — retrying automatically...', { id: 'ai-busy-retry' });
-          await abortableSleep(1200 * attempt + Math.random() * 500, controller.signal);
-          continue;
+      // fetchAIEndpoint already does exactly this internally (up to 3
+      // retries with backoff) — this used to wrap it in a SECOND, identical
+      // retry loop, so one 429 could trigger up to 3 outer x (1 + 3 inner)
+      // = 16 real fetches against the shared gateway slot pool, amplifying
+      // load hardest during the exact congestion this was meant to smooth
+      // (the same bug, found and fixed in ProjectView.tsx's chat call
+      // earlier this session). onRetry is the utility's own intended hook
+      // for the "busy, retrying..." toast, not a second retry mechanism.
+      const resp = await fetchAIEndpoint(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/python-ai-assist`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+          onRetry: () => toast.info('FORGE is busy — retrying automatically...', { id: 'ai-busy-retry' }),
         }
-        break;
-      }
+      );
       onHeaders?.(resp.headers);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
