@@ -29,6 +29,19 @@ const TEMPLATE_META: Record<string, { icon: string; label: string; color: string
   agent: { icon: '🧠', label: 'Agent', color: '#006600' },
 };
 
+// created_at is DB-generated (NOT NULL DEFAULT now()) and nothing in this
+// app currently sets it explicitly, so an invalid value shouldn't be
+// reachable today — but formatDistanceToNow throws a raw RangeError on one
+// rather than degrading gracefully, and this app has only a single
+// root-level ErrorBoundary (no per-section boundary around the gallery),
+// so one unexpected row would take down the whole page instead of just
+// this one field. Defense in depth, not a fix for an active bug.
+const formatCreatedAt = (createdAt: string): { relative: string; absolute: string } => {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return { relative: 'recently', absolute: 'Unknown date' };
+  return { relative: formatDistanceToNow(date, { addSuffix: true }), absolute: date.toLocaleString() };
+};
+
 export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -278,8 +291,8 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                     <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-4">{project.description}</p>
                   )}
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                     <span className="text-xs text-[hsl(var(--discord-text-muted))]" title={new Date(project.created_at).toLocaleString()}>
-                       {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+                     <span className="text-xs text-[hsl(var(--discord-text-muted))]" title={formatCreatedAt(project.created_at).absolute}>
+                       {formatCreatedAt(project.created_at).relative}
                      </span>
                      <div className="flex gap-2 flex-wrap">
                        {myProjectIds.has(project.id) && (
