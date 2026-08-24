@@ -71,7 +71,7 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
   useEffect(() => {
     const debouncedRefetch = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => fetchProjects(), 800);
+      debounceRef.current = setTimeout(() => fetchProjects(true), 800);
     };
     const channel = supabase
       .channel('project-gallery-updates')
@@ -83,8 +83,15 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
     };
   }, []);
 
-  const fetchProjects = async () => {
-    setIsLoading(true);
+  // silent=true skips the full-page spinner — used for background
+  // refreshes (the realtime handler, the post-delete safety-net refetch)
+  // where the gallery is already rendered. Without this, ANY student
+  // anywhere publishing/editing/deleting a project blanked every visitor's
+  // already-open gallery to a spinner and re-mounted the grid (replaying
+  // every card's entrance animation) on every refresh, not just the first
+  // load.
+  const fetchProjects = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setFetchError(false);
     try {
       // Explicit column list — author_email must never reach the client here.
@@ -92,11 +99,16 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       // RPCs (see save_own_project's migration), so broadcasting it to every
       // visitor of a public gallery would let anyone harvest a classmate's
       // email and hijack their projects through those RPCs directly.
+      // Unscoped by hackathon (by design — this is a cross-event showcase),
+      // so the published-project set only grows over time. A cap keeps a
+      // single query bounded as more events run on this platform, matching
+      // the same defensive limit other unbounded RPCs in this app use.
       const { data, error } = await supabase
         .from('ai_projects')
         .select('id, project_name, description, author_name, template_id, code, points_earned, created_at')
         .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) {
         console.error('Failed to fetch projects:', error);
@@ -133,8 +145,15 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
       toast.success('Project deleted');
       setDeleteTarget(null);
-      fetchProjects();
+      // Safety-net resync, not the primary update — the optimistic filter
+      // above already reflects the deletion instantly. Silent so this
+      // doesn't blank the grid to a spinner right after the confirm click
+      // (the realtime subscription will also pick up this same DELETE and
+      // silently resync a second time, which is fine — both are no-ops
+      // once the row is actually gone).
+      fetchProjects(true);
     } catch (e) {
+      console.error('Failed to delete project:', e);
       toast.error('Failed to delete project.');
     } finally {
       setIsDeleting(false);
@@ -163,7 +182,9 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+        <label htmlFor="project-gallery-search" className="sr-only">Search projects</label>
         <Input
+          id="project-gallery-search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search projects..."
@@ -239,11 +260,21 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                            Delete
                          </Button>
                        )}
-                      <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+                      {/* asChild renders this as a real <a>, not a <button>
+                          nested inside one — the previous <a><Button/></a>
+                          markup was two natively-interactive elements
+                          nested together (an HTML5-invalid, AT-confusing
+                          pattern), and only "worked" because the inner
+                          button had no click handler of its own for the
+                          click to bubble past. This keeps real link
+                          semantics (visible href, right-click "open in new
+                          tab", role="link") instead of faking navigation
+                          through a button's onClick. */}
+                      <Button asChild size="sm" className="h-7 text-xs bg-[hsl(var(--discord-green))] hover:bg-[hsl(var(--discord-green)/0.8)] text-white">
+                        <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
                           💬 Try It
-                        </Button>
-                      </a>
+                        </a>
+                      </Button>
                       <Button
                         size="sm"
                         onClick={() => onViewCode(project.code)}
