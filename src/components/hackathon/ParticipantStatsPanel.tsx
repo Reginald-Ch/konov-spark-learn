@@ -140,6 +140,16 @@ const RewardRevealOverlay = ({ box, onDismiss }: { box: UnopenedBox; onDismiss: 
   const isMission = box.box_type === 'mission';
   const accent = isMission ? '#FFD700' : '#F7941D';
 
+  // Auto-dismisses after 4.5s (see justOpened's setTimeout) and closes on
+  // click-outside/the "Nice!" button, but had no dialog semantics or
+  // keyboard dismissal at all — a keyboard-only user had no way to close
+  // it early short of waiting out the timer.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onDismiss(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onDismiss]);
+
   return (
     <motion.div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
@@ -147,6 +157,9 @@ const RewardRevealOverlay = ({ box, onDismiss }: { box: UnopenedBox; onDismiss: 
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onDismiss}
+      role="dialog"
+      aria-modal="true"
+      aria-label={isMission ? 'Mission Bonus unlocked' : 'Issue Box unlocked'}
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -235,6 +248,17 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
 
   useEffect(() => {
     setEmail(localStorage.getItem('forge-student-email'));
+    // Identity can change elsewhere in the app (ProjectEditor.tsx,
+    // CommunityChat.tsx, a re-registration flow) while this panel stays
+    // mounted — a 'storage' event only fires for changes from OTHER tabs/
+    // windows, not same-tab writes, but it's a cheap, correct partial fix
+    // for the shared-device-in-a-lab scenario without needing every writer
+    // to know about this component.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'forge-student-email') setEmail(e.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -253,6 +277,13 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
       supabase.rpc('get_my_reward_boxes', { p_participant_email: email, p_hackathon_id: hackathonId, p_device_token: localStorage.getItem('forge-device-token') || null }),
     ]);
 
+    // Neither .error was checked — unlike handleOpenBox below (which does
+    // surface a toast on failure), a failed fetch here rendered the
+    // participant's own stats as a plain "0 SP / 0 Forge Coins," reading as
+    // "you haven't earned anything" rather than "the fetch failed."
+    if (pointsRes.error) console.error('get_my_point_events fetch error:', pointsRes.error);
+    if (boxesRes.error) console.error('get_my_reward_boxes fetch error:', boxesRes.error);
+
     const next: Stats = { ...emptyStats, badges: [] };
     (pointsRes.data || []).forEach((row: any) => {
       if (row.event_type === 'daily_challenge_sp') next.sp += row.points;
@@ -265,11 +296,17 @@ export const ParticipantStatsPanel = ({ hackathonId }: { hackathonId: string | n
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  // point_events is still publicly readable (it's what drives the visible
-  // leaderboard), so realtime push still works for SP/coins/keys/tokens.
-  // reward_boxes is now private, which means Realtime (governed by the same
-  // RLS) can no longer push box changes to an anon client — poll for those
-  // instead, on a light interval, rather than relying on a push we can't get.
+  // point_events lost ALL anon/authenticated table privileges in a later
+  // security fix (20260903000001) — this comment used to claim realtime
+  // push "still works" for point_events because it was "still publicly
+  // readable," which stopped being true the moment that migration landed.
+  // Supabase Realtime evaluates each row against the connecting role's own
+  // grants before ever broadcasting it, so this subscription is as dead as
+  // reward_boxes' — the 20s poll below is what's actually keeping this
+  // panel's SP/coins/badges fresh, not the channel. Kept the subscription
+  // (harmless, and would matter again if that table's grants ever change)
+  // but corrected the comment so it doesn't mislead the next person into
+  // thinking it's load-bearing.
   useEffect(() => {
     if (!email || !hackathonId) return;
     const channel = supabase

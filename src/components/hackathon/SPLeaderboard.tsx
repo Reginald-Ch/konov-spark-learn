@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Crown, Medal, Flame, Users } from 'lucide-react';
 import { ParticipantStatsPanel } from './ParticipantStatsPanel';
 import { MedalIcon } from './MedalIcon';
+import { toast } from 'sonner';
 
 interface RankedParticipant {
   key: string;
@@ -20,6 +21,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
   const [isLoading, setIsLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const fetchErrorShownRef = useRef(false);
 
   const fetchLeaderboard = useCallback(async () => {
     if (!hackathonId) { setParticipants([]); setIsLoading(false); return; }
@@ -41,6 +43,23 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       ]);
 
       if (!isMountedRef.current) return;
+
+      // None of these four .error fields were ever checked — a failed RPC
+      // rendered indistinguishably from a genuinely empty leaderboard.
+      // Deduped so a persistent failure across repeated polls doesn't
+      // stack a toast every cycle, matching the pattern already used for
+      // the same issue in Leaderboard.tsx.
+      const firstError = spRes.error || badgeRes.error || regRes.error || onTimeRes.error;
+      if (firstError) {
+        console.error('SPLeaderboard fetch error:', firstError);
+        if (!fetchErrorShownRef.current) {
+          fetchErrorShownRef.current = true;
+          toast.error('Could not load the leaderboard.', { id: 'sp-leaderboard-fetch-error' });
+        }
+      } else if (fetchErrorShownRef.current) {
+        fetchErrorShownRef.current = false;
+        toast.dismiss('sp-leaderboard-fetch-error');
+      }
 
       const nameMap = new Map<string, string>();
       (regRes.data || []).forEach((r: any) => nameMap.set(r.participant_key, r.participant_name));
@@ -97,27 +116,40 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       .channel(`sp-leaderboard-${hackathonId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events', filter: `hackathon_id=eq.${hackathonId}` }, () => debouncedFetch())
       .subscribe();
+    // point_events lost all anon/authenticated table privileges in a later
+    // security fix (20260903000001) — Supabase Realtime evaluates each row
+    // against the connecting role's own grants before ever broadcasting
+    // it, so with zero privileges this subscription silently stopped
+    // delivering events entirely. Same bug class already fixed this
+    // session in Leaderboard.tsx/DailyChallengePanel.tsx via the same 20s
+    // polling fallback.
+    const pollId = setInterval(() => fetchLeaderboard(), 20000);
     return () => {
       isMountedRef.current = false;
       supabase.removeChannel(channel);
+      clearInterval(pollId);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [hackathonId, fetchLeaderboard, debouncedFetch]);
 
+  // No dedicated silver/bronze token exists in this app's discord-* palette
+  // — gold/silver/bronze map onto the three progressively dimmer tones
+  // actually available (yellow/text/text-muted), matching the identical
+  // substitution already made in Leaderboard.tsx.
   const getRankIcon = (index: number) => {
     switch (index) {
-      case 0: return <Crown className="w-5 h-5 text-yellow-400" />;
-      case 1: return <Medal className="w-5 h-5 text-slate-200" />;
-      case 2: return <Medal className="w-5 h-5 text-amber-600" />;
+      case 0: return <><Crown className="w-5 h-5 text-[hsl(var(--discord-yellow))]" /><span className="sr-only">1st place</span></>;
+      case 1: return <><Medal className="w-5 h-5 text-[hsl(var(--discord-text))]" /><span className="sr-only">2nd place</span></>;
+      case 2: return <><Medal className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" /><span className="sr-only">3rd place</span></>;
       default: return <span className="text-[hsl(var(--discord-text-muted))] font-medium w-5 text-center text-sm">#{index + 1}</span>;
     }
   };
 
   const getRankBg = (index: number) => {
     switch (index) {
-      case 0: return 'bg-yellow-500/20 border-yellow-500/30';
-      case 1: return 'bg-gray-400/15 border-gray-400/25';
-      case 2: return 'bg-amber-600/20 border-amber-600/30';
+      case 0: return 'bg-[hsl(var(--discord-yellow)/0.2)] border-[hsl(var(--discord-yellow)/0.3)]';
+      case 1: return 'bg-[hsl(var(--discord-text)/0.15)] border-[hsl(var(--discord-text)/0.25)]';
+      case 2: return 'bg-[hsl(var(--discord-text-muted)/0.2)] border-[hsl(var(--discord-text-muted)/0.3)]';
       default: return 'bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.2)]';
     }
   };
@@ -162,7 +194,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
           hackathonId && (
             <div className="text-center py-12">
               <Flame className="w-12 h-12 mx-auto mb-3 opacity-50 text-[hsl(var(--discord-text-muted))]" />
-              <p className="text-[hsl(var(--discord-text-muted))]">No SP earned yet today — complete a daily challenge to get on the board!</p>
+              <p className="text-[hsl(var(--discord-text-muted))]">No SP earned yet — complete a daily challenge to get on the board!</p>
             </div>
           )
         ) : (
@@ -179,7 +211,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
                 >
                   <div className="flex-shrink-0">{getRankIcon(index)}</div>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{
-                    background: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#5865F2'
+                    background: index === 0 ? 'hsl(var(--discord-yellow))' : index === 1 ? 'hsl(var(--discord-text))' : index === 2 ? 'hsl(var(--discord-text-muted))' : 'hsl(var(--discord-blurple))'
                   }}>
                     {p.name.charAt(0).toUpperCase()}
                   </div>
