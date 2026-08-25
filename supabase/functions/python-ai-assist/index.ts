@@ -458,6 +458,31 @@ serve(async (req) => {
     });
   }
 
+  // The size cap above bounds cost PER request; nothing bounded request
+  // VOLUME — ai_gateway_slots' 10-slot pool only caps how many calls can be
+  // in flight simultaneously, not how many one caller can make over time.
+  // Combined with the lack of any auth barrier, a script could hit this
+  // endpoint directly, as fast as slots freed up, indefinitely, against the
+  // platform's shared paid key. Same X-Forwarded-For handling as
+  // admin-actions/index.ts's own rate limiter: the LAST entry is the one
+  // actually appended by trusted infrastructure closest to this function —
+  // the first entry is attacker-controlled and could be refreshed on every
+  // request to dodge a lockout keyed on it.
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  const clientIp = forwardedFor ? (forwardedFor.split(",").pop()?.trim() || "unknown") : "unknown";
+  const { data: rateLimitOk, error: rateLimitError } = await supabaseAdmin.rpc("check_ai_assist_rate_limit", { p_identifier: clientIp });
+  if (rateLimitError) {
+    // Fails open (logs and continues) rather than blocking every request if
+    // the rate-limit RPC itself is ever unreachable — a broken rate limiter
+    // shouldn't take down the whole AI feature.
+    console.error("check_ai_assist_rate_limit failed:", rateLimitError);
+  } else if (rateLimitOk === false) {
+    return new Response(JSON.stringify({ error: "Too many requests — please slow down and try again shortly." }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { code, model, action, systemPrompt, messages: conversationHistory, knowledgeBase, qaData, projectType, projectName, botConfig, studentCode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
