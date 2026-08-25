@@ -59,6 +59,11 @@ const Hackathons = () => {
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Each individual "Past Events" sidebar button used to navigate to the
+  // same undifferentiated 'past-events' list regardless of which specific
+  // event it named — h.id was never used. This scrolls to and briefly
+  // highlights the actual card instead of just landing on the generic list.
+  const [highlightHackathonId, setHighlightHackathonId] = useState<string | null>(null);
 
   // Access code gate
   const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('forge-access-unlocked') === 'true');
@@ -133,15 +138,31 @@ const Hackathons = () => {
         .select('*')
         .order('start_date', { ascending: true });
 
-      if (!error && data) {
+      if (error) {
+        // Used to be silently swallowed — a failed fetch left `hackathons`
+        // at its previous value (or empty on first load) with no signal,
+        // rendering identically to "No hackathons found" instead of a real
+        // fetch error.
+        console.error('Failed to fetch hackathons:', error);
+        toast.error('Could not load hackathon events — try refreshing.');
+      } else if (data) {
         setHackathons(data as Hackathon[]);
       }
     } catch (e) {
       console.error('Failed to fetch hackathons:', e);
+      toast.error('Could not load hackathon events — try refreshing.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!highlightHackathonId || hackathonSubView !== 'past-events') return;
+    const el = document.getElementById(`hackathon-card-${highlightHackathonId}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlightHackathonId(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightHackathonId, hackathonSubView]);
 
   const handleRegister = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
@@ -154,6 +175,17 @@ const Hackathons = () => {
   const endedHackathons = hackathons.filter(h => h.status === 'ended');
   const onlineMembers = hackathons.reduce((acc, h) => acc + h.current_participants, 0);
   const hasLiveEvent = liveHackathons.length > 0;
+  // LessonsLeaderboard's own header explicitly says its ranking is a
+  // "Lifetime total, unlike SP and Project Score which are scoped to this
+  // event" — but it used to get the same live-only hackathonId as those
+  // two, so it went fully blank the moment there was no currently-live
+  // event (most of the calendar, between events), even while students
+  // were actively earning and viewing lesson coins in the sibling Learn
+  // tab at that exact moment. `hackathons` is sorted ascending by
+  // start_date, so the last entry is the most recently created one —
+  // matching the same "prefer live, else most recent" fallback
+  // LessonsPanel.tsx already uses for the identical lifetime-scoped data.
+  const lessonsHackathonId = liveHackathons[0]?.id || hackathons[hackathons.length - 1]?.id || null;
 
   const handleStartBuilding = (code: string, templateId: string) => {
     setBuildCode(code || undefined);
@@ -260,7 +292,7 @@ const Hackathons = () => {
               ? <SPLeaderboard hackathonId={liveHackathons[0]?.id || null} />
               : leaderboardView === 'project'
               ? <ProjectLeaderboard hackathonId={liveHackathons[0]?.id || null} />
-              : <LessonsLeaderboard hackathonId={liveHackathons[0]?.id || null} />}
+              : <LessonsLeaderboard hackathonId={lessonsHackathonId} />}
           </div>
         );
       case 'getting-started':
@@ -309,7 +341,7 @@ const Hackathons = () => {
                 </p>
                 <div className="flex flex-wrap items-center gap-6 mt-4">
                   <div className="flex items-center gap-2 text-white">
-                    <Circle className="w-3 h-3 fill-green-400 text-green-400" />
+                    <Circle className="w-3 h-3 fill-[hsl(var(--discord-green))] text-[hsl(var(--discord-green))]" />
                     <span className="font-medium">{onlineMembers} hackers active</span>
                   </div>
                   <div className="flex items-center gap-2 text-white">
@@ -360,11 +392,18 @@ const Hackathons = () => {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {getFilteredHackathons().map((hackathon) => (
-                  <HackathonCard
+                  <div
                     key={hackathon.id}
-                    hackathon={hackathon}
-                    onRegister={handleRegister}
-                  />
+                    id={`hackathon-card-${hackathon.id}`}
+                    className={`rounded-lg transition-shadow duration-500 ${
+                      highlightHackathonId === hackathon.id ? 'ring-2 ring-[hsl(var(--discord-blurple))]' : ''
+                    }`}
+                  >
+                    <HackathonCard
+                      hackathon={hackathon}
+                      onRegister={handleRegister}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -548,7 +587,7 @@ const Hackathons = () => {
         <div className="w-full md:w-[72px] bg-[hsl(var(--discord-darker))] flex md:flex-col items-center py-2 md:py-3 gap-2 border-b md:border-b-0 md:border-r border-[hsl(var(--discord-light)/0.2)] overflow-x-auto md:overflow-x-visible flex-shrink-0 relative tech-scanline">
           <Tooltip>
             <TooltipTrigger asChild>
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
                 onClick={() => {
                   if (activeTab === 'templates') {
@@ -556,6 +595,14 @@ const Hackathons = () => {
                   } else {
                     setActiveTab('templates');
                   }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={activeTab === 'templates' ? 'Back to Home' : 'Back to Templates'}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  if (activeTab === 'templates') navigate('/'); else setActiveTab('templates');
                 }}
                 className="w-12 h-12 rounded-[24px] bg-[hsl(var(--discord-light))] flex items-center justify-center cursor-pointer transition-all hover:bg-primary hover:rounded-[16px] group"
               >
@@ -571,9 +618,14 @@ const Hackathons = () => {
           {MAIN_TABS.map(tab => (
             <Tooltip key={tab.id}>
               <TooltipTrigger asChild>
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.1, borderRadius: '16px' }}
                   onClick={() => setActiveTab(tab.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={tab.name}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab(tab.id); } }}
                   className={`w-12 h-12 rounded-[24px] flex items-center justify-center cursor-pointer transition-all relative ${
                     activeTab === tab.id ? 'rounded-[16px]' : ''
                   }`}
@@ -603,6 +655,11 @@ const Hackathons = () => {
               <motion.div
                 whileHover={{ scale: 1.1, borderRadius: '16px' }}
                 onClick={() => setActiveTab('community')}
+                role="button"
+                tabIndex={0}
+                aria-label={`Community${communityUnread > 0 ? `, ${communityUnread} unread` : ''}`}
+                aria-current={activeTab === 'community' ? 'page' : undefined}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab('community'); } }}
                 className={`w-12 h-12 rounded-[24px] flex items-center justify-center cursor-pointer relative transition-all ${activeTab === 'community' ? 'rounded-[16px]' : ''}`}
                 style={{ backgroundColor: activeTab === 'community' ? 'hsl(var(--primary))' : 'hsl(var(--discord-light))' }}
               >
@@ -731,7 +788,7 @@ const Hackathons = () => {
                   {endedHackathons.map(h => (
                     <button
                       key={h.id}
-                      onClick={() => setHackathonSubView('past-events')}
+                      onClick={() => { setHackathonSubView('past-events'); setHighlightHackathonId(h.id); }}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]"
                     >
                       <Trophy className="w-3.5 h-3.5 text-[hsl(var(--discord-yellow))]" />
@@ -749,6 +806,42 @@ const Hackathons = () => {
                 {onlineMembers} hackers • {hackathons.length} events
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Mobile fallback for the hackathon sub-view sidebar above, which
+            is `hidden md:flex` with no equivalent control below that
+            breakpoint at all — a phone user landing on the Hackathons tab
+            was stuck on whatever hackathonSubView happened to be current
+            with no in-app way to reach any other sub-view. A horizontally
+            scrollable pill row (matching the icon rail's own overflow-x
+            pattern above) covers the same destinations without introducing
+            a new UI primitive (Sheet/Drawer) this codebase doesn't already
+            use elsewhere. */}
+        {activeTab === 'hackathons' && (
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto px-3 py-2 bg-[hsl(var(--discord-dark))] border-b border-[hsl(var(--discord-darker))] flex-shrink-0">
+            {[
+              { id: 'all-events' as HackathonSubView, name: 'All Events', icon: Hash },
+              { id: 'live-now' as HackathonSubView, name: 'Live Now', icon: Zap },
+              { id: 'daily-challenge' as HackathonSubView, name: "Today's Challenge", icon: Zap },
+              { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award },
+              { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image },
+              { id: 'judge' as HackathonSubView, name: 'Judge Dashboard', icon: Shield },
+              { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
+            ].map(ch => (
+              <button
+                key={ch.id}
+                onClick={() => setHackathonSubView(ch.id)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  hackathonSubView === ch.id
+                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)]'
+                }`}
+              >
+                <ch.icon className="w-3.5 h-3.5" />
+                {ch.name}
+              </button>
+            ))}
           </div>
         )}
 
@@ -804,7 +897,9 @@ const Hackathons = () => {
                   <Hash className="w-5 h-5 text-[hsl(var(--discord-text-muted))]" />
                 )}
                 <span className="font-semibold text-white">
-                  {hackathonSubView === 'judge' ? 'Judge Dashboard' : hackathonSubView.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  {hackathonSubView === 'judge' ? 'Judge Dashboard'
+                    : hackathonSubView === 'daily-challenge' ? "Today's Challenge"
+                    : hackathonSubView.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                 </span>
               </div>
 
