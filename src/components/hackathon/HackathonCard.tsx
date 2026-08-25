@@ -27,7 +27,22 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
   const endDate = new Date(hackathon.end_date);
   const registrationDeadline = new Date(hackathon.registration_deadline);
   const now = new Date();
-  
+
+  // These fields are typed as non-nullable strings, but this session
+  // already established that generated types aren't proof of live DB
+  // state — a null/malformed date here would make date-fns' format()
+  // throw RangeError: Invalid time value, and with no error boundary
+  // around the card grid in Hackathons.tsx, one bad row would crash the
+  // entire grid, not just its own card.
+  const hasValidDates = ![startDate, endDate, registrationDeadline].some(d => Number.isNaN(d.getTime()));
+  if (!hasValidDates) {
+    return (
+      <div className="rounded-lg bg-[hsl(var(--discord-dark))] border border-[hsl(var(--discord-light)/0.3)] p-4 text-sm text-[hsl(var(--discord-text-muted))]">
+        "{hackathon.title}" has invalid date data and can't be displayed.
+      </div>
+    );
+  }
+
   const spotsLeft = hackathon.max_participants - hackathon.current_participants;
   const isRegistrationOpen = now < registrationDeadline && spotsLeft > 0;
 
@@ -127,7 +142,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
         {/* What you'll build */}
         <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded-full px-2.5 py-1">
-            <Code className="w-3 h-3 text-[#5865F2]" />
+            <Code className="w-3 h-3 text-[hsl(var(--discord-blurple))]" />
             <span>Python</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--discord-text-muted))] bg-[hsl(var(--discord-darker))] rounded-full px-2.5 py-1">
@@ -195,9 +210,19 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
             Registration Closed
           </Badge>
         )}
+        {/* isRegistrationOpen is false whenever spotsLeft <= 0 too, but that
+            case had no Actions-row branch at all — an upcoming, full event
+            rendered a blank gap where a CTA should be (the "Full" state
+            only showed up earlier, in the Stats grid, not where a visitor
+            is actually looking for what to do next). */}
+        {hackathon.status === 'upcoming' && spotsLeft <= 0 && (
+          <Badge className="flex-1 justify-center py-2 bg-[hsl(var(--discord-red)/0.15)] text-[hsl(var(--discord-red))]">
+            Full — No Spots Left
+          </Badge>
+        )}
         {hackathon.status === 'live' && (
           <>
-            <Badge className="flex-1 justify-center py-2 bg-green-500/20 text-green-400 border-green-500/30">
+            <Badge className="flex-1 justify-center py-2 bg-[hsl(var(--discord-green)/0.2)] text-[hsl(var(--discord-green))] border-[hsl(var(--discord-green)/0.3)]">
               <Zap className="w-3 h-3 mr-1 animate-pulse" />
               Live — Build in IDE
             </Badge>
@@ -211,7 +236,7 @@ export const HackathonCard = React.forwardRef<HTMLDivElement, HackathonCardProps
                 onClick={() => onRegister(hackathon.id)}
                 variant="outline"
                 size="sm"
-                className="flex-1 text-white font-medium border-green-500/40 hover:bg-green-500/10"
+                className="flex-1 text-white font-medium border-[hsl(var(--discord-green)/0.4)] hover:bg-[hsl(var(--discord-green)/0.1)]"
               >
                 Join Event
                 <ArrowRight className="w-4 h-4 ml-1" />
