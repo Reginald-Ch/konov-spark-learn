@@ -2974,7 +2974,17 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
           usedRealPython = status === 'handled';
           pythonErrorType = status === 'error' ? (headers.get('X-Python-Error-Type') || 'error') : undefined;
           const rawMsg = headers.get('X-Python-Error-Message');
-          pythonErrorMessage = rawMsg ? decodeURIComponent(rawMsg) : undefined;
+          // A malformed percent-encoding here used to throw inside
+          // onHeaders, which runs before the (already successful) response
+          // stream is ever read — the throw would propagate out and
+          // discard a valid reply that was sitting unread. Same bug fixed
+          // in ProjectView.tsx's copy of this same header-decode pattern.
+          if (rawMsg) {
+            try { pythonErrorMessage = decodeURIComponent(rawMsg); }
+            catch { pythonErrorMessage = rawMsg; }
+          } else {
+            pythonErrorMessage = undefined;
+          }
         },
       );
       // A stream that completes without ever emitting a content delta (an

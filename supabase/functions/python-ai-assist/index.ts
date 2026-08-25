@@ -478,8 +478,24 @@ serve(async (req) => {
     if (Array.isArray(conversationHistory) && conversationHistory.length > 100) {
       return new Response(JSON.stringify({ error: "Conversation history is too long" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (typeof code === "string" && code.length > 8_000) {
-      return new Response(JSON.stringify({ error: "Message is too long" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // `code` is overloaded across actions: for "run"/"review"/"explain"/
+    // "suggest"/"mentor-chat" it's embedded verbatim as the ENTIRE main.py
+    // source (userPrompt includes `${code}` further down); for every other
+    // action (test-agent's chat message, generate/idea-to-code/visual-
+    // builder's short idea prompt, the default fallback) it's a short
+    // string. The 8,000-char cap was sized for the short-string case only —
+    // every FORGE scaffold starts around 20,000 characters before a
+    // student types a keystroke (per ProjectEditor.tsx's own comment on
+    // its starter templates), so applying that cap to the source-carrying
+    // actions made Run/Test, AI Mentor, and Mentor Chat return a 413 on
+    // virtually every real project. Give those five the same generous
+    // ceiling as studentCode below instead.
+    const SOURCE_CARRYING_ACTIONS = new Set(["run", "review", "explain", "suggest", "mentor-chat"]);
+    const codeIsFullSource = SOURCE_CARRYING_ACTIONS.has(action);
+    const codeCap = codeIsFullSource ? 100_000 : 8_000;
+    if (typeof code === "string" && code.length > codeCap) {
+      const message = codeIsFullSource ? "Project code is too large" : "Message is too long";
+      return new Response(JSON.stringify({ error: message }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (typeof studentCode === "string" && studentCode.length > 100_000) {
       return new Response(JSON.stringify({ error: "Project code is too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
