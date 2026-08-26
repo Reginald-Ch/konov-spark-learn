@@ -276,6 +276,17 @@ export const LessonsPanel = () => {
   // stale data for whatever email was typed a moment before.
   const fetchAllRequestRef = useRef(0);
 
+  // A single retry after a short delay for exactly the transient case this
+  // file's own comments already call out — a network blip, or a device
+  // token that's momentarily stale right after a mint racing this fetch —
+  // so one of those doesn't read as "your progress is gone."
+  const rpcWithRetry = useCallback(async <T,>(fn: () => Promise<{ data: T | null; error: any }>) => {
+    const first = await fn();
+    if (!first.error) return first;
+    await new Promise(r => setTimeout(r, 700));
+    return fn();
+  }, []);
+
   const fetchAll = useCallback(async () => {
     const requestId = ++fetchAllRequestRef.current;
     setIsLoading(true);
@@ -343,20 +354,25 @@ export const LessonsPanel = () => {
         // participant's full lesson completion history just by knowing
         // their email. It sat right next to get_my_lesson_coin_points below
         // (already hardened) and was missed in that pass.
-        supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: deviceToken || null }),
+        rpcWithRetry(() => supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: deviceToken || null })),
         // Same RPC-not-raw-select fix as the registration lookup above —
         // point_events also has a wide-open SELECT policy. p_device_token
         // added (security audit) — no proof of identity existed before.
-        supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: deviceToken || null }),
+        rpcWithRetry(() => supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: deviceToken || null })),
       ]);
       if (requestId !== fetchAllRequestRef.current) return;
       // Both used to be destructured for .data only — a transient failure
       // (network blip, or deviceToken momentarily stale right after a mint)
       // silently fell through to setProgress({}), making a student's whole
       // completion history appear to vanish with zero indication it was a
-      // fetch error rather than an actual reset.
-      if (progErr) { console.error('lesson progress fetch error:', progErr); toast.error('Could not load your lesson progress — try refreshing.'); }
-      if (coinErr) { console.error('lesson coins fetch error:', coinErr); }
+      // fetch error rather than an actual reset. Now retried once before
+      // this fires, and the real Postgrest message/code is logged so a
+      // genuine (non-transient) failure is actually diagnosable.
+      if (progErr) {
+        console.error('lesson progress fetch error:', progErr.message, progErr.code, progErr);
+        toast.error('Could not load your lesson progress — try refreshing.');
+      }
+      if (coinErr) { console.error('lesson coins fetch error:', coinErr.message, coinErr.code, coinErr); }
       const map: Record<string, Progress> = {};
       (prog || []).forEach((p: any) => { map[p.lesson_id] = p; });
       setProgress(map);
