@@ -1239,6 +1239,24 @@ Deno.serve(async (req) => {
         return json({ ok: true, data });
       }
 
+      case "reset_participant_profile": {
+        // set_my_profile has no way to clear a profile itself (only set/
+        // change one), and there was no moderation path at all for an
+        // inappropriate username or avatar — neither the participant (no
+        // "edit" UI existed either, now fixed separately) nor an organizer
+        // could do anything about one once claimed. Deleting the row both
+        // frees the username for reuse and forces CommunityChat's own
+        // server-side profile check to show "Set Up Your Profile" again
+        // next time this participant loads chat — same effect as if they'd
+        // never set one, no separate "force re-setup" flag needed.
+        const { participant_email } = payload;
+        const email = participant_email?.trim().toLowerCase();
+        if (!email) throw new Error("participant_email is required");
+        const { error: resetErr } = await supabase.from("participant_profiles").delete().eq("participant_email", email);
+        if (resetErr) throw resetErr;
+        return json({ ok: true });
+      }
+
       case "delete_community_message": {
         // Regular participants can only delete their own non-staff messages
         // (RLS-enforced, direct client call) — this is the organizer path

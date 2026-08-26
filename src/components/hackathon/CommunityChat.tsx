@@ -13,7 +13,7 @@ import {
   Phone, PhoneOff, X, Smile, MessageSquare,
   Settings, Plus, Heart, ThumbsUp,
   Laugh, PartyPopper, Flame, Rocket, Trophy, Bell, BellOff, Lock, Check, Menu, Crown, Loader2, SmilePlus,
-  Pencil, Trash2, Pin, PinOff, VolumeX, ShieldAlert, AlertTriangle,
+  Pencil, Trash2, Pin, PinOff, VolumeX, ShieldAlert, AlertTriangle, UserX,
 } from 'lucide-react';
 import { getStoredAdminRole, callAdminAction } from '@/lib/adminClient';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -1196,6 +1196,18 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   const [profileUsernameInput, setProfileUsernameInput] = useState('');
   const [profileAvatarInput, setProfileAvatarInput] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  // set_my_profile has always supported changing an existing profile
+  // (it's an upsert server-side) — there was just no UI path back to this
+  // screen once userUsername/userAvatarEmoji were both set, so a student
+  // was stuck with their first pick for the rest of the event. This flag
+  // reopens the same screen on demand instead of only on first join.
+  const [editingProfile, setEditingProfile] = useState(false);
+
+  const openEditProfile = () => {
+    setProfileUsernameInput(userUsername);
+    setProfileAvatarInput(userAvatarEmoji);
+    setEditingProfile(true);
+  };
 
   const handleSetProfile = async () => {
     if (!profileUsernameInput.trim() || !profileAvatarInput) {
@@ -1220,6 +1232,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       localStorage.setItem('forge-student-avatar', profileAvatarInput);
       setUserUsername(profileUsernameInput.trim());
       setUserAvatarEmoji(profileAvatarInput);
+      setEditingProfile(false);
+      toast({ title: 'Profile saved!' });
     } finally {
       setSavingProfile(false);
     }
@@ -1656,6 +1670,29 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       toast({ title: 'Could not delete', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
     } finally {
       setDeletingAnyMessageId(null);
+    }
+  };
+
+  const [resettingProfileEmail, setResettingProfileEmail] = useState<string | null>(null);
+  // Frees an inappropriate username/avatar — there was previously no way
+  // for anyone, organizer included, to undo one. Clears the local cache
+  // entry too so the sender's messages immediately fall back to their
+  // sender_name/initial-circle instead of showing the stale, now-deleted
+  // profile until a page refresh.
+  const handleResetProfile = async (email: string, displayName: string) => {
+    setResettingProfileEmail(email);
+    try {
+      await callAdminAction('reset_participant_profile', { participant_email: email });
+      setProfileByEmail(prev => {
+        const next = { ...prev };
+        delete next[email];
+        return next;
+      });
+      toast({ title: `Reset ${displayName}'s profile`, description: 'They can pick a new username and avatar next time they open Community.' });
+    } catch (e: any) {
+      toast({ title: 'Could not reset profile', description: e.message || 'Something went wrong — try again.', variant: 'destructive' });
+    } finally {
+      setResettingProfileEmail(null);
     }
   };
 
@@ -2214,7 +2251,8 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
       </div>
     );
   }
-  if (isJoined && profileChecked && !(userUsername && userAvatarEmoji)) {
+  const needsFirstTimeProfile = !(userUsername && userAvatarEmoji);
+  if (isJoined && profileChecked && (needsFirstTimeProfile || editingProfile)) {
     return (
       <div className="h-full flex items-center justify-center bg-[hsl(var(--discord-dark))] text-white p-4">
         <div className="w-full max-w-[420px] rounded-xl border border-[hsl(var(--discord-light))] bg-[hsl(var(--discord-darker))] p-6">
@@ -2226,7 +2264,7 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                 <span className="text-lg">👤</span>
               )}
             </div>
-            Set Up Your Profile
+            {needsFirstTimeProfile ? 'Set Up Your Profile' : 'Edit Your Profile'}
           </div>
           <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
             Pick a username and avatar — this is what other participants will see.
@@ -2269,11 +2307,21 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex gap-2">
+              {!needsFirstTimeProfile && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setEditingProfile(false)}
+                  disabled={savingProfile}
+                  className="flex-1 h-11 text-[hsl(var(--discord-text-muted))] hover:text-white"
+                >
+                  Cancel
+                </Button>
+              )}
               <Button
                 onClick={handleSetProfile}
                 disabled={savingProfile}
-                className="w-full h-11 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.85)] text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="flex-1 h-11 bg-[hsl(var(--discord-blurple))] hover:bg-[hsl(var(--discord-blurple)/0.85)] text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {savingProfile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save Profile
@@ -2471,18 +2519,35 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
             <div className="p-2 bg-[hsl(var(--discord-dark)/0.7)] border-t border-[hsl(var(--discord-light)/0.15)]">
               <div className="flex items-center gap-2 p-1.5 rounded hover:bg-[hsl(var(--discord-light)/0.2)] transition-colors">
                 <div className="relative">
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                    style={{ backgroundColor: getAvatarColor(userName) }}
-                  >
-                    {firstChar(userName).toUpperCase()}
-                  </div>
+                  {/* Was always the generated initial-circle, never the
+                      actual profile picked in Set Up Your Profile — this is
+                      the only persistent "who am I" indicator in the whole
+                      sidebar, so it should show what was actually chosen. */}
+                  {userAvatarEmoji && !failedAvatarSeeds.has(userAvatarEmoji) ? (
+                    <div className="w-8 h-8 rounded-full overflow-hidden">
+                      <img src={profileAvatarUrl(userAvatarEmoji)} alt="" className="w-full h-full" onError={() => markAvatarSeedFailed(userAvatarEmoji)} />
+                    </div>
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: getAvatarColor(userName) }}
+                    >
+                      {firstChar(userName).toUpperCase()}
+                    </div>
+                  )}
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[hsl(var(--discord-green))] border-2 border-[hsl(var(--discord-dark))]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{userName}</p>
+                  <p className="text-sm font-medium text-white truncate">{userUsername || userName}</p>
                   <p className="text-[10px] text-[hsl(var(--discord-text-muted))] truncate">Online</p>
                 </div>
+                <button
+                  onClick={openEditProfile}
+                  title="Edit profile" aria-label="Edit profile"
+                  className="p-1 text-[hsl(var(--discord-text-muted))] hover:text-white transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <button
                   onClick={async () => {
                     // Switching identity while still connected to voice
@@ -3237,6 +3302,23 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
                                               ? <Loader2 className="w-3.5 h-3.5 text-[hsl(var(--discord-red))] animate-spin" />
                                               : <ShieldAlert className="w-3.5 h-3.5 text-[hsl(var(--discord-red))]" />}
                                           </button>
+                                          {/* Only shown once this sender actually has a
+                                              username/avatar to reset — meaningless
+                                              otherwise. Frees the username too, not just
+                                              this one message. */}
+                                          {profileByEmail[message.sender_email] && (
+                                            <button
+                                              onClick={() => handleResetProfile(message.sender_email, profileByEmail[message.sender_email].username)}
+                                              disabled={resettingProfileEmail === message.sender_email}
+                                              title={`Reset ${profileByEmail[message.sender_email].username}'s profile`}
+                                              aria-label={`Reset ${profileByEmail[message.sender_email].username}'s profile`}
+                                              className="p-1.5 hover:bg-[hsl(var(--discord-red)/0.2)] transition-colors"
+                                            >
+                                              {resettingProfileEmail === message.sender_email
+                                                ? <Loader2 className="w-3.5 h-3.5 text-[hsl(var(--discord-red))] animate-spin" />
+                                                : <UserX className="w-3.5 h-3.5 text-[hsl(var(--discord-red))]" />}
+                                            </button>
+                                          )}
                                         </>
                                       )}
                                     </>
