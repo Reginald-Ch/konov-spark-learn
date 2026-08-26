@@ -219,6 +219,14 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     voiceModeRef.current = voiceConversationMode;
   }, [voiceConversationMode]);
 
+  const stopLiveResources = useCallback(() => {
+    abortRef.current?.abort();
+    try { recognitionRef.current?.abort(); } catch {}
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
+
+  useEffect(() => stopLiveResources, [stopLiveResources]);
+
   const selectType = (type: BuilderType) => {
     setBuilderType(type);
     setConfig(type === 'agent' ? { ...DEFAULT_AGENT_CONFIG } : { ...DEFAULT_CHATBOT_CONFIG });
@@ -267,29 +275,6 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
     return { done, total: section.fields.length };
   };
 
-  const buildSystemPrompt = () => {
-    let prompt = config.SYSTEM_MESSAGE || 'You are a helpful AI assistant.';
-    if (config.KNOWLEDGE_BASE) prompt += `\n\nKnowledge:\n${config.KNOWLEDGE_BASE}`;
-    if (config.RULES?.length) prompt += `\n\nRules:\n${config.RULES.map((r: string) => `- ${r}`).join('\n')}`;
-    if (config.MOOD && config.MOOD !== 'neutral') prompt += `\nMood: ${config.MOOD}`;
-    if (config.LANGUAGE_STYLE && config.LANGUAGE_STYLE !== 'casual') prompt += `\nStyle: ${config.LANGUAGE_STYLE}`;
-    if (config.CATCHPHRASES?.length) prompt += `\nNaturally use these phrases: ${config.CATCHPHRASES.join(', ')}`;
-    if (config.FORBIDDEN_WORDS?.length) prompt += `\nNever use these words: ${config.FORBIDDEN_WORDS.join(', ')}`;
-    if (config.BLOCKED_TOPICS?.length) prompt += `\nRefuse to discuss: ${config.BLOCKED_TOPICS.join(', ')}`;
-    if (config.RESPONSE_STYLE) prompt += `\nResponse style: ${config.RESPONSE_STYLE}`;
-    if (config.MAX_RESPONSE_LENGTH) prompt += `\nResponse length: ${config.MAX_RESPONSE_LENGTH}`;
-    if (builderType === 'agent' && config.TOOLS?.length) {
-      prompt += `\n\nYou are an AI agent with access to these tools: ${config.TOOLS.join(', ')}. Show your reasoning process step by step.`;
-    }
-    if (config.FEW_SHOT_EXAMPLES?.length) {
-      prompt += '\n\nExamples of how to respond:';
-      config.FEW_SHOT_EXAMPLES.forEach((ex: any) => {
-        prompt += `\nUser: ${ex.q || ex.input}\nAssistant: ${ex.a || ex.output}`;
-      });
-    }
-    return prompt;
-  };
-
   const handleChatSend = async (message?: string) => {
     const text = message || chatInput.trim();
     if (!text || isStreaming) return;
@@ -324,22 +309,52 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
       abortRef.current = controller;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const history = [...chatMessages, userMsg].map(m => ({ role: m.role === 'user' ? 'human' : 'assistant', content: m.content }));
+      // History excludes the current turn — `code` below already carries it,
+      // matching the exact payload shape python-ai-assist's test-agent action
+      // expects (see ProjectView.tsx's real published-bot chat call).
+      const history = chatMessages.map(m => ({ role: m.role, content: m.content }));
 
       const resp = await fetchAIEndpoint(`${supabaseUrl}/functions/v1/python-ai-assist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
         body: JSON.stringify({
           action: 'test-agent',
-          code: `SYSTEM_MESSAGE = """${buildSystemPrompt()}"""`,
-          message: text,
+          code: text,
+          systemPrompt: config.SYSTEM_MESSAGE || 'You are a helpful AI assistant.',
           messages: history,
-          config: { temperature: config.TEMPERATURE || 0.7, max_tokens: config.MAX_TOKENS || 512, bot_name: config.BOT_NAME },
+          knowledgeBase: config.KNOWLEDGE_BASE || undefined,
+          qaData: config.QA_PAIRS?.length ? config.QA_PAIRS : undefined,
+          botConfig: {
+            botName: config.BOT_NAME,
+            botEmoji: config.BOT_EMOJI,
+            creatorName: config.CREATOR_NAME,
+            temperature: config.TEMPERATURE,
+            maxTokens: config.MAX_TOKENS,
+            responseStyle: config.RESPONSE_STYLE,
+            maxResponseLength: config.MAX_RESPONSE_LENGTH,
+            conversationRules: config.RULES,
+            catchphrases: config.CATCHPHRASES,
+            blockedTopics: config.BLOCKED_TOPICS,
+            forbiddenWords: config.FORBIDDEN_WORDS,
+            mood: config.MOOD,
+            languageStyle: config.LANGUAGE_STYLE,
+            fewShotExamples: config.FEW_SHOT_EXAMPLES,
+            ...(builderType === 'agent' ? {
+              showReasoning: config.VERBOSE,
+              tools: config.TOOLS?.length
+                ? Object.fromEntries(config.TOOLS.map((t: string) => [t, `Use the ${t} tool when it would help answer the question.`]))
+                : undefined,
+            } : {}),
+          },
         }),
         signal: controller.signal,
       });
 
-      if (!resp.ok) throw new Error('AI request failed');
+      if (!resp.ok) {
+        let errMsg = 'AI request failed';
+        try { const errBody = await resp.json(); if (errBody?.error) errMsg = errBody.error; } catch {}
+        throw new Error(errMsg);
+      }
       const reader = resp.body?.getReader();
       if (!reader) throw new Error('No stream');
 
@@ -392,7 +407,8 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Something went wrong. Try again!' }]);
+        const msg = typeof err?.message === 'string' && err.message ? err.message : 'Something went wrong. Try again!';
+        setChatMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }]);
       }
     } finally {
       setIsStreaming(false);
@@ -431,6 +447,10 @@ export const AIModelsTab = forwardRef<HTMLDivElement, AIModelsTabProps>(function
   const generatePythonCode = () => {
     const isAgent = builderType === 'agent';
     const escapePy = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    // Triple-quoted fields keep real newlines (for readability), so only \
+    // and " are escaped — every " becomes \", which can never form a literal
+    // """ that would break out of the string or inject statements.
+    const escapePyTriple = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const listToPy = (arr: any[]) => arr.length === 0 ? '[]' : `[\n${arr.map(i => `    "${escapePy(String(i))}",`).join('\n')}\n]`;
     const dictToPy = (obj: Record<string, string>) => {
       const entries = Object.entries(obj);
@@ -455,13 +475,13 @@ AI_MESSAGE = "${escapePy(config.AI_MESSAGE || '')}"
 CREATOR_NAME = "${escapePy(config.CREATOR_NAME || '')}"
 
 # ═══ PERSONALITY ═══
-SYSTEM_MESSAGE = """${config.SYSTEM_MESSAGE || ''}"""
+SYSTEM_MESSAGE = """${escapePyTriple(config.SYSTEM_MESSAGE || '')}"""
 MOOD = "${config.MOOD || 'neutral'}"
 LANGUAGE_STYLE = "${config.LANGUAGE_STYLE || 'casual'}"
 RESPONSE_STYLE = "${config.RESPONSE_STYLE || 'Friendly'}"
 
 # ═══ KNOWLEDGE ═══
-KNOWLEDGE_BASE = """${config.KNOWLEDGE_BASE || ''}"""
+KNOWLEDGE_BASE = """${escapePyTriple(config.KNOWLEDGE_BASE || '')}"""
 QA_PAIRS = ${qaPairsToPy(config.QA_PAIRS || [])}
 FEW_SHOT_EXAMPLES = ${qaPairsToPy(config.FEW_SHOT_EXAMPLES || [])}
 
@@ -674,7 +694,7 @@ APP_THEME = "default"
     <div ref={ref} className="h-full flex flex-col">
       {/* Top Bar */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[hsl(var(--discord-light)/0.12)] bg-[hsl(var(--discord-dark))]">
-        <Button variant="ghost" size="sm" onClick={() => { setBuilderType(null); setShowPreview(false); }} className="text-[hsl(var(--discord-text-muted))] hover:text-white h-8 px-2">
+        <Button variant="ghost" size="sm" onClick={() => { stopLiveResources(); setBuilderType(null); setShowPreview(false); }} className="text-[hsl(var(--discord-text-muted))] hover:text-white h-8 px-2">
           <ArrowRight className="w-4 h-4 rotate-180" />
         </Button>
         <span className="text-lg">{config.BOT_EMOJI || '🤖'}</span>
