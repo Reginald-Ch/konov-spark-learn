@@ -468,19 +468,34 @@ serve(async (req) => {
   // actually appended by trusted infrastructure closest to this function —
   // the first entry is attacker-controlled and could be refreshed on every
   // request to dodge a lockout keyed on it.
+  // Trusted server-to-server callers (currently: admin-actions' auto-grader,
+  // which calls this function once per benchmark test per submission —
+  // legitimately dozens of calls in quick succession during a single grading
+  // run) present the service role key as their bearer token. Only code that
+  // already holds that secret server-side could ever send it — a public
+  // browser client only ever has the anon/publishable key compiled into its
+  // bundle — so this is a safe, unspoofable signal to exempt from the
+  // public-abuse rate limit below rather than tripping it on legitimate,
+  // organizer-triggered grading traffic.
+  const authHeader = req.headers.get("authorization") || "";
+  const presentedToken = authHeader.replace(/^Bearer\s+/i, "");
+  const isTrustedServerCaller = presentedToken === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
   const forwardedFor = req.headers.get("x-forwarded-for");
   const clientIp = forwardedFor ? (forwardedFor.split(",").pop()?.trim() || "unknown") : "unknown";
-  const { data: rateLimitOk, error: rateLimitError } = await supabaseAdmin.rpc("check_ai_assist_rate_limit", { p_identifier: clientIp });
-  if (rateLimitError) {
-    // Fails open (logs and continues) rather than blocking every request if
-    // the rate-limit RPC itself is ever unreachable — a broken rate limiter
-    // shouldn't take down the whole AI feature.
-    console.error("check_ai_assist_rate_limit failed:", rateLimitError);
-  } else if (rateLimitOk === false) {
-    return new Response(JSON.stringify({ error: "Too many requests — please slow down and try again shortly." }), {
-      status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!isTrustedServerCaller) {
+    const { data: rateLimitOk, error: rateLimitError } = await supabaseAdmin.rpc("check_ai_assist_rate_limit", { p_identifier: clientIp });
+    if (rateLimitError) {
+      // Fails open (logs and continues) rather than blocking every request if
+      // the rate-limit RPC itself is ever unreachable — a broken rate limiter
+      // shouldn't take down the whole AI feature.
+      console.error("check_ai_assist_rate_limit failed:", rateLimitError);
+    } else if (rateLimitOk === false) {
+      return new Response(JSON.stringify({ error: "Too many requests — please slow down and try again shortly." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   try {
