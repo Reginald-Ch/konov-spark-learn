@@ -3116,7 +3116,37 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
         const newId = data?.id || null;
         setCurrentProjectId(newId);
         setLastKnownUpdatedAt(data?.updated_at ?? null);
-        if (newId) localStorage.setItem('forge-current-project-id', newId);
+        if (newId) {
+          localStorage.setItem('forge-current-project-id', newId);
+          // Mint the device token right now rather than waiting for the
+          // second save (autosave, 2 minutes later, or the next manual
+          // click) — a student who saves once and closes the tab within
+          // that window has no token yet, and reopening on a different
+          // device/browser makes get_own_project_by_id return NULL
+          // (unverified), which reads as "my project got deleted" even
+          // though the row is untouched. Best-effort: this project was
+          // just created successfully, so a hiccup here shouldn't fail
+          // the save the student already saw succeed.
+          try {
+            const { data: mintData } = await supabase.rpc('save_own_project', {
+              p_project_id: newId,
+              p_participant_email: email,
+              p_project_name: projectName,
+              p_description: null,
+              p_code: null,
+              p_template_id: null,
+              p_author_name: null,
+              p_expected_updated_at: data?.updated_at ?? null,
+              p_device_token: null,
+            });
+            if ((mintData as any)?.new_device_token) {
+              localStorage.setItem('forge-device-token', (mintData as any).new_device_token);
+            }
+            if ((mintData as any)?.updated_at) setLastKnownUpdatedAt((mintData as any).updated_at);
+          } catch (mintErr) {
+            console.error('device token mint on project creation failed:', mintErr);
+          }
+        }
       }
       setSavedFiles({ ...files });
       setLastSaved(new Date().toLocaleTimeString());
@@ -3124,9 +3154,16 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       setTerminalOutput(prev => [...prev, `● All changes saved`]);
       toast.success('💾 Project saved!');
       // No points for saves — scoring is milestone-based only
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error('Failed to save. Please try again.');
+      const msg = typeof e?.message === 'string' ? e.message : '';
+      if (msg.includes('not verified for that email')) {
+        toast.error("This browser isn't verified for that email — try the browser/device you first saved this project on.");
+      } else if (msg.includes('only save a project you authored')) {
+        toast.error("You can only save a project you created — this one belongs to someone else.");
+      } else {
+        toast.error('Failed to save. Please try again.');
+      }
     } finally { setIsSaving(false); }
   };
 
@@ -3846,10 +3883,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                       <Textarea
                         id="editor-knowledge-base"
                         value={knowledgeBase}
-                        onChange={e => setKnowledgeBase(e.target.value)}
+                        onChange={e => setKnowledgeBase(e.target.value.slice(0, 20000))}
                         rows={5}
                         placeholder={"e.g.\nPythagoras theorem: a² + b² = c²\nIt applies to right-angled triangles.\n\nOhm's law: V = IR\nVoltage equals current times resistance."}
-                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent" 
+                        className="text-xs border-0 resize-none focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent"
                       />
                       {knowledgeBase ? (
                         <div className="mt-1 flex items-center justify-between">
@@ -3857,7 +3894,10 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                             <Check className="w-3 h-3" />
                             <span>{knowledgeBase.split(/\s+/).filter(Boolean).length} words loaded</span>
                           </div>
-                          <button onClick={() => setKnowledgeBase('')} className="text-[10px] text-ide-text-muted hover:text-ide-red transition-colors">Clear</button>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-mono ${knowledgeBase.length > 18000 ? 'text-ide-red' : 'text-ide-text-muted'}`}>{knowledgeBase.length.toLocaleString()} / 20,000</span>
+                            <button onClick={() => setKnowledgeBase('')} className="text-[10px] text-ide-text-muted hover:text-ide-red transition-colors">Clear</button>
+                          </div>
                         </div>
                       ) : (
                         <p className="mt-1 text-[10px] text-ide-text-muted italic">No knowledge added yet</p>
@@ -4972,6 +5012,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
               <Input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
                 placeholder={isListening ? '🎤 Listening...' : `Ask ${liveConfig.botName} something...`}
+                maxLength={8000}
                 disabled={isStreaming || isListening}
                 className="h-8 text-xs border-0 focus-visible:ring-1 bg-ide-editor text-ide-text focus-visible:ring-ide-accent flex-1 min-w-0" />
               <Button size="sm" onClick={() => handleChatSend()} disabled={isStreaming || !chatInput.trim()}
