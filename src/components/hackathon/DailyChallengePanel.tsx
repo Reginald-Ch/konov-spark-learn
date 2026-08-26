@@ -323,7 +323,16 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                     {score?.auto_breakdown?.timeliness === 10 && (
                       <Badge variant="outline" className="gap-1 text-[hsl(var(--discord-yellow))] border-[hsl(var(--discord-yellow)/0.4)]">⚡ On Time</Badge>
                     )}
-                    {c.status === 'live' ? (
+                    {/* isFinalized used to be ignored here — the button only
+                        checked c.status === 'live', so a judge-scored
+                        submission on a still-open challenge still offered
+                        "Edit Submission." The server always rejected the
+                        edit anyway (enforce_submission_integrity blocks any
+                        UPDATE once finalized), but only after the participant
+                        filled out the whole dialog and hit Submit. Once
+                        finalized there's nothing left to do here — the
+                        Trophy badge above already shows the final score. */}
+                    {c.status === 'live' && !isFinalized ? (
                       <Button size="sm" onClick={() => openSubmit(c)}>
                         <Send className="w-3 h-3 mr-1" /> {sub ? 'Edit Submission' : 'Submit'}
                       </Button>
@@ -349,7 +358,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
           <DialogHeader>
             <DialogTitle>Day {activeChallenge?.day_number}: {activeChallenge?.title}</DialogTitle>
             <DialogDescription className="text-[hsl(var(--discord-text-muted))]">
-              Scored out of {(activeChallenge?.auto_max_points ?? 70) + (activeChallenge?.judge_max_points ?? 30)} SP — automated checks plus a judge rubric. You can edit this until it's graded.
+              Scored out of {(activeChallenge?.auto_max_points ?? 70) + (activeChallenge?.judge_max_points ?? 30)} SP — automated checks plus a judge rubric. You can edit this until a judge scores it — editing after the automated check re-queues it for re-checking.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
