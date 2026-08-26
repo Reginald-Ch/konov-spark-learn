@@ -45,12 +45,25 @@ function deepEqual(a: unknown, b: unknown): boolean {
 // test set — a small perf cost for a single small function, in exchange for
 // making cross-test state leakage structurally impossible rather than
 // something to reason about.
+//
+// runFunction builds a brand-new timeoutMs-based deadline on every call —
+// passing the same fixed `options` into each iteration meant the REAL
+// wall-clock bound on this whole function scaled with tests.length. Every
+// caller passes a single fixed timeoutMs expecting it to bound the entire
+// grading run (see python-challenge-grade/handler.ts's `{ timeoutMs: 5000
+// }`), but a challenge with 10 benchmark tests could legitimately run for
+// ~10x that before returning. Rationing the remaining time across the loop
+// keeps the total near the original budget regardless of test count — once
+// exhausted, later tests fail fast as a timeout instead of each getting a
+// fresh full budget.
 export async function gradeAgainstTests(code: string, functionName: string, tests: TestCase[], options?: RunOptions): Promise<GradeResult> {
   const results: TestResult[] = [];
   let passedCount = 0;
+  const overallDeadline = Date.now() + (options?.timeoutMs ?? 5000);
   for (let i = 0; i < tests.length; i++) {
     const t = tests[i];
-    const r = await runFunction(code, functionName, t.input_args, options);
+    const remainingMs = Math.max(0, overallDeadline - Date.now());
+    const r = await runFunction(code, functionName, t.input_args, { ...options, timeoutMs: remainingMs });
     if (!r.ok) {
       // A code-level failure (syntax/unsupported/timeout) applies
       // identically to every test since it's the same code each time —
