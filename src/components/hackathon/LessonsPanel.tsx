@@ -287,9 +287,23 @@ export const LessonsPanel = () => {
     return fn();
   }, []);
 
-  const fetchAll = useCallback(async () => {
+  // fetchAll is memoized on [email] only, so it closes over whatever
+  // deviceToken was current the last time `email` changed — fine for the
+  // mount-time call below, but stale for the explicit re-fetch right after
+  // submitQuiz mints a brand-new token (setDeviceToken + await fetchAll()
+  // happen inside the same call, before React ever re-renders and gives
+  // this useCallback a fresh closure). Sent with the OLD (empty, for a
+  // first-time identity) token, get_my_lesson_progress/
+  // get_my_lesson_coin_points don't error — they just return empty, since
+  // that's their whole verify-or-return-empty design — so a student's very
+  // first passed lesson showed 0 progress/0 coins right after the "Lesson
+  // Complete!" celebration, until an unrelated reload happened to recreate
+  // this closure. tokenOverride lets the one caller that just minted a
+  // fresh token hand it in directly instead of trusting the closure.
+  const fetchAll = useCallback(async (tokenOverride?: string) => {
     const requestId = ++fetchAllRequestRef.current;
     setIsLoading(true);
+    const effectiveToken = tokenOverride ?? deviceToken;
 
     // Resolve "this student's" hackathon from their own registration first —
     // NOT just whichever hackathon is currently "live". Otherwise every
@@ -304,7 +318,7 @@ export const LessonsPanel = () => {
       // read any participant's registration, not just the caller's own.
       // p_device_token added (security audit) — this RPC used to trust a
       // bare email with no proof of identity.
-      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email, p_device_token: deviceToken || null });
+      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email, p_device_token: effectiveToken || null });
       hId = regs?.[0]?.hackathon_id || null;
     }
     if (!hId) {
@@ -354,11 +368,11 @@ export const LessonsPanel = () => {
         // participant's full lesson completion history just by knowing
         // their email. It sat right next to get_my_lesson_coin_points below
         // (already hardened) and was missed in that pass.
-        rpcWithRetry(() => supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: deviceToken || null })),
+        rpcWithRetry(() => supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: effectiveToken || null })),
         // Same RPC-not-raw-select fix as the registration lookup above —
         // point_events also has a wide-open SELECT policy. p_device_token
         // added (security audit) — no proof of identity existed before.
-        rpcWithRetry(() => supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: deviceToken || null })),
+        rpcWithRetry(() => supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: effectiveToken || null })),
       ]);
       if (requestId !== fetchAllRequestRef.current) return;
       // Both used to be destructured for .data only — a transient failure
@@ -612,7 +626,8 @@ export const LessonsPanel = () => {
       });
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
-      if ((result as any)?.new_device_token) setDeviceToken((result as any).new_device_token);
+      const freshToken = (result as any)?.new_device_token;
+      if (freshToken) setDeviceToken(freshToken);
       setQuizResult(result as unknown as QuizResult);
       setResultWasRetake(wasAlreadyPassed);
       setPhase('results');
@@ -623,7 +638,12 @@ export const LessonsPanel = () => {
             : `🎉 Lesson Complete! ${activeLesson.title}`
         );
       }
-      await fetchAll();
+      // Pass the just-minted token explicitly — fetchAll's closure is stale
+      // until the next render (setDeviceToken above doesn't take effect
+      // synchronously), so without this a brand-new student's very first
+      // passed lesson refetched with their OLD (empty) token and showed
+      // 0 progress/0 coins right after the celebration animation played.
+      await fetchAll(freshToken || deviceToken);
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit quiz');
     } finally {
