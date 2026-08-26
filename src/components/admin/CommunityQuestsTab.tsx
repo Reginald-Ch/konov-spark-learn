@@ -18,6 +18,7 @@ interface Quest {
   badge_label: string;
   order_index: number;
   is_active: boolean;
+  updated_at: string;
 }
 
 interface PendingProof {
@@ -56,6 +57,13 @@ export const CommunityQuestsTab = () => {
   // letting a fast cross-row double-click re-trigger it.
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState(emptyForm);
+  // Captured when an edit is opened, sent back as expected_updated_at on
+  // save — the server rejects the save if the row changed since (see
+  // update_community_quest's optimistic-concurrency check), instead of
+  // silently overwriting whatever another organizer changed in the
+  // meantime with this tab's stale snapshot.
+  const [editingUpdatedAt, setEditingUpdatedAt] = useState<string | null>(null);
+  const [confirmingApproveId, setConfirmingApproveId] = useState<string | null>(null);
   // Only text channels — chat_action quests are verified against real
   // participant posts, and only text channels can ever receive one
   // (announcement channels reject non-organizer posts entirely; voice
@@ -128,7 +136,25 @@ export const CommunityQuestsTab = () => {
     return () => { supabase.removeChannel(proofsChannel); };
   }, [fetchPendingProofs]);
 
+  // Same fetch-once-on-mount gap as the proofs list above had — this one
+  // matters more, since it's the list a second organizer's edit would
+  // otherwise stay invisible in until this tab is manually reopened. This
+  // refetch only touches the `quests` list state, never the in-progress
+  // `form`, so it can't clobber whatever an organizer is actively typing —
+  // the actual lost-update risk on SAVE is closed separately, by the
+  // expected_updated_at check below.
+  useEffect(() => {
+    const questsChannel = supabase
+      .channel('quests-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_quests' }, () => {
+        fetchQuests();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(questsChannel); };
+  }, [fetchQuests]);
+
   const handleApproveProof = async (proof: PendingProof) => {
+    setConfirmingApproveId(null);
     setReviewingIds(prev => new Set(prev).add(proof.id));
     try {
       await callAdminAction('approve_quest_proof', { completion_id: proof.id });
@@ -163,10 +189,11 @@ export const CommunityQuestsTab = () => {
     }
   };
 
-  const resetForm = () => { setForm(emptyForm); setEditingId(null); };
+  const resetForm = () => { setForm(emptyForm); setEditingId(null); setEditingUpdatedAt(null); };
 
   const startEdit = (q: Quest) => {
     setEditingId(q.id);
+    setEditingUpdatedAt(q.updated_at);
     setForm({
       title: q.title,
       description: q.description,
@@ -208,7 +235,7 @@ export const CommunityQuestsTab = () => {
     setSaving(true);
     try {
       if (editingId) {
-        await callAdminAction('update_community_quest', { id: editingId, ...payload });
+        await callAdminAction('update_community_quest', { id: editingId, expected_updated_at: editingUpdatedAt, ...payload });
         toast.success('Quest updated');
       } else {
         await callAdminAction('create_community_quest', payload);
@@ -217,7 +244,18 @@ export const CommunityQuestsTab = () => {
       resetForm();
       fetchQuests();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save quest');
+      // CONFLICT means another organizer changed this quest since it was
+      // loaded into this form (see update_community_quest's optimistic-
+      // concurrency check) — the save was correctly refused rather than
+      // silently overwriting their change. Refetch so the list (and a
+      // re-opened edit) reflects the current row, instead of leaving this
+      // tab stuck showing the now-stale version it tried to save.
+      if (typeof e.message === 'string' && e.message.startsWith('CONFLICT')) {
+        toast.error("This quest was changed by someone else — your edit wasn't saved. Reopen it to see the latest version.");
+        fetchQuests();
+      } else {
+        toast.error(e.message || 'Failed to save quest');
+      }
     } finally {
       setSaving(false);
     }
@@ -404,10 +442,27 @@ export const CommunityQuestsTab = () => {
                         </Button>
                       </div>
                     </div>
-                  ) : (
+                  ) : confirmingApproveId === proof.id ? (
+                    // Approve was a single click with no recovery path —
+                    // it permanently grants a badge that renders next to
+                    // every message that participant ever sends, and there
+                    // is no "unapprove" action anywhere in the app. Reject
+                    // already required a separate confirm step; Approve now
+                    // matches it instead of being one accidental misclick
+                    // away from a permanent grant.
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => handleApproveProof(proof)} disabled={reviewingIds.has(proof.id)}>
-                        {reviewingIds.has(proof.id) ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5 mr-1" />}
+                        {reviewingIds.has(proof.id) ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                        Confirm approve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setConfirmingApproveId(null)} disabled={reviewingIds.has(proof.id)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => setConfirmingApproveId(proof.id)} disabled={reviewingIds.has(proof.id)}>
+                        <ThumbsUp className="w-3.5 h-3.5 mr-1" />
                         Approve
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setRejectingId(proof.id)} disabled={reviewingIds.has(proof.id)}>

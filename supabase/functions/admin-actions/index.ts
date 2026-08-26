@@ -1341,6 +1341,15 @@ Deno.serve(async (req) => {
         if (quest_type === "chat_action" && !action_channel_name?.trim()) {
           throw new Error("chat_action quests need a target channel name");
         }
+        // action_url is rendered as a live, clickable href to every
+        // participant (CommunityChat.tsx) — a non-http(s) scheme (e.g.
+        // javascript:) there is a direct path to executing arbitrary
+        // script in whichever participant's browser clicks "Open link."
+        // Same class of bug already closed for daily-challenge submissions'
+        // content_url.
+        if (action_url?.trim() && !/^https?:\/\//i.test(action_url.trim())) {
+          throw new Error("Link must start with http:// or https://");
+        }
         if (!badge_emoji?.trim() || !badge_label?.trim()) throw new Error("Badge emoji and label are required");
         if (title.trim().length > 80) throw new Error("Title must be 80 characters or fewer");
         if (description.trim().length > 500) throw new Error("Description must be 500 characters or fewer");
@@ -1371,7 +1380,7 @@ Deno.serve(async (req) => {
       // Also the only way to deactivate/reactivate a quest (is_active is
       // just another field here) — no separate toggle action needed.
       case "update_community_quest": {
-        const { id, title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index, is_active } = payload;
+        const { id, expected_updated_at, title, description, quest_type, action_channel_name, action_url, badge_emoji, badge_label, order_index, is_active } = payload;
         if (!id) throw new Error("id is required");
         const updates: Record<string, unknown> = {};
         if (title !== undefined) {
@@ -1389,7 +1398,15 @@ Deno.serve(async (req) => {
           updates.quest_type = quest_type;
         }
         if (action_channel_name !== undefined) updates.action_channel_name = action_channel_name?.trim() || null;
-        if (action_url !== undefined) updates.action_url = action_url?.trim() || null;
+        if (action_url !== undefined) {
+          const trimmedUrl = action_url?.trim() || null;
+          // Same reasoning as create_community_quest above — this field is
+          // rendered as a live href to participants.
+          if (trimmedUrl && !/^https?:\/\//i.test(trimmedUrl)) {
+            throw new Error("Link must start with http:// or https://");
+          }
+          updates.action_url = trimmedUrl;
+        }
         if (badge_emoji !== undefined) {
           if (!badge_emoji.trim()) throw new Error("Badge emoji cannot be empty");
           if (badge_emoji.trim().length > 8) throw new Error("Badge emoji must be 8 characters or fewer");
@@ -1403,14 +1420,75 @@ Deno.serve(async (req) => {
         if (order_index !== undefined && Number.isFinite(order_index)) updates.order_index = order_index;
         if (is_active !== undefined) updates.is_active = !!is_active;
         if (Object.keys(updates).length === 0) throw new Error("No fields to update");
-        const { data, error } = await supabase
+
+        // Fetched once, used for two independent checks below: whether the
+        // effective post-update state still satisfies "chat_action needs a
+        // channel," and whether quest_type is actually changing (vs. just
+        // being resent unchanged, which the client's always-send-the-whole-
+        // form pattern means happens on every edit regardless of what the
+        // organizer actually touched).
+        const { data: currentQuest } = await supabase
           .from("community_quests")
-          .update(updates)
+          .select("quest_type, action_channel_name")
           .eq("id", id)
-          .select()
-          .single();
+          .maybeSingle();
+
+        // create_community_quest enforces "chat_action needs a channel" at
+        // creation time, but update_community_quest never re-checked it —
+        // changing quest_type to chat_action (or clearing the channel while
+        // type stays chat_action) via a direct API call could silently
+        // create a permanently-unclaimable quest with no signal to the
+        // organizer.
+        const effectiveQuestType = quest_type !== undefined ? quest_type : currentQuest?.quest_type;
+        const effectiveChannelName = action_channel_name !== undefined ? updates.action_channel_name : currentQuest?.action_channel_name;
+        if (effectiveQuestType === "chat_action" && !effectiveChannelName) {
+          throw new Error("chat_action quests need a target channel name");
+        }
+
+        // Lost-update guard: two organizers editing the same quest in
+        // separate tabs used to silently clobber each other with no
+        // warning, since the client always sends the whole form and
+        // nothing checked whether the row changed since it was loaded.
+        // expected_updated_at is optional so this stays backward-
+        // compatible with any caller that doesn't send it (e.g. the plain
+        // is_active toggle in toggleActive, which never loads/holds a
+        // stale snapshot to begin with).
+        let query = supabase.from("community_quests").update(updates).eq("id", id);
+        if (expected_updated_at) query = query.eq("updated_at", expected_updated_at);
+        const { data, error } = await query.select();
         if (error) throw error;
-        return json({ ok: true, data });
+        if (!data || data.length === 0) {
+          if (expected_updated_at) {
+            const { data: stillExists } = await supabase.from("community_quests").select("id").eq("id", id).maybeSingle();
+            if (stillExists) {
+              throw new Error("CONFLICT: This quest was changed by someone else since you loaded it. Refresh and try again.");
+            }
+          }
+          throw new Error("Quest not found");
+        }
+
+        // Changing quest_type left stale mismatched state for anyone who'd
+        // already interacted with the old version — e.g. a participant
+        // rejected under the old proof_upload flow would keep seeing
+        // "try uploading a clearer screenshot" copy next to a button now
+        // relabeled "I've done this" performing a live chat-post check
+        // instead, since CommunityChat.tsx's rejection-guidance text and
+        // claim-button behavior both key off the quest's CURRENT type, not
+        // whichever type produced that rejection. Clearing non-final
+        // (pending/rejected) completions on a real type change gives
+        // participants a clean slate under the new verification mechanism.
+        // 'approved' rows are deliberately left alone — a badge already
+        // earned isn't revoked by a later, unrelated edit to the quest.
+        if (quest_type !== undefined && currentQuest?.quest_type && quest_type !== currentQuest.quest_type) {
+          const { error: cleanupError } = await supabase
+            .from("community_quest_completions")
+            .delete()
+            .eq("quest_id", id)
+            .in("status", ["pending", "rejected"]);
+          if (cleanupError) console.error("Failed to clear stale completions after quest_type change:", cleanupError);
+        }
+
+        return json({ ok: true, data: data[0] });
       }
 
       // proof_upload quest completions land as 'pending' (see
@@ -1423,11 +1501,15 @@ Deno.serve(async (req) => {
       // (exactly the class of staleness this session hit more than once);
       // two plain queries merged in JS sidesteps that risk entirely.
       case "list_pending_quest_proofs": {
+        // Bounded — oldest-first (review the backlog before it grows),
+        // capped so a large unreviewed backlog during a live event can't
+        // produce an unbounded response payload.
         const { data: completions, error } = await supabase
           .from("community_quest_completions")
           .select("id, quest_id, participant_email, participant_name, completed_at, community_quests(title, badge_emoji, badge_label)")
           .eq("status", "pending")
-          .order("completed_at", { ascending: true });
+          .order("completed_at", { ascending: true })
+          .limit(200);
         if (error) throw error;
         const ids = (completions || []).map((c: any) => c.id);
         const proofsById: Record<string, string> = {};
