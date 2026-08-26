@@ -115,15 +115,26 @@ export const PythonChallengesPanel = () => {
   // (lesson count + progress) rather than lifting LessonsPanel's state up
   // to a shared parent. Lessons is a live, proven feature; this keeps the
   // unlock check fully isolated so nothing here can ever regress it.
-  const fetchAll = useCallback(async () => {
+  // Memoized on [email] only but reads deviceToken from closure — stale
+  // for the one caller (handleSubmit) that can call this right after
+  // minting a fresh token in the same function execution, same bug class
+  // just fixed in LessonsPanel.tsx. tokenOverride lets that call site hand
+  // the fresh token in directly instead of trusting the closure.
+  const fetchAll = useCallback(async (tokenOverride?: string) => {
     const requestId = ++fetchAllRequestRef.current;
     if (!email.trim()) { setIsLoading(false); setGateChecked(true); return; }
     setIsLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
+    const effectiveToken = tokenOverride ?? deviceToken;
 
+    // p_device_token was missing here entirely — get_my_lesson_progress
+    // unconditionally returns zero rows when it's null (see this RPC's own
+    // migration), so this unlock check always computed passed=0 and
+    // permanently locked Python Challenges for anyone who already had a
+    // device token from any other feature, regardless of real progress.
     const [{ data: lessonRows }, { data: progressRows }] = await Promise.all([
       supabase.from('lessons').select('id').eq('is_published', true),
-      supabase.rpc('get_my_lesson_progress', { p_participant_email: normalizedEmail }),
+      supabase.rpc('get_my_lesson_progress', { p_participant_email: normalizedEmail, p_device_token: effectiveToken || null }),
     ]);
     if (requestId !== fetchAllRequestRef.current) return;
     const total = lessonRows?.length || 0;
@@ -142,7 +153,11 @@ export const PythonChallengesPanel = () => {
         .select('id, order_index, title, slug, prompt, difficulty, function_name, starter_code, coin_reward')
         .eq('is_published', true)
         .order('order_index', { ascending: true }),
-      supabase.rpc('get_my_python_challenge_progress', { p_participant_email: normalizedEmail }),
+      // p_device_token added (security audit) — this RPC had no identity
+      // verification at all until now, letting anyone read any registered
+      // participant's private challenge history and submitted code just
+      // by knowing their email.
+      supabase.rpc('get_my_python_challenge_progress', { p_participant_email: normalizedEmail, p_device_token: effectiveToken || null }),
     ]);
     if (requestId !== fetchAllRequestRef.current) return;
     setChallenges((challengeRows as Challenge[]) || []);
@@ -202,13 +217,14 @@ export const PythonChallengesPanel = () => {
       mode: 'submit',
       device_token: deviceToken || null,
     });
-    if (result.newDeviceToken) setDeviceToken(result.newDeviceToken);
+    const freshToken = result.newDeviceToken;
+    if (freshToken) setDeviceToken(freshToken);
     setSubmitResult(result);
     setSubmitting(false);
     if (result.ok) {
       if ((result.bonusCoinsAwarded ?? 0) > 0) toast.success(`+${result.bonusCoinsAwarded} Forge Coins — challenge passed! 🎉`);
       else if (!result.passed) toast.error(`${result.passedCount}/${result.total} tests passed — keep going, no penalty for retrying`);
-      fetchAll();
+      fetchAll(freshToken || deviceToken);
     } else {
       toast.error(result.errorMessage || 'Something went wrong grading your code.');
     }
