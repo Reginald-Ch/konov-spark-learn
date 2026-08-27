@@ -101,7 +101,7 @@ const websiteSchema = {
   "@id": `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: "Africa's first AI & ML literacy hub for kids ages 6-16",
+  description: " AI & ML literacy hub for African youths",
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
@@ -119,7 +119,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 1,
       name: "Programs",
-      description: "AI & ML workshops, tech camps, and tech fairs for kids ages 6-16",
+      description: "AI & ML workshops, tech camps, and tech fairs for African youth ",
       url: `${SITE_URL}/programs`
     },
     {
@@ -165,7 +165,7 @@ export const SEO = ({
 }: SEOProps) => {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const defaultKeywords = [
-    "AI for kids Ghana",
+    "AI for youth Ghana",
     "machine learning for children Africa",
     "robotics for kids Ghana",
     "coding classes Accra",
