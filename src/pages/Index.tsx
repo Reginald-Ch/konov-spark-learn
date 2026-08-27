@@ -39,9 +39,9 @@ const Index = () => {
     <div className="min-h-screen relative">
       <SEO 
         title="Empowering Young Tech Innovators"
-        description="Konov Technologies is an AI education company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.."
+        description="Konov Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.."
         canonical="/"
-        keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "tech programs Ghana", "tech education for kids", "AI workshops Ghana"]}
+        keywords={["AI education Ghana", "kids coding Accra", "machine learning for youth Africa", "tech programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
       <AIMascot />
