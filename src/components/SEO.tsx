@@ -32,7 +32,7 @@ const organizationSchema = {
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "Konov Technologies is an AI education company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
+  description: "Konov Technologies is an AI education company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
   foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
