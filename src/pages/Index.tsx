@@ -22,9 +22,9 @@ const Gallery = lazy(() => import("@/components/Gallery").then(m => ({ default: 
 
 // FAQ data for structured data
 const homepageFAQs = [
-  { question: "What is KONOV?", answer: "KONOV is an AI & Machine Learning education company helping young learners (ages 6–16) develop practical, future-ready technology skills through school partnerships, workshops, and our learning platform MeAI." },
+  { question: "What is KONOV?", answer: "Konov Technologies is an AI education company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future." },
   { question: "What is MeAI?", answer: "MeAI is KONOV's interactive AI & Machine Learning learning platform for young learners aged 6–16. Students build AI assistants, train simple ML models, create AI-powered games, and learn through prompting and creativity." },
-  { question: "What age range do you work with?", answer: "Our programs and learning experiences are designed for young learners aged 6–16, tailored by age and understanding level to stay age-appropriate, practical, and fun." },
+  { question: "What age range do you work with?", answer: "Our programs and learning experiences are designed for young learners, tailored by age and understanding level to stay age-appropriate, practical, and fun." },
   { question: "Do students need coding experience?", answer: "No prior coding experience is required. KONOV's learning experiences are beginner-friendly — students progress at their own pace through exploration, creativity, and hands-on practice." },
   { question: "Can schools partner with KONOV?", answer: "Yes. We partner with schools to bring practical AI & ML learning into the classroom through curriculum support, facilitator-led sessions, teacher training, and access to MeAI." }
 ];
@@ -39,7 +39,7 @@ const Index = () => {
     <div className="min-h-screen relative">
       <SEO 
         title="Empowering Young Tech Innovators"
-        description="KONOV teaches AI, machine learning, coding, emerging tech, app development and robotics for kids ages 6-16 in Ghana through hands-on programs."
+        description="Konov Technologies is an AI education company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.."
         canonical="/"
         keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "tech programs Ghana", "tech education for kids", "AI workshops Ghana"]}
         jsonLd={createFAQSchema(homepageFAQs)}
