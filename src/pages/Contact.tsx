@@ -25,11 +25,11 @@ const contactBreadcrumb = createBreadcrumbSchema([
 const contactPageJsonLd = {
   "@context": "https://schema.org",
   "@type": "ContactPage",
-  name: "Contact KONOV",
-  description: "Get in touch with KONOV for AI and ML education programs for kids in Ghana.",
+  name: "Contact KONOV Technologies",
+  description: "Contact KONOV Technologies to bring practical AI learning to your child, school, or organization.",
   mainEntity: {
     "@type": "EducationalOrganization",
-    name: "KONOV",
+    name: "KONOV Technologies",
     email: "hello@konovtech.com",
     telephone: "+234 (0) 20 874 1417",
     address: {
@@ -39,6 +39,10 @@ const contactPageJsonLd = {
     }
   }
 };
+
+// wa.me expects digits only, no "+" or spaces/parens.
+const WHATSAPP_NUMBER = "2340208741417";
+const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi KONOV Technologies! I'd like to learn more.")}`;
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -127,11 +131,11 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen">
-      <SEO 
-        title="Contact Us - Get in Touch"
-        description="Contact KONOV for AI & ML education programs in Ghana. Reach us via email, phone, or visit us in Accra. We'd love to hear from you!"
+      <SEO
+        title="Contact KONOV Technologies"
+        description="Contact KONOV Technologies to bring practical AI learning to your child, school, or organization."
         canonical="/contact"
-        keywords={["contact konov", "AI education inquiry Ghana", "tech programs contact Accra"]}
+        keywords={["contact KONOV Technologies", "AI education inquiry Ghana", "AI programs contact Accra"]}
         jsonLd={[contactBreadcrumb, contactPageJsonLd]}
       />
       <Navbar />
@@ -147,6 +151,16 @@ const Contact = () => {
               <RobotMascot type="happy" size="md" />
               <RobotMascot type="excited" size="md" />
             </div>
+            <Button
+              asChild
+              size="lg"
+              className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[5px_5px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-[#25D366] text-white"
+            >
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Contact Us On WhatsApp
+              </a>
+            </Button>
           </div>
         </div>
       </div>
@@ -256,9 +270,13 @@ const Contact = () => {
                       <SelectValue placeholder="Select a program" />
                     </SelectTrigger>
                     <SelectContent className="border-3 border-foreground rounded-xl">
-                      <SelectItem value="workshops">Workshops</SelectItem>
-                      <SelectItem value="tech_camp">Tech Camp</SelectItem>
-                      <SelectItem value="tech_fair">Tech Fair</SelectItem>
+                      <SelectItem value="ai_foundations">AI Foundations</SelectItem>
+                      <SelectItem value="me_ai_creators">Me AI Creators</SelectItem>
+                      <SelectItem value="school_workshops">School AI Workshops</SelectItem>
+                      <SelectItem value="tertiary_hub">Tertiary AI Innovation Hub</SelectItem>
+                      <SelectItem value="hackathons">Youth AI Hackathons</SelectItem>
+                      <SelectItem value="summer_camp">Summer AI & Tech Camp</SelectItem>
+                      <SelectItem value="partnership">School/Organization Partnership</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

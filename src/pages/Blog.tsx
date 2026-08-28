@@ -17,10 +17,10 @@ const Blog = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Blog - AI Education Insights for Schools, Teachers & Parents"
-        description="Practical, research-backed AI education insights for African schools, teachers and parents — curriculum frameworks, teacher training and classroom guides."
+        title="AI Education Resources For Parents And Schools"
+        description="Read practical articles on AI literacy, machine learning for kids, school AI programs, teacher training, and youth AI innovation in Ghana and Africa."
         canonical="/blog"
-        keywords={["AI education blog", "AI curriculum Africa", "teacher AI training", "AI literacy for schools"]}
+        keywords={["AI education blog", "AI curriculum Africa", "AI training for teachers in Ghana", "AI literacy for young people", "machine learning for kids"]}
         jsonLd={breadcrumbSchema}
       />
       <Navbar />
@@ -29,7 +29,7 @@ const Blog = () => {
         <section className="px-4 pb-12">
           <div className="container mx-auto max-w-5xl">
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-card px-4 py-2 font-fredoka text-sm font-bold text-primary shadow-[3px_3px_0_hsl(var(--foreground))]">
-              <Newspaper className="h-4 w-4" /> KONOV Blog
+              <Newspaper className="h-4 w-4" /> KONOV Technologies Blog
             </span>
             <h1 className="mt-6 text-4xl font-bold leading-tight text-foreground font-fredoka md:text-6xl">
               AI Education Insights
