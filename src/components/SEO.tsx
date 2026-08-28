@@ -32,7 +32,7 @@ const organizationSchema = {
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "Africa's first AI & ML literacy hub for kids ages 6-16. Hands-on AI, robotics, coding, app development, tech workshops, weekend programs and hackathons in Ghana.",
+  description: "Konov Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
   foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
@@ -101,7 +101,7 @@ const websiteSchema = {
   "@id": `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: "Africa's first AI & ML literacy hub for kids ages 6-16",
+  description: " AI & ML literacy hub for African youths",
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
@@ -119,7 +119,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 1,
       name: "Programs",
-      description: "AI & ML workshops, tech camps, and tech fairs for kids ages 6-16",
+      description: "AI & ML workshops, tech camps, and tech fairs for African youth ",
       url: `${SITE_URL}/programs`
     },
     {
@@ -186,7 +186,7 @@ export const SEO = ({
 }: SEOProps) => {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const defaultKeywords = [
-    "AI for kids Ghana",
+    "AI for youth Ghana",
     "machine learning for children Africa",
     "robotics for kids Ghana",
     "coding classes Accra",
