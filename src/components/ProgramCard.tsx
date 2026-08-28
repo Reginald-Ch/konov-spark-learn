@@ -17,6 +17,7 @@ interface ProgramCardProps {
   capacity?: string;
   duration?: string;
   ageGroup?: string;
+  ctaLabel?: string;
 }
 
 export const ProgramCard = ({
@@ -29,13 +30,14 @@ export const ProgramCard = ({
   capacity,
   duration,
   ageGroup,
+  ctaLabel = "Enroll Now",
 }: ProgramCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
   const handleEnroll = () => {
     setShowSignup(true);
-    analytics.trackButtonClick('Enroll Now', `Program - ${title}`);
+    analytics.trackButtonClick(ctaLabel, `Program - ${title}`);
   };
 
   return (
@@ -226,7 +228,7 @@ export const ProgramCard = ({
                 />
                 <span className="relative flex items-center justify-center gap-2">
                   <Zap className="w-3.5 h-3.5" />
-                  Enroll Now
+                  {ctaLabel}
                   <motion.div
                     animate={{ x: isHovered ? [0, 4, 0] : 0 }}
                     transition={{ duration: 0.6, repeat: Infinity }}
