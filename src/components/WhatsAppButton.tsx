@@ -2,8 +2,9 @@ import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// wa.me expects digits only, no "+" or spaces/parens.
-const WHATSAPP_NUMBER = "2340208741417";
+// wa.me expects digits only, no "+" or spaces/parens, and no domestic
+// trunk "0" (that's dropped in international dialing format).
+const WHATSAPP_NUMBER = "233208741417";
 
 interface WhatsAppButtonProps {
   message?: string;

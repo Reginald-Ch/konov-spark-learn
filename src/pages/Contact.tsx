@@ -32,7 +32,7 @@ const contactPageJsonLd = {
     "@type": "EducationalOrganization",
     name: "KONOV Technologies",
     email: "hello@konovtech.com",
-    telephone: "+234 (0) 20 874 1417",
+    telephone: "+233 20 874 1417",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Accra",
@@ -113,7 +113,7 @@ const Contact = () => {
     {
       icon: Phone,
       title: "Call Us",
-      content: "+234 (0) 20 874 1417",
+      content: "+233 20 874 1417",
       color: "bg-accent",
       mascot: "excited" as const,
     },

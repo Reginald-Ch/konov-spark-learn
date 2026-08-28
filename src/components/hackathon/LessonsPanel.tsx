@@ -275,6 +275,16 @@ export const LessonsPanel = () => {
   // could otherwise clobber fresh lessons/progress/lessonCoinsEarned with
   // stale data for whatever email was typed a moment before.
   const fetchAllRequestRef = useRef(0);
+  // Two identical toasts could stack on screen at once — LessonsPanel can
+  // legitimately re-mount and re-run fetchAll twice in quick succession
+  // (e.g. switching the Learn/Python Challenges tab and back before the
+  // first attempt's retry has even resolved), and each instance fired its
+  // own untagged toast.error with no shared identity between them. A
+  // stable id makes sonner collapse repeats into the one visible toast
+  // instead of stacking; the ref stops it from re-nagging on every
+  // subsequent retry/remount within the same visit once it's already been
+  // shown and acknowledged as "there's a real problem" once.
+  const lessonProgressErrorShownRef = useRef(false);
 
   // A single retry after a short delay for exactly the transient case this
   // file's own comments already call out — a network blip, or a device
@@ -384,7 +394,16 @@ export const LessonsPanel = () => {
       // genuine (non-transient) failure is actually diagnosable.
       if (progErr) {
         console.error('lesson progress fetch error:', progErr.message, progErr.code, progErr);
-        toast.error('Could not load your lesson progress — try refreshing.');
+        // Stable id: a second failing fetchAll (remount, tab switch, the
+        // retry itself) replaces this toast in place instead of stacking a
+        // duplicate. Only ever shown once per visit — see the ref's own
+        // comment for why repeating it on every retry doesn't help anyone.
+        if (!lessonProgressErrorShownRef.current) {
+          lessonProgressErrorShownRef.current = true;
+          toast.error('Could not load your lesson progress — try refreshing.', { id: 'lesson-progress-fetch-error' });
+        }
+      } else {
+        lessonProgressErrorShownRef.current = false;
       }
       if (coinErr) { console.error('lesson coins fetch error:', coinErr.message, coinErr.code, coinErr); }
       const map: Record<string, Progress> = {};

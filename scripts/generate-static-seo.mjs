@@ -52,7 +52,7 @@ const ROUTES = [
         <h2>Why Parents & Schools in Ghana Choose KONOV Technologies</h2>
         <p>KONOV Technologies is AI-first, practical, and built for African learners. We don't only teach students how to use technology — we help them understand how intelligent systems work and give them the tools to create their own. We partner with schools across Accra and Ghana to bring practical AI education into every classroom.</p>
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/2340208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
+        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
   },
   {
     path: "/about",
@@ -363,7 +363,7 @@ const ROUTES = [
     intro: "Have questions? We'd love to hear from you! Send us a message and we'll respond super fast.",
     main: `
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/2340208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
+        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
         <p><a href="/">Back to home</a></p>`,
   },
 ];
