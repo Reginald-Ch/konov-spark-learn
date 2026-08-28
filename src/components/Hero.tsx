@@ -1,18 +1,15 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Rocket, Zap } from "lucide-react";
+import { Rocket, Zap, Handshake } from "lucide-react";
 import { motion } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 import { AnimatedCounter } from "./AnimatedCounter";
-import { SignupModal } from "./SignupModal";
 import { ComicPanel } from "./ComicPanel";
 import { RobotMascot } from "./RobotMascot";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionBurst } from "./ActionBurst";
 
 export const Hero = () => {
-  const [showSignupModal, setShowSignupModal] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -40,23 +37,23 @@ export const Hero = () => {
           >
             <ActionBurst>
               <span className="text-base md:text-lg font-bold">
-                Practical AI & ML Education for Ages 6–16
+                Ghana's AI Literacy Hub for Young Innovators
               </span>
             </ActionBurst>
           </motion.div>
-          
+
           {/* Main Heading - Comic Style */}
-          <motion.h1 
+          <motion.h1
             className="text-5xl md:text-7xl lg:text-8xl font-fredoka font-bold leading-tight"
             initial={{ y: 0, opacity: 1 }}
             animate={{ y: 0, opacity: 1 }}
           >
-            <span className="text-primary">Helping Young Learners</span>
+            <span className="text-primary">Learn How AI Works.</span>
             <br />
-            <span className="text-foreground">Learn and </span>
-            <span className="text-secondary">Build With AI</span>
+            <span className="text-foreground">Build </span>
+            <span className="text-secondary">Real AI Systems.</span>
           </motion.h1>
-          
+
           {/* Speech Bubble Description */}
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
@@ -66,7 +63,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                Practical Artificial Intelligence (AI) & Machine Learning (ML) education for young learners (ages 6–16) through hands-on learning, games, projects, and real-world creation. Preparing students for an AI-driven future.
+                KONOV Technologies helps young people learn how artificial intelligence works and build real AI systems through hands-on programs, school workshops, hackathons, and the Me AI creation platform.
               </p>
             </SpeechBubble>
           </motion.div>
@@ -84,37 +81,40 @@ export const Hero = () => {
           </motion.div>
           
           {/* CTA Buttons - Comic Style */}
-          <motion.div 
+          <motion.div
             className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="text-xl px-10 py-7 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[8px_8px_0_hsl(var(--foreground))] hover:translate-x-[-4px] hover:translate-y-[-4px] transition-all bg-primary text-primary-foreground scale-105"
-              onClick={() => setShowSignupModal(true)}
+              onClick={() => navigate('/programs')}
             >
               <Rocket className="mr-2 w-6 h-6" />
-              Book a School Demo
+              Explore Programs
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
               className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
-              onClick={() => window.open('https://meaitech.com', '_blank')}
+              onClick={() => navigate('/me-ai')}
             >
               <Zap className="mr-2 w-5 h-5" />
-              Explore MeAI
+              Try Me AI
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
+              onClick={() => navigate('/contact')}
+            >
+              <Handshake className="mr-2 w-5 h-5" />
+              Partner With Us
             </Button>
           </motion.div>
-          
-          <SignupModal 
-            open={showSignupModal} 
-            onOpenChange={setShowSignupModal}
-            source="hero"
-          />
-          
+
           {/* Stats - Comic Panels */}
           <motion.div 
             className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 max-w-5xl mx-auto"

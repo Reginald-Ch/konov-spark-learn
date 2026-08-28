@@ -12,8 +12,12 @@ import { ParentTrust } from "@/components/ParentTrust";
 
 // Lazy-load below-fold sections
 const Mission = lazy(() => import("@/components/Mission").then(m => ({ default: m.Mission })));
+const WhoWeServe = lazy(() => import("@/components/WhoWeServe").then(m => ({ default: m.WhoWeServe })));
+const WhatLearnersBuild = lazy(() => import("@/components/WhatLearnersBuild").then(m => ({ default: m.WhatLearnersBuild })));
+const MeAIIntro = lazy(() => import("@/components/MeAIIntro").then(m => ({ default: m.MeAIIntro })));
 const Values = lazy(() => import("@/components/Values").then(m => ({ default: m.Values })));
 const Timeline = lazy(() => import("@/components/Timeline").then(m => ({ default: m.Timeline })));
+const WhyChooseKonov = lazy(() => import("@/components/WhyChooseKonov").then(m => ({ default: m.WhyChooseKonov })));
 const Testimonials = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.Testimonials })));
 const CTA = lazy(() => import("@/components/CTA").then(m => ({ default: m.CTA })));
 const FAQ = lazy(() => import("@/components/FAQ").then(m => ({ default: m.FAQ })));
@@ -37,28 +41,41 @@ const Index = () => {
   
   return (
     <div className="min-h-screen relative">
-      <SEO 
-        title="Empowering Young Tech Innovators"
-        description="KONOV teaches AI, machine learning, coding, emerging tech, app development and robotics for kids ages 6-16 in Ghana through hands-on programs."
+      <SEO
+        title="AI Education For Kids And Young Learners In Ghana"
+        description="KONOV Technologies helps young people in Ghana and Africa learn AI, train models, build chatbots, and create real AI systems through Me AI, workshops, programs, and hackathons."
         canonical="/"
-        keywords={["AI education Ghana", "kids coding Accra", "machine learning for children Africa", "tech programs Ghana", "tech education for kids", "AI workshops Ghana"]}
+        keywords={["AI education for kids in Ghana", "AI classes for kids in Accra", "AI literacy for young people", "AI programs for young learners", "machine learning for kids", "chatbot building for kids", "AI workshops for schools in Ghana", "AI training for teachers in Ghana", "AI education for African schools", "AI learning platform for children", "AI creation platform for young learners", "youth AI hackathons", "practical AI learning for students", "Me AI platform", "KONOV Technologies"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
       <AIMascot />
       <Navbar />
       <Hero />
       <SocialProof />
-      <BookFreeTrial />
       <Suspense fallback={<SectionFallback />}>
+        {/* 2. Who KONOV is */}
         <Mission />
-        <Values />
-        <ParentTrust />
+        {/* 3. Who KONOV serves */}
+        <WhoWeServe />
+        {/* 4. What learners build */}
+        <WhatLearnersBuild />
+        {/* 5. Me AI platform introduction */}
+        <MeAIIntro />
+        {/* 6. Programs overview */}
         <Timeline />
+        <Values />
+        {/* 7. School and organization partnership section */}
+        <BookFreeTrial />
+        {/* 8. Why choose KONOV */}
+        <WhyChooseKonov />
+        <ParentTrust />
+        {/* 9. Proof and impact */}
         <SuccessStories />
         <Gallery />
         <HackathonBanner />
         <Testimonials />
         <FAQ />
+        {/* 10. Final call to action */}
         <CTA />
       </Suspense>
       <Footer />

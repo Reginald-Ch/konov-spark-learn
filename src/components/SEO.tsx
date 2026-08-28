@@ -12,7 +12,7 @@ interface SEOProps {
 }
 
 const SITE_URL = "https://konovartechtist.com";
-const SITE_NAME = "KONOV";
+const SITE_NAME = "KONOV Technologies";
 
 // Organization structured data - used across all pages
 const organizationSchema = {
@@ -20,7 +20,7 @@ const organizationSchema = {
   "@type": "EducationalOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: ["KONOV AI Hub", "Konov Artechtist", "KONOV Ghana"],
+  alternateName: ["KONOV", "KONOV AI Hub", "Konov Artechtist", "KONOV Ghana"],
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
@@ -146,6 +146,27 @@ const siteNavigationSchema = {
     {
       "@type": "SiteNavigationElement",
       position: 5,
+      name: "Me AI",
+      description: "KONOV's AI creation platform for learners ages 6-18",
+      url: `${SITE_URL}/me-ai`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 6,
+      name: "For Schools",
+      description: "AI education programs for schools in Ghana",
+      url: `${SITE_URL}/for-schools`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 7,
+      name: "Hackathons",
+      description: "Youth AI hackathons and innovation challenges",
+      url: `${SITE_URL}/youth-hackathons`
+    },
+    {
+      "@type": "SiteNavigationElement",
+      position: 8,
       name: "FORGE Studio",
       description: "KONOV's AI hackathon platform for young innovators",
       url: `${SITE_URL}/hackathons`
@@ -326,6 +347,29 @@ export const createArticleSchema = (article: {
     "@type": "WebPage",
     "@id": `${SITE_URL}/blog/${article.slug}`
   }
+});
+
+// Helper function to create Product schema (for Me AI)
+export const createProductSchema = (product: {
+  name: string;
+  description: string;
+  ageRange?: string;
+  url?: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.name,
+  description: product.description,
+  brand: {
+    "@type": "Brand",
+    name: SITE_NAME
+  },
+  audience: {
+    "@type": "PeopleAudience",
+    suggestedMinAge: 6,
+    suggestedMaxAge: 18
+  },
+  url: product.url || "https://meaitech.com"
 });
 
 // Helper function to create Breadcrumb schema

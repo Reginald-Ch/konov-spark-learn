@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap, ExternalLink } from "lucide-react";
+import { Menu, X, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,12 +25,12 @@ export const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Programs", path: "/programs" },
-    { name: "Contact", path: "/contact" },
-    { name: "Blog", path: "/blog" },
+    { name: "Me AI", path: "/me-ai" },
+    { name: "For Schools", path: "/for-schools" },
     { name: "FORGE Studio", path: "/hackathons" },
+    { name: "Blog", path: "/blog" },
+    { name: "Contact", path: "/contact" },
   ];
-
-  const meaiLink = { name: "MeAI", href: "https://meaitech.com" };
 
   return (
     <>
@@ -81,17 +81,6 @@ export const Navbar = () => {
                   </Link>
                 );
               })}
-
-              {/* MeAI — external link */}
-              <a
-                href={meaiLink.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-              >
-                {meaiLink.name}
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
             </div>
 
             {/* CTA Button */}
@@ -155,21 +144,6 @@ export const Navbar = () => {
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: navLinks.length * 0.05 }}
-                  >
-                    <a
-                      href={meaiLink.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-fredoka font-medium text-lg py-2 inline-flex items-center gap-1 text-muted-foreground"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {meaiLink.name} <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </motion.div>
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
                   >
                     <Button
                       onClick={() => {
