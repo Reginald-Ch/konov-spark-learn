@@ -15,6 +15,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { SEO, createBreadcrumbSchema } from "@/components/SEO";
 
 const contactBreadcrumb = createBreadcrumbSchema([
@@ -39,10 +40,6 @@ const contactPageJsonLd = {
     }
   }
 };
-
-// wa.me expects digits only, no "+" or spaces/parens.
-const WHATSAPP_NUMBER = "2340208741417";
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi KONOV Technologies! I'd like to learn more.")}`;
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -151,16 +148,7 @@ const Contact = () => {
               <RobotMascot type="happy" size="md" />
               <RobotMascot type="excited" size="md" />
             </div>
-            <Button
-              asChild
-              size="lg"
-              className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[5px_5px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-[#25D366] text-white"
-            >
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Contact Us On WhatsApp
-              </a>
-            </Button>
+            <WhatsAppButton />
           </div>
         </div>
       </div>
