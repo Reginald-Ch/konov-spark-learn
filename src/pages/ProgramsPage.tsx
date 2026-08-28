@@ -120,12 +120,12 @@ const ProgramsPage = () => {
 
   return (
     <div className="min-h-screen">
-      <SEO 
-        title="Programs - AI Workshops, Tech Camps & Fairs"
-        description="Explore KONOV's AI, robotics, coding and tech programs for kids ages 6-16, including workshops, tech camps and youth hackathons in Ghana."
+      <SEO
+        title="AI Programs For Kids, Schools And Young Innovators"
+        description="Explore KONOV Technologies' practical AI programs for children, teens, schools, tertiary students, and youth innovation partners."
         canonical="/programs"
         type="course"
-        keywords={["AI workshops Ghana", "kids tech camp Accra", "coding for children", "tech summer camp Africa"]}
+        keywords={["AI programs for young learners", "AI classes for kids in Accra", "AI workshops for schools in Ghana", "youth AI hackathons", "Tertiary AI Innovation Hub", "Summer AI and Tech Camp Ghana"]}
         jsonLd={coursesJsonLd}
       />
       <Navbar />

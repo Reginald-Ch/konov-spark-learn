@@ -80,11 +80,11 @@ const About = () => {
 
   return (
     <div className="min-h-screen">
-      <SEO 
-        title="About Us - Our Story & Mission"
-        description="Learn about konov, Africa's first AI & ML literacy hub for kids. Founded in Accra, Ghana, we've reached 500+ students with innovative tech education."
+      <SEO
+        title="Ghana's AI Literacy Hub"
+        description="KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence."
         canonical="/about"
-        keywords={["about konov", "AI education company Ghana", "tech startup Africa", "children education mission"]}
+        keywords={["about KONOV Technologies", "AI education company Ghana", "AI literacy hub Africa", "AI education mission"]}
         jsonLd={aboutBreadcrumb}
       />
       <Navbar />
@@ -102,14 +102,14 @@ const About = () => {
               </ActionBurst>
             </div>
             <h1 className="text-5xl md:text-7xl font-fredoka font-bold mb-6">
-              About <span className="gradient-text">KONOV</span>
+              Building Africa's Next Generation Of <span className="gradient-text">AI Creators</span>
             </h1>
             <div className="flex justify-center mb-6">
               <RobotMascot type="happy" size="lg" />
             </div>
             <SpeechBubble direction="up" className="max-w-3xl mx-auto">
               <p className="text-xl font-space leading-relaxed">
-                AI & ML literacy hub—teaching kids how intelligent systems think, how data drives decisions, and how algorithms power creativity!
+                KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence. We deliver practical AI education through the Me AI platform, school programs, workshops, hackathons, and youth innovation experiences.
               </p>
             </SpeechBubble>
           </div>
@@ -131,6 +131,23 @@ const About = () => {
                 </ComicPanel>
               </motion.div>
             ))}
+          </div>
+
+          {/* Mission & Vision */}
+          <div className="grid md:grid-cols-2 gap-6 mb-24">
+            <ComicPanel color="primary" className="p-8">
+              <ActionBurst color="primary" className="mb-3 inline-block">MISSION</ActionBurst>
+              <p className="text-lg font-space text-muted-foreground leading-relaxed">
+                To make AI education accessible, engaging, and practical for young Africans.
+              </p>
+            </ComicPanel>
+            <ComicPanel color="secondary" className="p-8">
+              <ActionBurst color="secondary" className="mb-3 inline-block">VISION</ActionBurst>
+              <p className="text-lg font-space text-muted-foreground leading-relaxed">
+                To prepare the next generation of African innovators to become creators of intelligent
+                systems, not just users of technology.
+              </p>
+            </ComicPanel>
           </div>
 
           {/* Our Story */}
