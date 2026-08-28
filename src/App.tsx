@@ -22,6 +22,15 @@ import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Waitlist from "./pages/Waitlist";
+import MeAI from "./pages/MeAI";
+import ForSchools from "./pages/ForSchools";
+import AIClassesForKids from "./pages/AIClassesForKids";
+import TeacherTraining from "./pages/TeacherTraining";
+import TertiaryHub from "./pages/TertiaryHub";
+import YouthHackathons from "./pages/YouthHackathons";
+import MachineLearningForKids from "./pages/MachineLearningForKids";
+import SummerCamp from "./pages/SummerCamp";
+import CurriculumSupport from "./pages/CurriculumSupport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +54,15 @@ const AnimatedRoutes = () => {
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
         <Route path="/admin" element={<PageTransition><AdminPanel /></PageTransition>} />
         <Route path="/waitlist" element={<PageTransition><Waitlist /></PageTransition>} />
+        <Route path="/me-ai" element={<PageTransition><MeAI /></PageTransition>} />
+        <Route path="/for-schools" element={<PageTransition><ForSchools /></PageTransition>} />
+        <Route path="/ai-classes-for-kids-accra" element={<PageTransition><AIClassesForKids /></PageTransition>} />
+        <Route path="/teacher-training" element={<PageTransition><TeacherTraining /></PageTransition>} />
+        <Route path="/tertiary-ai-innovation-hub" element={<PageTransition><TertiaryHub /></PageTransition>} />
+        <Route path="/youth-hackathons" element={<PageTransition><YouthHackathons /></PageTransition>} />
+        <Route path="/machine-learning-for-kids" element={<PageTransition><MachineLearningForKids /></PageTransition>} />
+        <Route path="/summer-ai-tech-camp" element={<PageTransition><SummerCamp /></PageTransition>} />
+        <Route path="/ai-curriculum-support" element={<PageTransition><CurriculumSupport /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
