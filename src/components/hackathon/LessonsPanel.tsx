@@ -321,21 +321,27 @@ export const LessonsPanel = () => {
     // since point_events are scoped by hackathon_id and `hackathon_id = NULL`
     // never matches anything in SQL. Only fall back to the live hackathon
     // for a brand-new visitor who hasn't registered/earned anything yet.
-    let hId: string | null = null;
-    if (email) {
-      // Routed through an RPC — hackathon_registrations has a wide-open
-      // SELECT policy, so this raw select worked but let the same anon key
-      // read any participant's registration, not just the caller's own.
-      // p_device_token added (security audit) — this RPC used to trust a
-      // bare email with no proof of identity.
-      const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email, p_device_token: effectiveToken || null });
-      hId = regs?.[0]?.hackathon_id || null;
-    }
-    if (!hId) {
+    //
+    // This chain, the lessons list, and progress/coins below don't actually
+    // depend on each other (hId is only consumed later, by submitQuiz) — run
+    // all three concurrently instead of awaiting them one after another.
+    // Sequentially, a cold load paid for up to 4 round-trips back to back
+    // (registration lookup, possibly 2 more hackathon fallbacks, then lessons,
+    // then progress+coins); in parallel it's bounded by whichever chain is
+    // slowest, not their sum.
+    const resolveHackathonId = async (): Promise<string | null> => {
+      if (email) {
+        // Routed through an RPC — hackathon_registrations has a wide-open
+        // SELECT policy, so this raw select worked but let the same anon key
+        // read any participant's registration, not just the caller's own.
+        // p_device_token added (security audit) — this RPC used to trust a
+        // bare email with no proof of identity.
+        const { data: regs } = await supabase.rpc('get_my_latest_hackathon_registration', { p_participant_email: email, p_device_token: effectiveToken || null });
+        const fromReg = regs?.[0]?.hackathon_id || null;
+        if (fromReg) return fromReg;
+      }
       const { data: live } = await supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle();
-      hId = live?.id || null;
-    }
-    if (!hId) {
+      if (live?.id) return live.id;
       // Last-resort fallback: no registration and no currently-live event
       // (e.g. the gap between one event ending and the next going live).
       // Without this, lesson-coin point_events earned during that gap get
@@ -345,46 +351,56 @@ export const LessonsPanel = () => {
       // the most recent hackathon regardless of status keeps that linkage
       // intact for everyone except a brand-new install with zero hackathons
       // ever created.
-      const { data: any } = await supabase.from('hackathons').select('id').order('start_date', { ascending: false }).limit(1).maybeSingle();
-      hId = any?.id || null;
-    }
-    if (requestId !== fetchAllRequestRef.current) return; // superseded by a newer fetchAll
-    setHackathonId(hId);
+      const { data: anyHack } = await supabase.from('hackathons').select('id').order('start_date', { ascending: false }).limit(1).maybeSingle();
+      return anyHack?.id || null;
+    };
 
-    const { data: lessonRows, error: lessonErr } = await supabase
+    const lessonsPromise = supabase
       .from('lessons')
       .select('id, module_number, order_index, title, slug, summary, is_published')
       .order('order_index', { ascending: true });
+
+    // Deliberately NOT scoped to hId, unlike the balance query this
+    // replaced. lesson_progress (what's unlocked/passed) has always been
+    // global per participant, with no hackathon_id at all — but coins
+    // were still tagged and filtered per-event, so a returning student's
+    // earned total silently reset every time they joined a new event
+    // even though everything they'd already learned stayed exactly where
+    // they left it. Lessons are a learning record, not a per-event
+    // competition score (that's what SP and Project Score are for), so
+    // the coin total now follows the same lifetime scope progress does.
+    const progressPromise = email
+      ? Promise.all([
+          // p_device_token added (security audit) — this RPC used to trust a
+          // bare email with no proof of identity, letting anyone read any
+          // participant's full lesson completion history just by knowing
+          // their email. It sat right next to get_my_lesson_coin_points below
+          // (already hardened) and was missed in that pass.
+          rpcWithRetry(() => supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: effectiveToken || null })),
+          // Same RPC-not-raw-select fix as the registration lookup above —
+          // point_events also has a wide-open SELECT policy. p_device_token
+          // added (security audit) — no proof of identity existed before.
+          rpcWithRetry(() => supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: effectiveToken || null })),
+        ])
+      : null;
+
+    const [hId, { data: lessonRows, error: lessonErr }, progressResult] = await Promise.all([
+      resolveHackathonId(),
+      lessonsPromise,
+      progressPromise,
+    ]);
+    if (requestId !== fetchAllRequestRef.current) return; // superseded by a newer fetchAll
+
+    setHackathonId(hId);
+
     if (lessonErr) {
       toast.error('Could not load lessons — the database may not be migrated yet.');
       console.error('lessons fetch error:', lessonErr);
     }
-    if (requestId !== fetchAllRequestRef.current) return;
     setLessons((lessonRows as Lesson[]) || []);
 
-    if (email) {
-      // Deliberately NOT scoped to hId, unlike the balance query this
-      // replaced. lesson_progress (what's unlocked/passed) has always been
-      // global per participant, with no hackathon_id at all — but coins
-      // were still tagged and filtered per-event, so a returning student's
-      // earned total silently reset every time they joined a new event
-      // even though everything they'd already learned stayed exactly where
-      // they left it. Lessons are a learning record, not a per-event
-      // competition score (that's what SP and Project Score are for), so
-      // the coin total now follows the same lifetime scope progress does.
-      const [{ data: prog, error: progErr }, { data: coinRows, error: coinErr }] = await Promise.all([
-        // p_device_token added (security audit) — this RPC used to trust a
-        // bare email with no proof of identity, letting anyone read any
-        // participant's full lesson completion history just by knowing
-        // their email. It sat right next to get_my_lesson_coin_points below
-        // (already hardened) and was missed in that pass.
-        rpcWithRetry(() => supabase.rpc('get_my_lesson_progress', { p_participant_email: email, p_device_token: effectiveToken || null })),
-        // Same RPC-not-raw-select fix as the registration lookup above —
-        // point_events also has a wide-open SELECT policy. p_device_token
-        // added (security audit) — no proof of identity existed before.
-        rpcWithRetry(() => supabase.rpc('get_my_lesson_coin_points', { p_participant_email: email, p_device_token: effectiveToken || null })),
-      ]);
-      if (requestId !== fetchAllRequestRef.current) return;
+    if (progressResult) {
+      const [{ data: prog, error: progErr }, { data: coinRows, error: coinErr }] = progressResult;
       // Both used to be destructured for .data only — a transient failure
       // (network blip, or deviceToken momentarily stale right after a mint)
       // silently fell through to setProgress({}), making a student's whole
@@ -414,7 +430,7 @@ export const LessonsPanel = () => {
       setProgress({});
       setLessonCoinsEarned(0);
     }
-    if (requestId === fetchAllRequestRef.current) setIsLoading(false);
+    setIsLoading(false);
   }, [email]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
