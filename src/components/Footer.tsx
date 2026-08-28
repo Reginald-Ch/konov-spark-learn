@@ -25,12 +25,13 @@ export const Footer = () => {
             <div className="flex items-center gap-4 mb-4">
               <RobotMascot type="happy" size="sm" />
               <h3 className="text-3xl font-fredoka font-bold text-primary">
-                KONOV
+                KONOV Technologies
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
-              Africa's first AI & ML literacy hub for kids. Teaching how intelligent systems think, 
-              how data drives decisions, and how algorithms power creativity.
+              Ghana's AI literacy hub helping young people understand, create, and build with
+              artificial intelligence — through hands-on programs, school workshops, hackathons, and
+              the Me AI creation platform.
             </p>
             <div className="flex gap-3">
               {[
@@ -61,9 +62,11 @@ export const Footer = () => {
               {[
                 { to: "/about", label: "About" },
                 { to: "/programs", label: "Programs" },
-                { to: "/contact", label: "Contact" },
-                { to: "/blog", label: "Blog" },
+                { to: "/me-ai", label: "Me AI" },
+                { to: "/for-schools", label: "For Schools" },
                 { to: "/hackathons", label: "FORGE Studio" },
+                { to: "/blog", label: "Blog" },
+                { to: "/contact", label: "Contact" },
               ].map((link, idx) => (
                 <li key={idx}>
                   <Link
@@ -83,7 +86,7 @@ export const Footer = () => {
                   className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
                 >
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  MeAI
+                  Open Me AI App
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </li>
@@ -95,8 +98,15 @@ export const Footer = () => {
             <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">More</h4>
             <ul className="space-y-3 font-space">
               {[
-                { to: "/community", label: "Community" },
+                { to: "/ai-classes-for-kids-accra", label: "AI Classes for Kids" },
+                { to: "/machine-learning-for-kids", label: "Machine Learning for Kids" },
+                { to: "/teacher-training", label: "Teacher Training" },
+                { to: "/tertiary-ai-innovation-hub", label: "Tertiary AI Innovation Hub" },
+                { to: "/youth-hackathons", label: "Youth AI Hackathons" },
+                { to: "/summer-ai-tech-camp", label: "Summer AI & Tech Camp" },
+                { to: "/ai-curriculum-support", label: "AI Curriculum Support" },
                 { to: "/resources", label: "Learn AI" },
+                { to: "/community", label: "Community" },
                 { to: "/waitlist", label: "Waitlist" },
               ].map((link, idx) => (
                 <li key={idx}>
@@ -120,6 +130,17 @@ export const Footer = () => {
                 <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" />
                 <span>hello@konovtech.com</span>
               </li>
+              <li>
+                <a
+                  href="https://wa.me/2340208741417"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  Chat on WhatsApp
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -127,7 +148,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t-4 border-foreground/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground font-space flex items-center gap-2">
-            © 2026 KONOV. Made with{" "}
+            © 2026 KONOV Technologies. Made with{" "}
             <motion.span
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
