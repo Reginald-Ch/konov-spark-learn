@@ -33,6 +33,53 @@ Allow: /
 User-agent: Pinterest
 Allow: /
 
+# AI / LLM crawlers — explicitly welcomed for AI search visibility (ChatGPT,
+# Claude, Perplexity, Google AI Overviews, Common Crawl-derived training sets).
+# The wildcard rule below already allows these, but naming them explicitly is
+# unambiguous and future-proofs against any of them ever getting a stricter
+# default policy elsewhere.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
 # Default rule for all other bots
 User-agent: *
 Allow: /

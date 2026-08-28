@@ -1,21 +1,40 @@
-# KONOV
+# KONOV Technologies
 
-> KONOV is Africa's first AI & ML literacy hub for kids ages 6–16, teaching how intelligent systems think through hands-on workshops, tech camps, and the MeAI learning app in Ghana.
+> KONOV Technologies is Ghana's AI literacy hub helping young people understand, create, and build with artificial intelligence — through hands-on programs, school workshops, hackathons, and the Me AI creation platform.
 
-KONOV builds practical AI and Machine Learning education for young African learners. Programs combine in-person workshops, a summer tech camp, community tech fairs, the MeAI ed-tech app, and the FORGE project studio where teens build real AI projects.
+KONOV Technologies is an edtech company, not a general coding/robotics school. Learners (ages 6-18) work with real data, train machine learning models, build chatbots and conversational AI, and create AI-powered projects. KONOV serves young learners, parents, schools, educators, tertiary students, NGOs, and organizations across Ghana and Africa.
 
-## Pages
+## Core Pages
 
-- [Home](/): Overview of KONOV's mission, programs, and impact.
-- [About](/about): Founder story, mission, values, and team behind KONOV.
-- [Programs](/programs): Workshops, Summer Tech Camp, and Tech Fair offerings for ages 6–16.
-- [Contact](/contact): Get in touch with the KONOV team.
+- [Home](/): KONOV Technologies' mission, programs, and impact.
+- [About](/about): Mission, vision, story, and values.
+- [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
+- [Me AI](/me-ai): KONOV's AI creation platform for learners ages 6-18 — build chatbots, train models, complete guided AI projects.
+- [For Schools](/for-schools): School partnerships — student workshops, teacher training, Me AI classroom access, AI clubs, hackathons.
+- [Contact](/contact): Reach KONOV Technologies by email or WhatsApp.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
-- [Hackathons / FORGE Studio](/hackathons): Teen project studio for building AI apps.
-- [MeAI App](https://meaitech.com): Companion ed-tech app for young AI learners.
+- [Hackathons / FORGE Studio](/hackathons): The live hackathon platform where learners build real Python-powered AI projects and compete.
+- [Me AI App](https://meaitech.com): The Me AI platform itself.
+
+## Program-Specific Pages
+
+- [AI Classes for Kids in Accra](/ai-classes-for-kids-accra): AI classes for children and teens ages 6-16.
+- [Machine Learning for Kids](/machine-learning-for-kids): How machine learning works, taught through hands-on projects.
+- [Teacher Training](/teacher-training): AI training for teachers and educators in Ghana.
+- [Tertiary AI Innovation Hub](/tertiary-ai-innovation-hub): Applied AI for tertiary/university students, featuring the free 7-day AI Builder Sprint (ends in a capstone hackathon with cash prizes).
+- [Youth AI Hackathons](/youth-hackathons): AI hackathons and innovation challenges for young people.
+- [Summer AI & Tech Camp](/summer-ai-tech-camp): Vacation AI and tech camp for primary through senior high learners.
+- [AI Curriculum Support for Schools](/ai-curriculum-support): Grade-level-aligned AI curriculum design and teacher training for schools.
 
 ## Optional
 
-- [Resources](/resources): Interactive AI learning resources and links to the MeAI app.
-- [Community](/community): Learning paths for AI Explorers, Young Builders, and Tech Ambassadors.
-- [Waitlist](/waitlist): Join the waitlist for upcoming programs and MeAI access.
+- [Resources](/resources): Interactive AI learning resources and guides.
+- [Community](/community): Learning paths — AI Explorers, Young Builders, and Tech Ambassadors.
+- [Waitlist](/waitlist): Join the waitlist for upcoming programs and Me AI access.
+
+## Key Facts
+
+- Official brand name: KONOV Technologies (also referenced as KONOV).
+- Product name: Me AI — KONOV's AI creation platform for learners ages 6-18.
+- Location: Accra, Ghana. Serves learners across Ghana and Africa.
+- Contact: hello@konovtech.com
