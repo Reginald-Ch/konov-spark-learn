@@ -252,6 +252,13 @@ export const LessonsPanel = () => {
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [resultWasRetake, setResultWasRetake] = useState(false);
   const [practicePick, setPracticePick] = useState<number | null>(null);
+  // Which "step" of the content phase is showing — the dialog used to stack
+  // every block (hook/explanation/code/visual/analogy/practice/code_practice/
+  // fun_fact/try_it) in one continuous scroll, which for a lesson with a full
+  // code_practice editor meant 8-9 blocks crammed into one pass. Paced into
+  // discrete steps instead, mirroring how the quiz phase already shows one
+  // question at a time rather than all of them at once.
+  const [contentStep, setContentStep] = useState(0);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewQuiz, setPreviewQuiz] = useState<(QuizQuestion & { correct_index: number; explanation: string | null })[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -550,6 +557,7 @@ export const LessonsPanel = () => {
     setAnswers({});
     setQIdx(0);
     setPracticePick(null);
+    setContentStep(0);
     setActiveContent(null);
     setContentLoading(true);
     // p_device_token added (security audit) — this RPC used to trust a bare
@@ -594,6 +602,7 @@ export const LessonsPanel = () => {
     setAnswers({});
     setQIdx(0);
     setPracticePick(null);
+    setContentStep(0);
     setActiveContent(null);
     setPreviewQuiz([]);
     setPreviewLoading(true);
