@@ -952,18 +952,19 @@ export const LessonsPanel = () => {
             these overrides the dialog was near-unreadable: pale gray text
             on a near-white background instead of matching the dark theme
             the rest of this page (and every other dialog in the app) uses. */}
-        <DialogContent onScroll={handleContentScroll} className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
-          {/* Reading-progress rail — sticky at the true top edge of the
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
+          {/* Step-progress rail — sticky at the true top edge of the
               scrollable dialog (negative margins cancel DialogContent's own
-              p-6 so it bleeds full-width instead of floating inset). Purely
-              a "you are here" cue through the lesson, not tied to completion. */}
-          {activeLesson && (
+              p-6 so it bleeds full-width instead of floating inset). Reflects
+              which content STEP you're on, not raw scroll position — more
+              meaningful now that each step is short and self-contained. */}
+          {activeLesson && phase === 'content' && activeContent && contentSteps.length > 0 && (
             <div className="sticky top-0 -mx-6 -mt-6 h-1 bg-white/10 z-20">
               <motion.div
                 className="h-full bg-[hsl(var(--discord-blurple))]"
                 initial={false}
-                animate={{ width: `${readProgress}%` }}
-                transition={{ type: 'tween', duration: 0.1 }}
+                animate={{ width: `${((contentStep + 1) / contentSteps.length) * 100}%` }}
+                transition={{ type: 'spring', stiffness: 200, damping: 30 }}
               />
             </div>
           )}
@@ -995,51 +996,115 @@ export const LessonsPanel = () => {
                 </DialogTitle>
                 <DialogDescription className="text-[hsl(var(--discord-text-muted))]">{activeLesson.summary}</DialogDescription>
               </DialogHeader>
-              <div className="space-y-3 mt-2">
+
+              {/* Step dots — a lesson with 4 steps shows 4 dots; clicking a
+                  PAST dot jumps back (re-reading something already seen is
+                  free), but future dots aren't clickable, since practice/
+                  code_practice steps are meant to be reached in order. */}
+              {activeContent && contentSteps.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 -mt-1 mb-1">
+                  {contentSteps.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={i > contentStep}
+                      onClick={() => i <= contentStep && setContentStep(i)}
+                      aria-label={`Go to step ${i + 1} of ${contentSteps.length}`}
+                      aria-current={i === contentStep}
+                      className={`h-1.5 rounded-full transition-all ${
+                        i === contentStep
+                          ? 'w-5 bg-[hsl(var(--discord-blurple))]'
+                          : i < contentStep
+                          ? 'w-1.5 bg-[hsl(var(--discord-blurple)/0.5)] cursor-pointer hover:bg-[hsl(var(--discord-blurple)/0.8)]'
+                          : 'w-1.5 bg-white/15 cursor-default'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3 mt-2 min-h-[120px]">
                 {(previewMode ? previewLoading : contentLoading) ? (
                   <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-white/60" /></div>
                 ) : activeContent ? (
-                  <>
-                    <ContentBlock icon={<Lightbulb className="w-4 h-4" />} color="#F7941D" text={activeContent.hook} delay={0} />
-                    <VideoBlock videoUrl={activeContent.video_url} delay={0.03} />
-                    <ContentBlock icon={<Brain className="w-4 h-4" />} color="#5865F2" text={activeContent.explanation} delay={0.05} />
-                    <CodeBlock code={activeContent.code} delay={0.07} />
-                    <VisualBlock visual={activeContent.visual} delay={0.08} />
-                    <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0.1} />
-                    <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} delay={0.13} />
-                    {activeContent.code_practice && (
-                      <CodePracticeCell key={activeLesson.id} lessonId={activeLesson.id} practice={activeContent.code_practice} delay={0.16} />
-                    )}
-                    <ContentBlock icon={<Star className="w-4 h-4" />} color="#006600" text={activeContent.fun_fact} label="Fun fact" delay={0.15} />
-                    <ContentBlock icon={<PartyPopper className="w-4 h-4" />} color="#C70110" text={activeContent.try_it} label="Try it" delay={0.2} />
-                  </>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={contentStep}
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -12 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-3"
+                    >
+                      {contentSteps[contentStep] === 'hook' && (
+                        <>
+                          <ContentBlock icon={<Lightbulb className="w-4 h-4" />} color="#F7941D" text={activeContent.hook} delay={0} />
+                          <VideoBlock videoUrl={activeContent.video_url} delay={0.05} />
+                        </>
+                      )}
+                      {contentSteps[contentStep] === 'explanation' && (
+                        <ContentBlock icon={<Brain className="w-4 h-4" />} color="#5865F2" text={activeContent.explanation} delay={0} />
+                      )}
+                      {contentSteps[contentStep] === 'code' && (
+                        <CodeBlock code={activeContent.code} delay={0} />
+                      )}
+                      {contentSteps[contentStep] === 'visual' && (
+                        <VisualBlock visual={activeContent.visual} delay={0} />
+                      )}
+                      {contentSteps[contentStep] === 'analogy' && (
+                        <>
+                          <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0} />
+                          <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} delay={0.05} />
+                        </>
+                      )}
+                      {contentSteps[contentStep] === 'code_practice' && activeContent.code_practice && (
+                        <CodePracticeCell key={activeLesson.id} lessonId={activeLesson.id} practice={activeContent.code_practice} delay={0} />
+                      )}
+                      {contentSteps[contentStep] === 'closing' && (
+                        <>
+                          <ContentBlock icon={<Star className="w-4 h-4" />} color="#006600" text={activeContent.fun_fact} label="Fun fact" delay={0} />
+                          <ContentBlock icon={<PartyPopper className="w-4 h-4" />} color="#C70110" text={activeContent.try_it} label="Try it" delay={0.05} />
+                          {previewMode && previewQuiz.length > 0 && (
+                            <div className="rounded-lg p-3 border bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] space-y-2">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-white/50">Quiz preview — {previewQuiz.length} questions</p>
+                              {previewQuiz.map((q, qi) => (
+                                <div key={q.id} className="text-xs border-t border-white/5 pt-2 first:border-t-0 first:pt-0">
+                                  <p className="font-medium text-white/90">{qi + 1}. {q.question}</p>
+                                  <ul className="mt-1 space-y-0.5">
+                                    {q.options.map((opt, oi) => (
+                                      <li key={oi} className={oi === q.correct_index ? 'text-green-400 font-semibold' : 'text-white/50'}>
+                                        {oi === q.correct_index ? '✅ ' : '· '}{opt}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  {q.explanation && <p className="text-white/40 mt-1 italic">{q.explanation}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 ) : (
                   <p className="text-sm text-[hsl(var(--discord-text-muted))]">Content coming soon.</p>
                 )}
 
-                {previewMode && previewQuiz.length > 0 && (
-                  <div className="rounded-lg p-3 border bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.15)] space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-white/50">Quiz preview — {previewQuiz.length} questions</p>
-                    {previewQuiz.map((q, qi) => (
-                      <div key={q.id} className="text-xs border-t border-white/5 pt-2 first:border-t-0 first:pt-0">
-                        <p className="font-medium text-white/90">{qi + 1}. {q.question}</p>
-                        <ul className="mt-1 space-y-0.5">
-                          {q.options.map((opt, oi) => (
-                            <li key={oi} className={oi === q.correct_index ? 'text-green-400 font-semibold' : 'text-white/50'}>
-                              {oi === q.correct_index ? '✅ ' : '· '}{opt}
-                            </li>
-                          ))}
-                        </ul>
-                        {q.explanation && <p className="text-white/40 mt-1 italic">{q.explanation}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 <div className="flex gap-2 pt-2">
-                  <Button variant="ghost" onClick={closeDialog} className="flex-1">Close</Button>
-                  {!previewMode && (
-                    <Button onClick={startQuiz} className="flex-1" disabled={!activeContent || startingQuiz}>
+                  {contentStep === 0 ? (
+                    <Button variant="ghost" onClick={closeDialog} className="flex-1">Close</Button>
+                  ) : (
+                    <Button variant="ghost" onClick={() => setContentStep(s => Math.max(0, s - 1))} className="flex-1">
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                    </Button>
+                  )}
+                  {activeContent && !isLastContentStep && (
+                    <Button onClick={() => setContentStep(s => Math.min(contentSteps.length - 1, s + 1))} className="flex-1">
+                      Next <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  )}
+                  {activeContent && isLastContentStep && !previewMode && (
+                    <Button onClick={startQuiz} className="flex-1" disabled={startingQuiz}>
                       {startingQuiz ? (
                         <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Loading...</>
                       ) : progress[activeLesson.id]?.passed ? (
@@ -1049,6 +1114,13 @@ export const LessonsPanel = () => {
                       )}
                     </Button>
                   )}
+                  {/* Preview mode's last step needs no right-hand button — the
+                      left slot already offers Close (step 0) or Back
+                      (later steps), and the dialog's own corner X is always
+                      available too. Without this exclusion, a single-step
+                      preview lesson would show "Close" AND "Close Preview"
+                      side by side, since contentStep === 0 and
+                      isLastContentStep would both be true at once. */}
                 </div>
               </div>
             </>
