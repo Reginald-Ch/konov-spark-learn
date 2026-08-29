@@ -22,6 +22,10 @@ import { MilestoneCelebration } from './ForgeWalkthrough';
 import { getYouTubeEmbedUrl } from '@/lib/utils';
 import { ensureHackathonRegistration } from '@/lib/identity';
 import { CoinIcon } from './CoinIcon';
+import { TokenizerExplorer } from './TokenizerExplorer';
+import { EmbeddingSpaceExplorer } from './EmbeddingSpaceExplorer';
+import { GradientDescentAnimator } from './GradientDescentAnimator';
+import { ConfusionMatrixExplorer } from './ConfusionMatrixExplorer';
 
 interface Lesson {
   id: string;
@@ -66,6 +70,11 @@ interface LessonContent {
   code?: string;
   analogy?: string;
   visual?: VisualDiagram;
+  // Opt-in hands-on widget for the handful of concepts (tokenization,
+  // embeddings) where a static diagram genuinely under-serves the material —
+  // these are inherently spatial/dynamic ideas, better explored than read
+  // about. A fixed, small set of reusable components, not one-off per lesson.
+  interactive?: { kind: 'tokenizer' | 'embedding_space' | 'gradient_descent' | 'confusion_matrix' };
   practice?: PracticeCheck;
   code_practice?: CodePractice;
   fun_fact?: string;
@@ -757,11 +766,12 @@ export const LessonsPanel = () => {
   // per lesson since which steps exist varies lesson to lesson.
   const contentSteps = useMemo(() => {
     if (!activeContent) return [];
-    const steps: Array<'hook' | 'explanation' | 'code' | 'visual' | 'analogy' | 'code_practice' | 'closing'> = [];
+    const steps: Array<'hook' | 'explanation' | 'code' | 'visual' | 'interactive' | 'analogy' | 'code_practice' | 'closing'> = [];
     if (activeContent.hook || activeContent.video_url) steps.push('hook');
     if (activeContent.explanation) steps.push('explanation');
     if (activeContent.code) steps.push('code');
     if (activeContent.visual) steps.push('visual');
+    if (activeContent.interactive) steps.push('interactive');
     if (activeContent.analogy || activeContent.practice) steps.push('analogy');
     if (activeContent.code_practice) steps.push('code_practice');
     if (activeContent.fun_fact || activeContent.try_it || (previewMode && previewQuiz.length > 0)) steps.push('closing');
@@ -1050,6 +1060,18 @@ export const LessonsPanel = () => {
                       )}
                       {contentSteps[contentStep] === 'visual' && (
                         <VisualBlock visual={activeContent.visual} delay={0} />
+                      )}
+                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'tokenizer' && (
+                        <TokenizerExplorer />
+                      )}
+                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'embedding_space' && (
+                        <EmbeddingSpaceExplorer />
+                      )}
+                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'gradient_descent' && (
+                        <GradientDescentAnimator />
+                      )}
+                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'confusion_matrix' && (
+                        <ConfusionMatrixExplorer />
                       )}
                       {contentSteps[contentStep] === 'analogy' && (
                         <>
