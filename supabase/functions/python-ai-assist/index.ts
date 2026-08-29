@@ -280,139 +280,141 @@ function calculate(expression: string): string {
   }
 }
 
-// Determine which tool to use based on the user's message and available tools
+async function runOneTool(tool: string, query: string): Promise<string | undefined> {
+  switch (tool) {
+    case 'web_search': return await webSearch(query);
+    case 'wikipedia': return await wikiSearch(query);
+    case 'calculator': return calculate(query);
+    default: return undefined;
+  }
+}
+
+// One real step of a genuine multi-round agent loop: given the user's
+// message and everything observed in EARLIER steps this same turn, ask the
+// model whether it needs another tool (and which one) or is ready to answer.
+// Returns null on any failure (bad response, unparseable JSON, gateway
+// error) — every caller treats that exactly like "done, no more tools
+// needed" rather than surfacing an error, so a routing hiccup mid-loop
+// degrades to "answer with whatever was learned so far" instead of breaking
+// the whole response.
+async function decideNextStep(
+  userMessage: string,
+  tools: Record<string, string>,
+  observationsSoFar: string,
+  apiKey: string,
+): Promise<{ done: true } | { done: false; thought: string; tool: string; query: string } | null> {
+  const prompt = `You are a tool-using agent working step by step. Given the user's message and what you've already learned this turn, decide your NEXT single action.
+
+Available tools:
+${Object.entries(tools).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+User message: "${userMessage}"
+${observationsSoFar ? `\nWhat you've found so far this turn:\n${observationsSoFar}\n` : ''}
+Rules:
+- Return ONLY a JSON object, no other text.
+- If you need to use a tool next: {"done": false, "thought": "one short sentence on why", "tool": "tool_name", "query": "search query or expression"}
+- If you already have enough to answer, or no tool applies: {"done": true}
+- For calculator: extract the math expression only. For web_search: the search query. For wikipedia: the topic name.
+
+Response (JSON object only):`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+        max_tokens: 200,
+      }),
+      signal: controller.signal,
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (parsed?.done === true) return { done: true };
+    if (parsed?.done === false && typeof parsed.tool === 'string' && typeof parsed.query === 'string') {
+      return { done: false, thought: typeof parsed.thought === 'string' ? parsed.thought : '', tool: parsed.tool, query: parsed.query };
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// A genuine multi-round agent loop — decide, act, observe, decide again —
+// instead of the single "route once, run once, answer once" round this
+// replaced. Capped at a small, hardcoded MAX_TOOL_STEPS regardless of any
+// config a student sets: this makes real extra gateway calls per turn, and
+// an unbounded loop on a shared paid key is a real cost/latency risk, not
+// just a correctness one. Reuses exactly the same tool implementations,
+// timeout pattern, and one-slot-for-the-whole-decision-phase pattern the
+// single-round version used — same fallback-safe contract too: any failure
+// at any step just stops the loop early and returns whatever was
+// genuinely learned before that point, never throws.
+const MAX_TOOL_STEPS = 3;
+
 async function determineAndRunTools(
   userMessage: string,
   tools: Record<string, string>,
   apiKey: string,
   supabaseAdmin: ReturnType<typeof createClient>
-): Promise<{ toolResults: string; toolsUsed: string[] }> {
+): Promise<{ toolResults: string; toolsUsed: string[]; trace: { thought: string; tool: string; query: string; observation: string }[] }> {
   const availableTools = Object.keys(tools);
-  if (availableTools.length === 0) return { toolResults: "", toolsUsed: [] };
+  if (availableTools.length === 0) return { toolResults: "", toolsUsed: [], trace: [] };
 
-  // This is a quick, non-streaming classification call, but it shares the same
-  // gateway key as the main call — gate it too, with a short TTL. If no slot is
-  // free, skip tool use for this message rather than block/queue: this is a
-  // best-effort enhancement to the response, not the core answer.
+  // Shares the same gateway key as the main call — gate the WHOLE loop with
+  // one slot for its duration, not one per step, so a chatty multi-step turn
+  // can't monopolize multiple slots out of the shared pool at once.
   let toolSlotId: number | null = null;
   const { data: acquiredToolSlot, error: acquireToolSlotError } = await supabaseAdmin.rpc("acquire_ai_slot", {
-    p_ttl_seconds: 30,
+    p_ttl_seconds: 45,
   });
   if (acquireToolSlotError) {
     console.error("acquire_ai_slot (tool routing) error:", acquireToolSlotError);
   } else if (acquiredToolSlot === null) {
-    return { toolResults: "", toolsUsed: [] };
+    return { toolResults: "", toolsUsed: [], trace: [] };
   } else {
     toolSlotId = acquiredToolSlot;
   }
 
-  // Ask the AI which tool to use and what query to send
-  const toolDecisionPrompt = `You are a tool-routing agent. Given the user's message, decide which tool(s) to use and what query to send to each.
-
-Available tools: ${availableTools.map(t => `"${t}"`).join(', ')}
-
-Tool descriptions:
-${Object.entries(tools).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
-
-Rules:
-- Return ONLY a JSON array of tool calls. No other text.
-- Each entry: {"tool": "tool_name", "query": "search query or expression"}
-- Use at most 2 tools per request.
-- If no tool is needed (simple greeting, opinion, etc.), return an empty array: []
-- For calculator: extract the math expression only
-- For web_search: extract the search query
-- For wikipedia: extract the topic name
-
-User message: "${userMessage}"
-
-Response (JSON array only):`;
-
   try {
-    // Every other outbound call in this file is bounded (webSearch/
-    // wikiSearch via fetchWithTimeout, the main gateway call has its own
-    // deadline) — this one wasn't, despite holding an ai_slot for its
-    // duration. A hung gateway connection here blocked the whole request
-    // (and the slot) with no application-level ceiling.
-    const toolRoutingController = new AbortController();
-    const toolRoutingTimer = setTimeout(() => toolRoutingController.abort(), 8000);
-    let resp: Response;
-    try {
-      resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [{ role: "user", content: toolDecisionPrompt }],
-          temperature: 0,
-          max_tokens: 200,
-        }),
-        signal: toolRoutingController.signal,
-      });
-    } finally {
-      clearTimeout(toolRoutingTimer);
+    const trace: { thought: string; tool: string; query: string; observation: string }[] = [];
+    const toolsUsed: string[] = [];
+    let observationsSoFar = "";
+
+    for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+      const decision = await decideNextStep(userMessage, tools, observationsSoFar, apiKey);
+      if (!decision || decision.done) break;
+
+      const observation = await runOneTool(decision.tool, decision.query);
+      if (observation === undefined) {
+        // An unrecognized tool name — same "drop it, don't echo an LLM-
+        // controlled placeholder back into context" choice the single-round
+        // version made. Stop rather than loop again on the same bad state.
+        break;
+      }
+      trace.push({ thought: decision.thought, tool: decision.tool, query: decision.query, observation });
+      toolsUsed.push(decision.tool);
+      observationsSoFar += `\nStep ${step + 1}: called ${decision.tool}("${decision.query}") -> ${observation}`;
     }
 
-    if (!resp.ok) return { toolResults: "", toolsUsed: [] };
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
-    
-    // Parse the JSON array from the response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return { toolResults: "", toolsUsed: [] };
-    
-    let toolCalls: any[];
-    try {
-      toolCalls = JSON.parse(jsonMatch[0]);
-    } catch {
-      console.error("Failed to parse tool routing JSON:", jsonMatch[0].slice(0, 200));
-      return { toolResults: "", toolsUsed: [] };
-    }
-    if (!Array.isArray(toolCalls) || toolCalls.length === 0) return { toolResults: "", toolsUsed: [] };
-    
-    // Execute tools in parallel
-    const results: string[] = [];
-    const toolsUsed: string[] = [];
-    
-    const promises = toolCalls.slice(0, 2).map(async (call: { tool: string; query: string }) => {
-      if (!call.tool || !call.query) return;
-      // toolsUsed used to record call.tool unconditionally, before the
-      // switch below ever checked whether it was a real tool — an LLM
-      // hallucinating a tool name that doesn't exist got recorded as
-      // "used" anyway, and the resulting "[Unknown tool: ...]" string
-      // (itself LLM-controlled) still flowed into the system-role context
-      // via toolResults below regardless. Now only a genuinely dispatched
-      // tool counts as used, and an unknown one is dropped rather than
-      // echoed back into the prompt.
-      switch (call.tool) {
-        case 'web_search':
-          toolsUsed.push(call.tool);
-          return await webSearch(call.query);
-        case 'wikipedia':
-          toolsUsed.push(call.tool);
-          return await wikiSearch(call.query);
-        case 'calculator':
-          toolsUsed.push(call.tool);
-          return calculate(call.query);
-        default:
-          return undefined;
-      }
-    });
-    
-    const resolvedResults = await Promise.all(promises);
-    for (const r of resolvedResults) {
-      if (r) results.push(r);
-    }
-    
-    return {
-      toolResults: results.length > 0 ? `\n\n═══ REAL TOOL RESULTS (use these in your response) ═══\n${results.join('\n\n')}\n═══ END TOOL RESULTS ═══\n` : "",
-      toolsUsed,
-    };
+    const toolResults = trace.length > 0
+      ? `\n\n═══ REAL TOOL RESULTS (use these in your response) ═══\n${trace.map((t, i) => `Step ${i + 1} — ${t.tool}("${t.query}"): ${t.observation}`).join('\n\n')}\n═══ END TOOL RESULTS ═══\n`
+      : "";
+
+    return { toolResults, toolsUsed, trace };
   } catch (e) {
-    console.error("Tool routing error:", e);
-    return { toolResults: "", toolsUsed: [] };
+    console.error("Tool loop error:", e);
+    return { toolResults: "", toolsUsed: [], trace: [] };
   } finally {
     if (toolSlotId !== null) {
       const { error } = await supabaseAdmin.rpc("release_ai_slot", { p_slot_id: toolSlotId });
@@ -651,16 +653,10 @@ serve(async (req) => {
       }
 
       // Agent-specific: ReAct reasoning
-      if (cfg.showReasoning) {
-        botConfigContext += `\n\n🧠 REASONING MODE — You are an AGENT, not a simple chatbot. For EVERY response, you MUST show your thinking process using this EXACT format:
-
-**🤔 Thought:** [What you're thinking about the question — analyze what the user needs]
-**🔧 Action:** [Which tool you used: 🔍 Web Search, 🧮 Calculator, or 📚 Wikipedia — and why]
-**👁️ Observation:** [What you found from the REAL TOOL RESULTS provided below — present the key findings]
-**💡 Answer:** [Your final synthesized response to the user based on REAL data]
-
-IMPORTANT: You MUST use these exact headers with bold markdown (**) and emojis for EVERY response. When REAL TOOL RESULTS are provided, you MUST reference and use them in your Observation and Answer. Do NOT make up data — use the real results. For complex questions, show all 4 steps. You may repeat Thought → Action → Observation multiple times for multi-step problems before giving the final Answer.`;
-      }
+      // showReasoning's instruction text moved to right after the real tool
+      // loop runs (below, near "Real tool calling for agent projects") — it
+      // now presents the ACTUAL step-by-step trace from that loop instead of
+      // asking the model to invent a plausible-looking one from nothing.
       if (cfg.toolInstructions && Object.keys(cfg.toolInstructions).length > 0) {
         botConfigContext += `\n\nTOOL USAGE INSTRUCTIONS:\n`;
         for (const [tool, instruction] of Object.entries(cfg.toolInstructions)) {
@@ -797,11 +793,15 @@ Format as plain terminal text with emojis. Under 300 words.`;
       }
 
       // ── Real tool calling for agent projects ──
+      // A genuine multi-round loop now (decide -> act -> observe -> decide
+      // again, up to MAX_TOOL_STEPS) — see determineAndRunTools — instead of
+      // the old single-round "route once, run once" version.
       let toolResultsContext = "";
       let toolsUsedNames: string[] = [];
-      
+      let realTrace: { thought: string; tool: string; query: string; observation: string }[] = [];
+
       if (botConfig?.tools && Object.keys(botConfig.tools).length > 0) {
-        const { toolResults, toolsUsed } = await determineAndRunTools(
+        const { toolResults, toolsUsed, trace } = await determineAndRunTools(
           code, // code is the user message in test-agent
           botConfig.tools,
           LOVABLE_API_KEY,
@@ -809,8 +809,26 @@ Format as plain terminal text with emojis. Under 300 words.`;
         );
         toolResultsContext = toolResults;
         toolsUsedNames = toolsUsed;
+        realTrace = trace;
       }
-      
+
+      // Presents the REAL trace from the loop above — the model is asked to
+      // format genuine steps it actually took, not to invent a plausible-
+      // looking Thought/Action/Observation sequence from nothing. If no
+      // tools ran this turn (a genuinely simple question), it's told that
+      // honestly too, rather than fabricating steps to satisfy the format.
+      if (botConfig?.showReasoning) {
+        if (realTrace.length > 0) {
+          botConfigContext += `\n\n🧠 REASONING MODE — You are an AGENT. Present the REAL steps you actually took this turn, one per step, then your final answer:
+
+${realTrace.map((t, i) => `Step ${i + 1} — **🤔 Thought:** ${t.thought || 'Needed more information.'}\n**🔧 Action:** called ${t.tool}("${t.query}")\n**👁️ Observation:** ${t.observation}`).join('\n\n')}
+
+After presenting each real step above (using the same bold-header format), give a final **💡 Answer:** synthesizing them. Do not invent any additional steps beyond the ones listed here.`;
+        } else {
+          botConfigContext += `\n\n🧠 REASONING MODE — You are an AGENT. No tool was actually needed for this message — say so honestly (e.g. "**🤔 Thought:** This didn't need a tool, I can answer directly.") rather than inventing a fake Action/Observation, then give your **💡 Answer:**.`;
+        }
+      }
+
       const agentPrompt = systemPrompt || "You are a helpful AI assistant.";
       sysPrompt = `You are an AI that a student built. Your core personality is defined by this prompt:
 
