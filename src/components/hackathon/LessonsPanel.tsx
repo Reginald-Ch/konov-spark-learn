@@ -13,6 +13,7 @@ import {
   GraduationCap, Lock, CheckCircle2, Loader2, PlayCircle,
   Lightbulb, Brain, Puzzle, PartyPopper, ChevronRight, ChevronLeft, RotateCcw,
   ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown, Eye, Star,
+  Volume2, VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lintPython } from './editorFeatures';
@@ -255,6 +256,15 @@ export const LessonsPanel = () => {
   const [previewQuiz, setPreviewQuiz] = useState<(QuizQuestion & { correct_index: number; explanation: string | null })[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const isOrganizer = getStoredAdminRole() === 'organizer';
+  // Read-aloud narration (Web Speech API — free, built into the browser, no
+  // backend/API cost). Chosen over a paid TTS API for v1: this is an opt-in
+  // accessibility feature, not core functionality, so it doesn't justify the
+  // infrastructure (edge function, audio caching/storage) a paid API would need.
+  const [isNarrating, setIsNarrating] = useState(false);
+  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  // Scroll position through the lesson dialog, 0-100 — drives the reading-
+  // progress bar pinned to the top of the dialog.
+  const [readProgress, setReadProgress] = useState(0);
   // Bumped every time a lesson/preview/quiz-content fetch starts; each fetch
   // captures its own value and checks it's still current before applying its
   // result. Without this, opening lesson A then quickly opening lesson B
@@ -686,10 +696,56 @@ export const LessonsPanel = () => {
     }
   };
 
-  const closeDialog = () => { setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setResultWasRetake(false); setPreviewMode(false); setPreviewQuiz([]); };
+  // Reads a lesson's prose fields aloud, one utterance per section so each
+  // gets a natural pause — skips code/visual since those aren't meaningful
+  // read aloud. Queuing separate utterances (rather than one giant string)
+  // is also what lets a browser's "next"/boundary handling work sensibly if
+  // the user's OS exposes media controls for it.
+  const stopNarration = useCallback(() => {
+    if (speechSupported) window.speechSynthesis.cancel();
+    setIsNarrating(false);
+  }, [speechSupported]);
+
+  const startNarration = () => {
+    if (!speechSupported || !activeContent || !activeLesson) return;
+    window.speechSynthesis.cancel();
+    const sections: string[] = [`${activeLesson.title}.`];
+    if (activeContent.hook) sections.push(activeContent.hook);
+    if (activeContent.explanation) sections.push(activeContent.explanation);
+    if (activeContent.analogy) sections.push(`Here's an analogy. ${activeContent.analogy}`);
+    if (activeContent.fun_fact) sections.push(`Fun fact. ${activeContent.fun_fact}`);
+    if (activeContent.try_it) sections.push(`Try it yourself. ${activeContent.try_it}`);
+    const utterances = sections.map(text => new SpeechSynthesisUtterance(text));
+    utterances.forEach((u, i) => {
+      u.rate = 0.98;
+      // Only the LAST utterance's onend fires "playback actually finished" —
+      // every earlier one's onend just means that section ended and the next
+      // is about to start, which isn't a state change worth reacting to.
+      if (i === utterances.length - 1) u.onend = () => setIsNarrating(false);
+    });
+    utterances.forEach(u => window.speechSynthesis.speak(u));
+    setIsNarrating(true);
+  };
+
+  const toggleNarration = () => { if (isNarrating) stopNarration(); else startNarration(); };
+
+  // Narration must never keep playing after its lesson is gone — closing the
+  // dialog, switching lessons, or leaving the content phase (e.g. starting
+  // the quiz) all silently orphan any in-flight speech otherwise, since
+  // speechSynthesis is a global browser API with no idea the dialog closed.
+  useEffect(() => {
+    return () => { if (speechSupported) window.speechSynthesis.cancel(); };
+  }, [activeLesson?.id, phase, speechSupported]);
+
+  const closeDialog = () => { stopNarration(); setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setResultWasRetake(false); setPreviewMode(false); setPreviewQuiz([]); setReadProgress(0); };
   const requestCloseDialog = () => {
     if (phase === 'quiz') { setConfirmCloseOpen(true); return; }
     closeDialog();
+  };
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const max = el.scrollHeight - el.clientHeight;
+    setReadProgress(max <= 0 ? 100 : Math.min(100, (el.scrollTop / max) * 100));
   };
 
   if (isLoading) {
@@ -875,7 +931,21 @@ export const LessonsPanel = () => {
             these overrides the dialog was near-unreadable: pale gray text
             on a near-white background instead of matching the dark theme
             the rest of this page (and every other dialog in the app) uses. */}
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
+        <DialogContent onScroll={handleContentScroll} className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light))] text-white">
+          {/* Reading-progress rail — sticky at the true top edge of the
+              scrollable dialog (negative margins cancel DialogContent's own
+              p-6 so it bleeds full-width instead of floating inset). Purely
+              a "you are here" cue through the lesson, not tied to completion. */}
+          {activeLesson && (
+            <div className="sticky top-0 -mx-6 -mt-6 h-1 bg-white/10 z-20">
+              <motion.div
+                className="h-full bg-[hsl(var(--discord-blurple))]"
+                initial={false}
+                animate={{ width: `${readProgress}%` }}
+                transition={{ type: 'tween', duration: 0.1 }}
+              />
+            </div>
+          )}
           {activeLesson && phase === 'content' && (
             <>
               <DialogHeader>
@@ -885,6 +955,21 @@ export const LessonsPanel = () => {
                     <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[hsl(var(--discord-blurple)/0.2)] text-[hsl(var(--discord-blurple))] border border-[hsl(var(--discord-blurple)/0.4)]">
                       Preview — no coins spent
                     </span>
+                  )}
+                  {!previewMode && activeContent && speechSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleNarration}
+                      title={isNarrating ? 'Stop reading aloud' : 'Read this lesson aloud'}
+                      aria-label={isNarrating ? 'Stop reading aloud' : 'Read this lesson aloud'}
+                      className={`ml-auto flex-shrink-0 p-1.5 rounded-full border transition-colors ${
+                        isNarrating
+                          ? 'bg-[hsl(var(--discord-blurple)/0.25)] border-[hsl(var(--discord-blurple)/0.6)] text-[hsl(var(--discord-blurple))] animate-pulse'
+                          : 'bg-white/5 border-white/15 text-white/60 hover:text-white hover:border-white/30'
+                      }`}
+                    >
+                      {isNarrating ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    </button>
                   )}
                 </DialogTitle>
                 <DialogDescription className="text-[hsl(var(--discord-text-muted))]">{activeLesson.summary}</DialogDescription>
