@@ -1217,8 +1217,64 @@ const VideoBlock = ({ videoUrl, delay }: { videoUrl?: string; delay: number }) =
   );
 };
 
+type PyToken = { text: string; type: 'keyword' | 'string' | 'comment' | 'number' | 'plain' };
+
+const PY_KEYWORDS = new Set([
+  'def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'import', 'from', 'as', 'class',
+  'True', 'False', 'None', 'and', 'or', 'not', 'is', 'break', 'continue', 'pass', 'try', 'except',
+  'finally', 'raise', 'with', 'lambda', 'yield', 'global', 'nonlocal', 'assert', 'del',
+]);
+
+// A read-only display highlighter, not a parser for live-edited code (that's
+// what lintPython in editorFeatures.ts is for) — this only ever runs on
+// complete, already-authored lesson code, so it can be a simpler single-pass
+// tokenizer. Walks match boundaries and pushes the untouched gap between each
+// match as its own 'plain' token, which is what guarantees every character of
+// the original string survives — joining every token.text back together
+// always reconstructs `code` exactly, so this can never visibly corrupt or
+// drop part of an example.
+function tokenizePython(code: string): PyToken[] {
+  const tokens: PyToken[] = [];
+  const pattern = /#[^\n]*|'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|\b\d+\.?\d*\b|[A-Za-z_][A-Za-z0-9_]*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(code))) {
+    if (match.index > lastIndex) tokens.push({ text: code.slice(lastIndex, match.index), type: 'plain' });
+    const text = match[0];
+    let type: PyToken['type'] = 'plain';
+    if (text.startsWith('#')) type = 'comment';
+    else if (text[0] === "'" || text[0] === '"') type = 'string';
+    else if (/^\d/.test(text)) type = 'number';
+    else if (PY_KEYWORDS.has(text)) type = 'keyword';
+    tokens.push({ text, type });
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < code.length) tokens.push({ text: code.slice(lastIndex), type: 'plain' });
+  return tokens;
+}
+
+const PY_TOKEN_COLOR: Record<PyToken['type'], string> = {
+  keyword: 'text-[#c678dd]',
+  string: 'text-[#98c379]',
+  comment: 'text-[#5c6370] italic',
+  number: 'text-[#d19a66]',
+  plain: 'text-[#e6e6e6]',
+};
+
 const CodeBlock = ({ code, delay }: { code?: string; delay: number }) => {
+  const [copied, setCopied] = useState(false);
+  const tokens = useMemo(() => (code ? tokenizePython(code) : []), [code]);
   if (!code) return null;
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API can be denied/unavailable (permissions, insecure
+      // context) — nothing meaningful to recover, the button just no-ops.
+    }
+  };
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
       className="rounded-lg overflow-hidden border border-[hsl(var(--discord-light)/0.15)]">
@@ -1227,8 +1283,14 @@ const CodeBlock = ({ code, delay }: { code?: string; delay: number }) => {
         <span className="w-2 h-2 rounded-full bg-amber-500/60" />
         <span className="w-2 h-2 rounded-full bg-green-500/60" />
         <span className="text-[10px] text-white/40 ml-2 font-mono">python</span>
+        <button type="button" onClick={handleCopy} title="Copy code" aria-label="Copy code"
+          className="ml-auto flex items-center gap-1 text-[10px] text-white/40 hover:text-white/80 transition-colors">
+          {copied ? <><Check className="w-3 h-3 text-green-400" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+        </button>
       </div>
-      <pre className="bg-[#0d0d0d] p-3 overflow-x-auto"><code className="text-xs font-mono text-[#e6e6e6] leading-relaxed whitespace-pre">{code}</code></pre>
+      <pre className="bg-[#0d0d0d] p-3 overflow-x-auto"><code className="text-xs font-mono leading-relaxed whitespace-pre">
+        {tokens.map((t, i) => <span key={i} className={PY_TOKEN_COLOR[t.type]}>{t.text}</span>)}
+      </code></pre>
     </motion.div>
   );
 };
@@ -1324,12 +1386,13 @@ const VisualBlock = ({ visual, delay }: { visual?: VisualDiagram; delay: number 
   );
 };
 
-const PracticeBlock = ({ practice, picked, onPick, delay }: {
-  practice?: PracticeCheck; picked: number | null; onPick: (i: number) => void; delay: number;
+const PracticeBlock = ({ practice, picked, onPick, onRetry, delay }: {
+  practice?: PracticeCheck; picked: number | null; onPick: (i: number) => void; onRetry: () => void; delay: number;
 }) => {
   if (!practice) return null;
   const revealed = picked !== null;
-  const burstId = revealed && picked === practice.correct_index ? 1 : 0;
+  const isCorrectPick = revealed && picked === practice.correct_index;
+  const burstId = isCorrectPick ? 1 : 0;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
       className="relative rounded-lg p-3 border bg-[hsl(var(--discord-blurple)/0.08)] border-[hsl(var(--discord-blurple)/0.3)]">
@@ -1363,10 +1426,21 @@ const PracticeBlock = ({ practice, picked, onPick, delay }: {
       </div>
       <AnimatePresence>
         {revealed && (
-          <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-            className="text-xs text-white/60 mt-2 leading-relaxed">
-            {picked === practice.correct_index ? '✅ ' : '💡 '}{practice.feedback}
-          </motion.p>
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+            <p className="text-xs text-white/60 mt-2 leading-relaxed">
+              {isCorrectPick ? '✅ ' : '💡 '}{practice.feedback}
+            </p>
+            {/* Only a wrong pick offers Try Again — this is a low-stakes
+                formative check, not the real graded end-of-lesson quiz, so
+                a wrong first guess should be a safe moment to retry rather
+                than a permanent lock. A correct pick has nothing to retry. */}
+            {!isCorrectPick && (
+              <button type="button" onClick={onRetry}
+                className="mt-2 text-xs font-semibold text-[hsl(var(--discord-blurple))] hover:underline flex items-center gap-1">
+                <RotateCcw className="w-3 h-3" /> Try again
+              </button>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
