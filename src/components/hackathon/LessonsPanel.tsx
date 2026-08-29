@@ -13,7 +13,7 @@ import {
   GraduationCap, Lock, CheckCircle2, Loader2, PlayCircle,
   Lightbulb, Brain, Puzzle, PartyPopper, ChevronRight, ChevronLeft, RotateCcw,
   ArrowRight, ListChecks, Check, X, Terminal, Eraser, ChevronDown, Eye, Star,
-  Volume2, VolumeX,
+  Volume2, VolumeX, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lintPython } from './editorFeatures';
