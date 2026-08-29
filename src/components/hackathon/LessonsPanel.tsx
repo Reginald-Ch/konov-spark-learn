@@ -269,9 +269,6 @@ export const LessonsPanel = () => {
   // infrastructure (edge function, audio caching/storage) a paid API would need.
   const [isNarrating, setIsNarrating] = useState(false);
   const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
-  // Scroll position through the lesson dialog, 0-100 — drives the reading-
-  // progress bar pinned to the top of the dialog.
-  const [readProgress, setReadProgress] = useState(0);
   // Bumped every time a lesson/preview/quiz-content fetch starts; each fetch
   // captures its own value and checks it's still current before applying its
   // result. Without this, opening lesson A then quickly opening lesson B
@@ -746,16 +743,31 @@ export const LessonsPanel = () => {
     return () => { if (speechSupported) window.speechSynthesis.cancel(); };
   }, [activeLesson?.id, phase, speechSupported]);
 
-  const closeDialog = () => { stopNarration(); setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setResultWasRetake(false); setPreviewMode(false); setPreviewQuiz([]); setReadProgress(0); };
+  const closeDialog = () => { stopNarration(); setActiveLesson(null); setActiveContent(null); setPhase('content'); setQuizResult(null); setResultWasRetake(false); setPreviewMode(false); setPreviewQuiz([]); setContentStep(0); };
   const requestCloseDialog = () => {
     if (phase === 'quiz') { setConfirmCloseOpen(true); return; }
     closeDialog();
   };
-  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const max = el.scrollHeight - el.clientHeight;
-    setReadProgress(max <= 0 ? 100 : Math.min(100, (el.scrollTop / max) * 100));
-  };
+
+  // Which content-phase steps this specific lesson actually has, in a fixed
+  // pedagogical order (hook -> teach -> show code -> diagram -> reinforce +
+  // check understanding -> hands-on practice -> close). A lesson missing a
+  // field (most don't have code_practice, some don't have a video/visual)
+  // just skips that step rather than showing an empty one — computed fresh
+  // per lesson since which steps exist varies lesson to lesson.
+  const contentSteps = useMemo(() => {
+    if (!activeContent) return [];
+    const steps: Array<'hook' | 'explanation' | 'code' | 'visual' | 'analogy' | 'code_practice' | 'closing'> = [];
+    if (activeContent.hook || activeContent.video_url) steps.push('hook');
+    if (activeContent.explanation) steps.push('explanation');
+    if (activeContent.code) steps.push('code');
+    if (activeContent.visual) steps.push('visual');
+    if (activeContent.analogy || activeContent.practice) steps.push('analogy');
+    if (activeContent.code_practice) steps.push('code_practice');
+    if (activeContent.fun_fact || activeContent.try_it || (previewMode && previewQuiz.length > 0)) steps.push('closing');
+    return steps.length > 0 ? steps : ['closing' as const]; // always at least one step, even for a totally empty lesson
+  }, [activeContent, previewMode, previewQuiz.length]);
+  const isLastContentStep = contentStep >= contentSteps.length - 1;
 
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-white/60" /></div>;
