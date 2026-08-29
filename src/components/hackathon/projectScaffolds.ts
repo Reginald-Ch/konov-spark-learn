@@ -1054,46 +1054,41 @@ TOOL_INSTRUCTIONS = {
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# FORGE reads your variables above and builds a LangChain
-# ReAct agent automatically. Here's what happens:
+# FORGE reads your variables above and runs a real, if simplified,
+# tool-routing pipeline. Here's what actually happens — worth
+# knowing honestly, since real production agents work a bit
+# differently (see the AI Agents & Tools module in the Academy):
 # ═══════════════════════════════════════════════════════════════
 #
-# Step 1: Build the SystemMessage
-#   → SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES
-#     are merged into one SystemMessage (langchain_core.messages)
+# Step 1: Decide which tools to use
+#   → A separate request asks the AI model which of your TOOLS
+#     (by name and description) fit the user's question, and with
+#     what input — up to 2 tools per message
 #
-# Step 2: Load Tools
-#   → TOOLS dict maps to real LangChain tool classes:
-#     "web_search"  → DuckDuckGoSearchRun
-#     "calculator"  → PythonREPLTool
-#     "wikipedia"   → WikipediaQueryRun
-#   → TOOL_INSTRUCTIONS configures each tool's behavior
+# Step 2: Actually run them
+#   → "web_search" and "wikipedia" make real live web requests;
+#     "calculator" runs a real math expression parser (never a
+#     risky eval() on AI-generated text)
 #
-# Step 3: Build the ReAct Agent Prompt
-#   → ChatPromptTemplate.from_messages([
-#         SystemMessage(content=...),
-#         MessagesPlaceholder("chat_history"),
-#         ("human", "{input}"),
-#         MessagesPlaceholder("agent_scratchpad"),  ← agent's thinking
-#     ])
+# Step 3: Build the final system prompt
+#   → Your SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES +
+#     the tool results from Step 2, all translated into
+#     instructions, most-important-first
 #
-# Step 4: Create the AgentExecutor
-#   → create_react_agent(llm, tools, prompt)
-#   → AgentExecutor(agent, tools, memory, max_iterations=MAX_THINKING_STEPS)
-#   → SHOW_REASONING controls whether "thoughts" are visible
+# Step 4: Send ONE request for the final answer
+#   → SHOW_REASONING asks the model to also WRITE OUT a
+#     Thought → Action → Observation trace in its reply, for
+#     transparency — it's a formatting instruction, not a
+#     separate reasoning engine
 #
-# Step 5: Enforce your config at runtime
-#   → SECRET_RESPONSES → exact phrase match, instant reply
-#   → QA_PAIRS → keyword match, overrides everything
-#   → BLOCKED_TOPICS → polite refusal
-#   → FORBIDDEN_WORDS → filtered from output
-#   → CATCHPHRASES → injected into responses
-#   → SIGN_OFF → appended to every response
-#   → MOOD + LANGUAGE_STYLE → shape the tone
-#   → FEW_SHOT_EXAMPLES → teach preferred format
-#   → MAX_TOKENS → limits response length
+# Honest note: this is single-round tool use (decide once, run
+# once, answer once), not the multi-step "call a tool, see the
+# result, decide again" loop real agent frameworks use, and TOOLS
+# describes 3 fixed, built-in tools rather than ones you can
+# register yourself. The Academy's Module 6 covers what a full
+# ReAct loop and real tool-calling actually look like.
 #
-# FORGE handles the LLM, API keys, and streaming.
+# FORGE handles the LLM connection, API keys, and streaming.
 # Your agent is now LIVE — test it in the preview panel! →
 # ═══════════════════════════════════════════════════════════════
 `,
@@ -2095,46 +2090,41 @@ TOOL_INSTRUCTIONS = {
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# FORGE reads your variables above and builds a LangChain
-# ReAct agent automatically. Here's what happens:
+# FORGE reads your variables above and runs a real, if simplified,
+# tool-routing pipeline. Here's what actually happens — worth
+# knowing honestly, since real production agents work a bit
+# differently (see the AI Agents & Tools module in the Academy):
 # ═══════════════════════════════════════════════════════════════
 #
-# Step 1: Build the SystemMessage
-#   → SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES
-#     are merged into one SystemMessage (langchain_core.messages)
+# Step 1: Decide which tools to use
+#   → A separate request asks the AI model which of your TOOLS
+#     (by name and description) fit the user's question, and with
+#     what input — up to 2 tools per message
 #
-# Step 2: Load Tools
-#   → TOOLS dict maps to real LangChain tool classes:
-#     "web_search"  → DuckDuckGoSearchRun
-#     "calculator"  → PythonREPLTool
-#     "wikipedia"   → WikipediaQueryRun
-#   → TOOL_INSTRUCTIONS configures each tool's behavior
+# Step 2: Actually run them
+#   → "web_search" and "wikipedia" make real live web requests;
+#     "calculator" runs a real math expression parser (never a
+#     risky eval() on AI-generated text)
 #
-# Step 3: Build the ReAct Agent Prompt
-#   → ChatPromptTemplate.from_messages([
-#         SystemMessage(content=...),
-#         MessagesPlaceholder("chat_history"),
-#         ("human", "{input}"),
-#         MessagesPlaceholder("agent_scratchpad"),  ← agent's thinking
-#     ])
+# Step 3: Build the final system prompt
+#   → Your SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES +
+#     the tool results from Step 2, all translated into
+#     instructions, most-important-first
 #
-# Step 4: Create the AgentExecutor
-#   → create_react_agent(llm, tools, prompt)
-#   → AgentExecutor(agent, tools, memory, max_iterations=MAX_THINKING_STEPS)
-#   → SHOW_REASONING controls whether "thoughts" are visible
+# Step 4: Send ONE request for the final answer
+#   → SHOW_REASONING asks the model to also WRITE OUT a
+#     Thought → Action → Observation trace in its reply, for
+#     transparency — it's a formatting instruction, not a
+#     separate reasoning engine
 #
-# Step 5: Enforce your config at runtime
-#   → SECRET_RESPONSES → exact phrase match, instant reply
-#   → QA_PAIRS → keyword match, overrides everything
-#   → BLOCKED_TOPICS → polite refusal
-#   → FORBIDDEN_WORDS → filtered from output
-#   → CATCHPHRASES → injected into responses
-#   → SIGN_OFF → appended to every response
-#   → MOOD + LANGUAGE_STYLE → shape the tone
-#   → FEW_SHOT_EXAMPLES → teach preferred format
-#   → MAX_TOKENS → limits response length
+# Honest note: this is single-round tool use (decide once, run
+# once, answer once), not the multi-step "call a tool, see the
+# result, decide again" loop real agent frameworks use, and TOOLS
+# describes 3 fixed, built-in tools rather than ones you can
+# register yourself. The Academy's Module 6 covers what a full
+# ReAct loop and real tool-calling actually look like.
 #
-# FORGE handles the LLM, API keys, and streaming.
+# FORGE handles the LLM connection, API keys, and streaming.
 # Your agent is now LIVE — test it in the preview panel! →
 # ═══════════════════════════════════════════════════════════════
 `;
