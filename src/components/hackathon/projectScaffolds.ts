@@ -548,38 +548,29 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# FORGE reads your variables above and builds a LangChain
-# pipeline automatically. Here's what happens behind the scenes:
+# FORGE reads your variables above and turns them into a real
+# system prompt sent to the AI model. Here's what actually happens:
 # ═══════════════════════════════════════════════════════════════
 #
-# Step 1: Build the SystemMessage
-#   → SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES
-#     are merged into one SystemMessage (langchain_core.messages)
+# Step 1: Start with your SYSTEM_MESSAGE, used exactly as written
 #
-# Step 2: Build the ChatPromptTemplate
-#   → ChatPromptTemplate.from_messages([
-#         SystemMessage(content=...),
-#         MessagesPlaceholder("chat_history"),   ← conversation memory
-#         ("human", "{input}"),                  ← user's message
-#     ])
+# Step 2: Translate your config into instructions, in priority order
+#   → QA_PAIRS and KNOWLEDGE_BASE come first (they're your bot's
+#     actual facts) — then RULES, BLOCKED_TOPICS, FORBIDDEN_WORDS,
+#     CATCHPHRASES, MOOD, LANGUAGE_STYLE, and FEW_SHOT_EXAMPLES are
+#     each appended as their own instruction
 #
-# Step 3: Attach ConversationBufferWindowMemory
-#   → Keeps the last 20 HumanMessage / AIMessage pairs
-#   → MEMORY_ENABLED controls whether this is active
+# Step 3: Send it as ONE request
+#   → Your full system prompt + the conversation so far + the
+#     user's new message, sent together to the AI model
+#   → TEMPERATURE and MAX_TOKENS shape how the reply is generated
+#   → The conversation history is just resent each time — there's
+#     no separate memory system, which is how most real chat AI
+#     products actually work under the hood
 #
-# Step 4: Create the chain
-#   → prompt | llm(temperature=TEMPERATURE, max_tokens=MAX_TOKENS)
-#
-# Step 5: Enforce your config at runtime
-#   → SECRET_RESPONSES checked FIRST (exact phrase match)
-#   → QA_PAIRS checked SECOND (keyword match)
-#   → BLOCKED_TOPICS trigger a polite refusal
-#   → FORBIDDEN_WORDS are filtered from output
-#   → CATCHPHRASES are injected into responses
-#   → SIGN_OFF is appended to every response
-#   → MOOD + LANGUAGE_STYLE shape the tone
-#   → FEW_SHOT_EXAMPLES teach the model your preferred format
-#   → MAX_TOKENS limits how long the AI can respond
+# Step 4: Stream the reply back
+#   → SECRET_RESPONSES and exact-match QA_PAIRS can answer
+#     instantly, without even calling the AI model, when they match
 #
 # FORGE handles the LLM connection, API keys, and streaming.
 # Your bot is now LIVE — test it in the preview panel! →
@@ -1658,38 +1649,29 @@ ERROR_MESSAGE = "Oops! Something went wrong. Try asking differently! 🔄"
 
 # ═══════════════════════════════════════════════════════════════
 # ⚙️ ENGINE — DO NOT EDIT BELOW THIS LINE
-# FORGE reads your variables above and builds a LangChain
-# pipeline automatically. Here's what happens behind the scenes:
+# FORGE reads your variables above and turns them into a real
+# system prompt sent to the AI model. Here's what actually happens:
 # ═══════════════════════════════════════════════════════════════
 #
-# Step 1: Build the SystemMessage
-#   → SYSTEM_MESSAGE + KNOWLEDGE_BASE + QA_PAIRS + RULES
-#     are merged into one SystemMessage (langchain_core.messages)
+# Step 1: Start with your SYSTEM_MESSAGE, used exactly as written
 #
-# Step 2: Build the ChatPromptTemplate
-#   → ChatPromptTemplate.from_messages([
-#         SystemMessage(content=...),
-#         MessagesPlaceholder("chat_history"),   ← conversation memory
-#         ("human", "{input}"),                  ← user's message
-#     ])
+# Step 2: Translate your config into instructions, in priority order
+#   → QA_PAIRS and KNOWLEDGE_BASE come first (they're your bot's
+#     actual facts) — then RULES, BLOCKED_TOPICS, FORBIDDEN_WORDS,
+#     CATCHPHRASES, MOOD, LANGUAGE_STYLE, and FEW_SHOT_EXAMPLES are
+#     each appended as their own instruction
 #
-# Step 3: Attach ConversationBufferWindowMemory
-#   → Keeps the last 20 HumanMessage / AIMessage pairs
-#   → MEMORY_ENABLED controls whether this is active
+# Step 3: Send it as ONE request
+#   → Your full system prompt + the conversation so far + the
+#     user's new message, sent together to the AI model
+#   → TEMPERATURE and MAX_TOKENS shape how the reply is generated
+#   → The conversation history is just resent each time — there's
+#     no separate memory system, which is how most real chat AI
+#     products actually work under the hood
 #
-# Step 4: Create the chain
-#   → prompt | llm(temperature=TEMPERATURE, max_tokens=MAX_TOKENS)
-#
-# Step 5: Enforce your config at runtime
-#   → SECRET_RESPONSES checked FIRST (exact phrase match)
-#   → QA_PAIRS checked SECOND (keyword match)
-#   → BLOCKED_TOPICS trigger a polite refusal
-#   → FORBIDDEN_WORDS are filtered from output
-#   → CATCHPHRASES are injected into responses
-#   → SIGN_OFF is appended to every response
-#   → MOOD + LANGUAGE_STYLE shape the tone
-#   → FEW_SHOT_EXAMPLES teach the model your preferred format
-#   → MAX_TOKENS limits how long the AI can respond
+# Step 4: Stream the reply back
+#   → SECRET_RESPONSES and exact-match QA_PAIRS can answer
+#     instantly, without even calling the AI model, when they match
 #
 # FORGE handles the LLM connection, API keys, and streaming.
 # Your bot is now LIVE — test it in the preview panel! →
