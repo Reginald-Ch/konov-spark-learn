@@ -1054,7 +1054,7 @@ export const LessonsPanel = () => {
                       {contentSteps[contentStep] === 'analogy' && (
                         <>
                           <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0} />
-                          <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} delay={0.05} />
+                          <PracticeBlock practice={activeContent.practice} picked={practicePick} onPick={setPracticePick} onRetry={() => setPracticePick(null)} delay={0.05} />
                         </>
                       )}
                       {contentSteps[contentStep] === 'code_practice' && activeContent.code_practice && (
