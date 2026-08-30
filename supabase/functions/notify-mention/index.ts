@@ -87,6 +87,25 @@ Deno.serve(async (req) => {
     const channelName = (message as any).community_channels?.name || "community";
     let notified = 0;
     for (const email of emails) {
+      // Idempotency, not just the freshness check above — without this, the
+      // same message_id can be replayed against this endpoint as many times
+      // as a caller likes within the freshness window (and that window
+      // itself gets extended indefinitely by the message's own author
+      // re-editing it, see the migration comment), turning one real mention
+      // into unlimited push spam toward a real person. The PRIMARY KEY on
+      // (message_id, participant_email) means only the first caller for a
+      // given pair can ever insert; every later call — genuine retry or
+      // replay alike — hits a unique violation and is skipped here. Any
+      // OTHER error fails safe (skip, don't send) rather than double-notify
+      // on an unconfirmed insert.
+      const { error: dedupErr } = await supabase
+        .from("community_mention_notifications")
+        .insert({ message_id, participant_email: email });
+      if (dedupErr) {
+        if (dedupErr.code !== "23505") console.error(`notify-mention: dedup insert failed for ${email}:`, dedupErr);
+        continue;
+      }
+
       try {
         const resp = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
           method: "POST",

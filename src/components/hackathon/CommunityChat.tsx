@@ -182,6 +182,28 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // connect" toast plus a redundant leave_voice_room call, potentially
   // after the user had already joined a different voice channel.
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against a race that only opens on the FIRST-EVER voice join in a
+  // session (when external_api.js still has to actually load over the
+  // network, rather than resolving instantly from cache): join channel A,
+  // switch away before the script load resolves (handleSelectChannel
+  // already leaves A cleanly), then join channel B before it resolves.
+  // Both connectJitsi(A) and connectJitsi(B) share ONE script tag and both
+  // `await loadJitsiScript()` on its single 'load' event, so both resume in
+  // the same tick with jitsiApiRef.current still null — the
+  // `!jitsiContainerRef.current || jitsiApiRef.current` check alone can't
+  // tell a stale invocation apart from the current one, since the DOM
+  // container ref is shared and neither has claimed jitsiApiRef yet. If the
+  // stale call for A resumes first, it wins that check, creates a REAL live
+  // Jitsi connection to A's room, and the fresh call for B then loses the
+  // check and bails via handleLeaveVoice — leaving a real, connected,
+  // mic-capturing call running for a channel the UI shows as "not
+  // connected" (isInVoice false, Join button showing), with no visible way
+  // to disconnect it short of leaving the page. Incrementing this
+  // synchronously at the START of every connectJitsi call (before any
+  // await) and checking it's still current right after the await closes
+  // the window: whichever call is genuinely the LATEST always wins,
+  // regardless of promise-resolution order.
+  const connectGenerationRef = useRef(0);
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const [isConnectingVoice, setIsConnectingVoice] = useState(false);
   const [isJoiningVoice, setIsJoiningVoice] = useState(false);
@@ -1805,15 +1827,24 @@ export const CommunityChat = ({ pendingStaffInviteToken, onInviteConsumed }: Com
   // Jitsi's own native in-call toolbar (fully functional, unlike the fake
   // header buttons this replaces) lets the user turn video on from there.
   const connectJitsi = async (channel: Channel) => {
+    // Claimed synchronously, before the first await — see
+    // connectGenerationRef's own comment above for the exact race this
+    // closes (two connectJitsi calls sharing one script-load promise).
+    const myGeneration = ++connectGenerationRef.current;
     setIsConnectingVoice(true);
     try {
       await loadJitsiScript();
     } catch {
+      // A newer call already superseded this one while the script was
+      // loading — that call owns cleanup for whatever channel is actually
+      // current now; this stale one has nothing left to correctly clean up.
+      if (myGeneration !== connectGenerationRef.current) return;
       toast({ title: 'Voice call unavailable', description: 'Could not load the call — check your connection and try again.', variant: 'destructive' });
       setIsConnectingVoice(false);
       await handleLeaveVoice(channel);
       return;
     }
+    if (myGeneration !== connectGenerationRef.current) return;
     if (!jitsiContainerRef.current || jitsiApiRef.current) {
       // Was a silent bail — isInVoice/the presence row stayed "connected"
       // with nothing actually running, an empty pane with no explanation.
