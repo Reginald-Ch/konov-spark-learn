@@ -44,7 +44,6 @@ interface Project {
   description: string | null;
   author_name: string;
   template_id: string | null;
-  code: string;
   is_published: boolean;
   points_earned: number;
   created_at: string;
@@ -340,7 +339,15 @@ export const JudgeDashboardPanel = () => {
         // that project — the same PII-minimization fix already applied to
         // Leaderboard.tsx (hashed author_key instead of raw email) for the
         // identical reason.
-        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at, code').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
+        // `code` used to be selected here too — grepping this whole file
+        // for `.code` turns up zero usages; ProjectCard never renders it,
+        // and submit_gallery_score's payload doesn't need it either. That
+        // meant every judge login (a passphrase this codebase's own
+        // comments elsewhere note is "plausibly shared among several
+        // volunteer judges") fetched every participant's FULL project
+        // source over the network for nothing — a much more sensitive
+        // over-fetch than the author_email one above, for zero benefit.
+        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
         callAdminAction<{ points: number; metadata: any }[]>('list_gallery_judge_scores', { hackathon_id: hackathonId }),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);

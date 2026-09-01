@@ -26,6 +26,9 @@ import { TokenizerExplorer } from './TokenizerExplorer';
 import { EmbeddingSpaceExplorer } from './EmbeddingSpaceExplorer';
 import { GradientDescentAnimator } from './GradientDescentAnimator';
 import { ConfusionMatrixExplorer } from './ConfusionMatrixExplorer';
+import { BiasVarianceExplorer } from './BiasVarianceExplorer';
+import { ROCCurveExplorer } from './ROCCurveExplorer';
+import { AutonomyLevelExplorer } from './AutonomyLevelExplorer';
 
 interface Lesson {
   id: string;
@@ -70,11 +73,15 @@ interface LessonContent {
   code?: string;
   analogy?: string;
   visual?: VisualDiagram;
-  // Opt-in hands-on widget for the handful of concepts (tokenization,
+  // Opt-in hands-on widget(s) for the handful of concepts (tokenization,
   // embeddings) where a static diagram genuinely under-serves the material —
   // these are inherently spatial/dynamic ideas, better explored than read
   // about. A fixed, small set of reusable components, not one-off per lesson.
-  interactive?: { kind: 'tokenizer' | 'embedding_space' | 'gradient_descent' | 'confusion_matrix' };
+  // An array, not a single object — "How Do We Know a Model Is Good?" earns
+  // two complementary widgets (confusion matrix AND the ROC curve it feeds
+  // into), and a single-object shape would force one to silently replace
+  // the other via the enrichment migrations' jsonb `||` merge.
+  interactive?: { kind: 'tokenizer' | 'embedding_space' | 'gradient_descent' | 'confusion_matrix' | 'bias_variance' | 'roc_curve' | 'autonomy_level' }[];
   practice?: PracticeCheck;
   code_practice?: CodePractice;
   fun_fact?: string;
@@ -771,7 +778,7 @@ export const LessonsPanel = () => {
     if (activeContent.explanation) steps.push('explanation');
     if (activeContent.code) steps.push('code');
     if (activeContent.visual) steps.push('visual');
-    if (activeContent.interactive) steps.push('interactive');
+    if (activeContent.interactive && activeContent.interactive.length > 0) steps.push('interactive');
     if (activeContent.analogy || activeContent.practice) steps.push('analogy');
     if (activeContent.code_practice) steps.push('code_practice');
     if (activeContent.fun_fact || activeContent.try_it || (previewMode && previewQuiz.length > 0)) steps.push('closing');
@@ -1061,18 +1068,21 @@ export const LessonsPanel = () => {
                       {contentSteps[contentStep] === 'visual' && (
                         <VisualBlock visual={activeContent.visual} delay={0} />
                       )}
-                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'tokenizer' && (
-                        <TokenizerExplorer />
-                      )}
-                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'embedding_space' && (
-                        <EmbeddingSpaceExplorer />
-                      )}
-                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'gradient_descent' && (
-                        <GradientDescentAnimator />
-                      )}
-                      {contentSteps[contentStep] === 'interactive' && activeContent.interactive?.kind === 'confusion_matrix' && (
-                        <ConfusionMatrixExplorer />
-                      )}
+                      {/* A lesson can carry more than one complementary widget (e.g.
+                          confusion matrix + the ROC curve it feeds into) — each
+                          renders in sequence within this single 'interactive' step
+                          rather than needing its own separate step. */}
+                      {contentSteps[contentStep] === 'interactive' && (activeContent.interactive || []).map((w, i) => (
+                        <div key={`${w.kind}-${i}`} className={i > 0 ? 'mt-3' : undefined}>
+                          {w.kind === 'tokenizer' && <TokenizerExplorer />}
+                          {w.kind === 'embedding_space' && <EmbeddingSpaceExplorer />}
+                          {w.kind === 'gradient_descent' && <GradientDescentAnimator />}
+                          {w.kind === 'confusion_matrix' && <ConfusionMatrixExplorer />}
+                          {w.kind === 'bias_variance' && <BiasVarianceExplorer />}
+                          {w.kind === 'roc_curve' && <ROCCurveExplorer />}
+                          {w.kind === 'autonomy_level' && <AutonomyLevelExplorer />}
+                        </div>
+                      ))}
                       {contentSteps[contentStep] === 'analogy' && (
                         <>
                           <ContentBlock icon={<Puzzle className="w-4 h-4" />} color="#9B59B6" text={activeContent.analogy} label="Think of it like..." delay={0} />

@@ -1038,6 +1038,157 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      // Community Favorite — hackathon-wide (not tied to one daily
+      // challenge, unlike Issue/Mission boxes), ranked by project_likes
+      // rather than any score. Deliberately awards a box + optional Forge
+      // Coins + a badge, never SP — see the migration comment for why:
+      // likes are trivially gameable in a way judge/auto scoring isn't, and
+      // this stays a recognition, not a leaderboard input. Re-runnable
+      // safely like close_challenge_and_award_boxes — idempotency comes
+      // from the existing-row checks below, not a one-time lock, since
+      // reward_boxes' UNIQUE(participant_email, challenge_id, box_type)
+      // index doesn't actually dedupe rows with a NULL challenge_id (NULL
+      // never equals NULL in a unique index), so this checks explicitly
+      // rather than relying on that constraint the way Mission Bonus can.
+      case "award_community_favorite": {
+        const { hackathon_id, top_n, bonus_coin_value } = payload;
+        if (!hackathon_id) throw new Error("hackathon_id is required");
+        const n = Math.max(1, Math.min(10, parseInt(top_n, 10) || 1));
+        const coinValue = Number(bonus_coin_value) || 0;
+
+        const { data: projects, error: projErr } = await supabase
+          .from("ai_projects")
+          .select("id, project_name, author_email, created_at")
+          .eq("hackathon_id", hackathon_id)
+          .eq("is_published", true);
+        if (projErr) throw projErr;
+        if (!projects || projects.length === 0) {
+          return json({ ok: true, data: { awarded: 0, winners: [] } });
+        }
+
+        const projectIds = projects.map((p) => p.id);
+        const { data: likeRows, error: likeErr } = await supabase
+          .from("project_likes")
+          .select("project_id")
+          .in("project_id", projectIds);
+        if (likeErr) throw likeErr;
+
+        const countByProject = new Map<string, number>();
+        for (const row of likeRows || []) {
+          countByProject.set(row.project_id, (countByProject.get(row.project_id) || 0) + 1);
+        }
+
+        // Dedupe by author BEFORE ranking — this recognizes a PERSON, not
+        // an entry. Without this, one participant with several published
+        // projects could occupy multiple (or all) of the top-N slots in a
+        // single run, both double-awarding themselves (the existing-row
+        // checks below only dedupe ACROSS separate runs, not within one)
+        // and locking out every other participant. Keeps each author's
+        // single highest-liked project; ties within one author, and in the
+        // final ranking below, both broken by earliest-created — a real
+        // Date comparison this time, not a UUID string sort that has
+        // nothing to do with time (an earlier version of this action did
+        // exactly that by mistake).
+        const bestPerAuthor = new Map<string, (typeof projects)[number] & { likeCount: number }>();
+        for (const p of projects) {
+          const withCount = { ...p, likeCount: countByProject.get(p.id) || 0 };
+          const existing = bestPerAuthor.get(p.author_email);
+          if (
+            !existing ||
+            withCount.likeCount > existing.likeCount ||
+            (withCount.likeCount === existing.likeCount && new Date(withCount.created_at).getTime() < new Date(existing.created_at).getTime())
+          ) {
+            bestPerAuthor.set(p.author_email, withCount);
+          }
+        }
+
+        const ranked = [...bestPerAuthor.values()]
+          .filter((p) => p.likeCount > 0)
+          .sort((a, b) => b.likeCount - a.likeCount || new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .slice(0, n);
+
+        if (ranked.length === 0) {
+          return json({ ok: true, data: { awarded: 0, winners: [] } });
+        }
+
+        const { data: existingBoxes } = await supabase
+          .from("reward_boxes")
+          .select("participant_email")
+          .eq("hackathon_id", hackathon_id)
+          .eq("box_type", "community_favorite")
+          .is("challenge_id", null);
+        const alreadyBoxed = new Set((existingBoxes || []).map((b: any) => b.participant_email));
+
+        const { data: existingBadges } = await supabase
+          .from("point_events")
+          .select("participant_email")
+          .eq("event_type", "badge_award")
+          .eq("hackathon_id", hackathon_id)
+          .filter("metadata->>tier", "eq", "community_favorite");
+        const alreadyBadged = new Set((existingBadges || []).map((b: any) => b.participant_email));
+
+        const { data: existingCoinGrants } = coinValue > 0 ? await supabase
+          .from("point_events")
+          .select("participant_email")
+          .eq("event_type", "forge_coin_grant")
+          .eq("hackathon_id", hackathon_id)
+          .filter("metadata->>reason", "eq", "community_favorite")
+          : { data: [] as any[] };
+        const alreadyCoined = new Set((existingCoinGrants || []).map((b: any) => b.participant_email));
+
+        const boxRows = ranked
+          .filter((p) => !alreadyBoxed.has(p.author_email))
+          .map((p) => ({
+            hackathon_id,
+            challenge_id: null,
+            participant_email: p.author_email,
+            box_type: "community_favorite",
+            contents_label: "Community Favorite",
+          }));
+        if (boxRows.length > 0) {
+          const { error: insErr } = await supabase.from("reward_boxes").insert(boxRows);
+          if (insErr) throw insErr;
+        }
+
+        const badgeRows = ranked
+          .filter((p) => !alreadyBadged.has(p.author_email))
+          .map((p) => ({
+            participant_email: p.author_email,
+            event_type: "badge_award",
+            points: 0,
+            hackathon_id,
+            metadata: { tier: "community_favorite", project_id: p.id, project_name: p.project_name, like_count: p.likeCount },
+          }));
+        if (badgeRows.length > 0) {
+          const { error: badgeErr } = await supabase.from("point_events").insert(badgeRows);
+          if (badgeErr) throw badgeErr;
+        }
+
+        if (coinValue > 0) {
+          const coinRows = ranked
+            .filter((p) => !alreadyCoined.has(p.author_email))
+            .map((p) => ({
+              participant_email: p.author_email,
+              event_type: "forge_coin_grant",
+              points: coinValue,
+              hackathon_id,
+              metadata: { reason: "community_favorite", project_id: p.id },
+            }));
+          if (coinRows.length > 0) {
+            const { error: coinErr } = await supabase.from("point_events").insert(coinRows);
+            if (coinErr) throw coinErr;
+          }
+        }
+
+        return json({
+          ok: true,
+          data: {
+            awarded: ranked.length,
+            winners: ranked.map((p) => ({ project_name: p.project_name, like_count: p.likeCount })),
+          },
+        });
+      }
+
       // ---------------- Forge Coins (organizer only) ----------------
 
       case "adjust_coins": {

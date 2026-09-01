@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Code, Eye, User, Rocket, Search, Trash2, AlertTriangle, X, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,6 +67,14 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
 
   const currentEmail = localStorage.getItem('forge-student-email') || '';
 
+  // Community Favorite likes — counts are public (visible to anyone
+  // browsing, verified or not), but "did I already like this" only
+  // resolves correctly for a verified identity; see
+  // get_project_like_data's own comment for why an unverified caller just
+  // gets likedByMe: false rather than an error.
+  const [likeData, setLikeData] = useState<Record<string, { count: number; likedByMe: boolean }>>({});
+  const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -79,6 +87,58 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
       if (data) setMyProjectIds(new Set((data as { id: string }[]).map(p => p.id)));
     });
   }, [currentEmail]);
+
+  // Batch-fetched by id, same reasoning as CommunityChat's
+  // fetchReactionsForMessages — one call for every visible project's like
+  // count instead of one call per card. Re-runs whenever the visible
+  // project set changes (new page load, realtime-triggered refetch).
+  const projectIdsKey = projects.map(p => p.id).join(',');
+  useEffect(() => {
+    if (projects.length === 0) { setLikeData({}); return; }
+    supabase.rpc('get_project_like_data', {
+      p_project_ids: projects.map(p => p.id),
+      p_participant_email: currentEmail || null,
+      p_device_token: localStorage.getItem('forge-device-token') || null,
+    }).then(({ data, error }) => {
+      if (error || !data) return;
+      const map: Record<string, { count: number; likedByMe: boolean }> = {};
+      (data as any[]).forEach(row => { map[row.project_id] = { count: row.like_count, likedByMe: row.liked_by_me }; });
+      setLikeData(map);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectIdsKey, currentEmail]);
+
+  const handleToggleLike = async (projectId: string) => {
+    if (!currentEmail) {
+      toast.error('Enter your name and email (Build tab) before liking a project');
+      return;
+    }
+    if (pendingLikeIds.has(projectId)) return;
+    setPendingLikeIds(prev => new Set(prev).add(projectId));
+    // Optimistic — reverted in the catch/failure branch below if the RPC
+    // doesn't confirm it. Matches this app's established pattern of
+    // updating local state immediately rather than waiting on a round trip
+    // for what should feel like an instant reaction.
+    const prevEntry = likeData[projectId] || { count: 0, likedByMe: false };
+    const optimistic = { count: prevEntry.count + (prevEntry.likedByMe ? -1 : 1), likedByMe: !prevEntry.likedByMe };
+    setLikeData(prev => ({ ...prev, [projectId]: optimistic }));
+    try {
+      const { data, error } = await supabase.rpc('toggle_project_like', {
+        p_project_id: projectId,
+        p_participant_email: currentEmail,
+        p_device_token: localStorage.getItem('forge-device-token') || null,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error || !result?.ok) throw new Error(result?.message || error?.message || 'Failed to update like');
+      if (result.new_device_token) localStorage.setItem('forge-device-token', result.new_device_token);
+      setLikeData(prev => ({ ...prev, [projectId]: { count: result.like_count, likedByMe: result.liked } }));
+    } catch (e: any) {
+      setLikeData(prev => ({ ...prev, [projectId]: prevEntry }));
+      toast.error(e.message || 'Failed to update like');
+    } finally {
+      setPendingLikeIds(prev => { const next = new Set(prev); next.delete(projectId); return next; });
+    }
+  };
 
   // Without this, republishing/unpublishing/deleting a project elsewhere
   // never showed up here until you navigated away and back — this gallery
@@ -291,9 +351,30 @@ export const ProjectGallery = ({ onViewCode }: ProjectGalleryProps) => {
                     <p className="text-sm text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-4">{project.description}</p>
                   )}
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                     <span className="text-xs text-[hsl(var(--discord-text-muted))]" title={formatCreatedAt(project.created_at).absolute}>
-                       {formatCreatedAt(project.created_at).relative}
-                     </span>
+                     <div className="flex items-center gap-2 min-w-0">
+                       <span className="text-xs text-[hsl(var(--discord-text-muted))]" title={formatCreatedAt(project.created_at).absolute}>
+                         {formatCreatedAt(project.created_at).relative}
+                       </span>
+                       {/* Community Favorite voting — counts toward Forge
+                           Coins + a badge only, never SP (see the migration
+                           comment for why the competitive leaderboard stays
+                           vote-proof). Disabled, not hidden, for a visitor
+                           with no identity yet, so the count is still
+                           visible either way. */}
+                       <button
+                         type="button"
+                         onClick={(e) => { e.stopPropagation(); handleToggleLike(project.id); }}
+                         disabled={pendingLikeIds.has(project.id) || !currentEmail}
+                         title={currentEmail ? (likeData[project.id]?.likedByMe ? 'Unlike this project' : 'Like this project') : 'Enter your name and email to like projects'}
+                         aria-label={likeData[project.id]?.likedByMe ? 'Unlike this project' : 'Like this project'}
+                         className={`flex items-center gap-1 text-xs transition-colors disabled:opacity-50 ${
+                           likeData[project.id]?.likedByMe ? 'text-red-400' : 'text-[hsl(var(--discord-text-muted))] hover:text-red-400'
+                         }`}
+                       >
+                         <Heart className={`w-3.5 h-3.5 ${likeData[project.id]?.likedByMe ? 'fill-red-400' : ''}`} />
+                         {likeData[project.id]?.count ?? 0}
+                       </button>
+                     </div>
                      <div className="flex gap-2 flex-wrap">
                        {myProjectIds.has(project.id) && (
                          <Button
