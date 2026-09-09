@@ -1218,7 +1218,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
       if (data.project_name) setProjectName(data.project_name);
       applyPublishState(!!data.is_published);
       setRestoreDone(true);
-    }).catch((err) => {
+    }, (err: unknown) => {
       // No .catch() existed at all — the .then() only handled a RESOLVED
       // promise carrying { data: null, error }, not the promise itself
       // REJECTING (a plausible outcome for some network/DNS failure

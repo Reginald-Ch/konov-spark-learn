@@ -320,7 +320,7 @@ export const LessonsPanel = () => {
   // file's own comments already call out — a network blip, or a device
   // token that's momentarily stale right after a mint racing this fetch —
   // so one of those doesn't read as "your progress is gone."
-  const rpcWithRetry = useCallback(async <T,>(fn: () => Promise<{ data: T | null; error: any }>) => {
+  const rpcWithRetry = useCallback(async <T,>(fn: () => PromiseLike<{ data: T | null; error: any }>) => {
     const first = await fn();
     if (!first.error) return first;
     await new Promise(r => setTimeout(r, 700));
@@ -453,9 +453,9 @@ export const LessonsPanel = () => {
       }
       if (coinErr) { console.error('lesson coins fetch error:', coinErr.message, coinErr.code, coinErr); }
       const map: Record<string, Progress> = {};
-      (prog || []).forEach((p: any) => { map[p.lesson_id] = p; });
+      ((prog as any[]) || []).forEach((p: any) => { map[p.lesson_id] = p; });
       setProgress(map);
-      setLessonCoinsEarned((coinRows || []).reduce((s: number, r: any) => s + r.points, 0));
+      setLessonCoinsEarned(((coinRows as any[]) || []).reduce((s: number, r: any) => s + r.points, 0));
     } else {
       setProgress({});
       setLessonCoinsEarned(0);
