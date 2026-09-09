@@ -75,6 +75,14 @@ const Hackathons = () => {
   const [accessCodeError, setAccessCodeError] = useState(false);
   const [participantName, setParticipantName] = useState<string | null>(() => sessionStorage.getItem('forge-participant-name') || null);
   const [participantCodeChecking, setParticipantCodeChecking] = useState(false);
+  // Whoever unlocked via their own participant code is a competing
+  // participant, not staff — the Judge Dashboard nav entry (not just its
+  // passphrase gate) should be invisible to them entirely. Unlocking via
+  // the shared instructor ACCESS_CODE still shows it, since that code is
+  // handed out to staff/facilitators who may need it.
+  const [unlockedViaParticipantCode, setUnlockedViaParticipantCode] = useState(
+    () => sessionStorage.getItem('forge-unlock-via-participant-code') === 'true'
+  );
 
   useEffect(() => {
     const code = accessCodeInput.trim().toUpperCase();
@@ -445,6 +453,8 @@ const Hackathons = () => {
     if (trimmed === ACCESS_CODE) {
       setIsUnlocked(true);
       sessionStorage.setItem('forge-access-unlocked', 'true');
+      setUnlockedViaParticipantCode(false);
+      sessionStorage.setItem('forge-unlock-via-participant-code', 'false');
       setAccessCodeError(false);
       toast.success('🔓 Access granted! Welcome to FORGE Studio.');
       return;
@@ -452,6 +462,8 @@ const Hackathons = () => {
     if (participantName) {
       setIsUnlocked(true);
       sessionStorage.setItem('forge-access-unlocked', 'true');
+      setUnlockedViaParticipantCode(true);
+      sessionStorage.setItem('forge-unlock-via-participant-code', 'true');
       setAccessCodeError(false);
       toast.success(`🔓 Access granted! Welcome, ${participantName}!`);
       return;
@@ -809,18 +821,23 @@ const Hackathons = () => {
 
               <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
 
-              {/* Judge Dashboard — integrated as sub-view */}
-              <button
-                onClick={() => setHackathonSubView('judge')}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
-                  hackathonSubView === 'judge'
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <Shield className="w-4 h-4 text-[#FFD700]" />
-                <span>Judge Dashboard</span>
-              </button>
+              {/* Judge Dashboard — integrated as sub-view. Hidden entirely
+                  (not just passphrase-gated) for anyone who unlocked with
+                  their own participant code — they're a competitor, not
+                  staff, and shouldn't even see this exists. */}
+              {!unlockedViaParticipantCode && (
+                <button
+                  onClick={() => setHackathonSubView('judge')}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                    hackathonSubView === 'judge'
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                      : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 text-[#FFD700]" />
+                  <span>Judge Dashboard</span>
+                </button>
+              )}
 
               {/* Past events info */}
               {endedHackathons.length > 0 && (
@@ -868,7 +885,10 @@ const Hackathons = () => {
               { id: 'daily-challenge' as HackathonSubView, name: "Today's Challenge", icon: Zap },
               { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award },
               { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image },
-              { id: 'judge' as HackathonSubView, name: 'Judge Dashboard', icon: Shield },
+              // Same rule as the desktop sidebar above: invisible, not just
+              // passphrase-gated, for anyone who unlocked with their own
+              // participant code.
+              ...(unlockedViaParticipantCode ? [] : [{ id: 'judge' as HackathonSubView, name: 'Judge Dashboard', icon: Shield }]),
               { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
             ].map(ch => (
               <button
