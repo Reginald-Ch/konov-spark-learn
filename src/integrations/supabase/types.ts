@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -47,6 +47,24 @@ export type Database = {
           created_at?: string
           id?: string
           ip?: string
+        }
+        Relationships: []
+      }
+      ai_assist_rate_limit_events: {
+        Row: {
+          created_at: string
+          id: number
+          identifier: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          identifier: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          identifier?: string
         }
         Relationships: []
       }
@@ -236,6 +254,24 @@ export type Database = {
           },
         ]
       }
+      community_mention_notifications: {
+        Row: {
+          message_id: string
+          notified_at: string
+          participant_email: string
+        }
+        Insert: {
+          message_id: string
+          notified_at?: string
+          participant_email: string
+        }
+        Update: {
+          message_id?: string
+          notified_at?: string
+          participant_email?: string
+        }
+        Relationships: []
+      }
       community_message_reactions: {
         Row: {
           created_at: string
@@ -352,6 +388,7 @@ export type Database = {
           participant_email: string
           participant_name: string
           quest_id: string
+          status: string
         }
         Insert: {
           completed_at?: string
@@ -359,6 +396,7 @@ export type Database = {
           participant_email: string
           participant_name: string
           quest_id: string
+          status?: string
         }
         Update: {
           completed_at?: string
@@ -366,6 +404,7 @@ export type Database = {
           participant_email?: string
           participant_name?: string
           quest_id?: string
+          status?: string
         }
         Relationships: [
           {
@@ -373,6 +412,38 @@ export type Database = {
             columns: ["quest_id"]
             isOneToOne: false
             referencedRelation: "community_quests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_quest_proof_reviews: {
+        Row: {
+          completion_id: string
+          proof_image: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          completion_id: string
+          proof_image: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          completion_id?: string
+          proof_image?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_quest_proof_reviews_completion_id_fkey"
+            columns: ["completion_id"]
+            isOneToOne: true
+            referencedRelation: "community_quest_completions"
             referencedColumns: ["id"]
           },
         ]
@@ -930,6 +1001,48 @@ export type Database = {
         }
         Relationships: []
       }
+      participant_device_tokens: {
+        Row: {
+          created_at: string
+          participant_email: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          participant_email: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          participant_email?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      participant_profiles: {
+        Row: {
+          avatar_emoji: string
+          created_at: string
+          participant_email: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_emoji: string
+          created_at?: string
+          participant_email: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_emoji?: string
+          created_at?: string
+          participant_email?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       point_events: {
         Row: {
           created_at: string | null
@@ -1016,6 +1129,53 @@ export type Database = {
         }
         Relationships: []
       }
+      project_like_action_log: {
+        Row: {
+          created_at: string
+          id: string
+          participant_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_email?: string
+        }
+        Relationships: []
+      }
+      project_likes: {
+        Row: {
+          created_at: string
+          id: string
+          participant_email: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_email: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_email?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1056,6 +1216,130 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      python_challenge_attempts: {
+        Row: {
+          attempts: number
+          best_passed_count: number
+          challenge_id: string
+          completed_at: string | null
+          id: string
+          last_submitted_code: string | null
+          participant_email: string
+          passed: boolean
+          total_tests: number
+        }
+        Insert: {
+          attempts?: number
+          best_passed_count?: number
+          challenge_id: string
+          completed_at?: string | null
+          id?: string
+          last_submitted_code?: string | null
+          participant_email: string
+          passed?: boolean
+          total_tests?: number
+        }
+        Update: {
+          attempts?: number
+          best_passed_count?: number
+          challenge_id?: string
+          completed_at?: string | null
+          id?: string
+          last_submitted_code?: string | null
+          participant_email?: string
+          passed?: boolean
+          total_tests?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "python_challenge_attempts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "python_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      python_challenge_tests: {
+        Row: {
+          challenge_id: string
+          expected_output: Json
+          id: string
+          input_args: Json
+          is_hidden: boolean
+          order_index: number
+        }
+        Insert: {
+          challenge_id: string
+          expected_output: Json
+          id?: string
+          input_args: Json
+          is_hidden?: boolean
+          order_index: number
+        }
+        Update: {
+          challenge_id?: string
+          expected_output?: Json
+          id?: string
+          input_args?: Json
+          is_hidden?: boolean
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "python_challenge_tests_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "python_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      python_challenges: {
+        Row: {
+          coin_reward: number
+          created_at: string
+          difficulty: string
+          function_name: string
+          id: string
+          is_published: boolean
+          order_index: number
+          prompt: string
+          reference_solution: string | null
+          slug: string
+          starter_code: string
+          title: string
+        }
+        Insert: {
+          coin_reward?: number
+          created_at?: string
+          difficulty: string
+          function_name: string
+          id?: string
+          is_published?: boolean
+          order_index: number
+          prompt: string
+          reference_solution?: string | null
+          slug: string
+          starter_code: string
+          title: string
+        }
+        Update: {
+          coin_reward?: number
+          created_at?: string
+          difficulty?: string
+          function_name?: string
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          prompt?: string
+          reference_solution?: string | null
+          slug?: string
+          starter_code?: string
+          title?: string
+        }
+        Relationships: []
       }
       registrations: {
         Row: {
@@ -1178,6 +1462,7 @@ export type Database = {
           id: string
           judge_breakdown: Json | null
           judge_score: number | null
+          last_judge_name: string | null
           scored_at: string | null
           status: string
           submission_id: string
@@ -1190,6 +1475,7 @@ export type Database = {
           id?: string
           judge_breakdown?: Json | null
           judge_score?: number | null
+          last_judge_name?: string | null
           scored_at?: string | null
           status?: string
           submission_id: string
@@ -1202,6 +1488,7 @@ export type Database = {
           id?: string
           judge_breakdown?: Json | null
           judge_score?: number | null
+          last_judge_name?: string | null
           scored_at?: string | null
           status?: string
           submission_id?: string
@@ -1216,6 +1503,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      voice_room_action_log: {
+        Row: {
+          created_at: string
+          id: string
+          participant_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_email?: string
+        }
+        Relationships: []
       }
       voice_room_participants: {
         Row: {
@@ -1374,37 +1679,79 @@ export type Database = {
     }
     Functions: {
       acquire_ai_slot: { Args: { p_ttl_seconds?: number }; Returns: number }
-      claim_community_quest: {
+      add_community_reaction: {
         Args: {
+          p_device_token: string
+          p_emoji: string
+          p_message_id: string
           p_participant_email: string
           p_participant_name: string
+        }
+        Returns: {
+          message: string
+          new_device_token: string
+          ok: boolean
+        }[]
+      }
+      check_ai_assist_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_max_requests?: number
+          p_window_seconds?: number
+        }
+        Returns: boolean
+      }
+      claim_community_quest: {
+        Args: {
+          p_device_token?: string
+          p_participant_email: string
+          p_participant_name: string
+          p_proof_image?: string
           p_quest_id: string
         }
         Returns: {
           badge_emoji: string
           badge_label: string
           message: string
+          new_device_token: string
           ok: boolean
+          status: string
         }[]
       }
       count_recent_admin_failures: { Args: { p_ip: string }; Returns: number }
       delete_own_community_message: {
-        Args: { p_message_id: string; p_participant_email: string }
+        Args: {
+          p_device_token: string
+          p_message_id: string
+          p_participant_email: string
+        }
         Returns: undefined
       }
       delete_own_project: {
-        Args: { p_participant_email: string; p_project_id: string }
+        Args: {
+          p_device_token?: string
+          p_participant_email: string
+          p_project_id: string
+        }
         Returns: undefined
       }
       edit_own_community_message: {
         Args: {
           p_content: string
+          p_device_token: string
           p_message_id: string
           p_participant_email: string
         }
         Returns: {
           content: string
           edited_at: string
+        }[]
+      }
+      get_hackathon_badge_events: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          metadata: Json
+          participant_key: string
         }[]
       }
       get_hackathon_judge_scores: {
@@ -1421,7 +1768,6 @@ export type Database = {
           author_key: string
           author_name: string
           code: string
-          created_at: string
           demo_url: string
           description: string
           id: string
@@ -1429,12 +1775,76 @@ export type Database = {
           project_name: string
         }[]
       }
+      get_hackathon_ontime_submissions: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_key: string
+          timeliness: number
+        }[]
+      }
+      get_hackathon_registered_participants: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_key: string
+          participant_name: string
+        }[]
+      }
+      get_hackathon_sp_events: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_key: string
+          points: number
+        }[]
+      }
+      get_lesson_coin_events: {
+        Args: never
+        Returns: {
+          participant_key: string
+          points: number
+        }[]
+      }
       get_lesson_content: {
-        Args: { p_lesson_id: string; p_participant_email: string }
-        Returns: Json
+        Args: {
+          p_device_token?: string
+          p_lesson_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          content: Json
+          new_device_token: string
+        }[]
+      }
+      get_my_challenge_submissions: {
+        Args: {
+          p_challenge_ids: string[]
+          p_device_token?: string
+          p_participant_email: string
+        }
+        Returns: {
+          auto_breakdown: Json
+          challenge_id: string
+          content_url: string
+          id: string
+          notes: string
+          project_id: string
+          score_status: string
+          total_sp: number
+        }[]
+      }
+      get_my_latest_hackathon_registration: {
+        Args: { p_device_token?: string; p_participant_email: string }
+        Returns: {
+          hackathon_id: string
+        }[]
+      }
+      get_my_lesson_coin_points: {
+        Args: { p_device_token?: string; p_participant_email: string }
+        Returns: {
+          points: number
+        }[]
       }
       get_my_lesson_progress: {
-        Args: { p_participant_email: string }
+        Args: { p_device_token?: string; p_participant_email: string }
         Returns: {
           attempts: number
           best_score: number
@@ -1452,17 +1862,69 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      get_my_projects: {
-        Args: { p_participant_email: string }
+      get_my_mute_status: {
+        Args: { p_device_token: string; p_participant_email: string }
         Returns: {
+          muted_until: string
+          reason: string
+        }[]
+      }
+      get_my_point_events: {
+        Args: {
+          p_device_token?: string
+          p_hackathon_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          event_type: string
+          metadata: Json
+          points: number
+        }[]
+      }
+      get_my_projects: {
+        Args: { p_device_token?: string; p_participant_email: string }
+        Returns: {
+          hackathon_id: string
           id: string
           is_published: boolean
           project_name: string
           updated_at: string
         }[]
       }
+      get_my_python_challenge_progress: {
+        Args: { p_device_token?: string; p_participant_email: string }
+        Returns: {
+          attempts: number
+          best_passed_count: number
+          challenge_id: string
+          completed_at: string | null
+          id: string
+          last_submitted_code: string | null
+          participant_email: string
+          passed: boolean
+          total_tests: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "python_challenge_attempts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_my_quest_status: {
+        Args: { p_device_token: string; p_participant_email: string }
+        Returns: {
+          quest_id: string
+          rejection_reason: string
+          status: string
+        }[]
+      }
       get_my_reward_boxes: {
-        Args: { p_hackathon_id: string; p_participant_email: string }
+        Args: {
+          p_device_token?: string
+          p_hackathon_id: string
+          p_participant_email: string
+        }
         Returns: {
           awarded_at: string
           box_type: string
@@ -1483,16 +1945,99 @@ export type Database = {
         }
       }
       get_own_project_by_id: {
-        Args: { p_participant_email: string; p_project_id: string }
+        Args: {
+          p_device_token?: string
+          p_participant_email: string
+          p_project_id: string
+        }
         Returns: Json
       }
+      get_project_like_data: {
+        Args: {
+          p_device_token?: string
+          p_participant_email?: string
+          p_project_ids: string[]
+        }
+        Returns: {
+          like_count: number
+          liked_by_me: boolean
+          project_id: string
+        }[]
+      }
       get_quiz_questions: {
-        Args: { p_lesson_id: string; p_participant_email: string }
+        Args: {
+          p_device_token?: string
+          p_lesson_id: string
+          p_participant_email: string
+        }
         Returns: {
           id: string
+          new_device_token: string
           options: Json
           order_index: number
           question: string
+        }[]
+      }
+      join_voice_room: {
+        Args: {
+          p_channel_id: string
+          p_device_token: string
+          p_participant_email: string
+          p_participant_name: string
+        }
+        Returns: {
+          message: string
+          new_device_token: string
+          ok: boolean
+        }[]
+      }
+      leave_voice_room: {
+        Args: {
+          p_channel_id: string
+          p_device_token?: string
+          p_participant_email: string
+        }
+        Returns: {
+          message: string
+          ok: boolean
+        }[]
+      }
+      list_challenge_submissions: {
+        Args: { p_challenge_id: string }
+        Returns: {
+          auto_breakdown: Json
+          auto_score: number
+          content_url: string
+          id: string
+          judge_breakdown: Json
+          judge_score: number
+          last_judge_name: string
+          notes: string
+          participant_email: string
+          score_status: string
+          submitted_at: string
+          total_sp: number
+        }[]
+      }
+      list_coin_events: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_email: string
+          points: number
+        }[]
+      }
+      list_gallery_judge_scores: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          metadata: Json
+          points: number
+        }[]
+      }
+      list_hackathon_registrants: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_email: string
+          participant_name: string
         }[]
       }
       merge_submission_score: {
@@ -1515,12 +2060,29 @@ export type Database = {
         }[]
       }
       open_reward_box: {
-        Args: { p_box_id: string; p_participant_email: string }
+        Args: {
+          p_box_id: string
+          p_device_token?: string
+          p_participant_email: string
+        }
         Returns: undefined
       }
       record_failed_admin_attempt: {
         Args: { p_ip: string }
         Returns: undefined
+      }
+      record_python_challenge_attempt: {
+        Args: {
+          p_challenge_id: string
+          p_code: string
+          p_participant_email: string
+          p_passed_count: number
+          p_total: number
+        }
+        Returns: {
+          bonus_coins_awarded: number
+          passed: boolean
+        }[]
       }
       redeem_staff_invite: {
         Args: { p_token: string }
@@ -1530,19 +2092,66 @@ export type Database = {
           participant_email: string
         }[]
       }
+      register_for_hackathon: {
+        Args: {
+          p_device_token?: string
+          p_experience_level?: string
+          p_hackathon_id: string
+          p_looking_for_team?: boolean
+          p_participant_email: string
+          p_participant_name: string
+          p_participant_phone?: string
+          p_skills?: string
+        }
+        Returns: {
+          already_registered: boolean
+          message: string
+          new_device_token: string
+          ok: boolean
+        }[]
+      }
       release_ai_slot: { Args: { p_slot_id: number }; Returns: undefined }
+      remove_community_reaction: {
+        Args: {
+          p_device_token: string
+          p_emoji: string
+          p_message_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          message: string
+          ok: boolean
+        }[]
+      }
       save_own_project: {
         Args: {
           p_author_name: string
           p_code: string
           p_description: string
-          p_expected_updated_at?: string
+          p_device_token?: string
+          p_expected_updated_at: string
+          p_is_published?: boolean
           p_participant_email: string
           p_project_id: string
           p_project_name: string
           p_template_id: string
         }
         Returns: Json
+      }
+      send_community_message: {
+        Args: {
+          p_channel_id: string
+          p_content: string
+          p_device_token: string
+          p_participant_email: string
+          p_participant_name: string
+        }
+        Returns: {
+          message: string
+          message_id: string
+          new_device_token: string
+          ok: boolean
+        }[]
       }
       send_staff_message: {
         Args: {
@@ -1553,27 +2162,43 @@ export type Database = {
         }
         Returns: {
           message: string
+          message_id: string
           ok: boolean
-        }[]
-      }
-      send_community_message: {
-        Args: {
-          p_participant_email: string
-          p_participant_name: string
-          p_device_token: string | null
-          p_channel_id: string
-          p_content: string
-        }
-        Returns: {
-          ok: boolean
-          message: string
-          new_device_token: string | null
-          message_id: string | null
         }[]
       }
       set_admin_credential: {
         Args: { p_passphrase: string; p_role: string }
         Returns: undefined
+      }
+      set_my_profile: {
+        Args: {
+          p_avatar_emoji: string
+          p_device_token: string
+          p_participant_email: string
+          p_username: string
+        }
+        Returns: {
+          message: string
+          new_device_token: string
+          ok: boolean
+        }[]
+      }
+      submit_challenge_entry: {
+        Args: {
+          p_challenge_id: string
+          p_content_url: string
+          p_device_token: string
+          p_hackathon_id: string
+          p_notes: string
+          p_participant_email: string
+          p_project_id: string
+        }
+        Returns: {
+          message: string
+          new_device_token: string
+          ok: boolean
+          submission_id: string
+        }[]
       }
       submit_gallery_score: {
         Args: {
@@ -1589,6 +2214,7 @@ export type Database = {
       submit_lesson_quiz: {
         Args: {
           p_answers: number[]
+          p_device_token?: string
           p_hackathon_id: string
           p_lesson_id: string
           p_participant_email: string
@@ -1597,20 +2223,23 @@ export type Database = {
           bonus_coins_awarded: number
           correct_flags: boolean[]
           explanations: string[]
-          key_awarded: boolean
+          new_device_token: string
           passed: boolean
           score: number
           total: number
         }[]
       }
-      unlock_lesson: {
+      toggle_project_like: {
         Args: {
-          p_hackathon_id: string
-          p_lesson_id: string
+          p_device_token: string
           p_participant_email: string
+          p_project_id: string
         }
         Returns: {
+          like_count: number
+          liked: boolean
           message: string
+          new_device_token: string
           ok: boolean
         }[]
       }
@@ -1648,12 +2277,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1677,11 +2306,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1702,11 +2331,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1727,11 +2356,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1744,11 +2373,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
