@@ -4453,7 +4453,7 @@ export const ProjectEditor = ({ initialType, initialCode, hackathonStartDate, ha
                   if (autocompleteItems.length > 0) setAutocompleteItems([]);
                 }}
               >
-                <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content' }}>
+                <div className="relative" style={{ display: 'grid', gridTemplate: '"stack" 1fr / 1fr', minWidth: 'max-content', minHeight: '100%' }}>
                   {activeFile === 'main.py' && highlightedContent && (
                     <div
                       className="pt-4 pl-4 pr-4 font-mono text-[13px] leading-6 pointer-events-none whitespace-pre text-ide-text"
