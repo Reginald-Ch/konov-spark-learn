@@ -6,10 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { CalendarDays, Send, CheckCircle2, Clock, Loader2, Trophy, ExternalLink } from 'lucide-react';
+import { CalendarDays, Send, CheckCircle2, Clock, Loader2, Trophy, ExternalLink, TimerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSafeExternalUrl } from '@/lib/utils';
 import { ensureHackathonRegistration } from '@/lib/identity';
+import { CountdownTimer } from './CountdownTimer';
+
+const PERSONAL_WINDOW_MS = 60 * 60 * 1000; // 1 hour, from each participant's own start time
 
 interface Challenge {
   id: string;
@@ -35,6 +38,12 @@ interface MySubmission {
   notes: string | null;
   project_id: string | null;
   submission_scores: ScoreRow | ScoreRow[] | null;
+  // When THIS participant began this challenge — set once, on their first
+  // Start/Continue, and never reset by reopening the tab or re-fetching.
+  // The 1-hour deadline is always computed from this real timestamp, not
+  // from any client-side "time remaining" state, so it survives a full
+  // close-tab-and-come-back without pausing or resetting.
+  started_at: string | null;
 }
 
 interface MyProject {
@@ -155,6 +164,7 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
           submission_scores: s.total_sp === null && s.score_status === null && s.auto_breakdown === null
             ? null
             : { total_sp: s.total_sp, status: s.score_status, auto_breakdown: s.auto_breakdown },
+          started_at: s.started_at,
         };
       });
       setSubmissions(map);
@@ -210,6 +220,48 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
     setProjectId(existing?.project_id || '');
     setContentUrl(existing?.content_url || '');
     setNotes(existing?.notes || '');
+  };
+
+  const [starting, setStarting] = useState<string | null>(null); // challenge id currently starting
+
+  // First time this participant engages a challenge — records their own
+  // started_at server-side (start_challenge_attempt is idempotent: calling
+  // it again on an already-started/already-submitted challenge just returns
+  // the existing started_at instead of resetting the clock), then opens the
+  // same submit dialog used to actually work on/link a project.
+  const handleStart = async (challenge: Challenge) => {
+    if (!name.trim() || !email.trim()) { toast.error('Enter your name and email first'); return; }
+    if (!hackathonId) return;
+    setStarting(challenge.id);
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase.rpc('start_challenge_attempt', {
+        p_challenge_id: challenge.id,
+        p_hackathon_id: hackathonId,
+        p_participant_email: normalizedEmail,
+        p_device_token: deviceToken || null,
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error) throw error;
+      if (!result?.ok) throw new Error(result?.message || 'Failed to start');
+      if (result.new_device_token) setDeviceToken(result.new_device_token);
+
+      localStorage.setItem('forge-student-email', normalizedEmail);
+      localStorage.setItem('forge-student-name', name.trim());
+      ensureHackathonRegistration(normalizedEmail, name.trim(), hackathonId);
+
+      setSubmissions(prev => ({
+        ...prev,
+        [challenge.id]: prev[challenge.id]
+          ? { ...prev[challenge.id], started_at: prev[challenge.id].started_at || result.started_at }
+          : { id: result.submission_id, content_url: null, notes: null, project_id: null, submission_scores: null, started_at: result.started_at },
+      }));
+      openSubmit(challenge);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to start challenge');
+    } finally {
+      setStarting(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -299,6 +351,13 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
             const sub = submissions[c.id];
             const score = singleScore(sub?.submission_scores);
             const isFinalized = score?.status === 'finalized';
+            // A submission row now exists from the moment of Start, before
+            // any real content — don't call that "Submitted" yet.
+            const hasRealSubmission = !!(sub && (sub.content_url || sub.notes || sub.project_id));
+            const startedAt = sub?.started_at ? new Date(sub.started_at) : null;
+            const deadline = startedAt ? new Date(startedAt.getTime() + PERSONAL_WINDOW_MS) : null;
+            const isExpired = !!(deadline && Date.now() > deadline.getTime());
+            const canWorkOnIt = c.status === 'live' && !isFinalized && !isExpired;
             return (
               <div key={c.id} className="bg-[hsl(var(--discord-darker))] rounded-lg border border-[hsl(var(--discord-light)/0.2)] p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -313,11 +372,27 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                       <Clock className="w-3 h-3" />
                       {c.closes_at ? `Closes ${new Date(c.closes_at).toLocaleString()}` : 'No deadline set'}
                     </p>
+                    {/* Personal clock — starts the moment THIS participant
+                        begins, keeps counting in real time even if they close
+                        the tab (deadline is derived from the stored
+                        started_at, never from client-side elapsed time), and
+                        is independent of the challenge's own open/close
+                        window above. */}
+                    {deadline && !isExpired && !isFinalized && (
+                      <div className="mt-2 max-w-[220px]">
+                        <CountdownTimer targetDate={deadline} label="Your time remaining" />
+                      </div>
+                    )}
+                    {isExpired && !isFinalized && (
+                      <Badge variant="outline" className="mt-2 gap-1 text-[hsl(var(--discord-red))] border-[hsl(var(--discord-red)/0.4)]">
+                        <TimerOff className="w-3 h-3" /> Your hour is up
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {isFinalized ? (
                       <Badge className="gap-1"><Trophy className="w-3 h-3" /> {score.total_sp} SP</Badge>
-                    ) : sub ? (
+                    ) : hasRealSubmission ? (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="w-3 h-3" /> Submitted — awaiting grading</Badge>
                     ) : null}
                     {score?.auto_breakdown?.timeliness === 10 && (
@@ -332,10 +407,17 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                         filled out the whole dialog and hit Submit. Once
                         finalized there's nothing left to do here — the
                         Trophy badge above already shows the final score. */}
-                    {c.status === 'live' && !isFinalized ? (
-                      <Button size="sm" onClick={() => openSubmit(c)}>
-                        <Send className="w-3 h-3 mr-1" /> {sub ? 'Edit Submission' : 'Submit'}
-                      </Button>
+                    {canWorkOnIt ? (
+                      startedAt ? (
+                        <Button size="sm" onClick={() => openSubmit(c)}>
+                          <Send className="w-3 h-3 mr-1" /> {hasRealSubmission ? 'Edit Submission' : 'Continue'}
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => handleStart(c)} disabled={starting === c.id}>
+                          {starting === c.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
+                          Start Challenge
+                        </Button>
+                      )
                     ) : sub?.content_url && isSafeExternalUrl(sub.content_url) ? (
                       <a href={sub.content_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
                         <ExternalLink className="w-3 h-3" /> Your submission

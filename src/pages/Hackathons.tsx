@@ -65,10 +65,38 @@ const Hackathons = () => {
   // highlights the actual card instead of just landing on the generic list.
   const [highlightHackathonId, setHighlightHackathonId] = useState<string | null>(null);
 
-  // Access code gate
+  // Access code gate — a single input accepts EITHER the shared ACCESS_CODE
+  // (e.g. Forge2039) OR a per-participant tracking code (e.g. ABS-2026-0001)
+  // issued at registration. Whichever it is, this only ever resolves a name
+  // for display/tracking via lookup_participant_code — it never touches
+  // admin_credentials/the judge-organizer role system in any way.
   const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('forge-access-unlocked') === 'true');
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [accessCodeError, setAccessCodeError] = useState(false);
+  const [participantName, setParticipantName] = useState<string | null>(() => sessionStorage.getItem('forge-participant-name') || null);
+  const [participantCodeChecking, setParticipantCodeChecking] = useState(false);
+
+  useEffect(() => {
+    const code = accessCodeInput.trim().toUpperCase();
+    // The shared code isn't a participant code — don't bother looking it up.
+    if (!code || code === ACCESS_CODE.toUpperCase()) { setParticipantName(null); return; }
+    setParticipantCodeChecking(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('lookup_participant_code', { p_code: code });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!error && row?.full_name) {
+        setParticipantName(row.full_name);
+        sessionStorage.setItem('forge-participant-code', code);
+        sessionStorage.setItem('forge-participant-name', row.full_name);
+      } else {
+        setParticipantName(null);
+        sessionStorage.removeItem('forge-participant-code');
+        sessionStorage.removeItem('forge-participant-name');
+      }
+      setParticipantCodeChecking(false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [accessCodeInput]);
 
   // Tab state
   // ?section=judge (e.g. from /admin's redirect below) lands straight on the
@@ -413,14 +441,22 @@ const Hackathons = () => {
   };
 
   const handleAccessCodeSubmit = () => {
-    if (accessCodeInput.trim() === ACCESS_CODE) {
+    const trimmed = accessCodeInput.trim();
+    if (trimmed === ACCESS_CODE) {
       setIsUnlocked(true);
       sessionStorage.setItem('forge-access-unlocked', 'true');
       setAccessCodeError(false);
       toast.success('🔓 Access granted! Welcome to FORGE Studio.');
-    } else {
-      setAccessCodeError(true);
+      return;
     }
+    if (participantName) {
+      setIsUnlocked(true);
+      sessionStorage.setItem('forge-access-unlocked', 'true');
+      setAccessCodeError(false);
+      toast.success(`🔓 Access granted! Welcome, ${participantName}!`);
+      return;
+    }
+    setAccessCodeError(true);
   };
 
   if (!isUnlocked) {
@@ -481,7 +517,7 @@ const Hackathons = () => {
           >
             <h2 className="text-xl font-bold text-white mb-2">Enter Access Code</h2>
             <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
-              Got an access code from your instructor? Enter it below to start building.
+              Enter the access code from your instructor, or your own participant code from registration.
             </p>
             <div className="space-y-3">
               <input
@@ -489,17 +525,23 @@ const Hackathons = () => {
                 value={accessCodeInput}
                 onChange={e => { setAccessCodeInput(e.target.value); setAccessCodeError(false); }}
                 onKeyDown={e => e.key === 'Enter' && handleAccessCodeSubmit()}
-                placeholder="Access code..."
+                placeholder="Access code or participant code..."
                 autoFocus
                 className={`w-full h-12 text-center text-lg font-mono tracking-widest rounded-xl border-2 bg-[hsl(var(--discord-darker))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:outline-none transition-colors ${
                   accessCodeError ? 'border-red-500 focus:border-red-400' : 'border-[hsl(var(--discord-light)/0.3)] focus:border-primary'
                 }`}
               />
-              {accessCodeError && (
+              {accessCodeError ? (
                 <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm">
-                  Invalid access code. Please try again.
+                  Invalid code. Please try again.
                 </motion.p>
-              )}
+              ) : accessCodeInput.trim() && accessCodeInput.trim().toUpperCase() !== ACCESS_CODE.toUpperCase() ? (
+                participantCodeChecking ? (
+                  <p className="text-[hsl(var(--discord-text-muted))] text-sm">Checking…</p>
+                ) : participantName ? (
+                  <p className="text-green-400 text-sm">Welcome, {participantName}! ✓</p>
+                ) : null
+              ) : null}
               <Button onClick={handleAccessCodeSubmit} className="w-full h-11 text-base font-bold bg-primary hover:bg-primary/90">
                 <Rocket className="w-4 h-4 mr-2" />
                 Enter Studio
