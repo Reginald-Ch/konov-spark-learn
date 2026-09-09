@@ -560,6 +560,7 @@ export type Database = {
         Row: {
           auto_max_points: number
           benchmark_tests: Json
+          boxes_awarded_at: string | null
           closes_at: string | null
           created_at: string
           day_number: number
@@ -574,6 +575,7 @@ export type Database = {
         Insert: {
           auto_max_points?: number
           benchmark_tests?: Json
+          boxes_awarded_at?: string | null
           closes_at?: string | null
           created_at?: string
           day_number: number
@@ -588,6 +590,7 @@ export type Database = {
         Update: {
           auto_max_points?: number
           benchmark_tests?: Json
+          boxes_awarded_at?: string | null
           closes_at?: string | null
           created_at?: string
           day_number?: number
@@ -623,6 +626,56 @@ export type Database = {
           judge_name?: string
         }
         Relationships: []
+      }
+      hackathon_feedback: {
+        Row: {
+          challenges_rating: number | null
+          comment: string | null
+          created_at: string
+          hackathon_id: string
+          id: string
+          lessons_rating: number | null
+          organization_rating: number | null
+          overall_rating: number
+          participant_email: string
+          participant_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          challenges_rating?: number | null
+          comment?: string | null
+          created_at?: string
+          hackathon_id: string
+          id?: string
+          lessons_rating?: number | null
+          organization_rating?: number | null
+          overall_rating: number
+          participant_email: string
+          participant_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          challenges_rating?: number | null
+          comment?: string | null
+          created_at?: string
+          hackathon_id?: string
+          id?: string
+          lessons_rating?: number | null
+          organization_rating?: number | null
+          overall_rating?: number
+          participant_email?: string
+          participant_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_feedback_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hackathon_registrations: {
         Row: {
@@ -1831,6 +1884,17 @@ export type Database = {
           total_sp: number
         }[]
       }
+      get_my_hackathon_feedback: {
+        Args: { p_hackathon_id: string; p_participant_email: string }
+        Returns: {
+          challenges_rating: number
+          comment: string
+          lessons_rating: number
+          organization_rating: number
+          overall_rating: number
+          updated_at: string
+        }[]
+      }
       get_my_latest_hackathon_registration: {
         Args: { p_device_token?: string; p_participant_email: string }
         Returns: {
@@ -2210,6 +2274,26 @@ export type Database = {
           p_project_name: string
         }
         Returns: undefined
+      }
+      submit_hackathon_feedback: {
+        Args: {
+          p_challenges_rating?: number
+          p_comment?: string
+          p_hackathon_id: string
+          p_lessons_rating?: number
+          p_organization_rating?: number
+          p_overall_rating: number
+          p_participant_email: string
+          p_participant_name?: string
+        }
+        Returns: {
+          challenges_rating: number
+          comment: string
+          lessons_rating: number
+          organization_rating: number
+          overall_rating: number
+          updated_at: string
+        }[]
       }
       submit_lesson_quiz: {
         Args: {
