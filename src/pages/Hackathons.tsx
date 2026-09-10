@@ -200,6 +200,64 @@ const Hackathons = () => {
     return () => clearTimeout(t);
   }, [highlightHackathonId, hackathonSubView]);
 
+  // "Time's up" watcher for the personal daily-challenge clock, kept at this
+  // top level (not inside DailyChallengePanel) specifically so it keeps
+  // running even while the participant is off in the Build/IDE tab — that
+  // whole subtree, DailyChallengePanel included, unmounts the instant
+  // activeTab !== 'hackathons', taking any timer that lived only there with
+  // it. DailyChallengePanel publishes the active deadline to sessionStorage;
+  // this only ever fills in a MISSING project link on an otherwise-empty
+  // submission (whatever they were actively working on when time ran out) —
+  // it never overwrites a link, URL, or notes the participant already saved.
+  useEffect(() => {
+    let cancelled = false;
+    const checkExpiry = async () => {
+      const raw = sessionStorage.getItem('forge-active-challenge-timer');
+      if (!raw) return;
+      let info: any;
+      try { info = JSON.parse(raw); } catch { sessionStorage.removeItem('forge-active-challenge-timer'); return; }
+      if (!info || info.autoSubmitted || Date.now() < info.deadline) return;
+
+      const deviceToken = localStorage.getItem('forge-device-token') || null;
+      let linked = false;
+      try {
+        const { data: subs } = await supabase.rpc('get_my_challenge_submissions', {
+          p_participant_email: info.participantEmail,
+          p_challenge_ids: [info.challengeId],
+          p_device_token: deviceToken,
+        });
+        const existing = Array.isArray(subs) ? subs[0] : null;
+        const fallbackProjectId = localStorage.getItem('forge-current-project-id') || null;
+        if (existing && !existing.project_id && fallbackProjectId) {
+          const { error } = await supabase.rpc('submit_challenge_entry', {
+            p_challenge_id: info.challengeId,
+            p_hackathon_id: info.hackathonId,
+            p_participant_email: info.participantEmail,
+            p_device_token: deviceToken,
+            p_project_id: fallbackProjectId,
+            p_content_url: existing.content_url,
+            p_notes: existing.notes,
+          });
+          linked = !error;
+        }
+      } catch (e) {
+        console.error('Auto-submit on challenge timeout failed:', e);
+      } finally {
+        if (cancelled) return;
+        sessionStorage.setItem('forge-active-challenge-timer', JSON.stringify({ ...info, autoSubmitted: true }));
+        toast.info(
+          linked
+            ? `⏰ Time's up for "${info.title}"! The project you were working on was automatically submitted.`
+            : `⏰ Time's up for "${info.title}"! Your submission is locked in as-is.`,
+          { duration: 12000 }
+        );
+      }
+    };
+    checkExpiry();
+    const id = setInterval(checkExpiry, 10000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const handleRegister = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
     if (hackathon) { setSelectedHackathon(hackathon); setRegistrationModalOpen(true); }

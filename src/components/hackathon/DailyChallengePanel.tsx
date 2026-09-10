@@ -176,6 +176,38 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Publishes the active personal deadline to sessionStorage so a page-level
+  // watcher (Hackathons.tsx) can auto-submit "time's up" even while this
+  // component itself is unmounted — switching to the Build/IDE tab tears
+  // down this whole subtree along with any timer that lived only in here.
+  useEffect(() => {
+    const active = challenges.find(c => c.status === 'live');
+    const sub = active ? submissions[active.id] : null;
+    const score = singleScore(sub?.submission_scores);
+    const isFinalized = score?.status === 'finalized';
+    if (active && sub?.started_at && !isFinalized) {
+      const deadline = new Date(sub.started_at).getTime() + 60 * 60 * 1000;
+      const existingRaw = sessionStorage.getItem('forge-active-challenge-timer');
+      let autoSubmitted = false;
+      if (existingRaw) {
+        try {
+          const existing = JSON.parse(existingRaw);
+          if (existing.challengeId === active.id) autoSubmitted = !!existing.autoSubmitted;
+        } catch { /* ignore malformed leftover */ }
+      }
+      sessionStorage.setItem('forge-active-challenge-timer', JSON.stringify({
+        challengeId: active.id,
+        hackathonId,
+        title: active.title,
+        deadline,
+        participantEmail: email.trim().toLowerCase(),
+        autoSubmitted,
+      }));
+    } else {
+      sessionStorage.removeItem('forge-active-challenge-timer');
+    }
+  }, [challenges, submissions, email, hackathonId]);
+
   // Previously fetch-once-on-mount only — a challenge opening/closing, or a
   // submission getting graded, never appeared while this page was actually
   // open; you had to manually reload to see it. daily_challenges,
