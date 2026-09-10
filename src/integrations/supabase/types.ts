@@ -151,6 +151,7 @@ export type Database = {
           notes: string | null
           participant_email: string
           project_id: string | null
+          started_at: string | null
           submitted_at: string
           submitted_code_snapshot: string | null
           team_id: string | null
@@ -164,6 +165,7 @@ export type Database = {
           notes?: string | null
           participant_email: string
           project_id?: string | null
+          started_at?: string | null
           submitted_at?: string
           submitted_code_snapshot?: string | null
           team_id?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           notes?: string | null
           participant_email?: string
           project_id?: string | null
+          started_at?: string | null
           submitted_at?: string
           submitted_code_snapshot?: string | null
           team_id?: string | null
@@ -1054,6 +1057,27 @@ export type Database = {
         }
         Relationships: []
       }
+      participant_codes: {
+        Row: {
+          code: string
+          created_at: string
+          full_name: string
+          id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          full_name: string
+          id?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
       participant_device_tokens: {
         Row: {
           created_at: string
@@ -1881,6 +1905,7 @@ export type Database = {
           notes: string
           project_id: string
           score_status: string
+          started_at: string
           total_sp: number
         }[]
       }
@@ -2104,6 +2129,12 @@ export type Database = {
           participant_name: string
         }[]
       }
+      lookup_participant_code: {
+        Args: { p_code: string }
+        Returns: {
+          full_name: string
+        }[]
+      }
       merge_submission_score: {
         Args: {
           p_auto_breakdown?: Json
@@ -2245,6 +2276,21 @@ export type Database = {
           message: string
           new_device_token: string
           ok: boolean
+        }[]
+      }
+      start_challenge_attempt: {
+        Args: {
+          p_challenge_id: string
+          p_device_token: string
+          p_hackathon_id: string
+          p_participant_email: string
+        }
+        Returns: {
+          message: string
+          new_device_token: string
+          ok: boolean
+          started_at: string
+          submission_id: string
         }[]
       }
       submit_challenge_entry: {
