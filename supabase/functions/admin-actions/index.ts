@@ -661,13 +661,28 @@ Deno.serve(async (req) => {
               || testsWithResponses.map((t) => t.realResponse && detectSuspiciousContent(t.realResponse)).find(Boolean)
               || null;
 
-            slotId = await acquireSlot(supabase, 90);
-            if (slotId === null) {
-              errors.push({ submission_id: s.id, error: "AI gateway busy — try again shortly" });
-              continue;
+            // No code/project linked at all — there is nothing real to run
+            // or evaluate. Previously this still went to the grading model
+            // with the generic "You are a helpful AI assistant" fallback
+            // prompt, and the model would score its own IMAGINED helpful-
+            // assistant persona generously (often 60-70/70) since nothing
+            // in the prompt told it that "no real submission exists" should
+            // itself be disqualifying — an empty submission routinely
+            // outscored genuine, working bots. A submission with no code
+            // gets no benchmark points and no response-quality points; the
+            // judge's own 30-point review can still credit a text-only
+            // notes/design writeup on its merits, but the automated half is
+            // specifically about running and testing actual bot behavior,
+            // and there is none here to test.
+            let grading: GradingResult | null = null;
+            if (rawCode) {
+              slotId = await acquireSlot(supabase, 90);
+              if (slotId === null) {
+                errors.push({ submission_id: s.id, error: "AI gateway busy — try again shortly" });
+                continue;
+              }
+              grading = await callGradingModel(systemPrompt, notesText, testsWithResponses);
             }
-
-            const grading = await callGradingModel(systemPrompt, notesText, testsWithResponses);
 
             // No benchmark tests configured used to award the full 20/20
             // "for free" to every submission that day regardless of actual
@@ -677,11 +692,11 @@ Deno.serve(async (req) => {
             // 0 when there's nothing to actually verify against is the
             // conservative, safe-by-default choice; a warning is surfaced
             // below so the organizer notices and can add tests + re-grade.
-            const passedCount = grading.benchmark_results?.filter((r) => r.passed).length ?? 0;
-            const benchmarkScore = benchmarkTests.length === 0 ? 0 : Math.round((passedCount / benchmarkTests.length) * 20);
+            const passedCount = grading?.benchmark_results?.filter((r) => r.passed).length ?? 0;
+            const benchmarkScore = !rawCode || benchmarkTests.length === 0 ? 0 : Math.round((passedCount / benchmarkTests.length) * 20);
 
-            const rq = grading.response_quality || ({} as GradingResult["response_quality"]);
-            const responseQualityTotal =
+            const rq = grading?.response_quality || ({} as GradingResult["response_quality"]);
+            const responseQualityTotal = !rawCode ? 0 :
               clamp(Number(rq.followsPrompt) || 0, 0, 8) +
               clamp(Number(rq.correctness) || 0, 0, 8) +
               clamp(Number(rq.characterConsistency) || 0, 0, 8) +
@@ -690,7 +705,9 @@ Deno.serve(async (req) => {
 
             const autoScore = clamp(timeliness + benchmarkScore + responseQualityTotal, 0, challenge.auto_max_points);
 
-            if (benchmarkTests.length === 0) {
+            if (!rawCode) {
+              warnings.push({ submission_id: s.id, warning: "no code or linked project found — scored on timeliness only (no benchmark/response-quality points); the judge review can still credit any notes/write-up on its own merits" });
+            } else if (benchmarkTests.length === 0) {
               warnings.push({ submission_id: s.id, warning: "this challenge has no benchmark tests configured — graded without a benchmark component (0/20); add tests and re-grade with force:true if that's not intentional" });
             } else if (testsWithResponses.every((t) => t.realResponse == null)) {
               // Every real-execution call failed (network/timeout against
@@ -715,9 +732,9 @@ Deno.serve(async (req) => {
               autoBreakdown: {
                 timeliness,
                 benchmark: benchmarkScore,
-                benchmark_results: grading.benchmark_results,
+                benchmark_results: grading?.benchmark_results || [],
                 response_quality: rq,
-                rationale: grading.rationale,
+                rationale: grading?.rationale || (!rawCode ? "No code or linked project was submitted." : undefined),
                 prompt_version: GRADING_PROMPT_VERSION,
                 model: GRADING_MODEL,
                 suspicious_content: suspicious || undefined,
