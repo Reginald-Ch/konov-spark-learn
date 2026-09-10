@@ -661,21 +661,21 @@ Deno.serve(async (req) => {
               || testsWithResponses.map((t) => t.realResponse && detectSuspiciousContent(t.realResponse)).find(Boolean)
               || null;
 
-            // No code/project linked at all — there is nothing real to run
-            // or evaluate. Previously this still went to the grading model
-            // with the generic "You are a helpful AI assistant" fallback
-            // prompt, and the model would score its own IMAGINED helpful-
-            // assistant persona generously (often 60-70/70) since nothing
-            // in the prompt told it that "no real submission exists" should
-            // itself be disqualifying — an empty submission routinely
-            // outscored genuine, working bots. A submission with no code
-            // gets no benchmark points and no response-quality points; the
-            // judge's own 30-point review can still credit a text-only
-            // notes/design writeup on its merits, but the automated half is
-            // specifically about running and testing actual bot behavior,
-            // and there is none here to test.
+            // Two distinct "nothing to grade" cases, deliberately handled
+            // differently — external (non-FORGE) submissions are allowed
+            // and judged on merit, so a real notes/link writeup describing
+            // an external system still deserves a real response-quality
+            // score even with no FORGE code to execute. A submission with
+            // NEITHER code NOR any notes/link has nothing at all to
+            // evaluate — sending that to the grading model was the actual
+            // bug: it fell back to a generic "You are a helpful AI
+            // assistant" prompt and the model scored its own IMAGINED
+            // helpful-assistant persona generously (often 60-70/70)
+            // regardless of whether the participant submitted anything real,
+            // letting empty submissions outscore genuine working bots.
+            const hasSubmittedContent = !!(rawCode || notesText.trim());
             let grading: GradingResult | null = null;
-            if (rawCode) {
+            if (hasSubmittedContent) {
               slotId = await acquireSlot(supabase, 90);
               if (slotId === null) {
                 errors.push({ submission_id: s.id, error: "AI gateway busy — try again shortly" });
@@ -684,6 +684,15 @@ Deno.serve(async (req) => {
               grading = await callGradingModel(systemPrompt, notesText, testsWithResponses);
             }
 
+            // Benchmark score specifically claims "this bot's real
+            // execution passed N of M tests" — that claim is only ever
+            // honest when there's real FORGE code that was actually run
+            // (testsWithResponses above is real only when rawCode exists).
+            // An external submission's response-quality can fairly be
+            // judged from its description, but its benchmark component
+            // stays 0 rather than trusting the grading model's own
+            // "imagined" pass/fail calls with nothing real behind them.
+            //
             // No benchmark tests configured used to award the full 20/20
             // "for free" to every submission that day regardless of actual
             // quality — a silent organizer-configuration gap, not a
@@ -696,7 +705,7 @@ Deno.serve(async (req) => {
             const benchmarkScore = !rawCode || benchmarkTests.length === 0 ? 0 : Math.round((passedCount / benchmarkTests.length) * 20);
 
             const rq = grading?.response_quality || ({} as GradingResult["response_quality"]);
-            const responseQualityTotal = !rawCode ? 0 :
+            const responseQualityTotal = !hasSubmittedContent ? 0 :
               clamp(Number(rq.followsPrompt) || 0, 0, 8) +
               clamp(Number(rq.correctness) || 0, 0, 8) +
               clamp(Number(rq.characterConsistency) || 0, 0, 8) +
@@ -705,8 +714,10 @@ Deno.serve(async (req) => {
 
             const autoScore = clamp(timeliness + benchmarkScore + responseQualityTotal, 0, challenge.auto_max_points);
 
-            if (!rawCode) {
-              warnings.push({ submission_id: s.id, warning: "no code or linked project found — scored on timeliness only (no benchmark/response-quality points); the judge review can still credit any notes/write-up on its own merits" });
+            if (!hasSubmittedContent) {
+              warnings.push({ submission_id: s.id, warning: "no code, link, or notes found at all — scored on timeliness only" });
+            } else if (!rawCode) {
+              warnings.push({ submission_id: s.id, warning: "no FORGE code found — benchmark component scored 0 (no real execution to verify against); response-quality graded from the submitted notes/link only" });
             } else if (benchmarkTests.length === 0) {
               warnings.push({ submission_id: s.id, warning: "this challenge has no benchmark tests configured — graded without a benchmark component (0/20); add tests and re-grade with force:true if that's not intentional" });
             } else if (testsWithResponses.every((t) => t.realResponse == null)) {
@@ -734,7 +745,7 @@ Deno.serve(async (req) => {
                 benchmark: benchmarkScore,
                 benchmark_results: grading?.benchmark_results || [],
                 response_quality: rq,
-                rationale: grading?.rationale || (!rawCode ? "No code or linked project was submitted." : undefined),
+                rationale: grading?.rationale || (!hasSubmittedContent ? "No code, link, or notes were submitted." : undefined),
                 prompt_version: GRADING_PROMPT_VERSION,
                 model: GRADING_MODEL,
                 suspicious_content: suspicious || undefined,
