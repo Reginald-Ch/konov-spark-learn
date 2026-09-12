@@ -30,6 +30,7 @@ interface ScoreRow {
   total_sp: number;
   status: string;
   auto_breakdown: { timeliness?: number } | null;
+  judge_breakdown: { ai_penalty_points?: number; ai_penalty_reason?: string } | null;
 }
 
 interface MySubmission {
@@ -161,9 +162,9 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
           content_url: s.content_url,
           notes: s.notes,
           project_id: s.project_id,
-          submission_scores: s.total_sp === null && s.score_status === null && s.auto_breakdown === null
+          submission_scores: s.total_sp === null && s.score_status === null && s.auto_breakdown === null && s.judge_breakdown === null
             ? null
-            : { total_sp: s.total_sp, status: s.score_status, auto_breakdown: s.auto_breakdown },
+            : { total_sp: s.total_sp, status: s.score_status, auto_breakdown: s.auto_breakdown, judge_breakdown: s.judge_breakdown },
           started_at: s.started_at,
         };
       });
@@ -427,6 +428,16 @@ export const DailyChallengePanel = ({ hackathonId }: { hackathonId: string | nul
                     ) : hasRealSubmission ? (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="w-3 h-3" /> Submitted — awaiting grading</Badge>
                     ) : null}
+                    {/* Any judge deduction (e.g. an AI-use penalty) needs to
+                        actually be visible to the participant it was applied
+                        to — a bare score with no explanation reads as
+                        arbitrary and there was previously no way for anyone
+                        to see this at all. */}
+                    {score?.judge_breakdown?.ai_penalty_reason && (
+                      <p className="text-[11px] text-[hsl(var(--discord-red))] text-right max-w-[220px]">
+                        ⚠️ {score.judge_breakdown.ai_penalty_reason}
+                      </p>
+                    )}
                     {score?.auto_breakdown?.timeliness === 10 && (
                       <Badge variant="outline" className="gap-1 text-[hsl(var(--discord-yellow))] border-[hsl(var(--discord-yellow)/0.4)]">⚡ On Time</Badge>
                     )}
