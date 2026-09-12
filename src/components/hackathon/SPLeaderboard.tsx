@@ -18,13 +18,19 @@ interface RankedParticipant {
 
 export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) => {
   const [participants, setParticipants] = useState<RankedParticipant[]>([]);
+  // Auto-score-only standings for submissions judges haven't finalized yet —
+  // deliberately kept in a SEPARATE list from `participants` (never merged
+  // in), so a provisional number can never be mistaken for a real, final
+  // one. Once a submission finalizes, get_hackathon_provisional_sp stops
+  // returning it and get_hackathon_sp_events picks it up instead.
+  const [provisional, setProvisional] = useState<RankedParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const fetchErrorShownRef = useRef(false);
 
   const fetchLeaderboard = useCallback(async () => {
-    if (!hackathonId) { setParticipants([]); setIsLoading(false); return; }
+    if (!hackathonId) { setParticipants([]); setProvisional([]); setIsLoading(false); return; }
     try {
       // Routed through SECURITY DEFINER RPCs instead of raw table selects —
       // point_events/hackathon_registrations/challenge_submissions all have
@@ -32,7 +38,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       // handed every visitor every registrant's real email address. Each
       // RPC returns md5(lower(trim(email))) instead — the client can still
       // join rows together by key, it just never sees the address itself.
-      const [spRes, badgeRes, regRes, onTimeRes] = await Promise.all([
+      const [spRes, badgeRes, regRes, onTimeRes, provisionalRes] = await Promise.all([
         supabase.rpc('get_hackathon_sp_events', { p_hackathon_id: hackathonId }),
         supabase.rpc('get_hackathon_badge_events', { p_hackathon_id: hackathonId }),
         supabase.rpc('get_hackathon_registered_participants', { p_hackathon_id: hackathonId }),
@@ -40,6 +46,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
         // the timeliness component that's already part of auto_score instead
         // of tracking a separate reward, so it can't double-count SP.
         supabase.rpc('get_hackathon_ontime_submissions', { p_hackathon_id: hackathonId }),
+        supabase.rpc('get_hackathon_provisional_sp', { p_hackathon_id: hackathonId }),
       ]);
 
       if (!isMountedRef.current) return;
@@ -49,7 +56,7 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
       // Deduped so a persistent failure across repeated polls doesn't
       // stack a toast every cycle, matching the pattern already used for
       // the same issue in Leaderboard.tsx.
-      const firstError = spRes.error || badgeRes.error || regRes.error || onTimeRes.error;
+      const firstError = spRes.error || badgeRes.error || regRes.error || onTimeRes.error || provisionalRes.error;
       if (firstError) {
         console.error('SPLeaderboard fetch error:', firstError);
         if (!fetchErrorShownRef.current) {
@@ -98,6 +105,19 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
         .map((p, i) => ({ ...p, rank: i + 1 }));
 
       if (isMountedRef.current) setParticipants(ranked);
+
+      // Provisional (auto-score-only) list — anyone already appearing above
+      // with a real, finalized SP is excluded by the RPC itself, so there's
+      // no overlap between the two lists to reconcile here.
+      const provisionalMap = new Map<string, number>();
+      (provisionalRes.data || []).forEach((row: any) => {
+        provisionalMap.set(row.participant_key, (provisionalMap.get(row.participant_key) || 0) + row.points);
+      });
+      const provisionalRanked = [...provisionalMap.entries()]
+        .map(([key, sp]) => ({ key, name: nameMap.get(key) || 'A FORGE Builder', sp, badges: { gold: 0, silver: 0, bronze: 0 }, onTimeCount: 0, rank: 0 }))
+        .sort((a, b) => b.sp - a.sp || a.name.localeCompare(b.name))
+        .map((p, i) => ({ ...p, rank: i + 1 }));
+      if (isMountedRef.current) setProvisional(provisionalRanked);
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -237,6 +257,37 @@ export const SPLeaderboard = ({ hackathonId }: { hackathonId: string | null }) =
           </div>
         )}
       </ScrollArea>
+
+      {/* Deliberately a visually distinct, separate section — never merged
+          into the ranked list above, so a pending/provisional number is
+          never mistaken for a final one. Disappears for a participant
+          automatically the moment a judge finalizes their score (they then
+          move into the real leaderboard instead). */}
+      {provisional.length > 0 && (
+        <div className="mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Flame className="w-4 h-4 text-[hsl(var(--discord-text-muted))]" />
+            <h3 className="text-sm font-semibold text-[hsl(var(--discord-text-muted))]">Provisional Standings (auto-score only — pending judge review)</h3>
+          </div>
+          <ScrollArea className="h-[240px] pr-2">
+            <div className="space-y-2">
+              {provisional.map((p, index) => (
+                <div key={p.key} className="rounded-lg border border-dashed border-[hsl(var(--discord-light)/0.3)] bg-[hsl(var(--discord-darker)/0.5)] p-2.5 flex items-center gap-3 opacity-80">
+                  <span className="text-[hsl(var(--discord-text-muted))] font-medium w-5 text-center text-xs flex-shrink-0">#{index + 1}</span>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 bg-[hsl(var(--discord-blurple)/0.6)]">
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
+                  <h4 className="flex-1 min-w-0 font-medium text-white truncate text-sm">{p.name}</h4>
+                  <div className="flex items-center gap-1 text-[hsl(var(--discord-text-muted))] flex-shrink-0">
+                    <span className="font-bold">{p.sp}</span>
+                    <span className="text-[10px]">SP (auto only)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 };
