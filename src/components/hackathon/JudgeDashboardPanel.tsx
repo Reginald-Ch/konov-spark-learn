@@ -56,6 +56,13 @@ interface Project {
 // else in this file instead.
 const TAB_CLASS = 'text-[hsl(var(--discord-text-muted))] data-[state=active]:bg-[hsl(var(--discord-light)/0.6)] data-[state=active]:text-white data-[state=active]:shadow-none';
 
+// Matches submit_gallery_score's lower(trim(...)) comparison (migration
+// 20260914000000) — every client-side judge-name comparison uses this too,
+// so "already scored by me" detection and the roster warning agree with
+// what the server will actually accept instead of a stricter exact match
+// silently disagreeing with it.
+const sameJudge = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
 const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot' },
   agent: { icon: '🧠', label: 'Agent' },
@@ -203,11 +210,22 @@ export const JudgeDashboardPanel = () => {
   useEffect(() => { fetchJudgeRoster(); }, [fetchJudgeRoster]);
 
   const handleAddJudge = async () => {
-    if (!newJudgeName.trim()) return;
+    const trimmed = newJudgeName.trim();
+    if (!trimmed) return;
+    // gallery_judges' primary key is case-sensitive, so "John" and "john"
+    // would otherwise insert as two separate roster rows — silently
+    // breaking the "exactly N judges" expectation (e.g. someone re-adding
+    // themselves after mistyping casing ends up with two roster slots
+    // instead of one corrected one, and neither name may match what that
+    // judge actually types at login).
+    if (judgeRoster.some(n => sameJudge(n, trimmed))) {
+      toast.error(`"${trimmed}" (or a differently-cased version of it) is already on the roster`);
+      return;
+    }
     setSavingJudge(true);
     try {
-      await callAdminAction('add_gallery_judge', { judge_name: newJudgeName.trim() });
-      toast.success(`"${newJudgeName.trim()}" added to the judge roster`);
+      await callAdminAction('add_gallery_judge', { judge_name: trimmed });
+      toast.success(`"${trimmed}" added to the judge roster`);
       setNewJudgeName('');
       fetchJudgeRoster();
     } catch (e) {
@@ -291,8 +309,13 @@ export const JudgeDashboardPanel = () => {
 
   useEffect(() => {
     (async () => {
+      // Trimmed on the way back in too — an older session may have stored
+      // an untrimmed name from before submit_gallery_score's matching was
+      // hardened (see migration 20260914000000); re-trimming here keeps a
+      // returning judge's session consistent with a fresh login instead of
+      // carrying the same whitespace mismatch forward.
       const storedName = sessionStorage.getItem('judge-display-name');
-      if (storedName) setJudgeName(storedName);
+      if (storedName) setJudgeName(storedName.trim());
       if (hasStoredAdminPassphrase()) {
         const resolvedRole = getStoredAdminRole() || (await verifyAdminPassphrase(getStoredAdminPassphrase()));
         setRole(resolvedRole);
@@ -308,10 +331,16 @@ export const JudgeDashboardPanel = () => {
     const resolvedRole = await verifyAdminPassphrase(passphraseInput.trim());
     setVerifying(false);
     if (!resolvedRole) { toast.error('Invalid passphrase'); return; }
+    // Trimmed once here so every later use of `judgeName` (roster checks,
+    // score submission, "already scored by me" matching) works off the
+    // exact string the DB will compare against — see migration
+    // 20260914000000 for the server-side half of this fix.
+    const trimmedName = judgeName.trim();
+    setJudgeName(trimmedName);
     setRole(resolvedRole);
-    sessionStorage.setItem('judge-display-name', judgeName);
+    sessionStorage.setItem('judge-display-name', trimmedName);
     fetchHackathonOptions();
-    toast.success(`Welcome, ${judgeName}!`);
+    toast.success(`Welcome, ${trimmedName}!`);
   };
 
   const handleLogout = () => {
@@ -347,7 +376,12 @@ export const JudgeDashboardPanel = () => {
         // volunteer judges") fetched every participant's FULL project
         // source over the network for nothing — a much more sensitive
         // over-fetch than the author_email one above, for zero benefit.
-        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
+        // is_published=true made explicit here (RLS already enforces it for
+        // this anon-key client, so this was never a leak) so the gallery
+        // judges score against exactly the same project set the Leaderboard
+        // draws from, instead of that overlap being an implicit side effect
+        // of a policy defined elsewhere.
+        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at').eq('hackathon_id', hackathonId).eq('is_published', true).order('created_at', { ascending: false }).limit(100),
         callAdminAction<{ points: number; metadata: any }[]>('list_gallery_judge_scores', { hackathon_id: hackathonId }),
       ]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
@@ -364,7 +398,7 @@ export const JudgeDashboardPanel = () => {
         if (judgeName) {
           const mine: Record<string, number> = {};
           Object.entries(byProject).forEach(([pid, entries]) => {
-            const own = entries.find(e => e.judgeName === judgeName);
+            const own = entries.find(e => sameJudge(e.judgeName, judgeName));
             if (own) mine[pid] = own.points;
           });
           setScores(prev => ({ ...prev, ...mine }));
@@ -400,7 +434,7 @@ export const JudgeDashboardPanel = () => {
         feedback: feedback[project.id] || '',
       });
       setJudgeScoresByProject(prev => {
-        const existing = (prev[project.id] || []).filter(e => e.judgeName !== judgeName);
+        const existing = (prev[project.id] || []).filter(e => !sameJudge(e.judgeName, judgeName));
         return { ...prev, [project.id]: [...existing, { judgeName, points: score }] };
       });
       toast.success(`Score submitted for ${project.project_name}`);
@@ -542,7 +576,7 @@ export const JudgeDashboardPanel = () => {
             <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" /> Projects to Score
             <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
           </h2>
-          {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.includes(judgeName.trim()) && (
+          {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.some(n => sameJudge(n, judgeName)) && (
             <p className="text-xs text-[hsl(var(--discord-red))] bg-[hsl(var(--discord-red)/0.1)] border border-[hsl(var(--discord-red)/0.3)] rounded-md px-3 py-2 mb-3">
               "{judgeName}" isn't on the approved judge roster — scores will be rejected until an organizer adds you
               {role === 'organizer' ? ' (Judges tab, above).' : '.'}
@@ -565,8 +599,8 @@ export const JudgeDashboardPanel = () => {
                   key={project.id}
                   project={project}
                   meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
-                  isScored={(judgeScoresByProject[project.id] || []).some(e => e.judgeName === judgeName)}
-                  otherScores={(judgeScoresByProject[project.id] || []).filter(e => e.judgeName !== judgeName)}
+                  isScored={(judgeScoresByProject[project.id] || []).some(e => sameJudge(e.judgeName, judgeName))}
+                  otherScores={(judgeScoresByProject[project.id] || []).filter(e => !sameJudge(e.judgeName, judgeName))}
                   score={scores[project.id]}
                   feedbackText={feedback[project.id] || ''}
                   onScoreChange={handleScoreChange}
