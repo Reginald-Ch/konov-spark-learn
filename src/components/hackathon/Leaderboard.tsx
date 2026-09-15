@@ -4,8 +4,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { stripLineComment } from './editorFeatures';
 import { isSafeExternalUrl } from '@/lib/utils';
+import { computeAutomatedMarks } from '@/lib/galleryAutomatedMarks';
 
 // Scoring criteria derived from project fields.
 // "Creativity & Personality" (5 pts, keyed off demo_url) used to live here
@@ -56,30 +56,17 @@ interface ParticipantScore {
 
 function scoreProject(project: any, judgePoints: number): Omit<ParticipantScore, 'rank'> {
   const achieved = new Set<ScoringKey>();
-  let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0;
+  const tier3 = 0;
+  let tier4 = 0;
 
-  // 🧠 System Message Quality: code is substantial (>200 meaningful chars).
-  // Measuring raw project.code.length let anyone pad with whitespace or
-  // comments to clear the bar for free — strip both before measuring so
-  // the threshold reflects actual written code, not padding. This used to
-  // strip "//" (C-style) comments, but every project here is Python
-  // (# comments) — the exploit this was meant to close (pad main.py with
-  // filler comment lines) was still wide open. stripLineComment is the
-  // same quote-aware stripper the editor's own linter uses, so a "#"
-  // inside a string (a hex color, a hashtag) isn't wrongly treated as a
-  // comment either.
-  const meaningfulCodeLength = project.code
-    ? project.code.split('\n').map(stripLineComment).join('\n').replace(/\s+/g, ' ').trim().length
-    : 0;
-  if (meaningfulCodeLength > 200) {
-    achieved.add('system_message');
-    tier1 = 10;
-  }
-  // 💬 Conversation Quality: has a description
-  if (project.description && project.description.trim().length > 0) {
-    achieved.add('conversation_quality');
-    tier2 += 5;
-  }
+  // 🧠 System Message Quality + 💬 Conversation Quality — shared with
+  // JudgeDashboardPanel's gallery card so both screens show identical
+  // automated marks for the same project.
+  const marks = computeAutomatedMarks(project);
+  if (marks.systemMessageAchieved) achieved.add('system_message');
+  if (marks.conversationQualityAchieved) achieved.add('conversation_quality');
+  const tier1 = marks.systemMessagePts;
+  const tier2 = marks.conversationQualityPts;
   // ⭐ Judge Score
   if (judgePoints > 0) {
     achieved.add('judge_score');

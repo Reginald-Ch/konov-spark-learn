@@ -1845,11 +1845,13 @@ export type Database = {
           author_key: string
           author_name: string
           code: string
+          created_at: string
           demo_url: string
           description: string
           id: string
           is_published: boolean
           project_name: string
+          template_id: string
         }[]
       }
       get_hackathon_ontime_submissions: {
