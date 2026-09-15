@@ -1812,6 +1812,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
       edit_own_community_message: {
         Args: {
           p_content: string
@@ -2068,6 +2072,10 @@ export type Database = {
           order_index: number
           question: string
         }[]
+      }
+      get_waitlist_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       join_voice_room: {
         Args: {
@@ -2361,6 +2369,20 @@ export type Database = {
           total: number
         }[]
       }
+      submit_waitlist_signup: {
+        Args: {
+          p_email: string
+          p_referral_code: string
+          p_referred_by: string
+          p_whatsapp: string
+        }
+        Returns: {
+          id: string
+          is_new: boolean
+          position: number
+          referral_code: string
+        }[]
+      }
       toggle_project_like: {
         Args: {
           p_device_token: string
@@ -2385,6 +2407,17 @@ export type Database = {
         Returns: {
           invite_token: string
         }[]
+      }
+      upsert_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_participant_email?: string
+          p_topics?: string[]
+          p_waitlist_signup_id?: string
+        }
+        Returns: undefined
       }
       verify_admin_credential: {
         Args: { p_passphrase: string; p_role: string }

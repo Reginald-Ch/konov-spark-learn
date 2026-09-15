@@ -51,11 +51,15 @@ const Waitlist = () => {
   }, []);
 
   useEffect(() => {
+    // Routed through get_waitlist_count (SECURITY DEFINER) instead of a
+    // raw table select — waitlist_signups no longer grants anon/
+    // authenticated any direct access at all (see migration
+    // 20260915010000), since a full-row SELECT policy that existed only
+    // for this counter was readable by anyone for every signup's email
+    // and phone number, not just a count.
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from("waitlist_signups")
-        .select("*", { count: "exact", head: true });
-      setTotalSignups(count || 0);
+      const { data } = await supabase.rpc("get_waitlist_count");
+      setTotalSignups(data || 0);
     };
     fetchCount();
   }, [signupData]);
@@ -85,48 +89,32 @@ const Waitlist = () => {
     try {
       // Generate a 6-char referral code
       const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const insertData = {
-        referral_code: referralCode,
-        referred_by: referredBy,
-        ...(contactMethod === "email"
-          ? { email: trimmed.toLowerCase() }
-          : { whatsapp: trimmed.replace(/[\s\-()]/g, "") }),
-      };
 
-      const { data, error } = await supabase
-        .from("waitlist_signups")
-        .insert([insertData])
-        .select("id, position, referral_code")
-        .single();
+      // Routed through submit_waitlist_signup (SECURITY DEFINER) instead
+      // of a raw insert + select — waitlist_signups no longer grants
+      // anon/authenticated any direct table access (see migration
+      // 20260915010000). The RPC handles the "duplicate signup" case
+      // itself now (looked up by the exact email/whatsapp the caller just
+      // supplied, same as this used to do client-side after a 23505).
+      const { data, error } = await supabase.rpc("submit_waitlist_signup", {
+        p_email: contactMethod === "email" ? trimmed.toLowerCase() : null,
+        p_whatsapp: contactMethod === "whatsapp" ? trimmed.replace(/[\s\-()]/g, "") : null,
+        p_referral_code: referralCode,
+        p_referred_by: referredBy,
+      });
 
-      if (error) {
-        if (error.code === "23505") {
-          // Duplicate — fetch existing
-          let query = supabase.from("waitlist_signups").select("id, position, referral_code");
-          if (contactMethod === "email") {
-            query = query.eq("email", trimmed.toLowerCase());
-          } else {
-            query = query.eq("whatsapp", trimmed.replace(/[\s\-()]/g, ""));
-          }
-          const { data: existing } = await query.single();
-          if (existing) {
-            setSignupData({
-              id: existing.id,
-              position: existing.position,
-              referralCode: existing.referral_code,
-            });
-            toast.info("You're already on the waitlist! Here's your spot.");
-          }
-        } else {
-          throw error;
-        }
-      } else if (data) {
+      if (error) throw error;
+
+      const row = data?.[0];
+      if (row) {
         setSignupData({
-          id: data.id,
-          position: data.position,
-          referralCode: data.referral_code,
+          id: row.id,
+          position: row.position,
+          referralCode: row.referral_code,
         });
-        toast.success("You're in! Welcome to the waitlist 🎉");
+        toast[row.is_new ? "success" : "info"](
+          row.is_new ? "You're in! Welcome to the waitlist 🎉" : "You're already on the waitlist! Here's your spot."
+        );
       }
     } catch (err) {
       console.error(err);
