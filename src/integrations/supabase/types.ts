@@ -1770,6 +1770,17 @@ export type Database = {
           ok: boolean
         }[]
       }
+      apply_ai_penalty: {
+        Args: {
+          p_judge_name: string
+          p_points?: number
+          p_submission_id: string
+        }
+        Returns: {
+          judge_score: number
+          total_sp: number
+        }[]
+      }
       check_ai_assist_rate_limit: {
         Args: {
           p_identifier: string
@@ -1865,6 +1876,13 @@ export type Database = {
           timeliness: number
         }[]
       }
+      get_hackathon_provisional_sp: {
+        Args: { p_hackathon_id: string }
+        Returns: {
+          participant_key: string
+          points: number
+        }[]
+      }
       get_hackathon_registered_participants: {
         Args: { p_hackathon_id: string }
         Returns: {
@@ -1908,6 +1926,7 @@ export type Database = {
           challenge_id: string
           content_url: string
           id: string
+          judge_breakdown: Json
           notes: string
           project_id: string
           score_status: string
@@ -2073,10 +2092,7 @@ export type Database = {
           question: string
         }[]
       }
-      get_waitlist_count: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      get_waitlist_count: { Args: never; Returns: number }
       join_voice_room: {
         Args: {
           p_channel_id: string
@@ -2145,25 +2161,48 @@ export type Database = {
           full_name: string
         }[]
       }
-      merge_submission_score: {
-        Args: {
-          p_auto_breakdown?: Json
-          p_auto_score?: number
-          p_challenge_id: string
-          p_hackathon_id: string
-          p_judge_breakdown?: Json
-          p_judge_score?: number
-          p_on_time?: boolean
-          p_participant_email: string
-          p_submission_id: string
-        }
-        Returns: {
-          auto_score: number
-          judge_score: number
-          status: string
-          total_sp: number
-        }[]
-      }
+      merge_submission_score:
+        | {
+            Args: {
+              p_auto_breakdown?: Json
+              p_auto_score?: number
+              p_challenge_id: string
+              p_hackathon_id: string
+              p_judge_breakdown?: Json
+              p_judge_score?: number
+              p_on_time?: boolean
+              p_participant_email: string
+              p_submission_id: string
+            }
+            Returns: {
+              auto_score: number
+              judge_score: number
+              status: string
+              total_sp: number
+            }[]
+          }
+        | {
+            Args: {
+              p_auto_breakdown: Json
+              p_auto_score: number
+              p_challenge_id: string
+              p_confirm_override?: boolean
+              p_hackathon_id: string
+              p_judge_breakdown: Json
+              p_judge_name?: string
+              p_judge_score: number
+              p_on_time: boolean
+              p_participant_email: string
+              p_submission_id: string
+            }
+            Returns: {
+              auto_score: number
+              conflicting_judge_name: string
+              judge_score: number
+              status: string
+              total_sp: number
+            }[]
+          }
       open_reward_box: {
         Args: {
           p_box_id: string
