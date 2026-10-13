@@ -1,61 +1,19 @@
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { ArrowRight, ExternalLink, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Zap, ArrowRight } from "lucide-react";
-import { ComicPanel } from "./ComicPanel";
-import { RobotMascot } from "./RobotMascot";
+import builder from "@/assets/gallery-meai-builder.jpg.asset.json";
 
-export const MeAIIntro = () => {
-  const navigate = useNavigate();
-
-  return (
-    <section className="py-14 md:py-20 relative overflow-hidden halftone-bg">
-      <div className="absolute top-1/3 -right-24 w-72 h-72 bg-primary/15 rounded-full blur-3xl" />
-
-      <div className="container mx-auto px-4 relative z-10">
-        <ComicPanel color="primary">
-          <div className="grid md:grid-cols-[1fr_auto] gap-8 items-center p-8 md:p-12">
-            <motion.div
-              initial={{ x: -30, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-            >
-              <span className="inline-block text-xs font-fredoka font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-primary text-primary-foreground mb-4">
-                Me AI
-              </span>
-              <h2 className="text-3xl md:text-5xl font-fredoka font-bold mb-4 leading-tight">
-                The AI Creation Platform For Young Learners
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl font-space leading-relaxed mb-6">
-                Me AI is KONOV's AI learning and creation platform for learners ages 6-18. It gives young
-                people a safe, guided space to learn AI concepts, complete interactive lessons, train
-                models, build chatbots, and create their own AI-powered projects.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  size="lg"
-                  className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[5px_5px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-primary"
-                  onClick={() => navigate('/me-ai')}
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  Explore Me AI
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ type: "spring", delay: 0.2 }}
-              className="hidden md:block"
-            >
-              <RobotMascot type="excited" size="lg" />
-            </motion.div>
-          </div>
-        </ComicPanel>
+export const MeAIIntro = () => (
+  <section id="me-ai" className="company-section bg-card scroll-mt-24 border-b border-border">
+    <div className="company-container">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6"><p className="company-eyebrow text-primary !mb-0">Our first product</p><span className="text-sm text-muted-foreground">By KONOV · Ages 6–16</span></div>
+      <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+        <div><h2 className="text-6xl md:text-7xl font-fredoka font-semibold text-primary mb-5">Me AI</h2><p className="text-3xl font-fredoka leading-tight mb-5">Big ideas start with<br />a little exploration.</p><p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-6">Our interactive AI learning and creation platform gives young learners a place to experiment, understand, and build. Made for learning at home and in the classroom.</p>
+          <ul className="space-y-3 text-base mb-8">{["Explore AI through interactive lessons", "Build chatbots with your own ideas", "Train simple machine learning models", "Create projects, not just watch lessons"].map(item => <li key={item} className="flex items-start gap-3"><Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />{item}</li>)}</ul>
+          <div className="flex flex-wrap gap-3"><Button asChild size="lg" className="rounded-lg"><a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Open Me AI <ExternalLink /></a></Button><Button asChild size="lg" variant="link" className="px-2"><Link to="/me-ai">Explore the product <ArrowRight /></Link></Button></div>
+        </div>
+        <figure><img src={builder.url} alt="A young learner building her own AI project using Me AI" loading="lazy" className="w-full aspect-[4/3] object-cover rounded-lg" /><figcaption className="text-sm text-muted-foreground mt-4 border-l-2 border-secondary pl-4">Curiosity in action: building with Me AI.</figcaption></figure>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);

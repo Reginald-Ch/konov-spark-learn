@@ -55,14 +55,14 @@ export const Navbar = () => {
             </Link>
 
             {/* Desktop Nav Links */}
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden xl:flex items-center gap-1">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
                   <Link
                     key={link.name}
                     to={link.path}
-                    className="relative px-4 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group"
+                    className="relative px-2 py-2 font-fredoka font-medium text-lg transition-colors duration-300 rounded-xl group"
                   >
                     {isActive && (
                       <motion.span
@@ -84,7 +84,7 @@ export const Navbar = () => {
             </div>
 
             {/* CTA Button */}
-            <div className="hidden md:block">
+            <div className="hidden xl:block">
               <Button
                 onClick={() => setShowSignupModal(true)}
                 className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all bg-primary"
@@ -97,7 +97,7 @@ export const Navbar = () => {
             {/* Mobile Menu Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
-              className="md:hidden w-12 h-12 rounded-xl bg-card border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] flex items-center justify-center"
+              className="xl:hidden w-12 h-12 rounded-xl bg-card border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] flex items-center justify-center"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle navigation menu"
             >
@@ -118,7 +118,7 @@ export const Navbar = () => {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden overflow-hidden"
+              className="xl:hidden overflow-hidden"
             >
               <div className="bg-background/95 backdrop-blur-lg border-t-4 border-foreground/20 py-6">
                 <div className="container mx-auto px-4 flex flex-col gap-3">
