@@ -32,7 +32,7 @@ const organizationSchema = {
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "KONOV Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our Me AI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
+  description: "KONOV is an EdTech company building interactive tools to make technology education fun for young learners aged 6–16. Me AI is its first product for families and classrooms, supported by hands-on workshops and school partnerships.",
   foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
@@ -101,7 +101,7 @@ const websiteSchema = {
   "@id": `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: " AI & ML literacy hub for African youths",
+  description: "Interactive technology learning tools for young learners aged 6–16",
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
@@ -147,7 +147,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 5,
       name: "Me AI",
-      description: "KONOV's AI creation platform for learners ages 6-18",
+      description: "KONOV's first interactive AI learning product for families and classrooms, ages 6–16",
       url: `${SITE_URL}/me-ai`
     },
     {

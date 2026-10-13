@@ -30,46 +30,19 @@ const escapeAttr = (s) =>
 const ROUTES = [
   {
     path: "/",
-    title: "KONOV Technologies | AI Education For Kids And Young Learners In Ghana",
-    description:
-      "KONOV Technologies helps young people in Ghana and Africa learn AI, train models, build chatbots, and create real AI systems through Me AI, workshops, programs, and hackathons.",
-    h1: "KONOV Technologies — Ghana's AI Literacy Hub for Young Innovators",
-    intro:
-      "KONOV Technologies helps young people in Ghana and across Africa understand how artificial intelligence works and build real AI systems — through hands-on AI programs, school workshops, youth hackathons, and the Me AI creation platform. Learners work with data, train machine learning models, build chatbots, and solve real-world problems using AI.",
-    main: `
-        <h2>What KONOV Technologies Teaches</h2>
-        <p>Artificial Intelligence, Machine Learning, chatbot and conversational AI building, data literacy, prompt thinking, and creative problem-solving — all designed for young African learners ages 6 to 18.</p>
-        <h2>Programs in Accra, Ghana</h2>
-        <ul>
-          <li><strong>KONOV Weekend AI Creators</strong> — an 8-week weekend AI program for ages 6-16.</li>
-          <li><strong>KONOV School AI Program</strong> — term-based AI enrichment for schools, Grade 1 to Grade 9.</li>
-          <li><strong>KONOV AI Workshops</strong> — short, practical AI workshops using Me AI.</li>
-          <li><strong>KONOV Summer AI & Tech Camp</strong> — a vacation AI and tech camp for primary through senior high learners.</li>
-          <li><strong>KONOV Youth AI Challenges</strong> — AI hackathons, challenges, and project showcases.</li>
-          <li><strong>KONOV Tertiary AI Innovation Program</strong> — applied AI for tertiary students, including the free 7-day AI Builder Sprint.</li>
-          <li><strong>Me AI</strong> — KONOV's AI creation platform for learners ages 6-18 (<a href="https://meaitech.com">meaitech.com</a>).</li>
-        </ul>
-        <h2>Why Parents & Schools in Ghana Choose KONOV Technologies</h2>
-        <p>KONOV Technologies is AI-first, practical, and built for African learners. We don't only teach students how to use technology — we help them understand how intelligent systems work and give them the tools to create their own. We partner with schools across Accra and Ghana to bring practical AI education into every classroom.</p>
-        <h2>Contact</h2>
-        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
+    title: "Interactive Tools For Young Learners | KONOV Technologies",
+    description: "KONOV builds interactive tools to make tech education fun for ages 6–16. Discover Me AI, our first product, AI workshops, and school partnerships.",
+    h1: "KONOV — Interactive Tools For Young Learners",
+    intro: "KONOV is an EdTech company building interactive tools to make technology fun to learn and create with for young learners aged 6–16.",
+    main: `<h2>Me AI — Our First Product</h2><p>Me AI is KONOV’s interactive AI learning and creation platform for families and classrooms. Explore lessons, build chatbots, train simple models, and create projects. <a href="https://meaitech.com">Open Me AI</a>.</p><h2>Learning By Doing</h2><p>Play with an idea, build something of your own, and understand what happens.</p><h2>Workshops and School Partnerships</h2><p>Hands-on AI workshops and school partnerships connect our products with guided learning experiences.</p><p><a href="/about">Meet KONOV</a> · <a href="/programs">Workshops and programs</a> · <a href="/for-schools">For schools</a></p>`,
   },
   {
     path: "/about",
-    title: "Ghana's AI Literacy Hub | KONOV Technologies",
-    description:
-      "KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence.",
-    h1: "Building Africa's Next Generation Of AI Creators",
-    intro:
-      "KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence. We deliver practical AI education through the Me AI platform, school programs, workshops, hackathons, and youth innovation experiences.",
-    main: `
-        <h2>Mission</h2>
-        <p>To make AI education accessible, engaging, and practical for young Africans.</p>
-        <h2>Vision</h2>
-        <p>To prepare the next generation of African innovators to become creators of intelligent systems, not just users of technology.</p>
-        <h2>Our Story</h2>
-        <p>Founded in Accra, Ghana, KONOV Technologies was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI literacy — understanding how intelligent systems think. Our learners work with data, train machine learning models, build chatbots, and create AI-powered projects that develop confidence, creativity, and problem-solving skills.</p>
-        <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
+    title: "About KONOV | The Company Behind Me AI | KONOV Technologies",
+    description: "Meet KONOV, an EdTech company making technology fun for ages 6–16 through interactive tools, Me AI, hands-on workshops, and school partnerships.",
+    h1: "KONOV. Built around young curiosity.",
+    intro: "We are an EdTech company that builds interactive tools to make technology education fun for young learners aged 6–16.",
+    main: `<h2>From Curiosity to Creation</h2><p>We want young learners to understand technology, ask questions, and create with it—not only consume it.</p><h2>Our Mission</h2><p>Make technology education fun, interactive, and meaningful for young learners.</p><h2>Me AI — Our First Product</h2><p>Me AI brings interactive AI learning to families and classrooms. AI is where our first product begins; making technology fun to learn is the bigger mission.</p><h2>Workshops and School Partnerships</h2><p>We run guided workshops and partner with schools to connect learning tools with hands-on experiences.</p><p><a href="/me-ai">Explore Me AI</a> · <a href="/for-schools">Partner with KONOV</a></p>`,
   },
   {
     path: "/programs",

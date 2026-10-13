@@ -29,9 +29,9 @@ export const Footer = () => {
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
-              Ghana's AI literacy hub helping young people understand, create, and build with
-              artificial intelligence — through hands-on programs, school workshops, hackathons, and
-              the Me AI creation platform.
+              An EdTech company building interactive tools that make technology fun to learn
+              for ages 6–16. Discover Me AI, our first product for families and classrooms,
+              alongside hands-on workshops and school partnerships.
             </p>
             <div className="flex gap-3">
               {[
