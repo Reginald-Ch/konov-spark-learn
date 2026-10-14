@@ -101,7 +101,10 @@ const MeAI = () => {
             </Button>
             <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to Me AI." />
           </div>
-        </div>
+          <p className="text-sm text-muted-foreground font-space mt-6">
+            Me AI is made by <Link to="/about" className="underline underline-offset-2 hover:text-foreground">KONOV</Link>, the EdTech company making technology fun to learn for young learners.
+          </p>
+          </div>
       </section>
 
       {/* Who it's for */}
