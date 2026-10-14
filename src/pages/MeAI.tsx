@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 
 const meAiFAQs = [
-  { question: "What is Me AI?", answer: "Me AI is KONOV Technologies' AI learning and creation platform for learners ages 6-18. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
-  { question: "Who is Me AI for?", answer: "Me AI is designed for young learners ages 6-18, and is also used by schools and educators for classroom AI programs." },
+  { question: "What is Me AI?", answer: "Me AI is KONOV's first product — an AI learning and creation platform for learners ages 6-16. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
+  { question: "Who is Me AI for?", answer: "Me AI is designed for young learners ages 6-16, and is also used by schools and educators for classroom AI programs." },
   { question: "Do I need coding experience to use Me AI?", answer: "No prior coding experience is required. Me AI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
   { question: "Can schools get access to Me AI?", answer: "Yes. Schools can request classroom access to Me AI as part of KONOV's school partnership programs." },
   { question: "How do I get started with Me AI?", answer: "Click \"Try Me AI\" to open the platform, or contact us on WhatsApp to request school or group access." },
@@ -28,8 +28,8 @@ const meAiBreadcrumb = createBreadcrumbSchema([
 
 const meAiProductSchema = createProductSchema({
   name: "Me AI",
-  description: "Me AI is KONOV Technologies' AI learning and creation platform for learners ages 6-18 — build chatbots, train models, and complete guided AI projects.",
-  ageRange: "Ages 6-18",
+  description: "Me AI is KONOV's first product — an AI learning and creation platform for learners ages 6-16. Build chatbots, train models, and complete guided AI projects.",
+  ageRange: "Ages 6-16",
 });
 
 const audiences = [
@@ -57,7 +57,7 @@ const buildItems = [
 ];
 
 const learnerFeatures = ["Guided, interactive lessons", "Real Python code as you progress", "Instant feedback on your work", "Earn coins and badges as you learn"];
-const parentFeatures = ["Safe, supervised learning environment", "Age-appropriate content (6-18)", "Visible progress and completed projects", "No prior coding experience required"];
+const parentFeatures = ["Safe, supervised learning environment", "Age-appropriate content (6-16)", "Visible progress and completed projects", "No prior coding experience required"];
 const schoolFeatures = ["Classroom-ready curriculum", "Teacher training and support", "Group/class access", "Hackathon and showcase integration"];
 
 const MeAI = () => {
@@ -84,9 +84,9 @@ const MeAI = () => {
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              Me AI is KONOV's AI learning platform for learners ages 6-18. It helps young people learn AI
-              through interactive lessons, guided projects, model training, chatbot creation, and hands-on
-              activities designed for African learners.
+              Me AI is KONOV's first product — an AI learning and creation platform for learners ages
+              6-16. It helps young people learn AI through interactive lessons, guided projects, model
+              training, chatbot creation, and hands-on activities designed for African learners.
             </p>
           </SpeechBubble>
           <div className="flex flex-wrap gap-3 justify-center mt-8">
@@ -111,7 +111,7 @@ const MeAI = () => {
             Who Me AI Is <span className="text-primary">For</span>
           </h2>
           <p className="text-center text-muted-foreground font-space max-w-2xl mx-auto mb-12">
-            Built for learners ages 6-18, and the parents and schools who support them.
+            Built for learners ages 6-16, and the parents and schools who support them.
           </p>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {audiences.map((a, idx) => {
