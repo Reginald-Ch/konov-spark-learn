@@ -29,7 +29,7 @@ const schoolsBreadcrumb = createBreadcrumbSchema([
 const offerings = [
   { icon: Users, title: "Student AI Workshops", description: "Short, practical AI learning experiences designed for schools that want students to understand and explore artificial intelligence." },
   { icon: GraduationCap, title: "Teacher Training", description: "Hands-on training so educators can confidently support AI learning in their own classrooms." },
-  { icon: Zap, title: "Me AI For Classrooms", description: "Classroom access to Me AI so students can keep building AI projects between sessions." },
+  { icon: Zap, title: "Me AI For Classrooms", description: "Classroom access to Me AI — KONOV's first learning platform — so students can keep building AI projects between sessions." },
   { icon: School, title: "AI Clubs & After-School Programs", description: "Ongoing AI learning outside class hours, for students who want to go further." },
   { icon: Trophy, title: "Hackathons & Showcases", description: "Student innovation challenges where learners present real AI projects, judged and celebrated." },
 ];
@@ -87,10 +87,11 @@ const ForSchools = () => {
             Why Schools Need <span className="text-primary">AI Education</span>
           </h2>
           <p className="text-lg text-muted-foreground font-space leading-relaxed">
-            AI is already shaping how young people learn, work, and create. Most edtech treats students as
-            tool users. KONOV Technologies is AI-first and practical — we help students understand how
-            intelligent systems actually work, not just how to click through an app, so your school is
-            preparing learners for what comes next rather than what's already here.
+            AI is already shaping how young people learn, work, and create. KONOV is an EdTech company
+            that builds interactive tools to make technology fun to learn for young learners. In
+            schools, we're practical and AI-first — we help students understand how intelligent systems
+            actually work, not just how to click through an app, so your school is preparing learners
+            for what comes next rather than what's already here.
           </p>
         </div>
       </section>
