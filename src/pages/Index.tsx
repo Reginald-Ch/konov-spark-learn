@@ -15,7 +15,7 @@ const Index = () => {
     <div className="company-page min-h-screen font-space">
       <SEO title="Interactive Tools For Young Learners" description="KONOV builds interactive tools to make tech education fun for ages 6–16. Discover Me AI, our first product, AI workshops, and school partnerships." canonical="/" keywords={["EdTech company Ghana", "interactive technology learning", "technology education for kids", "Me AI for families and classrooms"]} jsonLd={createFAQSchema(companyFAQs)} />
       <Navbar />
-      <main><Hero /><CompanyPurpose /><MeAIIntro /><LearningApproach /><WorkshopsAndSchools /><LearnerVoice /><CompanyFAQ /><CompanyCTA /></main>
+      <main id="main-content"><Hero /><CompanyPurpose /><MeAIIntro /><LearningApproach /><WorkshopsAndSchools /><LearnerVoice /><CompanyFAQ /><CompanyCTA /></main>
       <Footer /><AIMascot />
     </div>
   );

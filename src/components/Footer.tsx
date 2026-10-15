@@ -1,4 +1,4 @@
-import { Instagram, Linkedin, Mail, Heart, ExternalLink } from "lucide-react";
+import { Linkedin, Mail, Heart, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RobotMascot } from "./RobotMascot";
@@ -24,7 +24,7 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <div className="flex items-center gap-4 mb-4">
               <RobotMascot type="happy" size="sm" />
-              <h3 className="text-3xl font-fredoka font-bold text-primary">
+              <h3 className="text-2xl lg:text-3xl font-fredoka font-bold text-primary min-w-0">
                 KONOV Technologies
               </h3>
             </div>
@@ -36,8 +36,6 @@ export const Footer = () => {
             <div className="flex gap-3">
               {[
                 { Icon: Linkedin, href: "https://www.linkedin.com/company/konov-artechtist", label: "LinkedIn" },
-                { Icon: TikTokIcon, href: "#", label: "TikTok" },
-                { Icon: Instagram, href: "#", label: "Instagram" },
               ].map(({ Icon, href, label }, idx) => (
                 <motion.a
                   key={idx}
@@ -128,7 +126,7 @@ export const Footer = () => {
             <ul className="space-y-3 font-space">
               <li className="flex items-start gap-2 text-muted-foreground">
                 <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" />
-                <span>hello@konovtech.com</span>
+                <a href="mailto:hello@konovtech.com" className="min-w-0 break-all hover:text-primary">hello@konovtech.com</a>
               </li>
               <li>
                 <a
@@ -158,8 +156,7 @@ export const Footer = () => {
             {" "}for young innovators.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground font-space">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <Link to="/contact" className="hover:text-primary transition-colors">Contact KONOV</Link>
           </div>
         </div>
       </div>

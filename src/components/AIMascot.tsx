@@ -2,6 +2,7 @@ import { useState } from "react";
 import mascotImage from "@/assets/meai-mascot.png";
 import { Button } from "./ui/button";
 import { analytics } from "@/hooks/useAnalytics";
+import { Link } from "react-router-dom";
 
 export const AIMascot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,34 +35,34 @@ export const AIMascot = () => {
       >
         <div className="bg-card border-2 border-foreground/20 rounded-xl p-3 shadow-xl max-w-[220px]">
           <p className="text-xs font-semibold text-foreground mb-1.5 leading-snug">
-            👋 Hi! I'm Konovy. Need help finding the right program?
+            Hi! I'm Konovy. Explore Me AI, our first product.
           </p>
           <Button
-            onClick={handleCTAClick}
+            asChild
             className="w-full mt-2 bg-primary text-primary-foreground font-semibold text-xs py-1.5"
           >
-            Join Now! 🚀
+            <Link to="/me-ai" onClick={handleCTAClick}>Discover Me AI</Link>
           </Button>
         </div>
         <div className="absolute -bottom-1.5 right-10 w-3 h-3 bg-card border-r-2 border-b-2 border-foreground/20 transform rotate-45" />
       </div>
 
       {/* Mascot — static, click to toggle */}
-      <div
-        className="relative cursor-pointer pointer-events-auto group"
+      <Button
+        variant="ghost"
+        className="relative h-16 w-16 p-0 cursor-pointer pointer-events-auto group hover:bg-transparent"
         onClick={handleMascotClick}
+        aria-label="Toggle Konovy message"
+        aria-expanded={isOpen}
       >
-        <div className="relative w-16 h-16 rounded-full border-2 border-primary/40 shadow-lg transition-transform duration-200 group-hover:scale-110 overflow-hidden bg-card">
+        <div className="relative w-16 h-16 transition-transform duration-200 group-hover:scale-105">
           <img
             src={mascotImage}
             alt="Konovy AI Mascot"
             className="w-full h-full object-contain"
           />
         </div>
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-secondary rounded-full flex items-center justify-center text-[10px] shadow border border-background">
-          {isOpen ? "💬" : "✨"}
-        </div>
-      </div>
+      </Button>
     </div>
   );
 };
