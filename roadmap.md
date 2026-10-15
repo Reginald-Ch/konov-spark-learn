@@ -5,6 +5,6 @@
 - [x] Echo the company-first story on the Me AI and For Schools pages (Me AI as first product, ages 6–16).
 
 # UI and UX polish
-- [ ] Remove the logo’s white background and optimize its display.
-- [ ] Fix navigation accessibility, small-screen menus, and main-page layout issues.
-- [ ] Verify imagery and key interactions across screen sizes.
+- [x] Remove the logo’s white background and optimize its display.
+- [x] Fix navigation accessibility, small-screen menus, and main-page layout issues.
+- [x] Verify imagery and key interactions across screen sizes.

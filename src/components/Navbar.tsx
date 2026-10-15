@@ -29,7 +29,7 @@ export const Navbar = () => {
 
   return (
     <>
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-background focus:p-3 focus:text-foreground focus:ring-2 focus:ring-ring">Skip to content</a>
+      {['/', '/about'].includes(location.pathname) && <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-background focus:p-3 focus:text-foreground focus:ring-2 focus:ring-ring">Skip to content</a>}
       <nav aria-label="Main navigation" className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background">
         <div className="company-container flex h-20 items-center justify-between gap-4">
           <Link to="/" aria-label="KONOV home" className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><img src={logo} alt="KONOV" width="480" height="339" className="h-16 w-auto object-contain" /></Link>
@@ -43,7 +43,7 @@ export const Navbar = () => {
           <div className="hidden xl:block">{openApp}</div>
           <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <DialogTrigger asChild><Button variant="outline" size="icon" className="xl:hidden h-11 w-11 rounded-lg" aria-label="Open navigation menu"><Menu /></Button></DialogTrigger>
-            <DialogContent hideCloseButton className="inset-0 top-0 left-0 h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none p-0 gap-0 flex flex-col overflow-hidden" aria-describedby={undefined}>
+            <DialogContent hideCloseButton className="inset-0 top-0 left-0 h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none sm:rounded-none p-0 gap-0 flex flex-col overflow-hidden" aria-describedby={undefined}>
               <div className="company-container flex h-20 shrink-0 items-center justify-between border-b border-border"><DialogTitle className="font-fredoka text-2xl">Explore KONOV</DialogTitle><DialogClose asChild><Button variant="outline" size="icon" className="h-11 w-11 rounded-lg" aria-label="Close navigation menu"><X /></Button></DialogClose></div>
               <div className="overflow-y-auto overscroll-contain flex-1 py-5"><div className="company-container flex flex-col gap-2">
                 <Link to="/" className={linkClass('/')} onClick={() => setIsMobileMenuOpen(false)}>Home</Link>

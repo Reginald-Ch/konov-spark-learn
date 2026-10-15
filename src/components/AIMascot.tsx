@@ -16,12 +16,6 @@ export const AIMascot = () => {
 
   const handleCTAClick = () => {
     analytics.trackButtonClick('Mascot CTA', 'AI Mascot');
-    if (window.location.pathname === '/') {
-      const ctaSection = document.querySelector("#cta-section");
-      if (ctaSection) {
-        ctaSection.scrollIntoView({ behavior: "smooth" });
-      }
-    }
     setIsOpen(false);
   };
 
@@ -29,8 +23,8 @@ export const AIMascot = () => {
     <div className="fixed bottom-20 right-4 z-40 pointer-events-none hidden md:block">
       {/* Speech Bubble — only on click */}
       <div
-        className={`absolute bottom-24 right-0 pointer-events-auto transition-all duration-300 ${
-          isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        className={`absolute bottom-24 right-0 transition-all duration-300 ${
+          isOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "invisible opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
         <div className="bg-card border-2 border-foreground/20 rounded-xl p-3 shadow-xl max-w-[220px]">
