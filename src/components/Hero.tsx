@@ -7,10 +7,10 @@ export const Hero = () => (
   <section className="relative isolate overflow-hidden bg-foreground text-background">
     <img src={group.url} alt="Young KONOV learners celebrating their technology projects together" fetchPriority="high" className="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
     <div className="absolute inset-0 -z-10 bg-foreground/65" />
-    <div className="company-container py-16 md:py-24 min-h-[560px] md:min-h-[620px] flex flex-col justify-center">
+    <div className="company-container company-hero-content py-12 md:py-20 flex flex-col justify-center">
       <p className="company-eyebrow">Interactive tools. Curious minds. Ages 6–16.</p>
       <h1 className="font-fredoka font-semibold text-6xl md:text-8xl leading-none mb-5">KONOV</h1>
-      <p className="font-fredoka text-3xl md:text-5xl leading-tight max-w-3xl mb-6">We make technology<br className="hidden sm:block" /> fun to learn and create with.</p>
+      <p className="company-hero-tagline font-fredoka text-3xl md:text-5xl leading-tight max-w-3xl mb-6">We make technology<br className="hidden sm:block" /> fun to learn and create with.</p>
       <p className="text-base md:text-lg leading-relaxed max-w-xl mb-8">An EdTech company building interactive learning tools for young learners. Meet Me AI, our first product for families and classrooms.</p>
       <div className="flex flex-wrap gap-3">
         <Button asChild size="lg" className="rounded-lg"><a href="#me-ai">Discover Me AI <ArrowRight /></a></Button>

@@ -152,6 +152,24 @@ All colors MUST be HSL.
     width: min(100% - 3rem, 1200px);
     margin-inline: auto;
   }
+  .company-hero-content {
+    min-height: min(620px, calc(100svh - 160px));
+  }
+  .company-page {
+    overflow-wrap: break-word;
+  }
+  .company-page a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 4px;
+  }
+  @media (max-height: 540px) and (min-width: 600px) {
+    .company-hero-content { padding-block: 24px; }
+    .company-hero-content h1 { font-size: 48px; margin-bottom: 12px; }
+    .company-hero-tagline { font-size: 24px; margin-bottom: 12px; }
+    .company-hero-content .company-eyebrow { margin-bottom: 12px; }
+    .company-hero-content > p:last-of-type { font-size: 14px; margin-bottom: 16px; }
+    .company-hero-tagline br { display: none; }
+  }
   .company-section {
     padding-block: 64px;
   }

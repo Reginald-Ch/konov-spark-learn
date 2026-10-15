@@ -12,7 +12,7 @@ const About = () => (
   <div className="company-page min-h-screen font-space">
     <SEO title="About KONOV | The Company Behind Me AI" description="Meet KONOV, an EdTech company making technology fun for ages 6–16 through interactive tools, Me AI, hands-on workshops, and school partnerships." canonical="/about" keywords={["about KONOV", "EdTech company Ghana", "interactive learning tools", "Me AI creator"]} jsonLd={createBreadcrumbSchema([{ name: "Home", url: "/" }, { name: "About KONOV", url: "/about" }])} />
     <Navbar />
-    <main>
+    <main id="main-content">
       <section className="company-section bg-background !pb-8">
         <div className="company-container"><p className="company-eyebrow text-primary">About the company</p><h1 className="font-fredoka text-5xl md:text-7xl font-semibold leading-tight max-w-4xl">KONOV.<br />Built around <span className="text-primary">young curiosity.</span></h1><p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-3xl mt-6">We are an EdTech company that builds interactive tools to make technology education fun for young learners aged 6–16.</p><img src={group.url} alt="KONOV learners together at the end of a hands-on learning experience" fetchPriority="high" className="mt-10 w-full aspect-[16/7] max-h-[420px] object-cover rounded-lg" /></div>
       </section>
