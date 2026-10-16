@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SEO, createBreadcrumbSchema } from "@/components/SEO";
 import { MeAIIntro } from "@/components/MeAIIntro";
 import { LearningApproach, WorkshopsAndSchools, CompanyCTA } from "@/components/CompanySections";
-import group from "@/assets/gallery-meai-group.jpg.asset.json";
+import groupSrc from "@/assets/gallery-meai-group.jpg";
+const group = { url: groupSrc };
 
 const About = () => (
   <div className="company-page min-h-screen font-space">

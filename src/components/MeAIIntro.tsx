@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import builder from "@/assets/gallery-meai-builder.jpg.asset.json";
+import builderSrc from "@/assets/gallery-meai-builder.jpg";
+const builder = { url: builderSrc };
 
 export const MeAIIntro = () => (
   <section id="me-ai" className="company-section bg-card scroll-mt-24 border-b border-border">

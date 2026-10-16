@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import group from "@/assets/gallery-meai-group.jpg.asset.json";
+import groupSrc from "@/assets/gallery-meai-group.jpg";
+const group = { url: groupSrc };
 
 export const Hero = () => (
   <section className="relative isolate overflow-hidden bg-foreground text-background">

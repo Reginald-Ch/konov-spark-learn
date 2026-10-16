@@ -3,7 +3,8 @@ import { ArrowRight, Blocks, School, Lightbulb, Code2, Heart, MousePointer2 } fr
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { companyFAQs } from "@/data/companyFAQs";
-import mentor from "@/assets/gallery-meai-mentor.jpg.asset.json";
+import mentorSrc from "@/assets/gallery-meai-mentor.jpg";
+const mentor = { url: mentorSrc };
 
 export const CompanyPurpose = () => (
   <section className="company-section bg-background">
