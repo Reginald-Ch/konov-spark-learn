@@ -31,8 +31,8 @@ export const Navbar = () => {
     <>
       {['/', '/about'].includes(location.pathname) && <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-background focus:p-3 focus:text-foreground focus:ring-2 focus:ring-ring">Skip to content</a>}
       <nav aria-label="Main navigation" className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background">
-        <div className="company-container flex h-20 items-center justify-between gap-4">
-          <Link to="/" aria-label="KONOV home" className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><img src={logo} alt="KONOV" width="480" height="339" className="h-16 w-auto object-contain" /></Link>
+        <div className="company-container flex h-16 md:h-20 [@media(max-height:540px)]:h-14 items-center justify-between gap-4">
+          <Link to="/" aria-label="KONOV home" className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><img src={logo} alt="KONOV" width="480" height="339" className="h-12 md:h-16 [@media(max-height:540px)]:h-10 w-auto object-contain" /></Link>
           <div className="hidden xl:flex items-center gap-1">
             {navLinks.map(link => <Link key={link.path} to={link.path} aria-current={location.pathname === link.path ? "page" : undefined} className={linkClass(link.path)}>{link.name}</Link>)}
             <DropdownMenu>
@@ -56,7 +56,7 @@ export const Navbar = () => {
           </Dialog>
         </div>
       </nav>
-      <div className="h-20" aria-hidden="true" />
+      <div className="h-16 md:h-20 [@media(max-height:540px)]:h-14" aria-hidden="true" />
     </>
   );
 };
