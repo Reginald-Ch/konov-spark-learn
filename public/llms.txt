@@ -1,15 +1,15 @@
 # KONOV Technologies
 
-> KONOV Technologies is Ghana's AI literacy hub helping young people understand, create, and build with artificial intelligence — through hands-on programs, school workshops, hackathons, and the Me AI creation platform.
+> KONOV Technologies is an EdTech company in Ghana that builds interactive tools to make technology fun to learn for young learners aged 6-16. Me AI is its first product, for families and classrooms, supported by hands-on workshops and school partnerships.
 
-KONOV Technologies is an edtech company, not a general coding/robotics school. Learners (ages 6-18) work with real data, train machine learning models, build chatbots and conversational AI, and create AI-powered projects. KONOV serves young learners, parents, schools, educators, tertiary students, NGOs, and organizations across Ghana and Africa.
+KONOV is a product-led EdTech company, not only a workshop provider. Learners (ages 6-16) work with real data, train machine learning models, build chatbots and conversational AI, and create AI-powered projects. KONOV serves young learners, parents, schools, educators, tertiary students, NGOs, and organizations across Ghana and Africa.
 
 ## Core Pages
 
-- [Home](/): KONOV Technologies' mission, programs, and impact.
+- [Home](/): KONOV's interactive learning tools, Me AI, workshops, and school partnerships.
 - [About](/about): Mission, vision, story, and values.
 - [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
-- [Me AI](/me-ai): KONOV's AI creation platform for learners ages 6-18 — build chatbots, train models, complete guided AI projects.
+- [Me AI](/me-ai): KONOV's AI creation platform for learners ages 6-16 — build chatbots, train models, complete guided AI projects.
 - [For Schools](/for-schools): School partnerships — student workshops, teacher training, Me AI classroom access, AI clubs, hackathons.
 - [Contact](/contact): Reach KONOV Technologies by email or WhatsApp.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
@@ -35,6 +35,6 @@ KONOV Technologies is an edtech company, not a general coding/robotics school. L
 ## Key Facts
 
 - Official brand name: KONOV Technologies (also referenced as KONOV).
-- Product name: Me AI — KONOV's AI creation platform for learners ages 6-18.
+- Product name: Me AI — KONOV's AI creation platform for learners ages 6-16.
 - Location: Accra, Ghana. Serves learners across Ghana and Africa.
 - Contact: hello@konovtech.com

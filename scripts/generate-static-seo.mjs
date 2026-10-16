@@ -48,7 +48,7 @@ const ROUTES = [
     path: "/programs",
     title: "AI Programs For Young Learners, Schools And Future Innovators | KONOV Technologies",
     description:
-      "KONOV Technologies offers practical AI learning programs — weekend classes, school programs, workshops, camps, hackathons, and tertiary innovation programs — for young people, schools, and organizations.",
+      "Hands-on workshops, weekend classes, camps and school programs from KONOV, the EdTech company making technology fun to learn for ages 6–16.",
     h1: "AI Programs For Young Learners, Schools, And Future Innovators",
     intro:
       "KONOV Technologies offers practical AI learning programs that help young people understand, create, and build with artificial intelligence. From weekend classes and school programs to workshops, camps, hackathons, and tertiary innovation programs, learners gain hands-on experience with data, models, chatbots, conversational AI, and AI-powered projects.",
@@ -70,13 +70,13 @@ const ROUTES = [
     path: "/me-ai",
     title: "Me AI | AI Learning And Creation Platform For Kids And Teens | KONOV Technologies",
     description:
-      "Me AI by KONOV Technologies helps young learners build chatbots, train AI models, complete guided AI projects, and understand artificial intelligence through practical learning.",
+      "Me AI is KONOV's first product: an interactive AI learning app for families and classrooms, where learners aged 6–16 build chatbots and train models.",
     h1: "Me AI — An AI Creation Platform For Young Learners",
     intro:
-      "Me AI is KONOV's AI learning platform for learners ages 6-18. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
+      "Me AI is KONOV's AI learning platform for learners ages 6-16. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
     main: `
         <h2>Who Me AI Is For</h2>
-        <p>Learners ages 6-18, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
+        <p>Learners ages 6-16, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
         <h2>What Learners Build</h2>
         <ul>
           <li><strong>Chatbots</strong> — a bot with real personality, knowledge, and rules.</li>
