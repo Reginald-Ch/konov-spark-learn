@@ -186,26 +186,23 @@ export const SEO = ({
 }: SEOProps) => {
   const fullTitle = `${title} | ${SITE_NAME}`;
   const defaultKeywords = [
-    "AI for youth Ghana",
-    "machine learning for children Africa",
-    "robotics for kids Ghana",
-    "coding classes Accra",
-    "kids coding Ghana",
-    "tech education Ghana",
-    "Tech Accra",
-    "app development for kids",
-    "hackathons for kids Ghana",
-    "youth hackathon Accra",
-    "weekend tech programs Ghana",
-    "AI workshops for kids",
-    "tech camp Ghana",
-    "summer coding camp Accra",
-    "AI literacy Africa",
-    "artificial intelligence education",
-    "MeAI app",
     "KONOV",
-    "Konov Artechtist",
-    "Konov Ghana"
+    "KONOV Technologies",
+    "EdTech company Ghana",
+    "interactive learning tools for kids",
+    "technology education for kids Ghana",
+    "fun tech learning for young learners",
+    "Me AI",
+    "Me AI app for families and classrooms",
+    "AI learning app for kids",
+    "coding for kids Ghana",
+    "kids coding Accra",
+    "AI workshops for kids Ghana",
+    "school technology partnerships Ghana",
+    "STEM education Ghana",
+    "hackathons for kids Ghana",
+    "tech camp Ghana",
+    "Konov Artechtist"
   ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   
