@@ -13,7 +13,7 @@ export const MeAIIntro = () => (
           <ul className="space-y-3 text-base mb-8">{["Explore AI through interactive lessons", "Build chatbots with your own ideas", "Train simple machine learning models", "Create projects, not just watch lessons"].map(item => <li key={item} className="flex items-start gap-3"><Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />{item}</li>)}</ul>
           <div className="flex flex-wrap gap-3"><Button asChild size="lg" className="rounded-lg"><a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Open Me AI <ExternalLink /></a></Button><Button asChild size="lg" variant="link" className="px-2"><Link to="/me-ai">Explore the product <ArrowRight /></Link></Button></div>
         </div>
-        <figure><img src={builder.url} alt="A young learner building her own AI project using Me AI" loading="lazy" className="w-full aspect-[4/3] object-cover rounded-lg" /><figcaption className="text-sm text-muted-foreground mt-4 border-l-2 border-secondary pl-4">Curiosity in action: building with Me AI.</figcaption></figure>
+        <figure><img src={builder.url} alt="A young learner building her own AI project using Me AI" loading="lazy" className="w-full aspect-[4/3] [@media(max-height:540px)]:max-h-[70vh] object-cover rounded-lg" /><figcaption className="text-sm text-muted-foreground mt-4 border-l-2 border-secondary pl-4">Curiosity in action: building with Me AI.</figcaption></figure>
       </div>
     </div>
   </section>
