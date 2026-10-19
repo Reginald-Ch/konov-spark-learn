@@ -350,29 +350,29 @@ function applyRoute(template, route) {
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeAttr(route.title)}</title>`);
 
   html = html.replace(
-    /(<meta name="description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? name="description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
-  html = html.replace(/(<meta name="keywords" content=")[^"]*(")/, (_, before, after) =>
+  html = html.replace(/(<meta(?: data-rh="true")? name="keywords" content=")[^"]*(")/, (_, before, after) =>
     `${before}${escapeAttr((route.keywords || ["KONOV", "EdTech company Ghana", route.h1]).join(", "))}${after}`
   );
 
-  html = html.replace(/(<meta name="author" content=")[^"]*(")/, `$1${escapeAttr(SITE_NAME)}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="author" content=")[^"]*(")/, `$1${escapeAttr(SITE_NAME)}$2`);
 
-  html = html.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<link(?: data-rh="true")? rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
 
-  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? property="og:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
   html = html.replace(
-    /(<meta property="og:description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? property="og:description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
-  html = html.replace(/(<meta name="twitter:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="twitter:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="twitter:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
   html = html.replace(
-    /(<meta name="twitter:description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? name="twitter:description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
