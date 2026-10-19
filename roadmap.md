@@ -8,3 +8,7 @@
 - [x] Remove the logo’s white background and optimize its display.
 - [x] Fix navigation accessibility, small-screen menus, and main-page layout issues.
 - [x] Verify imagery and key interactions across screen sizes.
+
+# Rebranded search details
+- [ ] Align core page titles, descriptions, keywords, and company/product structured data.
+- [ ] Verify static search output and live page metadata.
