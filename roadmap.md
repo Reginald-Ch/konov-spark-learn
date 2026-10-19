@@ -10,5 +10,5 @@
 - [x] Verify imagery and key interactions across screen sizes.
 
 # Rebranded search details
-- [ ] Align core page titles, descriptions, keywords, and company/product structured data.
-- [ ] Verify static search output and live page metadata.
+- [x] Align core page titles, descriptions, keywords, and company/product structured data.
+- [x] Verify static search output and live page metadata.
