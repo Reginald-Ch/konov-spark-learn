@@ -47,10 +47,10 @@ const ForSchools = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="AI Education Programs For Schools In Ghana"
-        description="KONOV helps schools introduce practical AI education through student workshops, teacher training, Me AI classroom access, AI clubs, and innovation challenges."
+        title="School Partnerships & AI Workshops in Ghana"
+        description="Partner with KONOV for school AI workshops, teacher training and Me AI classroom access. Bring interactive technology learning to your school in Ghana."
         canonical="/for-schools"
-        keywords={["AI workshops for schools in Ghana", "AI education for African schools", "AI training for teachers in Ghana", "AI curriculum support for schools", "school partnership AI Ghana"]}
+        keywords={["school partnerships Ghana", "AI workshops for schools Ghana", "Me AI for classrooms", "AI teacher training Ghana", "interactive learning tools for schools"]}
         jsonLd={[schoolsBreadcrumb, createFAQSchema(schoolsFAQs)]}
       />
       <Navbar />

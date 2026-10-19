@@ -65,10 +65,10 @@ const MeAI = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="Me AI | AI Learning And Creation Platform For Kids And Teens"
-        description="Me AI by KONOV Technologies helps young learners build chatbots, train AI models, complete guided AI projects, and understand artificial intelligence through practical learning."
+        title="Me AI | Interactive AI Learning App for Ages 6–16"
+        description="Me AI is KONOV’s first product for families and classrooms. Learners aged 6–16 explore AI, build chatbots and train models through interactive projects."
         canonical="/me-ai"
-        keywords={["Me AI platform", "AI creation platform for young learners", "AI learning platform for children", "chatbot building for kids", "machine learning for kids"]}
+        keywords={["Me AI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"]}
         jsonLd={[meAiBreadcrumb, meAiProductSchema, createFAQSchema(meAiFAQs)]}
       />
       <Navbar />
