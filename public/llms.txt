@@ -35,6 +35,6 @@ KONOV is a product-led EdTech company, not only a workshop provider. Learners (a
 ## Key Facts
 
 - Official brand name: KONOV Technologies (also referenced as KONOV).
-- Product name: Me AI — KONOV's AI creation platform for learners ages 6-16.
+- Product name: Me AI — KONOV's first product, an AI learning and creation platform for learners ages 6-16.
 - Location: Accra, Ghana. Serves learners across Ghana and Africa.
-- Contact: hello@konovtech.com
+- Contact: konovartechtist@gmail.com

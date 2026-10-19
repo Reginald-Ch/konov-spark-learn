@@ -11,7 +11,7 @@ const group = { url: groupSrc };
 
 const About = () => (
   <div className="company-page min-h-screen font-space">
-    <SEO title="About KONOV | The Company Behind Me AI" description="Meet KONOV, an EdTech company making technology fun for ages 6–16 through interactive tools, Me AI, hands-on workshops, and school partnerships." canonical="/about" keywords={["about KONOV", "EdTech company Ghana", "interactive learning tools", "Me AI creator"]} jsonLd={createBreadcrumbSchema([{ name: "Home", url: "/" }, { name: "About KONOV", url: "/about" }])} />
+    <SEO title="About KONOV | The EdTech Company Behind Me AI" description="Meet KONOV, the Ghanaian EdTech company building interactive tools for ages 6–16, including Me AI for families and classrooms, workshops and school partnerships." canonical="/about" keywords={["about KONOV", "EdTech company Ghana", "interactive technology learning", "Me AI creator"]} jsonLd={createBreadcrumbSchema([{ name: "Home", url: "/" }, { name: "About KONOV", url: "/about" }])} />
     <Navbar />
     <main id="main-content">
       <section className="company-section bg-background !pb-8">

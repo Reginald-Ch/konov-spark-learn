@@ -20,7 +20,7 @@ const organizationSchema = {
   "@type": "EducationalOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: ["KONOV", "KONOV AI Hub", "Konov Artechtist", "KONOV Ghana"],
+  alternateName: ["KONOV", "Konov Artechtist", "KONOV Ghana"],
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
@@ -48,11 +48,11 @@ const organizationSchema = {
   knowsAbout: [
     "Artificial Intelligence Education",
     "Machine Learning for Kids",
-    "Robotics for Children",
+    "Interactive Technology Learning Tools",
     "Coding for Kids",
     "Tech Education Ghana",
     "App Development for Teens",
-    "Hackathons for Youth",
+    "Project-Based AI Learning",
     "Weekend Tech Programs",
     "AI Literacy Africa"
   ],
@@ -63,7 +63,7 @@ const organizationSchema = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
-    email: "hello@konovtech.com",
+    email: "konovartechtist@gmail.com",
     areaServed: "GH",
     availableLanguage: "English"
   }
@@ -77,20 +77,13 @@ const localBusinessSchema = {
   name: SITE_NAME,
   image: `${SITE_URL}/favicon.png`,
   url: SITE_URL,
-  email: "hello@konovtech.com",
-  priceRange: "$$",
+  email: "konovartechtist@gmail.com",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Accra",
     addressRegion: "Greater Accra",
     addressCountry: "GH"
   },
-  geo: { "@type": "GeoCoordinates", latitude: 5.6037, longitude: -0.1870 },
-  openingHoursSpecification: [{
-    "@type": "OpeningHoursSpecification",
-    dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-    opens: "09:00", closes: "18:00"
-  }]
 };
 
 
@@ -184,26 +177,8 @@ export const SEO = ({
   jsonLd,
   noindex = false
 }: SEOProps) => {
-  const fullTitle = `${title} | ${SITE_NAME}`;
-  const defaultKeywords = [
-    "KONOV",
-    "KONOV Technologies",
-    "EdTech company Ghana",
-    "interactive learning tools for kids",
-    "technology education for kids Ghana",
-    "fun tech learning for young learners",
-    "Me AI",
-    "Me AI app for families and classrooms",
-    "AI learning app for kids",
-    "coding for kids Ghana",
-    "kids coding Accra",
-    "AI workshops for kids Ghana",
-    "school technology partnerships Ghana",
-    "STEM education Ghana",
-    "hackathons for kids Ghana",
-    "tech camp Ghana",
-    "Konov Artechtist"
-  ];
+  const fullTitle = title.includes("KONOV") ? title : `${title} | KONOV`;
+  const defaultKeywords = ["KONOV", "EdTech company Ghana", "interactive learning tools"];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   
   // Combine all JSON-LD schemas
@@ -227,23 +202,21 @@ export const SEO = ({
       <meta name="author" content={SITE_NAME} />
       <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
       <meta name="language" content="English" />
-      <meta name="revisit-after" content="7 days" />
+      
       
       {/* Geo Tags for Local SEO */}
       <meta name="geo.region" content="GH" />
       <meta name="geo.placename" content="Accra" />
-      <meta name="geo.position" content="5.6037;-0.1870" />
-      <meta name="ICBM" content="5.6037, -0.1870" />
       
       {/* Open Graph / Facebook */}
-      <meta property="og:type" content={type} />
+      <meta property="og:type" content={type === "article" ? "article" : "website"} />
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={`${SITE_URL}${ogImage}`} />
       <meta property="og:image:width" content="1080" />
       <meta property="og:image:height" content="1080" />
-      <meta property="og:image:alt" content={`${SITE_NAME} - AI Education for Kids`} />
+      <meta property="og:image:alt" content={`${SITE_NAME} — Interactive Technology Learning`} />
       <meta property="og:locale" content="en_US" />
       {canonical && <meta property="og:url" content={`${SITE_URL}${canonical}`} />}
       
@@ -254,7 +227,7 @@ export const SEO = ({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={`${SITE_URL}${ogImage}`} />
-      <meta name="twitter:image:alt" content={`${SITE_NAME} - AI Education for Kids`} />
+      <meta name="twitter:image:alt" content={`${SITE_NAME} — Interactive Technology Learning`} />
       
       {/* Canonical */}
       {canonical && <link rel="canonical" href={`${SITE_URL}${canonical}`} />}
@@ -284,7 +257,7 @@ export const createCourseSchema = (course: {
     name: course.provider || SITE_NAME,
     url: SITE_URL
   },
-  educationalLevel: course.ageRange || "Ages 6-14",
+  educationalLevel: course.ageRange || "Ages 6-16",
   timeRequired: course.duration,
   inLanguage: "en",
   isAccessibleForFree: false,
@@ -364,7 +337,7 @@ export const createProductSchema = (product: {
   audience: {
     "@type": "PeopleAudience",
     suggestedMinAge: 6,
-    suggestedMaxAge: 18
+    suggestedMaxAge: 16
   },
   url: product.url || "https://meaitech.com"
 });

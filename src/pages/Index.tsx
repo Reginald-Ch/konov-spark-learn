@@ -13,7 +13,7 @@ const Index = () => {
   useScrollTracking();
   return (
     <div className="company-page min-h-screen font-space">
-      <SEO title="Interactive Tools For Young Learners" description="KONOV builds interactive tools to make tech education fun for ages 6–16. Discover Me AI, our first product, AI workshops, and school partnerships." canonical="/" keywords={["EdTech company Ghana", "interactive technology learning", "technology education for kids", "Me AI for families and classrooms"]} jsonLd={createFAQSchema(companyFAQs)} />
+      <SEO title="Interactive Tech Learning Tools for Ages 6–16" description="KONOV builds interactive tools that make technology fun for ages 6–16. Explore Me AI, our first product, workshops and school partnerships in Ghana." canonical="/" keywords={["EdTech company Ghana", "interactive learning tools for kids", "technology education for kids", "Me AI", "coding for kids Ghana"]} jsonLd={createFAQSchema(companyFAQs)} />
       <Navbar />
       <main id="main-content"><Hero /><CompanyPurpose /><MeAIIntro /><LearningApproach /><WorkshopsAndSchools /><LearnerVoice /><CompanyFAQ /><CompanyCTA /></main>
       <Footer /><AIMascot />
