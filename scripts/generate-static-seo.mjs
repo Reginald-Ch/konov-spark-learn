@@ -70,7 +70,7 @@ const ROUTES = [
   },
   {
     path: "/me-ai",
-    title: "Me AI | Interactive AI Learning App for Ages 6–16",
+    title: "Me AI | Interactive AI Learning App for Ages 6–16 | KONOV",
     description: "Me AI is KONOV’s first product for families and classrooms. Learners aged 6–16 explore AI, build chatbots and train models through interactive projects.",
     keywords: ["Me AI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"],
     h1: "Me AI — An AI Creation Platform For Young Learners",
