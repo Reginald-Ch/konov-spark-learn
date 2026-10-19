@@ -29,9 +29,9 @@ const faqSchema = createFAQSchema([
 const aiTools = [
   {
     icon: Brain,
-    title: "MeAI by KONOV",
+    title: "Me AI by KONOV",
     use: "Guided AI and machine-learning literacy for kids ages 6-16.",
-    why: "MeAI is built around comic-style lessons, practical projects, chatbot building and simple model-training activities, so young learners understand how intelligent systems think instead of only playing with robot toys.",
+    why: "Me AI is built around comic-style lessons, practical projects, chatbot building and simple model-training activities, so young learners understand how intelligent systems think instead of only playing with robot toys.",
   },
   {
     icon: Bot,
@@ -77,7 +77,7 @@ const BestAIToolsForKids = () => {
     <div className="min-h-screen bg-background">
       <SEO
         title="Best AI Tools for Kids in Ghana"
-        description="A practical parent and school guide to safe AI tools for kids ages 6-16, covering MeAI, machine learning, robotics, coding and creative AI."
+        description="A practical parent and school guide to safe AI tools for kids ages 6-16, covering Me AI, machine learning, robotics, coding and creative AI."
         canonical="/resources/best-ai-tools-for-kids"
         keywords={[
           "best AI tools for kids",
