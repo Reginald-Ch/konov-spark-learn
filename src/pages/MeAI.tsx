@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const meAiFAQs = [
-  { question: "What is MeAI?", answer: "MeAI is KONOV's first product — an AI learning and creation platform for learners ages 6-14. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
+  { question: "What is MeAI?", answer: "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life. It is KONOV's first product. Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems." },
   { question: "Who is MeAI for?", answer: "MeAI is designed for young learners ages 6-14, and is also used by schools and educators for classroom AI programs." },
   { question: "Do I need coding experience to use MeAI?", answer: "No prior coding experience is required. MeAI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
   { question: "Can schools get access to MeAI?", answer: "Yes. Schools can request classroom access to MeAI as part of KONOV's school partnership programs." },
@@ -29,7 +29,7 @@ const meAiBreadcrumb = createBreadcrumbSchema([
 
 const meAiProductSchema = createProductSchema({
   name: "MeAI",
-  description: "MeAI is KONOV's first product — an AI learning and creation platform for learners ages 6-14. Build chatbots, train models, and complete guided AI projects.",
+  description: "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.",
   ageRange: "Ages 6-14",
 });
 
@@ -37,7 +37,7 @@ const audiences = [
   {
     icon: GraduationCap,
     title: "Learners",
-    description: "Complete interactive lessons, train models, build chatbots, and create AI-powered projects at your own pace.",
+    description: "Play 3D game missions to learn coding, train AI, build chatbots, and create projects at your own pace.",
   },
   {
     icon: Users,
@@ -65,8 +65,8 @@ const MeAI = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="MeAI | Fun AI Learning App For Kids 6–14"
-        description="MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons."
+        title="MeAI | Learn Coding & AI In A Game World"
+        description="MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life. Ages 6–14."
         canonical="/me-ai"
         keywords={["MeAI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"]}
         jsonLd={[meAiBreadcrumb, meAiProductSchema, createFAQSchema(meAiFAQs)]}
@@ -78,16 +78,15 @@ const MeAI = () => {
         <div className="container mx-auto px-4 relative z-10 text-center">
           <ActionBurst color="primary" className="mb-4 inline-block">MEAI</ActionBurst>
           <h1 className="text-4xl md:text-6xl font-fredoka font-bold mb-6 max-w-4xl mx-auto">
-            An AI Creation Platform For <span className="gradient-text">Young Learners</span>
+            Learn Coding And AI In <span className="gradient-text">A Game World</span>
           </h1>
           <div className="flex justify-center mb-6">
             <RobotMascot type="excited" size="lg" />
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              MeAI is KONOV's first product — an AI learning and creation platform for learners ages
-              6-14. It helps young people learn AI through interactive lessons, guided projects, model
-              training, chatbot creation, and hands-on activities designed for African learners.
+              MeAI helps kids and teenagers (ages 6–14) learn coding and AI by building projects in an interactive game world inspired by African life.
+              Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems.
             </p>
           </SpeechBubble>
           <div className="flex flex-wrap gap-3 justify-center mt-8">

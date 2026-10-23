@@ -170,8 +170,8 @@ const Waitlist = () => {
     },
     {
       icon: BookOpen,
-      title: "Interactive Comic Lessons",
-      desc: "Fun, story-driven learning with African characters that makes complex concepts simple.",
+      title: "3D Game Missions",
+      desc: "An interactive game world inspired by African life, where every mission teaches coding and AI.",
       gradient: "from-amber-500 to-orange-500",
     },
     {
@@ -192,7 +192,7 @@ const Waitlist = () => {
     <>
       <SEO
         title="MeAI Waitlist — Real AI Education for Kids"
-        description="Join the waitlist for MeAI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects."
+        description="Join the MeAI waitlist. MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life."
         canonical="/waitlist"
       />
       <Navbar />
@@ -244,7 +244,7 @@ const Waitlist = () => {
             >
               Most programs teach robot toys, not real AI.{" "}
               <strong className="text-foreground">MeAI is different.</strong>{" "}
-              Interactive comics, chatbot building, and hands-on ML for ages 6–15.
+              3D game missions, coding, chatbot building, and hands-on AI for ages 6–14.
             </motion.p>
 
             {/* Social proof counter — near the form */}

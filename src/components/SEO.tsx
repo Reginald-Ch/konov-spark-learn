@@ -140,7 +140,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 5,
       name: "MeAI",
-      description: "MeAI, KONOV's fun AI learning app for kids ages 6–14",
+      description: "Learn coding and AI in an interactive game world inspired by African life, ages 6–14",
       url: `${SITE_URL}/me-ai`
     },
     {

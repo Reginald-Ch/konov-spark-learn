@@ -35,7 +35,7 @@ const ROUTES = [
     keywords: ["EdTech company Ghana", "interactive learning tools for kids", "technology education for kids", "MeAI", "coding for kids Ghana"],
     h1: "KONOV — Interactive Tools For Young Learners",
     intro: "KONOV builds interactive tools that make technology fun to learn and create for young learners aged 6–16. MeAI, our first product, is a fun AI learning app for kids aged 6–14. We also run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school.",
-    main: `<h2>MeAI — Our First Product</h2><p>MeAI is KONOV’s interactive AI learning and creation platform for families and classrooms. Explore lessons, build chatbots, train simple models, and create projects. <a href="https://meaitech.com">Open MeAI</a>.</p><h2>Learning By Doing</h2><p>Play with an idea, build something of your own, and understand what happens.</p><h2>Workshops and School Partnerships</h2><p>Hands-on AI workshops and school partnerships connect our products with guided learning experiences.</p><p><a href="/about">Meet KONOV</a> · <a href="/programs">Workshops and programs</a> · <a href="/for-schools">For schools</a></p>`,
+    main: `<h2>MeAI — Our First Product</h2><p>MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life. Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems. <a href="https://meaitech.com">Open MeAI</a>.</p><h2>Learning By Doing</h2><p>Play with an idea, build something of your own, and understand what happens.</p><h2>Workshops and School Partnerships</h2><p>Hands-on AI workshops and school partnerships connect our products with guided learning experiences.</p><p><a href="/about">Meet KONOV</a> · <a href="/programs">Workshops and programs</a> · <a href="/for-schools">For schools</a></p>`,
   },
   {
     path: "/about",
@@ -70,12 +70,12 @@ const ROUTES = [
   },
   {
     path: "/me-ai",
-    title: "MeAI | Fun AI Learning App For Kids 6–14 | KONOV Technologies",
-    description: "MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons.",
+    title: "MeAI | Learn Coding & AI In A Game World | KONOV Technologies",
+    description: "MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life. Ages 6–14.",
     keywords: ["MeAI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"],
-    h1: "MeAI — A Fun AI Learning App For Kids",
+    h1: "MeAI — Learn Coding And AI In A Game World",
     intro:
-      "MeAI is KONOV's first product: a fun AI learning app for kids ages 6-14. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
+      "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life. It is KONOV's first product. Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems.",
     main: `
         <h2>Who MeAI Is For</h2>
         <p>Learners ages 6-14, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
@@ -303,10 +303,10 @@ const ROUTES = [
     path: "/waitlist",
     title: "MeAI Waitlist — Real AI Education for Kids | KONOV Technologies",
     description:
-      "Join the waitlist for MeAI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects.",
+      "Join the MeAI waitlist. MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life.",
     h1: "Join the MeAI Waitlist",
     intro:
-      "MeAI is the interactive platform teaching kids real AI &amp; machine learning through comics, chatbot building, and hands-on projects.",
+      "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.",
     main: `
         <h2>Why Join</h2>
         <p>Be first to know when MeAI opens up new seats and features for kids ages 6-14 learning AI &amp; machine learning at home.</p>

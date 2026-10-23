@@ -31,7 +31,7 @@ const aiTools = [
     icon: Brain,
     title: "MeAI by KONOV",
     use: "Guided AI and machine-learning literacy for kids ages 6-16.",
-    why: "MeAI is built around comic-style lessons, practical projects, chatbot building and simple model-training activities, so young learners understand how intelligent systems think instead of only playing with robot toys.",
+    why: "MeAI teaches coding and AI through 3D game missions in a world inspired by African life: learners write code, build chatbots and train simple models, so young learners understand how intelligent systems think instead of only playing with robot toys.",
   },
   {
     icon: Bot,

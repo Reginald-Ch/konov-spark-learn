@@ -402,8 +402,8 @@ const ProgramsPage = () => {
             </p>
             <p className="text-lg font-space text-muted-foreground leading-relaxed">
               Our programs serve children, teens, schools, tertiary students, and partner organizations
-              through structured learning experiences powered by MeAI, KONOV's AI creation platform for
-              young learners.
+              through structured learning experiences powered by MeAI, where kids learn coding and AI by
+              building projects in an interactive game world inspired by African life.
             </p>
           </div>
 

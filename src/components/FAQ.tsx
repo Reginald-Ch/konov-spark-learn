@@ -17,7 +17,7 @@ export const FAQ = () => {
     },
     {
       question: "What is MeAI?",
-      answer: "MeAI is KONOV's interactive AI & Machine Learning learning platform for kids aged 6–14. Students learn by building, experimenting, and creating: 🤖 Build AI assistants & conversational AI · 🧠 Train simple Machine Learning models · 🎮 Create AI-powered games and missions · 💻 Build AI-powered projects · ✨ Learn through prompting and creativity."
+      answer: "MeAI helps kids and teenagers (ages 6–14) learn coding and AI by building projects in an interactive game world inspired by African life. Learners build, experiment, and create: 🤖 Build AI assistants & conversational AI · 🧠 Train simple Machine Learning models · 🎮 Create AI-powered games and missions · 💻 Build AI-powered projects · ✨ Learn through prompting and creativity."
     },
     {
       question: "Who is KONOV designed for?",
