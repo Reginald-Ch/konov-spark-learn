@@ -94,5 +94,11 @@ WITH CHECK (event_type NOT IN ('forge_coin_grant', 'forge_coin_adjust', 'daily_c
 -- the database never verified — closing point_events above would otherwise
 -- just break that page. Seed a real judge credential (same DB-backed system
 -- as the Admin Panel) so it keeps working with actual server-side auth.
--- Rotate this from the Admin Panel's Passphrases dialog whenever convenient.
-SELECT public.set_admin_credential('judge', 'judge2059');
+--
+-- SECURITY: this used to seed the real judge passphrase here in plain
+-- text. This repo is public on GitHub, so that committed value was the
+-- live login code, readable by anyone — discovered and rotated
+-- 2026-09-15. Removed rather than replaced with a new committed value;
+-- see 20260817010000_repair_admin_credential_functions.sql for the full
+-- explanation and how to seed a passphrase safely if this project is
+-- ever rebuilt from scratch.

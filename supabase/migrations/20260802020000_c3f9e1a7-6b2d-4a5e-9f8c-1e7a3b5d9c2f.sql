@@ -62,6 +62,10 @@ REVOKE ALL ON FUNCTION public.set_admin_credential(TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.verify_admin_credential(TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.set_admin_credential(TEXT, TEXT) TO service_role;
 
--- Seed the organizer passphrase requested in chat. Rotate it any time from
--- the Admin Panel — no need to touch this table directly again.
-SELECT public.set_admin_credential('organizer', 'admin098@konov');
+-- SECURITY: this used to seed the real organizer passphrase here in plain
+-- text. This repo is public on GitHub, so that committed value was the
+-- live login code, readable by anyone — discovered and rotated
+-- 2026-09-15. Removed rather than replaced with a new committed value;
+-- see 20260817010000_repair_admin_credential_functions.sql for the full
+-- explanation and how to seed a passphrase safely if this project is ever
+-- rebuilt from scratch.

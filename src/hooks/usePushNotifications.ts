@@ -74,20 +74,22 @@ export function usePushNotifications() {
 
       const subJson = subscription.toJSON();
 
-      // Upsert on endpoint — a plain insert would silently no-op on the
-      // unique-endpoint conflict, so re-subscribing with a new topic (e.g.
-      // "community") on a browser that already had a waitlist subscription
-      // would report success without actually saving the new topic.
-      const { error } = await supabase
-        .from("push_subscriptions")
-        .upsert({
-          endpoint: subJson.endpoint!,
-          p256dh: subJson.keys!.p256dh!,
-          auth: subJson.keys!.auth!,
-          waitlist_signup_id: waitlistSignupId || null,
-          participant_email: participantEmail || null,
-          topics: topics || [],
-        }, { onConflict: "endpoint" });
+      // Routed through upsert_push_subscription (SECURITY DEFINER) instead
+      // of a raw table upsert — push_subscriptions no longer grants anon/
+      // authenticated any direct access at all (see migration
+      // 20260915030000), since a blanket UPDATE policy meant anyone could
+      // overwrite ANY subscriber's row, not just their own. The RPC still
+      // upserts by endpoint underneath, same as before — re-subscribing
+      // with a new topic on a browser that already had a row still updates
+      // it in place rather than erroring on the unique-endpoint conflict.
+      const { error } = await supabase.rpc("upsert_push_subscription", {
+        p_endpoint: subJson.endpoint!,
+        p_p256dh: subJson.keys!.p256dh!,
+        p_auth: subJson.keys!.auth!,
+        p_waitlist_signup_id: waitlistSignupId || null,
+        p_participant_email: participantEmail || null,
+        p_topics: topics || [],
+      });
 
       if (error) {
         console.error("Failed to save push subscription:", error);
@@ -124,7 +126,7 @@ export function usePushNotifications() {
       if (existing) {
         const endpoint = existing.endpoint;
         await existing.unsubscribe();
-        await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+        await supabase.rpc("delete_push_subscription", { p_endpoint: endpoint });
       } else {
         // Browser already auto-unsubscribed (permission revoked out of
         // band, or the subscription simply expired) — nothing to unsubscribe
@@ -132,7 +134,7 @@ export function usePushNotifications() {
         // endpoint stored at subscribe time so it actually gets cleaned up
         // instead of a success toast over a silently-orphaned row.
         const storedEndpoint = localStorage.getItem("forge-push-endpoint");
-        if (storedEndpoint) await supabase.from("push_subscriptions").delete().eq("endpoint", storedEndpoint);
+        if (storedEndpoint) await supabase.rpc("delete_push_subscription", { p_endpoint: storedEndpoint });
       }
       localStorage.removeItem("forge-push-endpoint");
       setIsSubscribed(false);

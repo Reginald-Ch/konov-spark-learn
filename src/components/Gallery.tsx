@@ -10,11 +10,16 @@ import highfive from "@/assets/gallery-highfive.jpg";
 import excited from "@/assets/gallery-excited.jpg";
 import mentoring from "@/assets/gallery-mentoring.jpg";
 
-import mentor from "@/assets/gallery-meai-mentor.jpg.asset.json";
-import builder from "@/assets/gallery-meai-builder.jpg.asset.json";
-import focus from "@/assets/gallery-meai-focus.jpg.asset.json";
-import collab from "@/assets/gallery-meai-collab.jpg.asset.json";
-import group from "@/assets/gallery-meai-group.jpg.asset.json";
+import mentorSrc from "@/assets/gallery-meai-mentor.jpg";
+const mentor = { url: mentorSrc };
+import builderSrc from "@/assets/gallery-meai-builder.jpg";
+const builder = { url: builderSrc };
+import focusSrc from "@/assets/gallery-meai-focus.jpg";
+const focus = { url: focusSrc };
+import collabSrc from "@/assets/gallery-meai-collab.jpg";
+const collab = { url: collabSrc };
+import groupSrc from "@/assets/gallery-meai-group.jpg";
+const group = { url: groupSrc };
 
 const galleryImages = [
   {

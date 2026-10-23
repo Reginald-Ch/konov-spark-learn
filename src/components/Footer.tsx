@@ -1,17 +1,7 @@
-import { Instagram, Linkedin, Mail, Heart, ExternalLink } from "lucide-react";
+import { Linkedin, Mail, Heart, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RobotMascot } from "./RobotMascot";
-
-// TikTok icon component since lucide doesn't have it
-import { forwardRef } from "react";
-
-const TikTokIcon = forwardRef<SVGSVGElement, { className?: string }>(({ className }, ref) => (
-  <svg ref={ref} className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-  </svg>
-));
-TikTokIcon.displayName = "TikTokIcon";
 
 export const Footer = () => {
   return (
@@ -24,20 +14,18 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <div className="flex items-center gap-4 mb-4">
               <RobotMascot type="happy" size="sm" />
-              <h3 className="text-3xl font-fredoka font-bold text-primary">
+              <h3 className="text-2xl lg:text-3xl font-fredoka font-bold text-primary min-w-0">
                 KONOV Technologies
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
-              Interactive tools that make technology fun to learn and create for young learners
-              ages 6–16 — starting with MeAI and our weekend, after-school, and summer AI &amp; coding
-              classes.
+              An EdTech company building interactive tools that make technology fun to learn
+              for ages 6–16. Discover MeAI, our first product for families and classrooms,
+              alongside AI &amp; coding classes and school partnerships.
             </p>
             <div className="flex gap-3">
               {[
                 { Icon: Linkedin, href: "https://www.linkedin.com/company/konov-artechtist", label: "LinkedIn" },
-                { Icon: TikTokIcon, href: "#", label: "TikTok" },
-                { Icon: Instagram, href: "#", label: "Instagram" },
               ].map(({ Icon, href, label }, idx) => (
                 <motion.a
                   key={idx}
@@ -128,7 +116,7 @@ export const Footer = () => {
             <ul className="space-y-3 font-space">
               <li className="flex items-start gap-2 text-muted-foreground">
                 <Mail className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary" />
-                <span>hello@konovtech.com</span>
+                <a href="mailto:hello@konovtech.com" className="min-w-0 break-all hover:text-primary">hello@konovtech.com</a>
               </li>
               <li>
                 <a
@@ -158,8 +146,7 @@ export const Footer = () => {
             {" "}for young innovators.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground font-space">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <Link to="/contact" className="hover:text-primary transition-colors">Contact KONOV</Link>
           </div>
         </div>
       </div>

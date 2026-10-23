@@ -148,6 +148,56 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
+  .company-container {
+    width: min(100% - 3rem, 1200px);
+    margin-inline: auto;
+  }
+  .company-hero-content {
+    min-height: min(620px, calc(100svh - 140px));
+  }
+  .company-page {
+    overflow-wrap: break-word;
+  }
+  .company-page a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 4px;
+  }
+  @media (max-height: 540px) and (min-width: 600px) {
+    .company-hero-content { padding-block: 24px; }
+    .company-hero-content h1 { font-size: 48px; margin-bottom: 12px; }
+    .company-hero-tagline { font-size: 24px; margin-bottom: 12px; }
+    .company-hero-content .company-eyebrow { margin-bottom: 12px; }
+    .company-hero-content > p:last-of-type { font-size: 14px; margin-bottom: 16px; }
+    .company-hero-tagline br { display: none; }
+  }
+  .company-section {
+    padding-block: 64px;
+  }
+  .company-heading {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+  .company-eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 768px) {
+    .company-section { padding-block: 80px; }
+    .company-heading { font-size: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .company-page *, .company-page *::before, .company-page *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
   .caret-ide-cursor {
     caret-color: hsl(var(--ide-cursor));
   }

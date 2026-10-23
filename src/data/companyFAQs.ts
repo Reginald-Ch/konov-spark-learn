@@ -1,0 +1,8 @@
+export const companyFAQs = [
+  { question: "What is KONOV?", answer: "KONOV is an EdTech company that builds interactive tools to make technology education fun for young learners aged 6–16. MeAI is our first product. We also run AI & coding classes (weekend, after-school, and summer school) and partner with schools." },
+  { question: "What is MeAI?", answer: "MeAI is KONOV’s first learning and creation product, designed for families and classrooms. Young learners explore AI through interactive lessons, build chatbots, train simple machine learning models, and create their own projects." },
+  { question: "Who are your tools and workshops for?", answer: "Our core audience is young learners aged 6–16, alongside the families and educators who support them. Learning experiences are tailored to age and experience." },
+  { question: "Do learners need coding experience?", answer: "No. Learners can begin with interactive activities and visual building, then develop their understanding of coding and AI through practice and projects." },
+  { question: "How can schools work with KONOV?", answer: "Schools can partner with KONOV for facilitator-led AI workshops, technology learning programs, and MeAI classroom experiences. Visit our For Schools page to discuss your school’s needs." },
+  { question: "Is KONOV only about AI?", answer: "Our mission is broader: making technology fun to learn and create with. AI is the focus of our first product, MeAI, and our current AI workshops; coding and creative problem-solving are part of that learning journey." },
+];

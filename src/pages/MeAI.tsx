@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 
 const meAiFAQs = [
-  { question: "What is MeAI?", answer: "MeAI is KONOV Technologies' AI learning and creation platform for learners ages 6-14. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
+  { question: "What is MeAI?", answer: "MeAI is KONOV's first product — an AI learning and creation platform for learners ages 6-14. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
   { question: "Who is MeAI for?", answer: "MeAI is designed for young learners ages 6-14, and is also used by schools and educators for classroom AI programs." },
   { question: "Do I need coding experience to use MeAI?", answer: "No prior coding experience is required. MeAI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
   { question: "Can schools get access to MeAI?", answer: "Yes. Schools can request classroom access to MeAI as part of KONOV's school partnership programs." },
@@ -28,7 +29,7 @@ const meAiBreadcrumb = createBreadcrumbSchema([
 
 const meAiProductSchema = createProductSchema({
   name: "MeAI",
-  description: "MeAI is KONOV Technologies' AI learning and creation platform for learners ages 6-14 — build chatbots, train models, and complete guided AI projects.",
+  description: "MeAI is KONOV's first product — an AI learning and creation platform for learners ages 6-14. Build chatbots, train models, and complete guided AI projects.",
   ageRange: "Ages 6-14",
 });
 
@@ -67,7 +68,7 @@ const MeAI = () => {
         title="MeAI | Fun AI Learning App For Kids 6–14"
         description="MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons."
         canonical="/me-ai"
-        keywords={["MeAI platform", "AI creation platform for young learners", "AI learning platform for children", "chatbot building for kids", "machine learning for kids"]}
+        keywords={["MeAI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"]}
         jsonLd={[meAiBreadcrumb, meAiProductSchema, createFAQSchema(meAiFAQs)]}
       />
       <Navbar />
@@ -75,7 +76,7 @@ const MeAI = () => {
       {/* Hero */}
       <section className="py-20 md:py-28 relative overflow-hidden halftone-bg border-b-4 border-foreground">
         <div className="container mx-auto px-4 relative z-10 text-center">
-          <ActionBurst color="primary" className="mb-4 inline-block">ME AI</ActionBurst>
+          <ActionBurst color="primary" className="mb-4 inline-block">MEAI</ActionBurst>
           <h1 className="text-4xl md:text-6xl font-fredoka font-bold mb-6 max-w-4xl mx-auto">
             An AI Creation Platform For <span className="gradient-text">Young Learners</span>
           </h1>
@@ -84,9 +85,9 @@ const MeAI = () => {
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              MeAI is KONOV's AI learning platform for learners ages 6-14. It helps young people learn AI
-              through interactive lessons, guided projects, model training, chatbot creation, and hands-on
-              activities designed for African learners.
+              MeAI is KONOV's first product — an AI learning and creation platform for learners ages
+              6-14. It helps young people learn AI through interactive lessons, guided projects, model
+              training, chatbot creation, and hands-on activities designed for African learners.
             </p>
           </SpeechBubble>
           <div className="flex flex-wrap gap-3 justify-center mt-8">
@@ -101,7 +102,10 @@ const MeAI = () => {
             </Button>
             <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to MeAI." />
           </div>
-        </div>
+          <p className="text-sm text-muted-foreground font-space mt-6">
+            MeAI is made by <Link to="/about" className="underline underline-offset-2 hover:text-foreground">KONOV</Link>, the EdTech company making technology fun to learn for young learners.
+          </p>
+          </div>
       </section>
 
       {/* Who it's for */}

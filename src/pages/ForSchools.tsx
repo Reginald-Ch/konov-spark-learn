@@ -29,7 +29,7 @@ const schoolsBreadcrumb = createBreadcrumbSchema([
 const offerings = [
   { icon: Users, title: "Student AI & Coding Workshops", description: "Short, practical AI learning experiences designed for schools that want students to understand and explore artificial intelligence." },
   { icon: GraduationCap, title: "Teacher Training", description: "Hands-on training so educators can confidently support AI learning in their own classrooms." },
-  { icon: Zap, title: "MeAI For Classrooms", description: "Classroom access to MeAI so students can keep building AI projects between sessions." },
+  { icon: Zap, title: "MeAI For Classrooms", description: "Classroom access to MeAI — KONOV's first learning platform — so students can keep building AI projects between sessions." },
   { icon: School, title: "AI Clubs & After-School Programs", description: "Ongoing AI learning outside class hours, for students who want to go further." },
   { icon: Trophy, title: "Hackathons & Showcases", description: "Student innovation challenges where learners present real AI projects, judged and celebrated." },
 ];
@@ -50,7 +50,7 @@ const ForSchools = () => {
         title="MeAI For Schools And Educators"
         description="Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators."
         canonical="/for-schools"
-        keywords={["AI workshops for schools in Ghana", "AI education for African schools", "AI training for teachers in Ghana", "AI curriculum support for schools", "school partnership AI Ghana"]}
+        keywords={["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "AI teacher training Ghana", "interactive learning tools for schools"]}
         jsonLd={[schoolsBreadcrumb, createFAQSchema(schoolsFAQs)]}
       />
       <Navbar />
@@ -60,7 +60,7 @@ const ForSchools = () => {
         <div className="container mx-auto px-4 relative z-10 text-center">
           <ActionBurst color="secondary" className="mb-4 inline-block">FOR SCHOOLS</ActionBurst>
           <h1 className="text-4xl md:text-6xl font-fredoka font-bold mb-6 max-w-4xl mx-auto">
-            AI Education Programs For <span className="gradient-text">Schools In Ghana</span>
+            MeAI For <span className="gradient-text">Schools And Educators</span>
           </h1>
           <div className="flex justify-center mb-6">
             <RobotMascot type="teaching" size="lg" />
@@ -87,10 +87,11 @@ const ForSchools = () => {
             Why Schools Need <span className="text-primary">AI Education</span>
           </h2>
           <p className="text-lg text-muted-foreground font-space leading-relaxed">
-            AI is already shaping how young people learn, work, and create. Most edtech treats students as
-            tool users. KONOV Technologies is AI-first and practical — we help students understand how
-            intelligent systems actually work, not just how to click through an app, so your school is
-            preparing learners for what comes next rather than what's already here.
+            AI is already shaping how young people learn, work, and create. KONOV is an EdTech company
+            that builds interactive tools to make technology fun to learn for young learners. In
+            schools, we're practical and AI-first — we help students understand how intelligent systems
+            actually work, not just how to click through an app, so your school is preparing learners
+            for what comes next rather than what's already here.
           </p>
         </div>
       </section>

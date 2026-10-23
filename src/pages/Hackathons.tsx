@@ -65,10 +65,46 @@ const Hackathons = () => {
   // highlights the actual card instead of just landing on the generic list.
   const [highlightHackathonId, setHighlightHackathonId] = useState<string | null>(null);
 
-  // Access code gate
+  // Access code gate — a single input accepts EITHER the shared ACCESS_CODE
+  // (e.g. Forge2039) OR a per-participant tracking code (e.g. ABS-2026-0001)
+  // issued at registration. Whichever it is, this only ever resolves a name
+  // for display/tracking via lookup_participant_code — it never touches
+  // admin_credentials/the judge-organizer role system in any way.
   const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('forge-access-unlocked') === 'true');
   const [accessCodeInput, setAccessCodeInput] = useState('');
   const [accessCodeError, setAccessCodeError] = useState(false);
+  const [participantName, setParticipantName] = useState<string | null>(() => sessionStorage.getItem('forge-participant-name') || null);
+  const [participantCodeChecking, setParticipantCodeChecking] = useState(false);
+  // Whoever unlocked via their own participant code is a competing
+  // participant, not staff — the Judge Dashboard nav entry (not just its
+  // passphrase gate) should be invisible to them entirely. Unlocking via
+  // the shared instructor ACCESS_CODE still shows it, since that code is
+  // handed out to staff/facilitators who may need it.
+  const [unlockedViaParticipantCode, setUnlockedViaParticipantCode] = useState(
+    () => sessionStorage.getItem('forge-unlock-via-participant-code') === 'true'
+  );
+
+  useEffect(() => {
+    const code = accessCodeInput.trim().toUpperCase();
+    // The shared code isn't a participant code — don't bother looking it up.
+    if (!code || code === ACCESS_CODE.toUpperCase()) { setParticipantName(null); return; }
+    setParticipantCodeChecking(true);
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('lookup_participant_code', { p_code: code });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!error && row?.full_name) {
+        setParticipantName(row.full_name);
+        sessionStorage.setItem('forge-participant-code', code);
+        sessionStorage.setItem('forge-participant-name', row.full_name);
+      } else {
+        setParticipantName(null);
+        sessionStorage.removeItem('forge-participant-code');
+        sessionStorage.removeItem('forge-participant-name');
+      }
+      setParticipantCodeChecking(false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [accessCodeInput]);
 
   // Tab state
   // ?section=judge (e.g. from /admin's redirect below) lands straight on the
@@ -163,6 +199,64 @@ const Hackathons = () => {
     const t = setTimeout(() => setHighlightHackathonId(null), 2000);
     return () => clearTimeout(t);
   }, [highlightHackathonId, hackathonSubView]);
+
+  // "Time's up" watcher for the personal daily-challenge clock, kept at this
+  // top level (not inside DailyChallengePanel) specifically so it keeps
+  // running even while the participant is off in the Build/IDE tab — that
+  // whole subtree, DailyChallengePanel included, unmounts the instant
+  // activeTab !== 'hackathons', taking any timer that lived only there with
+  // it. DailyChallengePanel publishes the active deadline to sessionStorage;
+  // this only ever fills in a MISSING project link on an otherwise-empty
+  // submission (whatever they were actively working on when time ran out) —
+  // it never overwrites a link, URL, or notes the participant already saved.
+  useEffect(() => {
+    let cancelled = false;
+    const checkExpiry = async () => {
+      const raw = sessionStorage.getItem('forge-active-challenge-timer');
+      if (!raw) return;
+      let info: any;
+      try { info = JSON.parse(raw); } catch { sessionStorage.removeItem('forge-active-challenge-timer'); return; }
+      if (!info || info.autoSubmitted || Date.now() < info.deadline) return;
+
+      const deviceToken = localStorage.getItem('forge-device-token') || null;
+      let linked = false;
+      try {
+        const { data: subs } = await supabase.rpc('get_my_challenge_submissions', {
+          p_participant_email: info.participantEmail,
+          p_challenge_ids: [info.challengeId],
+          p_device_token: deviceToken,
+        });
+        const existing = Array.isArray(subs) ? subs[0] : null;
+        const fallbackProjectId = localStorage.getItem('forge-current-project-id') || null;
+        if (existing && !existing.project_id && fallbackProjectId) {
+          const { error } = await supabase.rpc('submit_challenge_entry', {
+            p_challenge_id: info.challengeId,
+            p_hackathon_id: info.hackathonId,
+            p_participant_email: info.participantEmail,
+            p_device_token: deviceToken,
+            p_project_id: fallbackProjectId,
+            p_content_url: existing.content_url,
+            p_notes: existing.notes,
+          });
+          linked = !error;
+        }
+      } catch (e) {
+        console.error('Auto-submit on challenge timeout failed:', e);
+      } finally {
+        if (cancelled) return;
+        sessionStorage.setItem('forge-active-challenge-timer', JSON.stringify({ ...info, autoSubmitted: true }));
+        toast.info(
+          linked
+            ? `⏰ Time's up for "${info.title}"! The project you were working on was automatically submitted.`
+            : `⏰ Time's up for "${info.title}"! Your submission is locked in as-is.`,
+          { duration: 12000 }
+        );
+      }
+    };
+    checkExpiry();
+    const id = setInterval(checkExpiry, 10000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const handleRegister = (hackathonId: string) => {
     const hackathon = hackathons.find(h => h.id === hackathonId);
@@ -413,14 +507,26 @@ const Hackathons = () => {
   };
 
   const handleAccessCodeSubmit = () => {
-    if (accessCodeInput.trim() === ACCESS_CODE) {
+    const trimmed = accessCodeInput.trim();
+    if (trimmed === ACCESS_CODE) {
       setIsUnlocked(true);
       sessionStorage.setItem('forge-access-unlocked', 'true');
+      setUnlockedViaParticipantCode(false);
+      sessionStorage.setItem('forge-unlock-via-participant-code', 'false');
       setAccessCodeError(false);
       toast.success('🔓 Access granted! Welcome to FORGE Studio.');
-    } else {
-      setAccessCodeError(true);
+      return;
     }
+    if (participantName) {
+      setIsUnlocked(true);
+      sessionStorage.setItem('forge-access-unlocked', 'true');
+      setUnlockedViaParticipantCode(true);
+      sessionStorage.setItem('forge-unlock-via-participant-code', 'true');
+      setAccessCodeError(false);
+      toast.success(`🔓 Access granted! Welcome, ${participantName}!`);
+      return;
+    }
+    setAccessCodeError(true);
   };
 
   if (!isUnlocked) {
@@ -481,7 +587,7 @@ const Hackathons = () => {
           >
             <h2 className="text-xl font-bold text-white mb-2">Enter Access Code</h2>
             <p className="text-[hsl(var(--discord-text-muted))] text-sm mb-6">
-              Got an access code from your instructor? Enter it below to start building.
+              Enter the access code from your instructor, or your own participant code from registration.
             </p>
             <div className="space-y-3">
               <input
@@ -489,17 +595,23 @@ const Hackathons = () => {
                 value={accessCodeInput}
                 onChange={e => { setAccessCodeInput(e.target.value); setAccessCodeError(false); }}
                 onKeyDown={e => e.key === 'Enter' && handleAccessCodeSubmit()}
-                placeholder="Access code..."
+                placeholder="Access code or participant code..."
                 autoFocus
                 className={`w-full h-12 text-center text-lg font-mono tracking-widest rounded-xl border-2 bg-[hsl(var(--discord-darker))] text-white placeholder:text-[hsl(var(--discord-text-muted))] focus:outline-none transition-colors ${
                   accessCodeError ? 'border-red-500 focus:border-red-400' : 'border-[hsl(var(--discord-light)/0.3)] focus:border-primary'
                 }`}
               />
-              {accessCodeError && (
+              {accessCodeError ? (
                 <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm">
-                  Invalid access code. Please try again.
+                  Invalid code. Please try again.
                 </motion.p>
-              )}
+              ) : accessCodeInput.trim() && accessCodeInput.trim().toUpperCase() !== ACCESS_CODE.toUpperCase() ? (
+                participantCodeChecking ? (
+                  <p className="text-[hsl(var(--discord-text-muted))] text-sm">Checking…</p>
+                ) : participantName ? (
+                  <p className="text-green-400 text-sm">Welcome, {participantName}! ✓</p>
+                ) : null
+              ) : null}
               <Button onClick={handleAccessCodeSubmit} className="w-full h-11 text-base font-bold bg-primary hover:bg-primary/90">
                 <Rocket className="w-4 h-4 mr-2" />
                 Enter Studio
@@ -767,18 +879,23 @@ const Hackathons = () => {
 
               <div className="my-3 h-px bg-[hsl(var(--discord-light)/0.2)]" />
 
-              {/* Judge Dashboard — integrated as sub-view */}
-              <button
-                onClick={() => setHackathonSubView('judge')}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
-                  hackathonSubView === 'judge'
-                    ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
-                    : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
-                }`}
-              >
-                <Shield className="w-4 h-4 text-[#FFD700]" />
-                <span>Judge Dashboard</span>
-              </button>
+              {/* Judge Dashboard — integrated as sub-view. Hidden entirely
+                  (not just passphrase-gated) for anyone who unlocked with
+                  their own participant code — they're a competitor, not
+                  staff, and shouldn't even see this exists. */}
+              {!unlockedViaParticipantCode && (
+                <button
+                  onClick={() => setHackathonSubView('judge')}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
+                    hackathonSubView === 'judge'
+                      ? 'bg-[hsl(var(--discord-light)/0.6)] text-white'
+                      : 'text-[hsl(var(--discord-text-muted))] hover:bg-[hsl(var(--discord-light)/0.3)] hover:text-[hsl(var(--discord-text))]'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 text-[#FFD700]" />
+                  <span>Judge Dashboard</span>
+                </button>
+              )}
 
               {/* Past events info */}
               {endedHackathons.length > 0 && (
@@ -826,7 +943,10 @@ const Hackathons = () => {
               { id: 'daily-challenge' as HackathonSubView, name: "Today's Challenge", icon: Zap },
               { id: 'leaderboard' as HackathonSubView, name: 'Leaderboard', icon: Award },
               { id: 'showcase' as HackathonSubView, name: 'Showcase', icon: Image },
-              { id: 'judge' as HackathonSubView, name: 'Judge Dashboard', icon: Shield },
+              // Same rule as the desktop sidebar above: invisible, not just
+              // passphrase-gated, for anyone who unlocked with their own
+              // participant code.
+              ...(unlockedViaParticipantCode ? [] : [{ id: 'judge' as HackathonSubView, name: 'Judge Dashboard', icon: Shield }]),
               { id: 'faq' as HackathonSubView, name: 'FAQ & Help', icon: HelpCircle },
             ].map(ch => (
               <button

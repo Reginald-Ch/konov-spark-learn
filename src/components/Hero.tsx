@@ -1,157 +1,23 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Rocket, Zap, Handshake } from "lucide-react";
-import { motion } from "framer-motion";
-import heroBg from "@/assets/hero-bg.jpg";
-import { AnimatedCounter } from "./AnimatedCounter";
-import { ComicPanel } from "./ComicPanel";
-import { RobotMascot } from "./RobotMascot";
-import { SpeechBubble } from "./SpeechBubble";
-import { ActionBurst } from "./ActionBurst";
+import groupSrc from "@/assets/gallery-meai-group.jpg";
+const group = { url: groupSrc };
 
-export const Hero = () => {
-  const navigate = useNavigate();
-
-  return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden halftone-bg pt-20">
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20"
-        style={{ backgroundImage: `url(${heroBg})` }}
-      />
-      <div className="absolute inset-0 bg-background/80" />
-      
-      {/* Subtle accent dots — static, no animation cost */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-2xl" />
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
-      
-      {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 text-center">
-        <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
-          {/* Action Burst Badge */}
-          <motion.div
-            initial={{ scale: 0, rotate: -10 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-block"
-          >
-            <ActionBurst>
-              <span className="text-base md:text-lg font-bold">
-                Making Tech Fun To Learn &amp; Create
-              </span>
-            </ActionBurst>
-          </motion.div>
-
-          {/* Main Heading - Comic Style */}
-          <motion.h1
-            className="text-5xl md:text-7xl lg:text-8xl font-fredoka font-bold leading-tight"
-            initial={{ y: 0, opacity: 1 }}
-            animate={{ y: 0, opacity: 1 }}
-          >
-            <span className="text-primary">Learn How AI Works.</span>
-            <br />
-            <span className="text-foreground">Build </span>
-            <span className="text-secondary">Real AI Systems.</span>
-          </motion.h1>
-
-          {/* Speech Bubble Description */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", delay: 0.5 }}
-            className="max-w-3xl mx-auto"
-          >
-            <SpeechBubble className="inline-block">
-              <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, our AI learning app, and join our weekend, after-school, and summer AI &amp; coding classes in Accra.
-              </p>
-            </SpeechBubble>
-          </motion.div>
-
-          {/* Mascots Row — Hero Visual */}
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="flex justify-center items-end gap-3 md:gap-6 my-4"
-          >
-            <RobotMascot type="thinking" size="md" />
-            <RobotMascot type="excited" size="lg" />
-            <RobotMascot type="happy" size="md" />
-          </motion.div>
-          
-          {/* CTA Buttons - Comic Style */}
-          <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2"
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.7 }}
-          >
-            <Button
-              size="lg"
-              className="text-xl px-10 py-7 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[8px_8px_0_hsl(var(--foreground))] hover:translate-x-[-4px] hover:translate-y-[-4px] transition-all bg-primary text-primary-foreground scale-105"
-              onClick={() => navigate('/programs')}
-            >
-              <Rocket className="mr-2 w-6 h-6" />
-              Explore Programs
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
-              onClick={() => navigate('/me-ai')}
-            >
-              <Zap className="mr-2 w-5 h-5" />
-              Try MeAI
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-base px-6 py-5 font-fredoka font-medium rounded-full border-2 border-foreground/60 shadow-[2px_2px_0_hsl(var(--foreground)/0.4)] hover:shadow-[4px_4px_0_hsl(var(--foreground)/0.4)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card text-foreground"
-              onClick={() => navigate('/contact')}
-            >
-              <Handshake className="mr-2 w-5 h-5" />
-              Partner With Us
-            </Button>
-          </motion.div>
-
-          {/* Stats - Comic Panels */}
-          <motion.div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 max-w-5xl mx-auto"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8 }}
-          >
-            {[
-              { label: "Students Reached", value: 500, suffix: "+", desc: "since 2024" },
-              { label: "Curriculum Module", value: 15, suffix: "+", desc: "hand on based" },
-              { label: "Partners", value: 7, suffix: "+", desc: "and growing" },
-              { label: "Projects ", value: 20, suffix: "+", desc: "presence" },
-            ].map((stat, idx) => (
-              <ComicPanel 
-                key={idx} 
-                color={["primary", "secondary", "accent", "primary"][idx] as "primary" | "secondary" | "accent"}
-                delay={idx * 0.1}
-              >
-                <div className="p-4 md:p-6 text-center">
-                  <div className="text-3xl md:text-4xl font-fredoka font-bold text-foreground">
-                    <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                  </div>
-                  <div className="text-sm text-foreground font-fredoka mt-1">
-                    {stat.label}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-space mt-1">
-                    {stat.desc}
-                  </div>
-                </div>
-              </ComicPanel>
-            ))}
-          </motion.div>
-        </div>
+export const Hero = () => (
+  <section className="relative isolate overflow-hidden bg-foreground text-background">
+    <img src={group.url} alt="Young KONOV learners celebrating their technology projects together" fetchPriority="high" className="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
+    <div className="absolute inset-0 -z-10 bg-foreground/65" />
+    <div className="company-container company-hero-content py-12 md:py-20 flex flex-col justify-center">
+      <p className="company-eyebrow">Interactive tools. Curious minds. Ages 6–16.</p>
+      <h1 className="font-fredoka font-semibold text-6xl md:text-8xl leading-none mb-5">KONOV</h1>
+      <p className="company-hero-tagline font-fredoka text-3xl md:text-5xl leading-tight max-w-3xl mb-6">We make technology<br className="hidden sm:block" /> fun to learn and create with.</p>
+      <p className="text-base md:text-lg leading-relaxed max-w-xl mb-8">An EdTech company building interactive learning tools for young learners. Meet MeAI, our first product, and join our AI &amp; coding classes in Accra.</p>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild size="lg" className="rounded-lg"><a href="#me-ai">Discover MeAI <ArrowRight /></a></Button>
+        <Button asChild size="lg" variant="outline" className="rounded-lg border-background/70 text-background hover:bg-background hover:text-foreground"><Link to="/for-schools">For schools <ArrowRight /></Link></Button>
       </div>
-      
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-background/80" />
-    </section>
-  );
-};
+    </div>
+    <div className="border-t border-background/30"><div className="company-container py-5 flex flex-wrap gap-x-8 gap-y-2 text-sm"><span>Built for ages 6–16</span><span>For families & classrooms</span><span>Products + hands-on learning</span></div></div>
+  </section>
+);

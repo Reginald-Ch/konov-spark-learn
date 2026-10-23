@@ -168,8 +168,13 @@ REVOKE ALL ON FUNCTION public.verify_admin_credential(TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.set_admin_credential(TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.verify_admin_credential(TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.set_admin_credential(TEXT, TEXT) TO service_role;
-SELECT public.set_admin_credential('organizer', 'admin098@konov');
-SELECT public.set_admin_credential('judge', 'judge2059');
+-- SECURITY: this used to reseed the real organizer/judge passphrases here
+-- in plain text. This repo is public on GitHub, so those committed values
+-- were the live login codes, readable by anyone — discovered and rotated
+-- 2026-09-15. Removed rather than replaced with new committed values; see
+-- 20260817010000_repair_admin_credential_functions.sql for the full
+-- explanation and how to seed a passphrase safely if this project is
+-- ever rebuilt from scratch.
 
 ALTER TABLE public.hackathons
   ADD COLUMN settings JSONB NOT NULL DEFAULT '{"mission_bonus_top_n": 5, "voting_enabled": false, "coins_unlock_lessons": true}'::jsonb;

@@ -343,11 +343,10 @@ const ProgramsPage = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="AI Programs For Young Learners, Schools And Future Innovators"
-        description="KONOV Technologies offers practical AI learning programs — weekend classes, school programs, workshops, camps, hackathons, and tertiary innovation programs — for young people, schools, and organizations."
+        title="Tech Workshops & Learning Programs in Ghana"
+        description="Explore KONOV’s hands-on AI workshops, weekend programs and tech camps in Ghana, with interactive learning tools and guided projects for young learners."
         canonical="/programs"
-        type="course"
-        keywords={["AI programs for young learners", "AI classes for kids in Accra", "AI workshops for schools in Ghana", "youth AI hackathons", "Tertiary AI Innovation Hub", "Summer AI and Tech Camp Ghana"]}
+        keywords={["AI workshops Ghana", "weekend programs for kids Ghana", "tech camp Ghana", "AI classes for kids Accra", "school technology programs"]}
         jsonLd={coursesJsonLd}
       />
       <Navbar />

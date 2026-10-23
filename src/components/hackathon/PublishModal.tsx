@@ -166,8 +166,10 @@ export const PublishModal = forwardRef<HTMLDivElement, PublishModalProps>(({ isO
     // rejection for a call whose result nothing here waits on.
     if (finalName && !finalName.startsWith('Student-') && finalEmail && !finalEmail.endsWith('@forge.local')) {
       supabase.from('hackathons').select('id').eq('status', 'live').order('start_date', { ascending: false }).limit(1).maybeSingle()
-        .then(({ data }) => ensureHackathonRegistration(finalEmail, finalName, data?.id || null))
-        .catch((err) => console.warn('ensureHackathonRegistration failed:', err));
+        .then(
+          ({ data }) => ensureHackathonRegistration(finalEmail, finalName, data?.id || null),
+          (err) => { console.warn('ensureHackathonRegistration failed:', err); },
+        );
     }
 
     setDeployStep('deploying');

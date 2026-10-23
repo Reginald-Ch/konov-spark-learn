@@ -1,15 +1,15 @@
 # KONOV Technologies
 
-> KONOV Technologies builds interactive tools that make technology fun to learn and create for young learners ages 6-16. MeAI is our first product. We also run AI & coding classes in Accra, Ghana: weekend classes, after-school programs, and summer school.
+> KONOV Technologies is a company in Ghana that builds interactive tools to make technology fun to learn and create for young learners aged 6-16. MeAI is its first product, a fun AI learning app for kids aged 6-14. KONOV also runs AI & coding classes in Accra: weekend classes, after-school programs, and summer school.
 
-KONOV Technologies teaches both AI and coding. Learners (ages 6-16) work with real data, train machine learning models, build chatbots and conversational AI, and create AI-powered projects. KONOV serves young learners, parents, schools, educators, tertiary students, NGOs, and organizations across Ghana and Africa.
+KONOV is a product-led company that teaches both AI and coding. Learners (ages 6-16) work with real data, train machine learning models, build chatbots and conversational AI, and create AI-powered projects. KONOV serves young learners, parents, schools, educators, tertiary students, NGOs, and organizations across Ghana and Africa.
 
 ## Core Pages
 
-- [Home](/): KONOV Technologies' mission, programs, and impact.
+- [Home](/): KONOV's interactive learning tools, MeAI, workshops, and school partnerships.
 - [About](/about): Mission, vision, story, and values.
 - [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
-- [MeAI](/me-ai): KONOV's AI creation platform for learners ages 6-14 — build chatbots, train models, complete guided AI projects.
+- [MeAI](/me-ai): KONOV's fun AI learning app for kids ages 6-14 — build chatbots, train models, complete guided AI projects.
 - [For Schools](/for-schools): School partnerships — student workshops, teacher training, MeAI classroom access, AI clubs, hackathons.
 - [Contact](/contact): Reach KONOV Technologies by email or WhatsApp.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
@@ -35,6 +35,6 @@ KONOV Technologies teaches both AI and coding. Learners (ages 6-16) work with re
 ## Key Facts
 
 - Official brand name: KONOV Technologies (also referenced as KONOV).
-- Product name: MeAI — KONOV's AI creation platform for learners ages 6-14.
+- Product name: MeAI — KONOV's first product, a fun AI learning app for kids ages 6-14.
 - Location: Accra, Ghana. Serves learners across Ghana and Africa.
-- Contact: hello@konovtech.com
+- Contact: konovartechtist@gmail.com

@@ -42,6 +42,7 @@ interface Submission {
 
 const emptyAutoBreakdown = () => ({ timeliness: 0, benchmark: 0, followsPrompt: 0, correctness: 0, characterConsistency: 0, safety: 0, knowledgeBase: 0 });
 const emptyJudgeBreakdown = () => ({ creativity: 0, problemSolving: 0, impact: 0 });
+const AI_PENALTY_POINTS = 5;
 
 const singleScore = (s: Submission['submission_scores']) => (Array.isArray(s) ? s[0] : s);
 
@@ -118,6 +119,13 @@ export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: stri
   const [autoRationale, setAutoRationale] = useState<string>('');
   const [autoSuspicious, setAutoSuspicious] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  // Deliberately a manual judge decision, never automated — there's no
+  // reliable way to detect "this was AI-written" from text alone, and
+  // FORGE itself has a built-in AI-assist feature. This just makes an
+  // existing human judgment call visible to the participant instead of a
+  // silent score reduction with no explanation (see ai_penalty_reason in
+  // DailyChallengePanel.tsx, which reads this same judge_breakdown shape).
+  const [aiPenalty, setAiPenalty] = useState(false);
 
   const selectedChallenge = challenges.find(c => c.id === selectedChallengeId);
 
@@ -187,7 +195,8 @@ export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: stri
   }, [selectedChallengeId, fetchSubmissions]);
 
   const autoTotal = useMemo(() => Object.values(autoBreakdown).reduce((a, b) => a + (b || 0), 0), [autoBreakdown]);
-  const judgeTotal = useMemo(() => Object.values(judgeBreakdown).reduce((a, b) => a + (b || 0), 0), [judgeBreakdown]);
+  const judgeRawTotal = useMemo(() => Object.values(judgeBreakdown).reduce((a, b) => a + (b || 0), 0), [judgeBreakdown]);
+  const judgeTotal = Math.max(0, judgeRawTotal - (aiPenalty ? AI_PENALTY_POINTS : 0));
 
   const openGrade = (s: Submission) => {
     setGradingSubmission(s);
@@ -197,6 +206,7 @@ export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: stri
     setJudgeBreakdown(normalizeJudgeBreakdown(existing?.judge_breakdown));
     setAutoRationale(existing?.auto_breakdown?.rationale || '');
     setAutoSuspicious(existing?.auto_breakdown?.suspicious_content || '');
+    setAiPenalty(!!existing?.judge_breakdown?.ai_penalty_points);
   };
 
   const handleGrade = async (confirmOverride = false) => {
@@ -212,7 +222,9 @@ export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: stri
         submission_id: gradingSubmission.id,
         ...(isOrganizer ? { auto_score: autoTotal, auto_breakdown: { timeliness: autoBreakdown.timeliness, benchmark: autoBreakdown.benchmark, response_quality: { followsPrompt: autoBreakdown.followsPrompt, correctness: autoBreakdown.correctness, characterConsistency: autoBreakdown.characterConsistency, safety: autoBreakdown.safety, knowledgeBase: autoBreakdown.knowledgeBase } } } : {}),
         judge_score: judgeTotal,
-        judge_breakdown: judgeBreakdown,
+        judge_breakdown: aiPenalty
+          ? { ...judgeBreakdown, ai_penalty_points: AI_PENALTY_POINTS, ai_penalty_reason: `-${AI_PENALTY_POINTS} points: AI-generated content detected in this submission`, ai_penalty_by: isJudge ? judgeName.trim() : 'Organizer' }
+          : judgeBreakdown,
         judge_name: isJudge ? judgeName.trim() : null,
         confirm_override: confirmOverride,
       });
@@ -457,12 +469,24 @@ export const SubmissionsTab = ({ hackathonId, role = null }: { hackathonId: stri
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-bold mb-2">Judge SP — {judgeTotal} / {selectedChallenge?.judge_max_points ?? 30}</h4>
+              <h4 className="text-sm font-bold mb-2">
+                Judge SP — {judgeTotal} / {selectedChallenge?.judge_max_points ?? 30}
+                {aiPenalty && <span className="text-xs font-normal text-destructive ml-2">(includes -{AI_PENALTY_POINTS} AI penalty)</span>}
+              </h4>
               <div className="grid grid-cols-3 gap-2">
                 <ScoreField label="Creativity & Innovation (0-10)" max={10} value={judgeBreakdown.creativity} onChange={v => setJudgeBreakdown(b => ({ ...b, creativity: v }))} />
                 <ScoreField label="Problem Solving (0-10)" max={10} value={judgeBreakdown.problemSolving} onChange={v => setJudgeBreakdown(b => ({ ...b, problemSolving: v }))} />
                 <ScoreField label="Impact (0-10)" max={10} value={judgeBreakdown.impact} onChange={v => setJudgeBreakdown(b => ({ ...b, impact: v }))} />
               </div>
+              {/* Deliberately a manual, per-submission judge call — see the
+                  aiPenalty state comment above for why this isn't automated. */}
+              <label className="flex items-start gap-2 mt-3 text-xs cursor-pointer select-none rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                <Checkbox checked={aiPenalty} onCheckedChange={(v) => setAiPenalty(!!v)} className="h-3.5 w-3.5 mt-0.5" />
+                <span>
+                  <span className="font-medium text-destructive">I reviewed this submission and it used AI-generated content improperly (-{AI_PENALTY_POINTS} points)</span>
+                  <span className="block text-muted-foreground mt-0.5">The participant will see this exact reason next to their score — only check this after you've actually looked at the submission yourself.</span>
+                </span>
+              </label>
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setGradingSubmission(null)} className="flex-1">Cancel</Button>

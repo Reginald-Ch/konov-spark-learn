@@ -72,10 +72,24 @@ REVOKE ALL ON FUNCTION public.set_admin_credential(TEXT, TEXT) FROM anon;
 REVOKE ALL ON FUNCTION public.set_admin_credential(TEXT, TEXT) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.set_admin_credential(TEXT, TEXT) TO service_role;
 
--- Re-seed both passphrases so they're definitely active, regardless of
--- what did or didn't apply before.
-SELECT public.set_admin_credential('organizer', 'admin098@konov');
-SELECT public.set_admin_credential('judge', 'judge2059');
+-- SECURITY: this migration used to re-seed both passphrases here with
+-- real, committed plaintext values so they were "definitely active,
+-- regardless of what did or didn't apply before." This repo is public on
+-- GitHub, which meant the live organizer and judge login codes were
+-- readable by anyone on the internet from this file alone — discovered
+-- 2026-09-15 via a security scan, both values were live and had to be
+-- rotated immediately through the app's own "Set Passphrase" dialog
+-- (Judges tab, organizer-only).
+--
+-- Removed rather than replaced with new committed values, since that
+-- would just recreate the exact same problem the next time this
+-- migration runs. If this project is ever rebuilt from scratch, set both
+-- passphrases once by hand, immediately after this migration applies,
+-- through a channel that never gets committed to source control —
+-- either the app's own "Set Passphrase" dialog once organizer access
+-- exists some other way, or a one-off `SELECT
+-- public.set_admin_credential(...)` typed directly into the Supabase SQL
+-- editor and never saved to a file.
 
 -- Brute-force lockout infra admin-actions/index.ts also calls on every
 -- request (count_recent_admin_failures / record_failed_admin_attempt) —

@@ -20,9 +20,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Shield, Trophy, ExternalLink, Lock,
-  CheckCircle2, Loader2, Send, Award, LogOut, KeyRound,
+  CheckCircle2, Loader2, Send, Award, LogOut, KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { computeAutomatedMarks } from '@/lib/galleryAutomatedMarks';
 import { EventsTab } from '@/components/admin/EventsTab';
 import { ChallengesTab } from '@/components/admin/ChallengesTab';
 import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
@@ -45,8 +46,12 @@ interface Project {
   author_name: string;
   template_id: string | null;
   is_published: boolean;
-  points_earned: number;
   created_at: string;
+  // Only needed client-side to compute this card's automated marks (see
+  // computeAutomatedMarks) — sourced from get_hackathon_leaderboard_projects,
+  // the same RPC the public Leaderboard already uses, so this isn't new
+  // exposure (see migration 20260915000000).
+  code: string | null;
 }
 
 // The shadcn Tabs defaults (bg-muted/bg-background) are light-theme tokens
@@ -55,6 +60,13 @@ interface Project {
 // jarring white pill. Matches the discord-dark palette used everywhere
 // else in this file instead.
 const TAB_CLASS = 'text-[hsl(var(--discord-text-muted))] data-[state=active]:bg-[hsl(var(--discord-light)/0.6)] data-[state=active]:text-white data-[state=active]:shadow-none';
+
+// Matches submit_gallery_score's lower(trim(...)) comparison (migration
+// 20260914000000) — every client-side judge-name comparison uses this too,
+// so "already scored by me" detection and the roster warning agree with
+// what the server will actually accept instead of a stricter exact match
+// silently disagreeing with it.
+const sameJudge = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 const TEMPLATE_META: Record<string, { icon: string; label: string }> = {
   chatbot: { icon: '🤖', label: 'Chatbot' },
@@ -74,7 +86,9 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
   onTogglePublish: (project: Project) => void;
   isOrganizer: boolean;
   isSubmitting: boolean;
-}) => (
+}) => {
+  const automatedMarks = computeAutomatedMarks(project);
+  return (
   <div className={`bg-[hsl(var(--discord-dark))] rounded-lg border transition-all ${isScored ? 'border-[hsl(var(--discord-green)/0.3)] bg-[hsl(var(--discord-green)/0.05)]' : 'border-[hsl(var(--discord-light)/0.2)]'}`}>
     <div className="p-4">
       <div className="flex items-start justify-between mb-2">
@@ -94,6 +108,18 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
       {project.description && (
         <p className="text-xs text-[hsl(var(--discord-text-muted))] line-clamp-2 mb-3">{project.description}</p>
       )}
+
+      {/* Automated marks this project already earned — same criteria and
+          numbers the public Leaderboard shows, so a judge has context
+          before adding their own score below instead of scoring blind. */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${automatedMarks.systemMessageAchieved ? 'bg-[hsl(var(--discord-blurple)/0.15)] text-[hsl(var(--discord-blurple))]' : 'bg-[hsl(var(--discord-light)/0.15)] text-[hsl(var(--discord-text-muted))]'}`}>
+          🧠 System Message {automatedMarks.systemMessagePts}/10
+        </span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${automatedMarks.conversationQualityAchieved ? 'bg-[hsl(var(--discord-green)/0.15)] text-[hsl(var(--discord-green))]' : 'bg-[hsl(var(--discord-light)/0.15)] text-[hsl(var(--discord-text-muted))]'}`}>
+          💬 Conversation {automatedMarks.conversationQualityPts}/5
+        </span>
+      </div>
 
       <div className="flex gap-1.5 mb-3">
         <a href={`${window.location.origin}/projects/${project.id}`} target="_blank" rel="noopener noreferrer">
@@ -145,11 +171,13 @@ const ProjectCard = memo(({ project, meta, isScored, otherScores, score, feedbac
       </div>
     </div>
   </div>
-));
+  );
+});
 ProjectCard.displayName = 'ProjectCard';
 
 export const JudgeDashboardPanel = () => {
   const [passphraseInput, setPassphraseInput] = useState('');
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [role, setRole] = useState<AdminRole | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -203,11 +231,22 @@ export const JudgeDashboardPanel = () => {
   useEffect(() => { fetchJudgeRoster(); }, [fetchJudgeRoster]);
 
   const handleAddJudge = async () => {
-    if (!newJudgeName.trim()) return;
+    const trimmed = newJudgeName.trim();
+    if (!trimmed) return;
+    // gallery_judges' primary key is case-sensitive, so "John" and "john"
+    // would otherwise insert as two separate roster rows — silently
+    // breaking the "exactly N judges" expectation (e.g. someone re-adding
+    // themselves after mistyping casing ends up with two roster slots
+    // instead of one corrected one, and neither name may match what that
+    // judge actually types at login).
+    if (judgeRoster.some(n => sameJudge(n, trimmed))) {
+      toast.error(`"${trimmed}" (or a differently-cased version of it) is already on the roster`);
+      return;
+    }
     setSavingJudge(true);
     try {
-      await callAdminAction('add_gallery_judge', { judge_name: newJudgeName.trim() });
-      toast.success(`"${newJudgeName.trim()}" added to the judge roster`);
+      await callAdminAction('add_gallery_judge', { judge_name: trimmed });
+      toast.success(`"${trimmed}" added to the judge roster`);
       setNewJudgeName('');
       fetchJudgeRoster();
     } catch (e) {
@@ -231,6 +270,7 @@ export const JudgeDashboardPanel = () => {
   const [targetRole, setTargetRole] = useState<AdminRole>('organizer');
   const [newPassphrase, setNewPassphrase] = useState('');
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [showNewPassphrase, setShowNewPassphrase] = useState(false);
   const [savingPassphrase, setSavingPassphrase] = useState(false);
 
   const handleSavePassphrase = async () => {
@@ -255,6 +295,7 @@ export const JudgeDashboardPanel = () => {
   // passphrase here, and this session steps up in place.
   const [adminStepUpOpen, setAdminStepUpOpen] = useState(false);
   const [adminStepUpPassphrase, setAdminStepUpPassphrase] = useState('');
+  const [showStepUpPassphrase, setShowStepUpPassphrase] = useState(false);
   const [steppingUp, setSteppingUp] = useState(false);
 
   const handleAdminStepUp = async () => {
@@ -291,8 +332,13 @@ export const JudgeDashboardPanel = () => {
 
   useEffect(() => {
     (async () => {
+      // Trimmed on the way back in too — an older session may have stored
+      // an untrimmed name from before submit_gallery_score's matching was
+      // hardened (see migration 20260914000000); re-trimming here keeps a
+      // returning judge's session consistent with a fresh login instead of
+      // carrying the same whitespace mismatch forward.
       const storedName = sessionStorage.getItem('judge-display-name');
-      if (storedName) setJudgeName(storedName);
+      if (storedName) setJudgeName(storedName.trim());
       if (hasStoredAdminPassphrase()) {
         const resolvedRole = getStoredAdminRole() || (await verifyAdminPassphrase(getStoredAdminPassphrase()));
         setRole(resolvedRole);
@@ -302,16 +348,43 @@ export const JudgeDashboardPanel = () => {
   }, [fetchHackathonOptions]);
 
   const handleLogin = async () => {
-    if (!judgeName.trim()) { toast.error('Please enter your name'); return; }
+    // Trimmed once here so every later use of `judgeName` (roster checks,
+    // score submission, "already scored by me" matching) works off the
+    // exact string the DB will compare against — see migration
+    // 20260914000000 for the server-side half of this fix.
+    const trimmedName = judgeName.trim();
+    if (!trimmedName) { toast.error('Please enter your name'); return; }
     if (!passphraseInput.trim()) { toast.error('Please enter the passphrase'); return; }
     setVerifying(true);
     const resolvedRole = await verifyAdminPassphrase(passphraseInput.trim());
+    if (!resolvedRole) { setVerifying(false); toast.error('Invalid passphrase'); return; }
+    // Judge logins are gated against the approved roster right here, not
+    // just at score-submission time — previously anyone holding the shared
+    // judge passphrase could get into the whole dashboard under any name
+    // and only discover at submit time (via a red banner + a rejected
+    // score) that they weren't recognized. Scoped to role === 'judge' only:
+    // organizers manage the roster and use this same login for unrelated
+    // admin tabs, so they shouldn't be locked out just for not being a
+    // judge themselves. Skipped if the roster hasn't loaded/is empty so a
+    // slow network or an organizer who hasn't added anyone yet doesn't
+    // lock every judge out.
+    if (resolvedRole === 'judge' && judgeRoster.length > 0 && !judgeRoster.some(n => sameJudge(n, trimmedName))) {
+      // verifyAdminPassphrase already wrote a valid passphrase+role to
+      // sessionStorage as a side effect (needed for its own internal
+      // 'verify' call) — undo that here, otherwise a page refresh would
+      // silently restore a "logged in" session that never actually passed
+      // this name check.
+      clearStoredAdminPassphrase();
+      setVerifying(false);
+      toast.error(`"${trimmedName}" isn't on the approved judge roster — ask an organizer to add you first.`);
+      return;
+    }
     setVerifying(false);
-    if (!resolvedRole) { toast.error('Invalid passphrase'); return; }
+    setJudgeName(trimmedName);
     setRole(resolvedRole);
-    sessionStorage.setItem('judge-display-name', judgeName);
+    sessionStorage.setItem('judge-display-name', trimmedName);
     fetchHackathonOptions();
-    toast.success(`Welcome, ${judgeName}!`);
+    toast.success(`Welcome, ${trimmedName}!`);
   };
 
   const handleLogout = () => {
@@ -331,26 +404,31 @@ export const JudgeDashboardPanel = () => {
       // now calls fixes both by joining to ai_projects server-side and
       // dropping the unused column.
       const [projectsRes, existingScores] = await Promise.all([
-        // author_email intentionally left out — nothing in this UI ever
-        // displays it, and submit_gallery_score now resolves it server-side
-        // from project_id instead of trusting/needing the client to send
-        // it (see admin-actions/index.ts). Previously every judge login
-        // fetched every participant's raw email whether or not they scored
-        // that project — the same PII-minimization fix already applied to
-        // Leaderboard.tsx (hashed author_key instead of raw email) for the
-        // identical reason.
-        // `code` used to be selected here too — grepping this whole file
-        // for `.code` turns up zero usages; ProjectCard never renders it,
-        // and submit_gallery_score's payload doesn't need it either. That
-        // meant every judge login (a passphrase this codebase's own
-        // comments elsewhere note is "plausibly shared among several
-        // volunteer judges") fetched every participant's FULL project
-        // source over the network for nothing — a much more sensitive
-        // over-fetch than the author_email one above, for zero benefit.
-        supabase.from('ai_projects').select('id, project_name, description, author_name, template_id, is_published, points_earned, created_at').eq('hackathon_id', hackathonId).order('created_at', { ascending: false }).limit(100),
+        // Sourced from get_hackathon_leaderboard_projects — the same RPC
+        // the public Leaderboard page already calls — instead of a raw
+        // ai_projects select. Two reasons: (1) it's already scoped to
+        // is_published = true server-side, so judges score exactly the
+        // project set that counts toward the Leaderboard, by construction
+        // rather than a separately-maintained filter; (2) it returns
+        // `code`, which this card now needs to show each project's
+        // already-earned automated marks (System Message Quality,
+        // Conversation Quality) next to the judge's own score — the same
+        // `code` this RPC already hands to every anonymous Leaderboard
+        // visitor with no login at all, so this isn't new exposure (see
+        // migration 20260915000000). author_email is still never fetched;
+        // submit_gallery_score resolves it server-side from project_id.
+        supabase.rpc('get_hackathon_leaderboard_projects', { p_hackathon_id: hackathonId }),
         callAdminAction<{ points: number; metadata: any }[]>('list_gallery_judge_scores', { hackathon_id: hackathonId }),
       ]);
-      if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+      if (projectsRes.data) {
+        // The RPC orders oldest-first (it's built for the Leaderboard,
+        // which doesn't care about order) — re-sorted here so judges still
+        // see newest submissions first, matching this panel's prior
+        // behavior.
+        const sorted = [...(projectsRes.data as unknown as Project[])]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setProjects(sorted);
+      }
       if (existingScores) {
         const byProject: Record<string, { judgeName: string; points: number }[]> = {};
         (existingScores as any[]).forEach((evt: any) => {
@@ -364,7 +442,7 @@ export const JudgeDashboardPanel = () => {
         if (judgeName) {
           const mine: Record<string, number> = {};
           Object.entries(byProject).forEach(([pid, entries]) => {
-            const own = entries.find(e => e.judgeName === judgeName);
+            const own = entries.find(e => sameJudge(e.judgeName, judgeName));
             if (own) mine[pid] = own.points;
           });
           setScores(prev => ({ ...prev, ...mine }));
@@ -400,7 +478,7 @@ export const JudgeDashboardPanel = () => {
         feedback: feedback[project.id] || '',
       });
       setJudgeScoresByProject(prev => {
-        const existing = (prev[project.id] || []).filter(e => e.judgeName !== judgeName);
+        const existing = (prev[project.id] || []).filter(e => !sameJudge(e.judgeName, judgeName));
         return { ...prev, [project.id]: [...existing, { judgeName, points: score }] };
       });
       toast.success(`Score submitted for ${project.project_name}`);
@@ -446,8 +524,16 @@ export const JudgeDashboardPanel = () => {
             <Input id="judge-login-name" value={judgeName} onChange={e => setJudgeName(e.target.value)} placeholder="Your name"
               className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
             <label htmlFor="judge-login-passphrase" className="sr-only">Judge passphrase</label>
-            <Input id="judge-login-passphrase" value={passphraseInput} onChange={e => setPassphraseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="Judge passphrase" type="password" className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white" />
+            <div className="relative">
+              <Input id="judge-login-passphrase" value={passphraseInput} onChange={e => setPassphraseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="Judge passphrase" type={showPassphrase ? 'text' : 'password'}
+                className="bg-[hsl(var(--discord-darker))] border-[hsl(var(--discord-light)/0.3)] text-white pr-10" />
+              <button type="button" onClick={() => setShowPassphrase(v => !v)}
+                aria-label={showPassphrase ? 'Hide passphrase' : 'Show passphrase'}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[hsl(var(--discord-text-muted))] hover:text-white">
+                {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             <Button onClick={handleLogin} disabled={verifying} className="w-full bg-secondary hover:bg-secondary/90">
               {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />} Enter Dashboard
             </Button>
@@ -542,7 +628,7 @@ export const JudgeDashboardPanel = () => {
             <Award className="w-5 h-5 text-[hsl(var(--discord-yellow))]" /> Projects to Score
             <span className="text-xs text-[hsl(var(--discord-text-muted))] font-normal ml-2">Max 70 points per project</span>
           </h2>
-          {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.includes(judgeName.trim()) && (
+          {judgeName.trim() && judgeRoster.length > 0 && !judgeRoster.some(n => sameJudge(n, judgeName)) && (
             <p className="text-xs text-[hsl(var(--discord-red))] bg-[hsl(var(--discord-red)/0.1)] border border-[hsl(var(--discord-red)/0.3)] rounded-md px-3 py-2 mb-3">
               "{judgeName}" isn't on the approved judge roster — scores will be rejected until an organizer adds you
               {role === 'organizer' ? ' (Judges tab, above).' : '.'}
@@ -565,8 +651,8 @@ export const JudgeDashboardPanel = () => {
                   key={project.id}
                   project={project}
                   meta={TEMPLATE_META[project.template_id || ''] || { icon: '📦', label: 'Project' }}
-                  isScored={(judgeScoresByProject[project.id] || []).some(e => e.judgeName === judgeName)}
-                  otherScores={(judgeScoresByProject[project.id] || []).filter(e => e.judgeName !== judgeName)}
+                  isScored={(judgeScoresByProject[project.id] || []).some(e => sameJudge(e.judgeName, judgeName))}
+                  otherScores={(judgeScoresByProject[project.id] || []).filter(e => !sameJudge(e.judgeName, judgeName))}
                   score={scores[project.id]}
                   feedbackText={feedback[project.id] || ''}
                   onScoreChange={handleScoreChange}
@@ -664,11 +750,18 @@ export const JudgeDashboardPanel = () => {
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">New passphrase</label>
-              <Input type="password" value={newPassphrase} onChange={e => setNewPassphrase(e.target.value)} placeholder="At least 6 characters" />
+              <div className="relative">
+                <Input type={showNewPassphrase ? 'text' : 'password'} value={newPassphrase} onChange={e => setNewPassphrase(e.target.value)} placeholder="At least 6 characters" className="pr-10" />
+                <button type="button" onClick={() => setShowNewPassphrase(v => !v)}
+                  aria-label={showNewPassphrase ? 'Hide passphrase' : 'Show passphrase'}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showNewPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Confirm</label>
-              <Input type="password" value={confirmPassphrase} onChange={e => setConfirmPassphrase(e.target.value)} />
+              <Input type={showNewPassphrase ? 'text' : 'password'} value={confirmPassphrase} onChange={e => setConfirmPassphrase(e.target.value)} />
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setPassphraseDialogOpen(false)} className="flex-1">Cancel</Button>
@@ -688,14 +781,22 @@ export const JudgeDashboardPanel = () => {
             <DialogDescription>Enter the organizer passphrase to unlock the full control panel for this session.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            <Input
-              type="password"
-              value={adminStepUpPassphrase}
-              onChange={e => setAdminStepUpPassphrase(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdminStepUp()}
-              placeholder="Organizer passphrase"
-              autoFocus
-            />
+            <div className="relative">
+              <Input
+                type={showStepUpPassphrase ? 'text' : 'password'}
+                value={adminStepUpPassphrase}
+                onChange={e => setAdminStepUpPassphrase(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAdminStepUp()}
+                placeholder="Organizer passphrase"
+                className="pr-10"
+                autoFocus
+              />
+              <button type="button" onClick={() => setShowStepUpPassphrase(v => !v)}
+                aria-label={showStepUpPassphrase ? 'Hide passphrase' : 'Show passphrase'}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showStepUpPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" onClick={() => setAdminStepUpOpen(false)} className="flex-1">Cancel</Button>
               <Button onClick={handleAdminStepUp} disabled={steppingUp} className="flex-1">

@@ -104,8 +104,8 @@ export const HackathonFeedbackForm = ({ hackathonId }: { hackathonId: string | n
         p_comment: comment.trim() || null,
       });
       if (error) throw error;
-      const row = data as FeedbackRow;
-      setLastSavedAt(row.updated_at);
+      const row = (Array.isArray(data) ? data[0] : data) as unknown as FeedbackRow | undefined;
+      setLastSavedAt(row?.updated_at ?? new Date().toISOString());
       toast.success(lastSavedAt ? 'Feedback updated — thanks!' : 'Thanks for the feedback!');
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit feedback');

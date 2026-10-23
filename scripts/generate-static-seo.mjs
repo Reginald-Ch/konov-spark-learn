@@ -31,51 +31,26 @@ const ROUTES = [
   {
     path: "/",
     title: "Interactive Tools For Young Learners | KONOV Technologies",
-    description:
-      "KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, and join our AI & coding classes in Accra.",
-    h1: "KONOV Technologies — Interactive Tools That Make Tech Fun To Learn And Create",
-    intro:
-      "KONOV Technologies builds interactive tools that make technology fun to learn and create for young learners ages 6–16. MeAI, our first product, is a fun AI learning app for kids ages 6–14. We also run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school — and partner with schools and educators.",
-    main: `
-        <h2>What KONOV Technologies Teaches</h2>
-        <p>AI and coding — chatbot building, training AI models, programming, data, and creative problem-solving — designed to be fun for young learners ages 6 to 16.</p>
-        <h2>Programs in Accra, Ghana</h2>
-        <ul>
-          <li><strong>KONOV Weekend AI Creators</strong> — an 8-week weekend AI program for ages 6-16.</li>
-          <li><strong>KONOV School AI Program</strong> — term-based AI enrichment for schools, Grade 1 to Grade 9.</li>
-          <li><strong>KONOV AI &amp; Coding Workshops</strong> — short, practical AI and coding workshops using MeAI.</li>
-          <li><strong>KONOV Summer AI & Tech Camp</strong> — a vacation AI and tech camp for primary through senior high learners.</li>
-          <li><strong>KONOV Youth AI Challenges</strong> — AI hackathons, challenges, and project showcases.</li>
-          <li><strong>KONOV Tertiary AI Innovation Program</strong> — applied AI for tertiary students, including the free 7-day AI Builder Sprint.</li>
-          <li><strong>MeAI</strong> — KONOV's fun AI learning app for kids ages 6-14 (<a href="https://meaitech.com">meaitech.com</a>).</li>
-        </ul>
-        <h2>Why Parents & Schools in Ghana Choose KONOV Technologies</h2>
-        <p>KONOV Technologies is AI-first, practical, and built for African learners. We don't only teach students how to use technology — we help them understand how intelligent systems work and give them the tools to create their own. We partner with schools across Accra and Ghana to bring practical AI education into every classroom.</p>
-        <h2>Contact</h2>
-        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>`,
+    description: "KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, and join our AI & coding classes in Accra.",
+    keywords: ["EdTech company Ghana", "interactive learning tools for kids", "technology education for kids", "MeAI", "coding for kids Ghana"],
+    h1: "KONOV — Interactive Tools For Young Learners",
+    intro: "KONOV builds interactive tools that make technology fun to learn and create for young learners aged 6–16. MeAI, our first product, is a fun AI learning app for kids aged 6–14. We also run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school.",
+    main: `<h2>MeAI — Our First Product</h2><p>MeAI is KONOV’s interactive AI learning and creation platform for families and classrooms. Explore lessons, build chatbots, train simple models, and create projects. <a href="https://meaitech.com">Open MeAI</a>.</p><h2>Learning By Doing</h2><p>Play with an idea, build something of your own, and understand what happens.</p><h2>Workshops and School Partnerships</h2><p>Hands-on AI workshops and school partnerships connect our products with guided learning experiences.</p><p><a href="/about">Meet KONOV</a> · <a href="/programs">Workshops and programs</a> · <a href="/for-schools">For schools</a></p>`,
   },
   {
     path: "/about",
     title: "About KONOV – Making Tech Fun To Learn & Create | KONOV Technologies",
-    description:
-      "KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16.",
-    h1: "Building Africa's Next Generation Of AI Creators",
-    intro:
-      "KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16. MeAI is our first product, and we run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school — and partner with schools and educators.",
-    main: `
-        <h2>Mission</h2>
-        <p>To make AI education accessible, engaging, and practical for young Africans.</p>
-        <h2>Vision</h2>
-        <p>To prepare the next generation of African innovators to become creators of intelligent systems, not just users of technology.</p>
-        <h2>Our Story</h2>
-        <p>Founded in Accra, Ghana, KONOV Technologies was born from a simple observation: while most tech hubs focus on robotics with a sprinkle of AI, the real future lies in AI literacy — understanding how intelligent systems think. Our learners work with data, train machine learning models, build chatbots, and create AI-powered projects that develop confidence, creativity, and problem-solving skills.</p>
-        <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
+    description: "KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16.",
+    keywords: ["about KONOV", "EdTech company Ghana", "interactive technology learning", "MeAI creator"],
+    h1: "KONOV. Built around young curiosity.",
+    intro: "We are an EdTech company that builds interactive tools to make technology education fun for young learners aged 6–16.",
+    main: `<h2>From Curiosity to Creation</h2><p>We want young learners to understand technology, ask questions, and create with it—not only consume it.</p><h2>Our Mission</h2><p>Make technology education fun, interactive, and meaningful for young learners.</p><h2>MeAI — Our First Product</h2><p>MeAI brings interactive AI learning to families and classrooms. AI is where our first product begins; making technology fun to learn is the bigger mission.</p><h2>Workshops and School Partnerships</h2><p>We run guided workshops and partner with schools to connect learning tools with hands-on experiences.</p><p><a href="/me-ai">Explore MeAI</a> · <a href="/for-schools">Partner with KONOV</a></p>`,
   },
   {
     path: "/programs",
-    title: "AI Programs For Young Learners, Schools And Future Innovators | KONOV Technologies",
-    description:
-      "KONOV Technologies offers practical AI & coding programs — weekend classes, after-school programs, workshops, summer school, and hackathons — for young learners, schools, and organizations.",
+    title: "Tech Workshops & Learning Programs in Ghana | KONOV",
+    description: "Explore KONOV’s hands-on AI workshops, weekend programs and tech camps in Ghana, with interactive learning tools and guided projects for young learners.",
+    keywords: ["AI workshops Ghana", "weekend programs for kids Ghana", "tech camp Ghana", "AI classes for kids Accra", "school technology programs"],
     h1: "AI Programs For Young Learners, Schools, And Future Innovators",
     intro:
       "KONOV Technologies offers practical AI learning programs that help young people understand, create, and build with artificial intelligence. From weekend classes and school programs to workshops, camps, hackathons, and tertiary innovation programs, learners gain hands-on experience with data, models, chatbots, conversational AI, and AI-powered projects.",
@@ -96,8 +71,8 @@ const ROUTES = [
   {
     path: "/me-ai",
     title: "MeAI | Fun AI Learning App For Kids 6–14 | KONOV Technologies",
-    description:
-      "MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons.",
+    description: "MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons.",
+    keywords: ["MeAI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"],
     h1: "MeAI — A Fun AI Learning App For Kids",
     intro:
       "MeAI is KONOV's first product: a fun AI learning app for kids ages 6-14. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
@@ -115,8 +90,8 @@ const ROUTES = [
   {
     path: "/for-schools",
     title: "MeAI For Schools And Educators | KONOV Technologies",
-    description:
-      "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators.",
+    description: "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators.",
+    keywords: ["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "AI teacher training Ghana", "interactive learning tools for schools"],
     h1: "MeAI For Schools And Educators",
     intro:
       "KONOV helps schools introduce practical AI education through workshops, classroom programs, teacher training, MeAI access, and student innovation challenges.",
@@ -334,7 +309,7 @@ const ROUTES = [
       "MeAI is the interactive platform teaching kids real AI &amp; machine learning through comics, chatbot building, and hands-on projects.",
     main: `
         <h2>Why Join</h2>
-        <p>Be first to know when MeAI opens up new seats and features for kids ages 6-16 learning AI &amp; machine learning at home.</p>
+        <p>Be first to know when MeAI opens up new seats and features for kids ages 6-14 learning AI &amp; machine learning at home.</p>
         <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
   },
   {
@@ -363,7 +338,7 @@ const ROUTES = [
     intro: "Have questions? We'd love to hear from you! Send us a message and we'll respond super fast.",
     main: `
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
+        <p>Email: <a href="mailto:konovartechtist@gmail.com">konovartechtist@gmail.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
         <p><a href="/">Back to home</a></p>`,
   },
 ];
@@ -375,25 +350,29 @@ function applyRoute(template, route) {
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeAttr(route.title)}</title>`);
 
   html = html.replace(
-    /(<meta name="description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? name="description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
-  html = html.replace(/(<meta name="author" content=")[^"]*(")/, `$1${escapeAttr(SITE_NAME)}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="keywords" content=")[^"]*(")/, (_, before, after) =>
+    `${before}${escapeAttr((route.keywords || ["KONOV", "EdTech company Ghana", route.h1]).join(", "))}${after}`
+  );
 
-  html = html.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="author" content=")[^"]*(")/, `$1${escapeAttr(SITE_NAME)}$2`);
 
-  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
+  html = html.replace(/(<link(?: data-rh="true")? rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
+
+  html = html.replace(/(<meta(?: data-rh="true")? property="og:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? property="og:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
   html = html.replace(
-    /(<meta property="og:description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? property="og:description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
-  html = html.replace(/(<meta name="twitter:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
-  html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="twitter:url" content=")[^"]*(")/, `$1${canonicalUrl}$2`);
+  html = html.replace(/(<meta(?: data-rh="true")? name="twitter:title" content=")[^"]*(")/, `$1${escapeAttr(route.title)}$2`);
   html = html.replace(
-    /(<meta name="twitter:description" content=")[^"]*(")/,
+    /(<meta(?: data-rh="true")? name="twitter:description" content=")[^"]*(")/,
     `$1${escapeAttr(route.description)}$2`
   );
 
@@ -401,10 +380,7 @@ function applyRoute(template, route) {
     /"name":\s*"[^"]*"/,
     `"name": "${SITE_NAME.replace(/"/g, '\\"')}"`
   );
-  html = html.replace(
-    /("@type":\s*"EducationalOrganization"[\s\S]*?"description":\s*")[^"]*(")/,
-    `$1${route.description.replace(/"/g, '\\"')}$2`
-  );
+
 
   html = html.replace(
     /<header>[\s\S]*?<\/header>/,

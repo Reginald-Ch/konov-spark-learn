@@ -537,7 +537,7 @@ class Interpreter {
     if (startRaw !== null && typeof startRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
     if (stopRaw !== null && typeof stopRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
     if (stepRaw !== null && typeof stepRaw !== 'number') throw new PyRuntimeError('TypeError: slice indices must be integers or None', line);
-    const step = stepRaw === null ? 1 : Math.trunc(stepRaw);
+    const step = stepRaw === null ? 1 : Math.trunc(stepRaw as number);
     if (step === 0) throw new PyRuntimeError('ValueError: slice step cannot be zero', line);
     const clamp = (i: number, lo: number, hi: number) => Math.min(Math.max(i, lo), hi);
     const normalize = (raw: PyValue, lo: number, hi: number): number => {
@@ -1103,11 +1103,12 @@ function installBuiltins(env: Environment, stdout: string[], options: RunOptions
       }
       budget.tick();
       if (outcome.ok) return outcome.text;
+      const failure = outcome as Extract<AiGenerateOutcome, { ok: false }>;
       // A budget-exhaustion timeout must stay uncatchable — same invariant
       // as everywhere else in this file — or `try: ai_generate(...) except:
       // pass` inside a loop could defeat the execution budget entirely.
-      if (outcome.reason === 'timeout') throw new PyTimeoutError();
-      throw new PyRuntimeError(`RuntimeError: ai_generate() failed — ${outcome.message}`, line);
+      if (failure.reason === 'timeout') throw new PyTimeoutError();
+      throw new PyRuntimeError(`RuntimeError: ai_generate() failed — ${failure.message}`, line);
     }));
   }
 }
