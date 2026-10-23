@@ -30,24 +30,24 @@ const escapeAttr = (s) =>
 const ROUTES = [
   {
     path: "/",
-    title: "KONOV Technologies | AI Education For Kids And Young Learners In Ghana",
+    title: "Interactive Tools For Young Learners | KONOV Technologies",
     description:
-      "KONOV Technologies helps young people in Ghana and Africa learn AI, train models, build chatbots, and create real AI systems through Me AI, workshops, programs, and hackathons.",
-    h1: "KONOV Technologies — Ghana's AI Literacy Hub for Young Innovators",
+      "KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, and join our AI & coding classes in Accra.",
+    h1: "KONOV Technologies — Interactive Tools That Make Tech Fun To Learn And Create",
     intro:
-      "KONOV Technologies helps young people in Ghana and across Africa understand how artificial intelligence works and build real AI systems — through hands-on AI programs, school workshops, youth hackathons, and the Me AI creation platform. Learners work with data, train machine learning models, build chatbots, and solve real-world problems using AI.",
+      "KONOV Technologies builds interactive tools that make technology fun to learn and create for young learners ages 6–16. MeAI, our first product, is a fun AI learning app for kids ages 6–14. We also run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school — and partner with schools and educators.",
     main: `
         <h2>What KONOV Technologies Teaches</h2>
-        <p>Artificial Intelligence, Machine Learning, chatbot and conversational AI building, data literacy, prompt thinking, and creative problem-solving — all designed for young African learners ages 6 to 18.</p>
+        <p>AI and coding — chatbot building, training AI models, programming, data, and creative problem-solving — designed to be fun for young learners ages 6 to 16.</p>
         <h2>Programs in Accra, Ghana</h2>
         <ul>
           <li><strong>KONOV Weekend AI Creators</strong> — an 8-week weekend AI program for ages 6-16.</li>
           <li><strong>KONOV School AI Program</strong> — term-based AI enrichment for schools, Grade 1 to Grade 9.</li>
-          <li><strong>KONOV AI Workshops</strong> — short, practical AI workshops using Me AI.</li>
+          <li><strong>KONOV AI &amp; Coding Workshops</strong> — short, practical AI and coding workshops using MeAI.</li>
           <li><strong>KONOV Summer AI & Tech Camp</strong> — a vacation AI and tech camp for primary through senior high learners.</li>
           <li><strong>KONOV Youth AI Challenges</strong> — AI hackathons, challenges, and project showcases.</li>
           <li><strong>KONOV Tertiary AI Innovation Program</strong> — applied AI for tertiary students, including the free 7-day AI Builder Sprint.</li>
-          <li><strong>Me AI</strong> — KONOV's AI creation platform for learners ages 6-18 (<a href="https://meaitech.com">meaitech.com</a>).</li>
+          <li><strong>MeAI</strong> — KONOV's fun AI learning app for kids ages 6-14 (<a href="https://meaitech.com">meaitech.com</a>).</li>
         </ul>
         <h2>Why Parents & Schools in Ghana Choose KONOV Technologies</h2>
         <p>KONOV Technologies is AI-first, practical, and built for African learners. We don't only teach students how to use technology — we help them understand how intelligent systems work and give them the tools to create their own. We partner with schools across Accra and Ghana to bring practical AI education into every classroom.</p>
@@ -56,12 +56,12 @@ const ROUTES = [
   },
   {
     path: "/about",
-    title: "Ghana's AI Literacy Hub | KONOV Technologies",
+    title: "About KONOV – Making Tech Fun To Learn & Create | KONOV Technologies",
     description:
-      "KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence.",
+      "KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16.",
     h1: "Building Africa's Next Generation Of AI Creators",
     intro:
-      "KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence. We deliver practical AI education through the Me AI platform, school programs, workshops, hackathons, and youth innovation experiences.",
+      "KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16. MeAI is our first product, and we run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school — and partner with schools and educators.",
     main: `
         <h2>Mission</h2>
         <p>To make AI education accessible, engaging, and practical for young Africans.</p>
@@ -75,7 +75,7 @@ const ROUTES = [
     path: "/programs",
     title: "AI Programs For Young Learners, Schools And Future Innovators | KONOV Technologies",
     description:
-      "KONOV Technologies offers practical AI learning programs — weekend classes, school programs, workshops, camps, hackathons, and tertiary innovation programs — for young people, schools, and organizations.",
+      "KONOV Technologies offers practical AI & coding programs — weekend classes, after-school programs, workshops, summer school, and hackathons — for young learners, schools, and organizations.",
     h1: "AI Programs For Young Learners, Schools, And Future Innovators",
     intro:
       "KONOV Technologies offers practical AI learning programs that help young people understand, create, and build with artificial intelligence. From weekend classes and school programs to workshops, camps, hackathons, and tertiary innovation programs, learners gain hands-on experience with data, models, chatbots, conversational AI, and AI-powered projects.",
@@ -84,48 +84,48 @@ const ROUTES = [
         <ul>
           <li><strong>KONOV Weekend AI Creators</strong> — an 8-week weekend AI program for ages 6-16, building chatbots, working with models, and learning responsible AI.</li>
           <li><strong>KONOV School AI Program</strong> — a term-based AI enrichment program for schools: after-school AI clubs, termly workshops, or school-wide ICT enrichment for Grade 1 to Grade 9.</li>
-          <li><strong>KONOV AI Workshops</strong> — short, practical AI workshops using Me AI, in half-day, one-day, or multi-session formats.</li>
+          <li><strong>KONOV AI &amp; Coding Workshops</strong> — short, practical AI and coding workshops using MeAI, in half-day, one-day, or multi-session formats.</li>
           <li><strong>KONOV Summer AI & Tech Camp</strong> — a vacation camp for primary, junior high, and senior high learners.</li>
           <li><strong>KONOV Youth AI Challenges</strong> — AI hackathons, competitions, and school AI showcases.</li>
           <li><strong>KONOV Tertiary AI Innovation Program</strong> — applied AI for tertiary students and young adults, including the free 7-day AI Builder Sprint, ending in a capstone hackathon with cash prizes.</li>
         </ul>
-        <h2>Powered By Me AI</h2>
-        <p>Me AI supports hands-on learning across every KONOV program — learners use it to complete guided AI activities, train models, build chatbots, and create AI-powered projects.</p>
-        <p><a href="/">Back to home</a> · <a href="/me-ai">About Me AI</a> · <a href="/for-schools">For schools</a> · <a href="/contact">Contact us</a></p>`,
+        <h2>Powered By MeAI</h2>
+        <p>MeAI supports hands-on learning across every KONOV program — learners use it to complete guided AI activities, train models, build chatbots, and create AI-powered projects.</p>
+        <p><a href="/">Back to home</a> · <a href="/me-ai">About MeAI</a> · <a href="/for-schools">For schools</a> · <a href="/contact">Contact us</a></p>`,
   },
   {
     path: "/me-ai",
-    title: "Me AI | AI Learning And Creation Platform For Kids And Teens | KONOV Technologies",
+    title: "MeAI | Fun AI Learning App For Kids 6–14 | KONOV Technologies",
     description:
-      "Me AI by KONOV Technologies helps young learners build chatbots, train AI models, complete guided AI projects, and understand artificial intelligence through practical learning.",
-    h1: "Me AI — An AI Creation Platform For Young Learners",
+      "MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons.",
+    h1: "MeAI — A Fun AI Learning App For Kids",
     intro:
-      "Me AI is KONOV's AI learning platform for learners ages 6-18. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
+      "MeAI is KONOV's first product: a fun AI learning app for kids ages 6-14. It helps young people learn AI through interactive lessons, guided projects, model training, chatbot creation, and hands-on activities designed for African learners.",
     main: `
-        <h2>Who Me AI Is For</h2>
-        <p>Learners ages 6-18, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
+        <h2>Who MeAI Is For</h2>
+        <p>Learners ages 6-14, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
         <h2>What Learners Build</h2>
         <ul>
           <li><strong>Chatbots</strong> — a bot with real personality, knowledge, and rules.</li>
           <li><strong>Trained Models</strong> — real work with data and machine learning.</li>
           <li><strong>AI-Powered Projects</strong> — creative, working AI projects to show off.</li>
         </ul>
-        <p>Try Me AI: <a href="https://meaitech.com">meaitech.com</a> · <a href="/for-schools">Request school access</a> · <a href="/">Back to home</a></p>`,
+        <p>Try MeAI: <a href="https://meaitech.com">meaitech.com</a> · <a href="/for-schools">Request school access</a> · <a href="/">Back to home</a></p>`,
   },
   {
     path: "/for-schools",
-    title: "AI Education Programs For Schools In Ghana | KONOV Technologies",
+    title: "MeAI For Schools And Educators | KONOV Technologies",
     description:
-      "KONOV helps schools introduce practical AI education through student workshops, teacher training, Me AI classroom access, AI clubs, and innovation challenges.",
-    h1: "AI Education Programs For Schools In Ghana",
+      "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators.",
+    h1: "MeAI For Schools And Educators",
     intro:
-      "KONOV helps schools introduce practical AI education through workshops, classroom programs, teacher training, Me AI access, and student innovation challenges.",
+      "KONOV helps schools introduce practical AI education through workshops, classroom programs, teacher training, MeAI access, and student innovation challenges.",
     main: `
         <h2>What KONOV Offers Schools</h2>
         <ul>
-          <li>Student AI Workshops</li>
+          <li>Student AI &amp; Coding Workshops</li>
           <li>Teacher Training</li>
-          <li>Me AI For Classrooms</li>
+          <li>MeAI For Classrooms</li>
           <li>AI Clubs & After-School Programs</li>
           <li>Hackathons & Showcases</li>
         </ul>
@@ -133,12 +133,12 @@ const ROUTES = [
   },
   {
     path: "/ai-classes-for-kids-accra",
-    title: "AI Classes For Kids In Accra And Ghana | KONOV Technologies",
+    title: "AI & Coding Classes For Kids In Accra | KONOV Technologies",
     description:
-      "KONOV offers practical AI classes for children and teens who want to understand how artificial intelligence works and build their own AI projects.",
-    h1: "AI Classes For Kids In Accra",
+      "Fun AI & coding classes for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school. No prior coding experience needed.",
+    h1: "AI &amp; Coding Classes For Kids In Accra",
     intro:
-      "Practical AI classes for children and teens ages 6-16, in Accra, Ghana — no prior coding experience needed.",
+      "Fun AI &amp; coding classes for kids ages 6-16 in Accra, Ghana — weekend classes, after-school programs, and summer school. No prior coding experience needed.",
     main: `
         <h2>What Kids Build</h2>
         <ul>
@@ -221,9 +221,9 @@ const ROUTES = [
   },
   {
     path: "/summer-ai-tech-camp",
-    title: "Summer AI And Tech Camp In Ghana | KONOV Technologies",
+    title: "Summer School For Kids In Accra – AI & Coding | KONOV Technologies",
     description:
-      "KONOV Technologies' Summer AI & Tech Camp — vacation programs where learners explore AI, coding, creativity, and problem-solving through hands-on projects.",
+      "KONOV's summer school in Accra: a fun, hands-on holiday program where kids ages 6–16 learn AI and coding, build projects, and show them off.",
     h1: "A Full AI Adventure",
     intro:
       "Vacation programs where learners explore AI, coding, creativity, and problem-solving through hands-on projects — a full-day immersive experience, not passive screen time.",
@@ -286,14 +286,14 @@ const ROUTES = [
     path: "/resources/best-ai-tools-for-kids",
     title: "Best AI Tools for Kids in Ghana | KONOV Technologies",
     description:
-      "A practical parent and school guide to safe AI tools for kids ages 6-16, covering Me AI, machine learning, robotics, coding and creative AI.",
+      "A practical parent and school guide to safe AI tools for kids ages 6-16, covering MeAI, machine learning, robotics, coding and creative AI.",
     h1: "Best AI Tools for Kids: A Safe, Project-Based Guide for Ages 6-16",
     intro:
       "AI learning should help children build, question and create. This guide shows parents and schools how to choose tools that teach real AI literacy: prompting, data, machine learning, computer vision, robotics, coding and responsible use.",
     main: `
         <h2>Choosing AI Tools Safely</h2>
         <p>The best AI education balances curiosity with guardrails. Children should understand what AI is doing, what data it uses, and when to ask an adult before sharing or publishing anything.</p>
-        <p>Start with guided, age-appropriate projects. Younger learners can explore pattern recognition, prompts and creative AI. Older learners can build chatbots, train simple models, control robots and publish apps — the path KONOV Technologies uses across Me AI, workshops, weekend programs and FORGE Studio.</p>
+        <p>Start with guided, age-appropriate projects. Younger learners can explore pattern recognition, prompts and creative AI. Older learners can build chatbots, train simple models, control robots and publish apps — the path KONOV Technologies uses across MeAI, workshops, weekend programs and FORGE Studio.</p>
         <p><a href="/resources">Back to Resources</a> · <a href="/">Back to home</a></p>`,
   },
   {
@@ -326,15 +326,15 @@ const ROUTES = [
   },
   {
     path: "/waitlist",
-    title: "Me AI Waitlist — Real AI Education for Kids | KONOV Technologies",
+    title: "MeAI Waitlist — Real AI Education for Kids | KONOV Technologies",
     description:
-      "Join the waitlist for Me AI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects.",
-    h1: "Join the Me AI Waitlist",
+      "Join the waitlist for MeAI: the interactive platform teaching kids real AI & machine learning through comics, chatbot building, and hands-on projects.",
+    h1: "Join the MeAI Waitlist",
     intro:
-      "Me AI is the interactive platform teaching kids real AI &amp; machine learning through comics, chatbot building, and hands-on projects.",
+      "MeAI is the interactive platform teaching kids real AI &amp; machine learning through comics, chatbot building, and hands-on projects.",
     main: `
         <h2>Why Join</h2>
-        <p>Be first to know when Me AI opens up new seats and features for kids ages 6-16 learning AI &amp; machine learning at home.</p>
+        <p>Be first to know when MeAI opens up new seats and features for kids ages 6-16 learning AI &amp; machine learning at home.</p>
         <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
   },
   {
@@ -347,7 +347,7 @@ const ROUTES = [
     main: `
         <h2>What's Inside FORGE</h2>
         <ul>
-          <li><strong>Build Studio</strong> — write Python code with AI assistance, powered by Me AI.</li>
+          <li><strong>Build Studio</strong> — write Python code with AI assistance, powered by MeAI.</li>
           <li><strong>Hackathons</strong> — compete and win prizes.</li>
           <li><strong>Bot Battles</strong> — pit your bots against others.</li>
         </ul>

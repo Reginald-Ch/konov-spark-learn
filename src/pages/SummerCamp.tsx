@@ -35,8 +35,8 @@ const SummerCamp = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="Summer AI And Tech Camp In Ghana"
-        description="KONOV Technologies' Summer AI & Tech Camp — vacation programs where learners explore AI, coding, creativity, and problem-solving through hands-on projects."
+        title="Summer School For Kids In Accra – AI & Coding"
+        description="KONOV's summer school in Accra: a fun, hands-on holiday program where kids ages 6–16 learn AI and coding, build projects, and show them off."
         canonical="/summer-ai-tech-camp"
         keywords={["summer AI and tech camp Ghana", "tech camp Ghana", "summer coding camp Accra", "AI workshops for kids"]}
         jsonLd={[campBreadcrumb, campCourseSchema, createFAQSchema(campFAQs)]}

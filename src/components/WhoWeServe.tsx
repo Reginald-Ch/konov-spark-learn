@@ -7,7 +7,7 @@ export const WhoWeServe = () => {
     {
       icon: GraduationCap,
       title: "Young Learners",
-      description: "Ages 6-18 exploring AI through hands-on lessons, projects, and creative challenges.",
+      description: "Ages 6-16 exploring AI through hands-on lessons, projects, and creative challenges.",
       color: "primary" as const,
     },
     {

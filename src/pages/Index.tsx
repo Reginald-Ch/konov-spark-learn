@@ -26,7 +26,7 @@ const Gallery = lazy(() => import("@/components/Gallery").then(m => ({ default: 
 
 // FAQ data for structured data
 const homepageFAQs = [
-  { question: "What is KONOV Technologies?", answer: "KONOV Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our Me AI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future." },
+  { question: "What is KONOV Technologies?", answer: "KONOV Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future." },
   { question: "What is MeAI?", answer: "MeAI is KONOV's interactive AI & Machine Learning learning platform for young learners aged 6–16. Students build AI assistants, train simple ML models, create AI-powered games, and learn through prompting and creativity." },
   { question: "What age range do you work with?", answer: "Our programs and learning experiences are designed for young learners, tailored by age and understanding level to stay age-appropriate, practical, and fun." },
   { question: "Do students need coding experience?", answer: "No prior coding experience is required. KONOV's learning experiences are beginner-friendly — students progress at their own pace through exploration, creativity, and hands-on practice." },
@@ -42,10 +42,10 @@ const Index = () => {
   return (
     <div className="min-h-screen relative">
       <SEO
-        title="AI Education For Kids And Young Learners In Ghana"
-        description="KONOV Technologies helps young people in Ghana and Africa learn AI, train models, build chatbots, and create real AI systems through Me AI, workshops, programs, and hackathons."
+        title="Interactive Tools For Young Learners"
+        description="KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, and join our AI & coding classes in Accra."
         canonical="/"
-        keywords={["AI education for kids in Ghana", "AI classes for kids in Accra", "AI literacy for young people", "AI programs for young learners", "machine learning for kids", "machine learning for youth Africa", "chatbot building for kids", "AI workshops for schools in Ghana", "AI training for teachers in Ghana", "AI education for African schools", "AI learning platform for children", "AI creation platform for young learners", "youth AI hackathons", "practical AI learning for students", "Me AI platform", "KONOV Technologies"]}
+        keywords={["interactive tools for young learners", "AI and coding classes for kids in Accra", "coding for kids in Ghana", "summer school for kids Accra", "AI education for kids in Ghana", "AI classes for kids in Accra", "AI literacy for young people", "AI programs for young learners", "machine learning for kids", "machine learning for youth Africa", "chatbot building for kids", "AI workshops for schools in Ghana", "AI training for teachers in Ghana", "AI education for African schools", "AI learning platform for children", "AI creation platform for young learners", "youth AI hackathons", "practical AI learning for students", "MeAI platform", "KONOV Technologies"]}
         jsonLd={createFAQSchema(homepageFAQs)}
       />
       <AIMascot />
@@ -59,7 +59,7 @@ const Index = () => {
         <WhoWeServe />
         {/* 4. What learners build */}
         <WhatLearnersBuild />
-        {/* 5. Me AI platform introduction */}
+        {/* 5. MeAI platform introduction */}
         <MeAIIntro />
         {/* 6. Programs overview */}
         <Timeline />

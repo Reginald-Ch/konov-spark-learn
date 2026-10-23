@@ -25,7 +25,7 @@ export const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Programs", path: "/programs" },
-    { name: "Me AI", path: "/me-ai" },
+    { name: "MeAI", path: "/me-ai" },
     { name: "For Schools", path: "/for-schools" },
     { name: "FORGE Studio", path: "/hackathons" },
     { name: "Blog", path: "/blog" },
@@ -47,7 +47,7 @@ export const Navbar = () => {
             <Link to="/" className="flex items-center group cursor-pointer">
               <motion.img
                 src={logo}
-                alt="KONOV AI Literacy Hub"
+                alt="KONOV Technologies"
                 className="h-[100px] w-auto"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 transition={{ type: "spring", stiffness: 300 }}

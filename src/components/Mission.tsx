@@ -62,7 +62,7 @@ export const Mission = () => {
               <span className="text-secondary">Are</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl font-space leading-relaxed">
-              KONOV Technologies is an edtech company and AI literacy hub for young learners. We design practical AI learning experiences where students explore data, train machine learning models, build chatbots, and create useful AI projects. We work with schools, parents, educators, tertiary institutions, and organizations to make AI education accessible, engaging, and practical for African learners.
+              KONOV Technologies builds interactive tools that make technology fun to learn and create for young learners ages 6–16. We design fun, hands-on AI &amp; coding experiences where students explore data, train machine learning models, build chatbots, and create useful AI projects. We work with schools, parents, educators, tertiary institutions, and organizations to make AI education accessible, engaging, and practical for African learners.
             </p>
           </motion.div>
           

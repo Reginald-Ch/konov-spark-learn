@@ -37,7 +37,7 @@ export const Hero = () => {
           >
             <ActionBurst>
               <span className="text-base md:text-lg font-bold">
-                Ghana's AI Literacy Hub for Young Innovators
+                Making Tech Fun To Learn &amp; Create
               </span>
             </ActionBurst>
           </motion.div>
@@ -63,7 +63,7 @@ export const Hero = () => {
           >
             <SpeechBubble className="inline-block">
               <p className="text-lg md:text-xl text-muted-foreground font-space leading-relaxed">
-                KONOV Technologies helps young people learn how artificial intelligence works and build real AI systems through hands-on programs, school workshops, hackathons, and the Me AI creation platform.
+                KONOV builds interactive tools that make tech fun to learn and create for ages 6–16. Meet MeAI, our AI learning app, and join our weekend, after-school, and summer AI &amp; coding classes in Accra.
               </p>
             </SpeechBubble>
           </motion.div>
@@ -102,7 +102,7 @@ export const Hero = () => {
               onClick={() => navigate('/me-ai')}
             >
               <Zap className="mr-2 w-5 h-5" />
-              Try Me AI
+              Try MeAI
             </Button>
             <Button
               size="lg"

@@ -21,13 +21,13 @@ export const MeAIIntro = () => {
               viewport={{ once: true }}
             >
               <span className="inline-block text-xs font-fredoka font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-primary text-primary-foreground mb-4">
-                Me AI
+                MeAI
               </span>
               <h2 className="text-3xl md:text-5xl font-fredoka font-bold mb-4 leading-tight">
                 The AI Creation Platform For Young Learners
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl font-space leading-relaxed mb-6">
-                Me AI is KONOV's AI learning and creation platform for learners ages 6-18. It gives young
+                MeAI is KONOV's AI learning and creation platform for learners ages 6-14. It gives young
                 people a safe, guided space to learn AI concepts, complete interactive lessons, train
                 models, build chatbots, and create their own AI-powered projects.
               </p>
@@ -38,7 +38,7 @@ export const MeAIIntro = () => {
                   onClick={() => navigate('/me-ai')}
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Explore Me AI
+                  Explore MeAI
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>

@@ -65,7 +65,7 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
     headline: "8-Week Weekend AI Program For Ages 6–16",
     paragraphs: [
       "KONOV Weekend AI Creators is a hands-on weekend program that helps children and teens understand how artificial intelligence works and build their own AI-powered projects.",
-      "Over 8 weeks, learners explore AI and machine learning fundamentals, learn how machines work with data, understand how models are trained, build chatbots and conversational AI projects, explore responsible AI, and create simple AI apps using Me AI.",
+      "Over 8 weeks, learners explore AI and machine learning fundamentals, learn how machines work with data, understand how models are trained, build chatbots and conversational AI projects, explore responsible AI, and create simple AI apps using MeAI.",
     ],
     blocks: [
       {
@@ -122,7 +122,7 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
           "Student AI workshops",
           "After-school AI club setup",
           "Termly AI learning sessions",
-          "Me AI classroom activities",
+          "MeAI classroom activities",
           "Teacher support",
           "Project-based learning",
           "Student showcases",
@@ -137,10 +137,10 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
     tabValue: "workshops",
     tabLabel: "Workshops",
     mascot: "excited",
-    headline: "Practical AI Workshops For Schools, Learners, And Organizations",
+    headline: "Practical AI & Coding Workshops For Schools, Learners, And Organizations",
     paragraphs: [
-      "KONOV AI Workshops are short, hands-on sessions that introduce learners to artificial intelligence in a simple and practical way.",
-      "Participants use Me AI to explore AI concepts, train simple models, build chatbots, and complete guided AI activities.",
+      "KONOV AI & Coding Workshops are short, hands-on sessions that introduce learners to artificial intelligence and coding in a simple, fun, and practical way.",
+      "Participants use MeAI to explore AI concepts, train simple models, build chatbots, and complete guided AI activities.",
     ],
     blocks: [
       {
@@ -156,7 +156,7 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
       {
         heading: "What Learners Do",
         kind: "list",
-        items: ["Learn what AI is", "Explore data and patterns", "Use Me AI", "Train a simple model", "Build a chatbot", "Complete a guided AI challenge"],
+        items: ["Learn what AI is", "Explore data and patterns", "Use MeAI", "Train a simple model", "Build a chatbot", "Complete a guided AI challenge"],
       },
     ],
     ctaLabel: "Book An AI Workshop",
@@ -180,7 +180,7 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
       {
         heading: "What Learners Do",
         kind: "list",
-        items: ["Learn AI basics", "Use Me AI", "Build chatbots", "Train simple models", "Explore creative technology", "Work in teams", "Present final projects"],
+        items: ["Learn AI basics", "Use MeAI", "Build chatbots", "Train simple models", "Explore creative technology", "Work in teams", "Present final projects"],
       },
       {
         heading: "Recommended Timing",
@@ -403,7 +403,7 @@ const ProgramsPage = () => {
             </p>
             <p className="text-lg font-space text-muted-foreground leading-relaxed">
               Our programs serve children, teens, schools, tertiary students, and partner organizations
-              through structured learning experiences powered by Me AI, KONOV's AI creation platform for
+              through structured learning experiences powered by MeAI, KONOV's AI creation platform for
               young learners.
             </p>
           </div>
@@ -468,23 +468,23 @@ const ProgramsPage = () => {
             </Tabs>
           </div>
 
-          {/* Me AI Connection */}
+          {/* MeAI Connection */}
           <div className="mt-24 max-w-3xl mx-auto text-center">
             <ComicPanel color="primary" className="p-8 md:p-12">
               <h2 className="text-3xl md:text-4xl font-fredoka font-bold mb-4">
-                Powered By <span className="text-primary">Me AI</span>
+                Powered By <span className="text-primary">MeAI</span>
               </h2>
               <p className="text-muted-foreground font-space leading-relaxed mb-3">
-                Me AI supports hands-on learning across KONOV programs. Learners use the platform to
+                MeAI supports hands-on learning across KONOV programs. Learners use the platform to
                 complete guided AI activities, train models, build chatbots, explore conversational AI, and
                 create AI-powered projects.
               </p>
               <p className="text-muted-foreground font-space leading-relaxed mb-6">
-                Me AI helps learners move from theory to practice by giving them a safe and guided space to
+                MeAI helps learners move from theory to practice by giving them a safe and guided space to
                 build with artificial intelligence.
               </p>
               <Button size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary" onClick={() => navigate('/me-ai')}>
-                Explore Me AI
+                Explore MeAI
               </Button>
             </ComicPanel>
           </div>

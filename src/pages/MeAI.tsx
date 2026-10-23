@@ -14,22 +14,22 @@ import {
 } from "lucide-react";
 
 const meAiFAQs = [
-  { question: "What is Me AI?", answer: "Me AI is KONOV Technologies' AI learning and creation platform for learners ages 6-18. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
-  { question: "Who is Me AI for?", answer: "Me AI is designed for young learners ages 6-18, and is also used by schools and educators for classroom AI programs." },
-  { question: "Do I need coding experience to use Me AI?", answer: "No prior coding experience is required. Me AI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
-  { question: "Can schools get access to Me AI?", answer: "Yes. Schools can request classroom access to Me AI as part of KONOV's school partnership programs." },
-  { question: "How do I get started with Me AI?", answer: "Click \"Try Me AI\" to open the platform, or contact us on WhatsApp to request school or group access." },
+  { question: "What is MeAI?", answer: "MeAI is KONOV Technologies' AI learning and creation platform for learners ages 6-14. It gives young people a safe, guided space to learn AI concepts, complete interactive lessons, train models, build chatbots, and create their own AI-powered projects." },
+  { question: "Who is MeAI for?", answer: "MeAI is designed for young learners ages 6-14, and is also used by schools and educators for classroom AI programs." },
+  { question: "Do I need coding experience to use MeAI?", answer: "No prior coding experience is required. MeAI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
+  { question: "Can schools get access to MeAI?", answer: "Yes. Schools can request classroom access to MeAI as part of KONOV's school partnership programs." },
+  { question: "How do I get started with MeAI?", answer: "Click \"Try MeAI\" to open the platform, or contact us on WhatsApp to request school or group access." },
 ];
 
 const meAiBreadcrumb = createBreadcrumbSchema([
   { name: "Home", url: "/" },
-  { name: "Me AI", url: "/me-ai" },
+  { name: "MeAI", url: "/me-ai" },
 ]);
 
 const meAiProductSchema = createProductSchema({
-  name: "Me AI",
-  description: "Me AI is KONOV Technologies' AI learning and creation platform for learners ages 6-18 — build chatbots, train models, and complete guided AI projects.",
-  ageRange: "Ages 6-18",
+  name: "MeAI",
+  description: "MeAI is KONOV Technologies' AI learning and creation platform for learners ages 6-14 — build chatbots, train models, and complete guided AI projects.",
+  ageRange: "Ages 6-14",
 });
 
 const audiences = [
@@ -46,7 +46,7 @@ const audiences = [
   {
     icon: School,
     title: "Schools",
-    description: "Bring Me AI into the classroom with teacher support, curriculum alignment, and group access.",
+    description: "Bring MeAI into the classroom with teacher support, curriculum alignment, and group access.",
   },
 ];
 
@@ -57,17 +57,17 @@ const buildItems = [
 ];
 
 const learnerFeatures = ["Guided, interactive lessons", "Real Python code as you progress", "Instant feedback on your work", "Earn coins and badges as you learn"];
-const parentFeatures = ["Safe, supervised learning environment", "Age-appropriate content (6-18)", "Visible progress and completed projects", "No prior coding experience required"];
+const parentFeatures = ["Safe, supervised learning environment", "Age-appropriate content (6-14)", "Visible progress and completed projects", "No prior coding experience required"];
 const schoolFeatures = ["Classroom-ready curriculum", "Teacher training and support", "Group/class access", "Hackathon and showcase integration"];
 
 const MeAI = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="Me AI | AI Learning And Creation Platform For Kids And Teens"
-        description="Me AI by KONOV Technologies helps young learners build chatbots, train AI models, complete guided AI projects, and understand artificial intelligence through practical learning."
+        title="MeAI | Fun AI Learning App For Kids 6–14"
+        description="MeAI by KONOV is a fun AI learning app for kids ages 6–14: build chatbots, train AI models, and create AI projects through guided, hands-on lessons."
         canonical="/me-ai"
-        keywords={["Me AI platform", "AI creation platform for young learners", "AI learning platform for children", "chatbot building for kids", "machine learning for kids"]}
+        keywords={["MeAI platform", "AI creation platform for young learners", "AI learning platform for children", "chatbot building for kids", "machine learning for kids"]}
         jsonLd={[meAiBreadcrumb, meAiProductSchema, createFAQSchema(meAiFAQs)]}
       />
       <Navbar />
@@ -84,7 +84,7 @@ const MeAI = () => {
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              Me AI is KONOV's AI learning platform for learners ages 6-18. It helps young people learn AI
+              MeAI is KONOV's AI learning platform for learners ages 6-14. It helps young people learn AI
               through interactive lessons, guided projects, model training, chatbot creation, and hands-on
               activities designed for African learners.
             </p>
@@ -96,10 +96,10 @@ const MeAI = () => {
               className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[5px_5px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-primary"
             >
               <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">
-                <Zap className="w-5 h-5 mr-2" /> Try Me AI <ExternalLink className="w-4 h-4 ml-2" />
+                <Zap className="w-5 h-5 mr-2" /> Try MeAI <ExternalLink className="w-4 h-4 ml-2" />
               </a>
             </Button>
-            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to Me AI." />
+            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to MeAI." />
           </div>
         </div>
       </section>
@@ -108,10 +108,10 @@ const MeAI = () => {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-5xl font-fredoka font-bold text-center mb-4">
-            Who Me AI Is <span className="text-primary">For</span>
+            Who MeAI Is <span className="text-primary">For</span>
           </h2>
           <p className="text-center text-muted-foreground font-space max-w-2xl mx-auto mb-12">
-            Built for learners ages 6-18, and the parents and schools who support them.
+            Built for learners ages 6-14, and the parents and schools who support them.
           </p>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {audiences.map((a, idx) => {
@@ -202,11 +202,11 @@ const MeAI = () => {
           <ComicPanel className="p-12 flex flex-col items-center gap-4">
             <PlayCircle className="w-16 h-16 text-primary" />
             <p className="text-muted-foreground font-space max-w-md">
-              Explore Me AI directly — the fastest way to see how learners build and test real AI projects.
+              Explore MeAI directly — the fastest way to see how learners build and test real AI projects.
             </p>
             <Button asChild size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary">
               <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">
-                Open Me AI <ArrowRight className="w-4 h-4 ml-2" />
+                Open MeAI <ArrowRight className="w-4 h-4 ml-2" />
               </a>
             </Button>
           </ComicPanel>
@@ -220,14 +220,14 @@ const MeAI = () => {
             Access For <span className="text-primary">Learners &amp; Schools</span>
           </h2>
           <p className="text-lg text-muted-foreground font-space leading-relaxed mb-8">
-            Individual learners can start on Me AI directly. Schools and organizations wanting group or
+            Individual learners can start on MeAI directly. Schools and organizations wanting group or
             classroom access should reach out — we'll walk you through options that fit your program.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Button asChild size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary">
-              <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Try Me AI</a>
+              <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Try MeAI</a>
             </Button>
-            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to Me AI." />
+            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to MeAI." />
           </div>
         </div>
       </section>

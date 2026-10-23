@@ -32,7 +32,7 @@ const organizationSchema = {
     caption: SITE_NAME
   },
   image: `${SITE_URL}/og-image.jpg`,
-  description: "KONOV Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our Me AI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
+  description: "KONOV Technologies is an education technology company helping young people develop the skills and confidence to understand and create Artificial Intelligence. Through our MeAI learning platform, practical AI programmes, workshops, and hackathons, we partner with schools, educators, parents, and organisations to deliver hands-on AI learning experiences where young people work with data, train AI models, and build AI systems. Our goal is to make AI education accessible, engaging, and practical while preparing the next generation of African AI innovators for an AI-powered future.",
   foundingLocation: "Accra, Ghana",
   address: {
     "@type": "PostalAddress",
@@ -101,7 +101,7 @@ const websiteSchema = {
   "@id": `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: " AI & ML literacy hub for African youths",
+  description: "Interactive tools that make tech fun to learn and create for young learners ages 6–16",
   publisher: {
     "@id": `${SITE_URL}/#organization`
   },
@@ -119,7 +119,7 @@ const siteNavigationSchema = {
       "@type": "SiteNavigationElement",
       position: 1,
       name: "Programs",
-      description: "AI & ML workshops, tech camps, and tech fairs for African youth ",
+      description: "Weekend, after-school, and summer AI & coding classes for kids ages 6–16",
       url: `${SITE_URL}/programs`
     },
     {
@@ -146,15 +146,15 @@ const siteNavigationSchema = {
     {
       "@type": "SiteNavigationElement",
       position: 5,
-      name: "Me AI",
-      description: "KONOV's AI creation platform for learners ages 6-18",
+      name: "MeAI",
+      description: "MeAI, KONOV's fun AI learning app for kids ages 6–14",
       url: `${SITE_URL}/me-ai`
     },
     {
       "@type": "SiteNavigationElement",
       position: 6,
       name: "For Schools",
-      description: "AI education programs for schools in Ghana",
+      description: "MeAI for schools and educators",
       url: `${SITE_URL}/for-schools`
     },
     {
@@ -349,7 +349,7 @@ export const createArticleSchema = (article: {
   }
 });
 
-// Helper function to create Product schema (for Me AI)
+// Helper function to create Product schema (for MeAI)
 export const createProductSchema = (product: {
   name: string;
   description: string;

@@ -259,7 +259,7 @@ const Contact = () => {
                     </SelectTrigger>
                     <SelectContent className="border-3 border-foreground rounded-xl">
                       <SelectItem value="ai_foundations">AI Foundations</SelectItem>
-                      <SelectItem value="me_ai_creators">Me AI Creators</SelectItem>
+                      <SelectItem value="me_ai_creators">MeAI Creators</SelectItem>
                       <SelectItem value="school_workshops">School AI Workshops</SelectItem>
                       <SelectItem value="tertiary_hub">Tertiary AI Innovation Hub</SelectItem>
                       <SelectItem value="hackathons">Youth AI Hackathons</SelectItem>

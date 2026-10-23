@@ -17,7 +17,7 @@ import {
 const schoolsFAQs = [
   { question: "Do teachers need AI experience to bring KONOV into their school?", answer: "No. We provide teacher training alongside every school program, so educators are equipped to support students even without prior AI experience." },
   { question: "Can KONOV run a one-off workshop, or only long-term programs?", answer: "Both. We offer short, practical AI workshops as well as ongoing classroom programs and after-school AI clubs, depending on what fits your school." },
-  { question: "Does KONOV provide Me AI access for classrooms?", answer: "Yes. Schools can get classroom access to Me AI as part of a partnership, so students can continue learning between sessions." },
+  { question: "Does KONOV provide MeAI access for classrooms?", answer: "Yes. Schools can get classroom access to MeAI as part of a partnership, so students can continue learning between sessions." },
   { question: "How do we start a partnership with KONOV?", answer: "Book a consultation with us — we'll discuss your school's goals, student ages, and schedule, then propose a program that fits." },
 ];
 
@@ -27,9 +27,9 @@ const schoolsBreadcrumb = createBreadcrumbSchema([
 ]);
 
 const offerings = [
-  { icon: Users, title: "Student AI Workshops", description: "Short, practical AI learning experiences designed for schools that want students to understand and explore artificial intelligence." },
+  { icon: Users, title: "Student AI & Coding Workshops", description: "Short, practical AI learning experiences designed for schools that want students to understand and explore artificial intelligence." },
   { icon: GraduationCap, title: "Teacher Training", description: "Hands-on training so educators can confidently support AI learning in their own classrooms." },
-  { icon: Zap, title: "Me AI For Classrooms", description: "Classroom access to Me AI so students can keep building AI projects between sessions." },
+  { icon: Zap, title: "MeAI For Classrooms", description: "Classroom access to MeAI so students can keep building AI projects between sessions." },
   { icon: School, title: "AI Clubs & After-School Programs", description: "Ongoing AI learning outside class hours, for students who want to go further." },
   { icon: Trophy, title: "Hackathons & Showcases", description: "Student innovation challenges where learners present real AI projects, judged and celebrated." },
 ];
@@ -37,7 +37,7 @@ const offerings = [
 const partnershipSteps = [
   "Book a consultation to share your school's goals and student ages.",
   "We propose a program — a one-off workshop, a term-long class, or an AI club.",
-  "We deliver the program with trained facilitators and, where useful, Me AI classroom access.",
+  "We deliver the program with trained facilitators and, where useful, MeAI classroom access.",
   "Students showcase what they've built — in class, at a school event, or a KONOV hackathon.",
 ];
 
@@ -47,8 +47,8 @@ const ForSchools = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="AI Education Programs For Schools In Ghana"
-        description="KONOV helps schools introduce practical AI education through student workshops, teacher training, Me AI classroom access, AI clubs, and innovation challenges."
+        title="MeAI For Schools And Educators"
+        description="Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators."
         canonical="/for-schools"
         keywords={["AI workshops for schools in Ghana", "AI education for African schools", "AI training for teachers in Ghana", "AI curriculum support for schools", "school partnership AI Ghana"]}
         jsonLd={[schoolsBreadcrumb, createFAQSchema(schoolsFAQs)]}
@@ -68,7 +68,7 @@ const ForSchools = () => {
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
               KONOV helps schools introduce practical AI education through workshops, classroom programs,
-              teacher training, Me AI access, and student innovation challenges.
+              teacher training, MeAI access, and student innovation challenges.
             </p>
           </SpeechBubble>
           <div className="flex justify-center mt-8">

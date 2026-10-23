@@ -81,10 +81,10 @@ const About = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="Ghana's AI Literacy Hub"
-        description="KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence."
+        title="About KONOV – Making Tech Fun To Learn & Create"
+        description="KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16."
         canonical="/about"
-        keywords={["about KONOV Technologies", "AI education company Ghana", "AI literacy hub Africa", "AI education mission"]}
+        keywords={["about KONOV Technologies", "AI education company Ghana", "AI education mission"]}
         jsonLd={aboutBreadcrumb}
       />
       <Navbar />
@@ -109,7 +109,7 @@ const About = () => {
             </div>
             <SpeechBubble direction="up" className="max-w-3xl mx-auto">
               <p className="text-xl font-space leading-relaxed">
-                KONOV Technologies is an edtech company and AI literacy hub helping young people in Ghana and Africa understand, create, and build with artificial intelligence. We deliver practical AI education through the Me AI platform, school programs, workshops, hackathons, and youth innovation experiences.
+                KONOV Technologies is a Ghanaian company building interactive tools that make technology fun to learn and create for young learners ages 6–16. MeAI is our first product, and we run AI &amp; coding classes in Accra — weekend classes, after-school programs, and summer school — and partner with schools and educators.
               </p>
             </SpeechBubble>
           </div>

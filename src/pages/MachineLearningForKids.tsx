@@ -13,7 +13,7 @@ import { LineChart, Image, MessageSquareText, Rocket } from "lucide-react";
 
 const mlFAQs = [
   { question: "What is machine learning, in kid-friendly terms?", answer: "Machine learning is how computers learn patterns from examples instead of being told exact rules — like learning to recognize a cat from lots of cat pictures." },
-  { question: "What age can start learning machine learning with KONOV?", answer: "Our AI Foundations and Me AI Creators programs introduce machine learning concepts from age 6, tailored to each learner's level." },
+  { question: "What age can start learning machine learning with KONOV?", answer: "Our AI Foundations and MeAI Creators programs introduce machine learning concepts from age 6, tailored to each learner's level." },
   { question: "Will my child actually train a real model?", answer: "Yes — learners work with real data and train simple, real machine learning models, not just watch a demo." },
 ];
 
@@ -68,7 +68,7 @@ const MachineLearningForKids = () => {
             {[
               { icon: Image, title: "Train Image Models", description: "Feed a model real images and watch it learn to recognize patterns." },
               { icon: LineChart, title: "Work With Data", description: "Explore real datasets and see how data drives predictions." },
-              { icon: MessageSquareText, title: "Build Smarter Chatbots", description: "Combine ML concepts with chatbot building on Me AI." },
+              { icon: MessageSquareText, title: "Build Smarter Chatbots", description: "Combine ML concepts with chatbot building on MeAI." },
             ].map((item, idx) => {
               const Icon = item.icon;
               return (

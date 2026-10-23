@@ -29,9 +29,9 @@ export const Footer = () => {
               </h3>
             </div>
             <p className="text-muted-foreground font-space leading-relaxed mb-6 max-w-md">
-              Ghana's AI literacy hub helping young people understand, create, and build with
-              artificial intelligence — through hands-on programs, school workshops, hackathons, and
-              the Me AI creation platform.
+              Interactive tools that make technology fun to learn and create for young learners
+              ages 6–16 — starting with MeAI and our weekend, after-school, and summer AI &amp; coding
+              classes.
             </p>
             <div className="flex gap-3">
               {[
@@ -62,7 +62,7 @@ export const Footer = () => {
               {[
                 { to: "/about", label: "About" },
                 { to: "/programs", label: "Programs" },
-                { to: "/me-ai", label: "Me AI" },
+                { to: "/me-ai", label: "MeAI" },
                 { to: "/for-schools", label: "For Schools" },
                 { to: "/hackathons", label: "FORGE Studio" },
                 { to: "/blog", label: "Blog" },
@@ -86,7 +86,7 @@ export const Footer = () => {
                   className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
                 >
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  Open Me AI App
+                  Open MeAI App
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </li>
@@ -98,13 +98,13 @@ export const Footer = () => {
             <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">More</h4>
             <ul className="space-y-3 font-space">
               {[
-                { to: "/ai-classes-for-kids-accra", label: "AI Classes for Kids" },
+                { to: "/ai-classes-for-kids-accra", label: "AI & Coding Classes" },
+                { to: "/summer-ai-tech-camp", label: "Summer School" },
                 { to: "/machine-learning-for-kids", label: "Machine Learning for Kids" },
-                { to: "/teacher-training", label: "Teacher Training" },
-                { to: "/tertiary-ai-innovation-hub", label: "Tertiary AI Innovation Hub" },
                 { to: "/youth-hackathons", label: "Youth AI Hackathons" },
-                { to: "/summer-ai-tech-camp", label: "Summer AI & Tech Camp" },
+                { to: "/tertiary-ai-innovation-hub", label: "Tertiary AI Innovation Hub" },
                 { to: "/ai-curriculum-support", label: "AI Curriculum Support" },
+                { to: "/teacher-training", label: "Teacher Training" },
                 { to: "/resources", label: "Learn AI" },
                 { to: "/community", label: "Community" },
                 { to: "/waitlist", label: "Waitlist" },

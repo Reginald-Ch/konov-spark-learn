@@ -35,8 +35,8 @@ const AIClassesForKids = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="AI Classes For Kids In Accra And Ghana"
-        description="KONOV offers practical AI classes for children and teens who want to understand how artificial intelligence works and build their own AI projects."
+        title="AI & Coding Classes For Kids In Accra"
+        description="Fun AI & coding classes for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school. No prior coding experience needed."
         canonical="/ai-classes-for-kids-accra"
         keywords={["AI classes for kids in Accra", "AI education for kids in Ghana", "AI programs for young learners", "kids coding Accra", "AI literacy for young people"]}
         jsonLd={[classesBreadcrumb, classesCourseSchema, createFAQSchema(classesFAQs)]}
