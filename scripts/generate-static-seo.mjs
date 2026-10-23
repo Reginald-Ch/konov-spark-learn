@@ -342,7 +342,7 @@ const ROUTES = [
     intro: "Have questions? We'd love to hear from you! Send us a message and we'll respond super fast.",
     main: `
         <h2>Contact</h2>
-        <p>Email: <a href="mailto:konovartechtist@gmail.com">konovartechtist@gmail.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
+        <p>Email: <a href="mailto:hello@konovtech.com">hello@konovtech.com</a> · WhatsApp: <a href="https://wa.me/233208741417">Chat with us</a> · Website: <a href="https://konovartechtist.com">konovartechtist.com</a> · Based in Accra, Ghana.</p>
         <p><a href="/">Back to home</a></p>`,
   },
 ];
