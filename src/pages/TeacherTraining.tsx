@@ -31,6 +31,7 @@ const TeacherTraining = () => {
         title="AI Training For Teachers In Ghana"
         description="KONOV helps teachers and educators understand artificial intelligence and design practical AI learning experiences for students."
         canonical="/teacher-training"
+        noindex
         keywords={["AI training for teachers in Ghana", "AI education for African schools", "teacher AI professional development", "AI curriculum support for schools"]}
         jsonLd={[teacherBreadcrumb, createFAQSchema(teacherFAQs)]}
       />

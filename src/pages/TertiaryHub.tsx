@@ -44,6 +44,7 @@ const TertiaryHub = () => {
         title="Tertiary AI Innovation Hub In Ghana"
         description="KONOV's Tertiary AI Innovation Hub helps students apply AI to product building, automation, data, and research — starting with the free 7-day AI Builder Sprint."
         canonical="/tertiary-ai-innovation-hub"
+        noindex
         keywords={["Tertiary AI Innovation Hub", "AI Builder Sprint", "AI for university students Ghana", "applied AI programs Africa", "practical AI learning for students", "free AI program for students"]}
         jsonLd={[hubBreadcrumb, createFAQSchema(hubFAQs)]}
       />

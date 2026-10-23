@@ -125,6 +125,7 @@ const ROUTES = [
   },
   {
     path: "/teacher-training",
+    noindex: true,
     title: "AI Training For Teachers In Ghana | KONOV Technologies",
     description:
       "KONOV helps teachers and educators understand artificial intelligence and design practical AI learning experiences for students.",
@@ -142,6 +143,7 @@ const ROUTES = [
   },
   {
     path: "/tertiary-ai-innovation-hub",
+    noindex: true,
     title: "Tertiary AI Innovation Hub In Ghana | KONOV Technologies",
     description:
       "KONOV's Tertiary AI Innovation Hub helps students apply AI to product building, automation, data, and research — starting with the free 7-day AI Builder Sprint.",
@@ -230,6 +232,7 @@ const ROUTES = [
   },
   {
     path: "/community",
+    noindex: true,
     title: "Community - Join Our Tech Learning Paths | KONOV Technologies",
     description:
       "Join KONOV Technologies' learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs.",
@@ -314,6 +317,7 @@ const ROUTES = [
   },
   {
     path: "/hackathons",
+    noindex: true,
     title: "FORGE Studio — AI Hackathon Platform | KONOV Technologies",
     description: "Build, learn, and compete in AI hackathons designed for young innovators.",
     h1: "FORGE Studio",
@@ -359,6 +363,12 @@ function applyRoute(template, route) {
   );
 
   html = html.replace(/(<meta(?: data-rh="true")? name="author" content=")[^"]*(")/, `$1${escapeAttr(SITE_NAME)}$2`);
+
+  // Mirrors SEO.tsx so non-JS crawlers see the same robots directive as the rendered page.
+  html = html.replace(
+    /(<meta(?: data-rh="true")? name="robots" content=")[^"]*(")/,
+    `$1${route.noindex ? "noindex, nofollow" : "index, follow"}$2`
+  );
 
   html = html.replace(/(<link(?: data-rh="true")? rel="canonical" href=")[^"]*(")/, `$1${canonicalUrl}$2`);
 

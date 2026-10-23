@@ -79,6 +79,7 @@ const Community = () => {
         title="Community - Join Our Tech Learning Paths"
         description="Join KONOV's learning community. Choose from AI Explorers (ages 6-9), Young Builders (ages 9-11), or Tech Ambassadors (ages 12-16) programs."
         canonical="/community"
+        noindex
         keywords={["AI learning community Ghana", "kids tech groups Accra", "children coding community Africa"]}
         jsonLd={communityBreadcrumb}
       />
