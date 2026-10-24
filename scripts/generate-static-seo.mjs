@@ -7,8 +7,8 @@
 // ClaudeBot, and PerplexityBot, and Google's first-pass HTML fetch before the
 // render queue picks it up). Without an entry here, a route is invisible/duplicate
 // content to those clients — they'd see the homepage's title and body instead of
-// the real page's. This script writes a real, route-specific index.html into
-// dist/<route>/ for each route so non-JS clients see distinct, accurate content
+// the real page's. This script writes a real, route-specific dist/<route>.html for
+// each route so non-JS clients see distinct, accurate content
 // per page, while React still mounts and takes over #root for real visitors.
 //
 // Keep this in sync with each page's <SEO title=.../description=.../canonical=...>
@@ -408,10 +408,14 @@ async function main() {
 
   for (const route of ROUTES) {
     const html = applyRoute(template, route);
-    const outDir = route.path === "/" ? DIST_DIR : path.join(DIST_DIR, route.path);
-    await mkdir(outDir, { recursive: true });
-    await writeFile(path.join(outDir, "index.html"), html, "utf8");
-    console.log(`[generate-static-seo] wrote ${path.join(outDir, "index.html")}`);
+    // Write /me-ai as dist/me-ai.html, not dist/me-ai/index.html: static hosts
+    // (Netlify, and Vercel with cleanUrls) serve a directory index only after a
+    // 301 to the trailing-slash URL, which contradicts our slashless canonicals
+    // and sitemap entries and stops Google from indexing the page.
+    const outFile = route.path === "/" ? path.join(DIST_DIR, "index.html") : path.join(DIST_DIR, `${route.path}.html`);
+    await mkdir(path.dirname(outFile), { recursive: true });
+    await writeFile(outFile, html, "utf8");
+    console.log(`[generate-static-seo] wrote ${outFile}`);
   }
 }
 
