@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
@@ -25,7 +25,6 @@ import Waitlist from "./pages/Waitlist";
 import MeAI from "./pages/MeAI";
 import ForSchools from "./pages/ForSchools";
 import AIClassesForKids from "./pages/AIClassesForKids";
-import TeacherTraining from "./pages/TeacherTraining";
 import TertiaryHub from "./pages/TertiaryHub";
 import YouthHackathons from "./pages/YouthHackathons";
 import MachineLearningForKids from "./pages/MachineLearningForKids";
@@ -57,7 +56,7 @@ const AnimatedRoutes = () => {
         <Route path="/me-ai" element={<PageTransition><MeAI /></PageTransition>} />
         <Route path="/for-schools" element={<PageTransition><ForSchools /></PageTransition>} />
         <Route path="/ai-classes-for-kids-accra" element={<PageTransition><AIClassesForKids /></PageTransition>} />
-        <Route path="/teacher-training" element={<PageTransition><TeacherTraining /></PageTransition>} />
+        <Route path="/teacher-training" element={<Navigate to="/for-schools" replace />} />
         <Route path="/tertiary-ai-innovation-hub" element={<PageTransition><TertiaryHub /></PageTransition>} />
         <Route path="/youth-hackathons" element={<PageTransition><YouthHackathons /></PageTransition>} />
         <Route path="/machine-learning-for-kids" element={<PageTransition><MachineLearningForKids /></PageTransition>} />

@@ -10,12 +10,12 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { SignupModal } from "@/components/SignupModal";
 import { SEO, createFAQSchema, createBreadcrumbSchema } from "@/components/SEO";
 import {
-  AlertTriangle, School, Users, GraduationCap, Zap, Trophy,
+  AlertTriangle, School, Users, Zap, Trophy,
   CheckCircle2, CalendarCheck,
 } from "lucide-react";
 
 const schoolsFAQs = [
-  { question: "Do teachers need AI experience to bring KONOV into their school?", answer: "No. We provide teacher training alongside every school program, so educators are equipped to support students even without prior AI experience." },
+  { question: "Do teachers need AI experience to bring KONOV into their school?", answer: "No. KONOV facilitators lead our school workshops, and MeAI's game missions guide students step by step, so teachers don't need prior AI or coding experience." },
   { question: "Can KONOV run a one-off workshop, or only long-term programs?", answer: "Both. We offer short, practical AI workshops as well as ongoing classroom programs and after-school AI clubs, depending on what fits your school." },
   { question: "Does KONOV provide MeAI access for classrooms?", answer: "Yes. Schools can get classroom access to MeAI as part of a partnership, so students can continue learning between sessions." },
   { question: "How do we start a partnership with KONOV?", answer: "Book a consultation with us — we'll discuss your school's goals, student ages, and schedule, then propose a program that fits." },
@@ -28,7 +28,6 @@ const schoolsBreadcrumb = createBreadcrumbSchema([
 
 const offerings = [
   { icon: Users, title: "Student AI & Coding Workshops", description: "Short, practical AI learning experiences designed for schools that want students to understand and explore artificial intelligence." },
-  { icon: GraduationCap, title: "Teacher Training", description: "Hands-on training so educators can confidently support AI learning in their own classrooms." },
   { icon: Zap, title: "MeAI For Classrooms", description: "Classroom access to MeAI, where students learn coding and AI through 3D game missions and keep building projects between sessions." },
   { icon: School, title: "AI Clubs & After-School Programs", description: "Ongoing AI learning outside class hours, for students who want to go further." },
   { icon: Trophy, title: "Hackathons & Showcases", description: "Student innovation challenges where learners present real AI projects, judged and celebrated." },
@@ -48,9 +47,9 @@ const ForSchools = () => {
     <div className="min-h-screen">
       <SEO
         title="MeAI For Schools And Educators"
-        description="Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators."
+        description="Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and innovation challenges."
         canonical="/for-schools"
-        keywords={["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "AI teacher training Ghana", "interactive learning tools for schools"]}
+        keywords={["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "interactive learning tools for schools"]}
         jsonLd={[schoolsBreadcrumb, createFAQSchema(schoolsFAQs)]}
       />
       <Navbar />
@@ -67,8 +66,8 @@ const ForSchools = () => {
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              KONOV helps schools introduce practical AI education through workshops, classroom programs,
-              teacher training, MeAI access, and student innovation challenges.
+              KONOV helps schools introduce practical AI education through AI & coding workshops,
+              MeAI classroom access, after-school clubs, and student innovation challenges.
             </p>
           </SpeechBubble>
           <div className="flex justify-center mt-8">

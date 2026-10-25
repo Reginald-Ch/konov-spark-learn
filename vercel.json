@@ -21,6 +21,13 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/teacher-training",
+      "destination": "/for-schools",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

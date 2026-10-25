@@ -18,9 +18,9 @@ const Blog = () => {
     <div className="min-h-screen bg-background">
       <SEO
         title="AI Education Resources For Parents And Schools"
-        description="Read practical articles on AI literacy, machine learning for kids, school AI programs, teacher training, and youth AI innovation in Ghana and Africa."
+        description="Read practical articles on AI literacy, machine learning for kids, school AI programs, and youth AI innovation in Ghana and Africa."
         canonical="/blog"
-        keywords={["AI education blog", "AI curriculum Africa", "AI training for teachers in Ghana", "AI literacy for young people", "machine learning for kids"]}
+        keywords={["AI education blog", "AI curriculum Africa", "AI literacy for young people", "machine learning for kids"]}
         jsonLd={breadcrumbSchema}
       />
       <Navbar />

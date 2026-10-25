@@ -10,7 +10,7 @@ KONOV is a product-led company that teaches both AI and coding. Learners (ages 6
 - [About](/about): Mission, vision, story, and values.
 - [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
 - [MeAI](/me-ai): MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.
-- [For Schools](/for-schools): School partnerships — student workshops, teacher training, MeAI classroom access, AI clubs, hackathons.
+- [For Schools](/for-schools): School partnerships — student AI & coding workshops, MeAI classroom access, AI clubs, hackathons.
 - [Contact](/contact): Reach KONOV Technologies by email or WhatsApp.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
 - [Hackathons / FORGE Studio](/hackathons): The live hackathon platform where learners build real Python-powered AI projects and compete.
@@ -20,11 +20,10 @@ KONOV is a product-led company that teaches both AI and coding. Learners (ages 6
 
 - [AI Classes for Kids in Accra](/ai-classes-for-kids-accra): AI classes for children and teens ages 6-16.
 - [Machine Learning for Kids](/machine-learning-for-kids): How machine learning works, taught through hands-on projects.
-- [Teacher Training](/teacher-training): AI training for teachers and educators in Ghana.
 - [Tertiary AI Innovation Hub](/tertiary-ai-innovation-hub): Applied AI for tertiary/university students, featuring the free 7-day AI Builder Sprint (ends in a capstone hackathon with cash prizes).
 - [Youth AI Hackathons](/youth-hackathons): AI hackathons and innovation challenges for young people.
 - [Summer AI & Tech Camp](/summer-ai-tech-camp): Vacation AI and tech camp for primary through senior high learners.
-- [AI Curriculum Support for Schools](/ai-curriculum-support): Grade-level-aligned AI curriculum design and teacher training for schools.
+- [AI Curriculum Support for Schools](/ai-curriculum-support): Grade-level-aligned AI curriculum design for schools.
 
 ## Optional
 

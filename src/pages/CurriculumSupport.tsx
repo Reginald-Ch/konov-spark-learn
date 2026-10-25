@@ -9,11 +9,10 @@ import { ActionBurst } from "@/components/ActionBurst";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { SignupModal } from "@/components/SignupModal";
 import { SEO, createFAQSchema, createBreadcrumbSchema } from "@/components/SEO";
-import { BookOpen, Layers, ClipboardCheck, CalendarCheck } from "lucide-react";
+import { BookOpen, Layers, CalendarCheck } from "lucide-react";
 
 const curriculumFAQs = [
   { question: "Does KONOV provide a ready-made AI curriculum, or build one for us?", answer: "Both — we bring a proven AI curriculum framework and adapt it to your school's grade levels, schedule, and existing tech subjects." },
-  { question: "Does curriculum support include teacher training?", answer: "Yes, curriculum support is delivered alongside teacher training so your staff can own and continue the program." },
   { question: "Can this integrate with our existing ICT or STEM curriculum?", answer: "Yes — we design AI curriculum support to complement, not replace, what your school already teaches." },
 ];
 
@@ -29,7 +28,7 @@ const CurriculumSupport = () => {
     <div className="min-h-screen">
       <SEO
         title="AI Curriculum Support For Schools"
-        description="KONOV Technologies helps schools design and deliver a practical AI curriculum — aligned to grade levels, backed by teacher training, and built for African classrooms."
+        description="KONOV Technologies helps schools design and deliver a practical AI curriculum — aligned to grade levels and built for African classrooms."
         canonical="/ai-curriculum-support"
         keywords={["AI curriculum support for schools", "AI education for African schools", "AI workshops for schools in Ghana", "school AI program Ghana"]}
         jsonLd={[curriculumBreadcrumb, createFAQSchema(curriculumFAQs)]}
@@ -48,7 +47,7 @@ const CurriculumSupport = () => {
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
               A practical AI curriculum framework, adapted to your school's grade levels and existing
-              subjects — backed by teacher training so your staff can own it long-term.
+              subjects.
             </p>
           </SpeechBubble>
           <div className="flex justify-center mt-8">
@@ -64,11 +63,10 @@ const CurriculumSupport = () => {
           <h2 className="text-3xl md:text-5xl font-fredoka font-bold text-center mb-12">
             What Curriculum Support <span className="text-primary">Includes</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
               { icon: BookOpen, title: "A Practical Framework", description: "A proven, age-appropriate AI curriculum, not a generic tech syllabus." },
               { icon: Layers, title: "Grade-Level Alignment", description: "Adapted to fit your school's existing subjects and schedule." },
-              { icon: ClipboardCheck, title: "Teacher Ownership", description: "Delivered alongside teacher training so your staff can run it independently." },
             ].map((item, idx) => {
               const Icon = item.icon;
               return (

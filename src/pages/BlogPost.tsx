@@ -113,7 +113,7 @@ const BlogPost = () => {
             <div className="mt-14 rounded-lg border-4 border-foreground bg-primary p-8 text-primary-foreground shadow-[6px_6px_0_hsl(var(--foreground))]">
               <h2 className="font-fredoka text-2xl font-bold md:text-3xl">Bring this into your school</h2>
               <p className="mt-3 font-space leading-relaxed">
-                KONOV runs hands-on AI workshops and teacher training for schools across Ghana — no computer lab required to get started.
+                KONOV runs hands-on AI & coding workshops and brings MeAI to schools across Ghana — no computer lab required to get started.
               </p>
               <div className="mt-6 flex flex-col gap-4 sm:flex-row">
                 <Button asChild size="lg" variant="secondary" className="font-fredoka border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">

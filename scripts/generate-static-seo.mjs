@@ -90,21 +90,20 @@ const ROUTES = [
   {
     path: "/for-schools",
     title: "MeAI For Schools And Educators | KONOV Technologies",
-    description: "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and support for educators.",
-    keywords: ["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "AI teacher training Ghana", "interactive learning tools for schools"],
+    description: "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and innovation challenges.",
+    keywords: ["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "interactive learning tools for schools"],
     h1: "MeAI For Schools And Educators",
     intro:
-      "KONOV helps schools introduce practical AI education through workshops, classroom programs, teacher training, MeAI access, and student innovation challenges.",
+      "KONOV helps schools introduce practical AI education through workshops, classroom programs, MeAI access, and student innovation challenges.",
     main: `
         <h2>What KONOV Offers Schools</h2>
         <ul>
           <li>Student AI &amp; Coding Workshops</li>
-          <li>Teacher Training</li>
           <li>MeAI For Classrooms</li>
           <li>AI Clubs & After-School Programs</li>
           <li>Hackathons & Showcases</li>
         </ul>
-        <p><a href="/teacher-training">Teacher training</a> · <a href="/ai-curriculum-support">Curriculum support</a> · <a href="/contact">Book a school workshop</a> · <a href="/">Back to home</a></p>`,
+        <p><a href="/ai-curriculum-support">Curriculum support</a> · <a href="/contact">Book a school workshop</a> · <a href="/">Back to home</a></p>`,
   },
   {
     path: "/ai-classes-for-kids-accra",
@@ -122,24 +121,6 @@ const ROUTES = [
           <li>Creative AI-powered projects</li>
         </ul>
         <p><a href="/programs">See all programs</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/teacher-training",
-    noindex: true,
-    title: "AI Training For Teachers In Ghana | KONOV Technologies",
-    description:
-      "KONOV helps teachers and educators understand artificial intelligence and design practical AI learning experiences for students.",
-    h1: "AI Training For Teachers In Ghana",
-    intro:
-      "KONOV helps teachers and educators understand artificial intelligence and design practical AI learning experiences for students — no AI background required.",
-    main: `
-        <h2>What Teacher Training Covers</h2>
-        <ul>
-          <li>AI Fundamentals</li>
-          <li>Classroom-Ready Activities</li>
-          <li>Supporting Student AI Projects</li>
-        </ul>
-        <p><a href="/for-schools">For schools</a> · <a href="/ai-curriculum-support">Curriculum support</a> · <a href="/">Back to home</a></p>`,
   },
   {
     path: "/tertiary-ai-innovation-hub",
@@ -217,18 +198,17 @@ const ROUTES = [
     path: "/ai-curriculum-support",
     title: "AI Curriculum Support For Schools | KONOV Technologies",
     description:
-      "KONOV Technologies helps schools design and deliver a practical AI curriculum — aligned to grade levels, backed by teacher training, and built for African classrooms.",
+      "KONOV Technologies helps schools design and deliver a practical AI curriculum — aligned to grade levels and built for African classrooms.",
     h1: "AI Curriculum Support For Schools",
     intro:
-      "A practical AI curriculum framework, adapted to your school's grade levels and existing subjects — backed by teacher training so your staff can own it long-term.",
+      "A practical AI curriculum framework, adapted to your school's grade levels and existing subjects.",
     main: `
         <h2>What Curriculum Support Includes</h2>
         <ul>
           <li>A Practical Framework</li>
           <li>Grade-Level Alignment</li>
-          <li>Teacher Ownership</li>
         </ul>
-        <p><a href="/for-schools">For schools</a> · <a href="/teacher-training">Teacher training</a> · <a href="/">Back to home</a></p>`,
+        <p><a href="/for-schools">For schools</a> · <a href="/">Back to home</a></p>`,
   },
   {
     path: "/community",
@@ -278,7 +258,7 @@ const ROUTES = [
     path: "/blog",
     title: "AI Education Resources For Parents And Schools | KONOV Technologies",
     description:
-      "Read practical articles on AI literacy, machine learning for kids, school AI programs, teacher training, and youth AI innovation in Ghana and Africa.",
+      "Read practical articles on AI literacy, machine learning for kids, school AI programs, and youth AI innovation in Ghana and Africa.",
     h1: "AI Education Insights",
     intro:
       "Practical, research-backed guidance for schools, teachers and parents navigating AI education across Africa — grounded in real frameworks, not buzzwords.",

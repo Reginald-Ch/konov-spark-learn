@@ -92,7 +92,6 @@ export const Footer = () => {
                 { to: "/youth-hackathons", label: "Youth AI Hackathons" },
                 { to: "/tertiary-ai-innovation-hub", label: "Tertiary AI Innovation Hub" },
                 { to: "/ai-curriculum-support", label: "AI Curriculum Support" },
-                { to: "/teacher-training", label: "Teacher Training" },
                 { to: "/resources", label: "Learn AI" },
                 { to: "/community", label: "Community" },
                 { to: "/waitlist", label: "Waitlist" },

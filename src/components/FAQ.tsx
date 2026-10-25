@@ -45,7 +45,7 @@ export const FAQ = () => {
     },
     {
       question: "Can schools partner with KONOV?",
-      answer: "Yes. We partner with schools to bring practical AI & Machine Learning learning into the classroom through curriculum support, facilitator-led sessions, teacher training, and access to the MeAI learning platform. Book a school demo to get started."
+      answer: "Yes. We partner with schools to bring practical AI & Machine Learning learning into the classroom through facilitator-led AI & coding sessions and access to MeAI. Book a school demo to get started."
     },
   ];
 

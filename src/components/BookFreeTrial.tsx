@@ -28,7 +28,7 @@ export const BookFreeTrial = () => {
   const schoolBenefits = [
     { icon: School, text: "On-site Demo" },
     { icon: Users, text: "For Entire Classes" },
-    { icon: GraduationCap, text: "Teacher Training" },
+    { icon: GraduationCap, text: "MeAI Classroom Access" },
   ];
 
   const handleBookingSelect = (type: BookingType) => {

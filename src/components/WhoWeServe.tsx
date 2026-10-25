@@ -19,7 +19,7 @@ export const WhoWeServe = () => {
     {
       icon: School,
       title: "Schools & Educators",
-      description: "Bringing AI literacy into the classroom through workshops and teacher training.",
+      description: "Bringing AI literacy into the classroom through AI & coding workshops and MeAI.",
       color: "accent" as const,
     },
     {

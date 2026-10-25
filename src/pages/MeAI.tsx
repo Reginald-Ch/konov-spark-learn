@@ -59,7 +59,7 @@ const buildItems = [
 
 const learnerFeatures = ["Guided, interactive lessons", "Real Python code as you progress", "Instant feedback on your work", "Earn coins and badges as you learn"];
 const parentFeatures = ["Safe, supervised learning environment", "Age-appropriate content (6-14)", "Visible progress and completed projects", "No prior coding experience required"];
-const schoolFeatures = ["Classroom-ready curriculum", "Teacher training and support", "Group/class access", "Hackathon and showcase integration"];
+const schoolFeatures = ["Classroom-ready curriculum", "Group/class access", "Hackathon and showcase integration"];
 
 const MeAI = () => {
   return (
