@@ -66,8 +66,8 @@ const ForSchools = () => {
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              KONOV helps schools introduce practical AI education through AI & coding workshops,
-              MeAI classroom access, after-school clubs, and student innovation challenges.
+              KONOV brings AI &amp; coding into schools through MeAI classroom access, workshops,
+              after-school clubs, and student innovation challenges.
             </p>
           </SpeechBubble>
           <div className="flex justify-center mt-8">

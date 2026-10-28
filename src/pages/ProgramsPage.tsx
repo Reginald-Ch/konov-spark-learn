@@ -102,7 +102,7 @@ const PROGRAM_DETAILS: ProgramDetail[] = [
     mascot: "teaching",
     headline: "Term-Based AI Enrichment For Schools",
     paragraphs: [
-      "KONOV School AI Program helps schools introduce practical AI education through after-school AI clubs, termly workshops, and school-wide AI enrichment programs.",
+      "KONOV School Program brings AI & coding into schools through after-school clubs, termly workshops, and MeAI classroom access.",
       "The program is designed to complement ICT learning and give students hands-on experience with AI, data, machine learning, chatbots, and project-based problem solving.",
     ],
     blocks: [
@@ -343,10 +343,10 @@ const ProgramsPage = () => {
   return (
     <div className="min-h-screen">
       <SEO
-        title="Tech Workshops & Learning Programs in Ghana"
-        description="Explore KONOV’s hands-on AI workshops, weekend programs and tech camps in Ghana, with interactive learning tools and guided projects for young learners."
+        title="AI & Coding Programs For Kids In Accra"
+        description="Explore KONOV's AI & coding programs for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school, plus MeAI, our 3D coding and AI game."
         canonical="/programs"
-        keywords={["AI workshops Ghana", "weekend programs for kids Ghana", "tech camp Ghana", "AI classes for kids Accra", "school technology programs"]}
+        keywords={["AI and coding programs for kids Accra", "coding classes for kids Ghana", "weekend coding classes Accra", "after-school coding Accra", "summer school for kids Accra"]}
         jsonLd={coursesJsonLd}
       />
       <Navbar />
@@ -362,14 +362,13 @@ const ProgramsPage = () => {
               <RobotMascot type="excited" size="lg" />
             </div>
             <h1 className="text-4xl md:text-6xl font-fredoka font-bold mb-4 max-w-4xl">
-              AI Programs For Young Learners, Schools, And <span className="gradient-text">Future Innovators</span>
+              AI & Coding Programs For <span className="gradient-text">Kids In Accra</span>
             </h1>
             <SpeechBubble direction="up" className="max-w-2xl">
               <p className="text-lg font-space leading-relaxed">
-                KONOV Technologies offers practical AI learning programs that help young people understand,
-                create, and build with artificial intelligence. From weekend classes and school programs to
-                workshops, camps, hackathons, and tertiary innovation programs, learners gain hands-on
-                experience with data, models, chatbots, conversational AI, and AI-powered projects.
+                KONOV Technologies runs AI &amp; coding programs for kids ages 6–16 in Accra — weekend
+                classes, after-school programs, and summer school — alongside MeAI, our first product.
+                Learners write code, build chatbots, train AI models, and create their own projects.
               </p>
             </SpeechBubble>
             <div className="flex flex-wrap gap-3 justify-center mt-6">

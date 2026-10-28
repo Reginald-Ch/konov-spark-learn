@@ -48,12 +48,12 @@ const ROUTES = [
   },
   {
     path: "/programs",
-    title: "Tech Workshops & Learning Programs in Ghana | KONOV",
-    description: "Explore KONOV’s hands-on AI workshops, weekend programs and tech camps in Ghana, with interactive learning tools and guided projects for young learners.",
-    keywords: ["AI workshops Ghana", "weekend programs for kids Ghana", "tech camp Ghana", "AI classes for kids Accra", "school technology programs"],
-    h1: "AI Programs For Young Learners, Schools, And Future Innovators",
+    title: "AI & Coding Programs For Kids In Accra | KONOV Technologies",
+    description: "Explore KONOV's AI & coding programs for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school, plus MeAI, our 3D coding and AI game.",
+    keywords: ["AI and coding programs for kids Accra", "coding classes for kids Ghana", "weekend coding classes Accra", "after-school coding Accra", "summer school for kids Accra"],
+    h1: "AI &amp; Coding Programs For Kids In Accra",
     intro:
-      "KONOV Technologies offers practical AI learning programs that help young people understand, create, and build with artificial intelligence. From weekend classes and school programs to workshops, camps, hackathons, and tertiary innovation programs, learners gain hands-on experience with data, models, chatbots, conversational AI, and AI-powered projects.",
+      "KONOV Technologies runs AI &amp; coding programs for kids ages 6–16 in Accra — weekend classes, after-school programs, and summer school — alongside MeAI, our first product. Learners write code, build chatbots, train AI models, and create their own projects.",
     main: `
         <h2>Our Programs</h2>
         <ul>
@@ -94,7 +94,7 @@ const ROUTES = [
     keywords: ["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "interactive learning tools for schools"],
     h1: "MeAI For Schools And Educators",
     intro:
-      "KONOV helps schools introduce practical AI education through workshops, classroom programs, MeAI access, and student innovation challenges.",
+      "KONOV brings AI &amp; coding into schools through MeAI classroom access, workshops, after-school clubs, and student innovation challenges.",
     main: `
         <h2>What KONOV Offers Schools</h2>
         <ul>

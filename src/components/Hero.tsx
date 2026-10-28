@@ -14,7 +14,7 @@ export const Hero = () => (
       <p className="company-hero-tagline font-fredoka text-3xl md:text-5xl leading-tight max-w-3xl mb-6">We make technology<br className="hidden sm:block" /> fun to learn and create with.</p>
       <p className="text-base md:text-lg leading-relaxed max-w-xl mb-8">An EdTech company building interactive learning tools for young learners. Meet MeAI, our first product, and join our AI &amp; coding classes in Accra.</p>
       <div className="flex flex-wrap gap-3">
-        <Button asChild size="lg" className="rounded-lg"><a href="#me-ai">Discover MeAI <ArrowRight /></a></Button>
+        <Button asChild size="lg" className="rounded-lg"><Link to="/me-ai">Discover MeAI <ArrowRight /></Link></Button>
         <Button asChild size="lg" variant="outline" className="rounded-lg border-background/70 text-background hover:bg-background hover:text-foreground"><Link to="/for-schools">For schools <ArrowRight /></Link></Button>
       </div>
     </div>

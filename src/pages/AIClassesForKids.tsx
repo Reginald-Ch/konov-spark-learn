@@ -12,9 +12,9 @@ import { SEO, createFAQSchema, createBreadcrumbSchema, createCourseSchema } from
 import { Bot, LineChart, Puzzle, MapPin, Rocket, Sparkles } from "lucide-react";
 
 const classesFAQs = [
-  { question: "What age is right for KONOV's AI classes?", answer: "Our AI classes are designed for children and teens ages 6-16, with content tailored by age and understanding level." },
+  { question: "What age is right for KONOV's AI & coding classes?", answer: "Our AI & coding classes are designed for children and teens ages 6-16, with content tailored by age and understanding level." },
   { question: "Does my child need coding experience?", answer: "No prior coding experience is required. Classes are beginner-friendly and build up gradually through exploration and hands-on practice." },
-  { question: "Where do the classes take place?", answer: "KONOV runs AI classes in Accra, Ghana, with both after-school and weekend schedules." },
+  { question: "Where do the classes take place?", answer: "KONOV runs AI & coding classes in Accra, Ghana: weekend classes, after-school programs, and summer school." },
   { question: "What will my child actually build?", answer: "Real AI projects — chatbots, simple trained models, and creative AI-powered projects they can show off, not just worksheets." },
 ];
 
@@ -24,8 +24,8 @@ const classesBreadcrumb = createBreadcrumbSchema([
 ]);
 
 const classesCourseSchema = createCourseSchema({
-  name: "AI Classes For Kids In Accra",
-  description: "Practical AI classes for children and teens who want to understand how artificial intelligence works and build their own AI projects.",
+  name: "AI & Coding Classes For Kids In Accra",
+  description: "Fun AI & coding classes for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school.",
   ageRange: "Ages 6-16",
 });
 
@@ -49,15 +49,16 @@ const AIClassesForKids = () => {
             <MapPin className="w-4 h-4" /> ACCRA, GHANA
           </ActionBurst>
           <h1 className="text-4xl md:text-6xl font-fredoka font-bold mb-6 max-w-4xl mx-auto">
-            AI Classes For Kids In <span className="gradient-text">Accra</span>
+            AI &amp; Coding Classes For Kids In <span className="gradient-text">Accra</span>
           </h1>
           <div className="flex justify-center mb-6">
             <RobotMascot type="happy" size="lg" />
           </div>
           <SpeechBubble direction="up" className="max-w-2xl mx-auto">
             <p className="text-lg font-space leading-relaxed">
-              Practical AI classes for children and teens who want to understand how artificial intelligence
-              works and build their own AI projects — no prior coding experience needed.
+              Fun AI &amp; coding classes for kids ages 6–16 in Accra: weekend classes, after-school
+              programs, and summer school. Kids write code, build chatbots, and train AI — no prior coding
+              experience needed.
             </p>
           </SpeechBubble>
           <div className="flex justify-center mt-8">
@@ -115,7 +116,7 @@ const AIClassesForKids = () => {
             <Button size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary" onClick={() => setShowSignupModal(true)}>
               <Rocket className="w-5 h-5 mr-2" /> Enroll Your Child
             </Button>
-            <WhatsAppButton label="Ask A Question" message="Hi! I'd like to ask about AI classes for kids in Accra." />
+            <WhatsAppButton label="Ask A Question" message="Hi! I'd like to ask about AI & coding classes for kids in Accra." />
           </div>
         </div>
       </section>
