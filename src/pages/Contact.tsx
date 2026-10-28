@@ -32,7 +32,7 @@ const contactPageJsonLd = {
     "@type": "EducationalOrganization",
     name: "KONOV Technologies",
     email: "hello@konovtech.com",
-    telephone: "+233 20 874 1417",
+    telephone: "+233 20 874 1517",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Accra",
