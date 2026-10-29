@@ -113,7 +113,7 @@ const Contact = () => {
     {
       icon: Phone,
       title: "Call Us",
-      content: "+233 20 874 1417",
+      content: "+233 20 874 1517",
       color: "bg-accent",
       mascot: "excited" as const,
     },
