@@ -7,7 +7,7 @@ const builder = { url: builderSrc };
 export const MeAIIntro = () => (
   <section id="me-ai" className="company-section bg-card scroll-mt-24 border-b border-border">
     <div className="company-container">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6"><p className="company-eyebrow text-primary !mb-0">Our first product</p><span className="text-sm text-muted-foreground">By KONOV · Ages 6–14</span></div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6"><p className="company-eyebrow company-eyebrow-num text-primary !mb-0">Our first product</p><span className="text-sm text-muted-foreground">By KONOV · Ages 6–14</span></div>
       <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
         <div><h2 className="text-6xl md:text-7xl font-fredoka font-semibold text-primary mb-5">MeAI</h2><p className="text-3xl font-fredoka leading-tight mb-5">Learn coding and AI<br />in a game world.</p><p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-6">MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life. Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems.</p>
           <ul className="space-y-3 text-base mb-8">{["Learn to code through 3D game missions", "Train AI and build chatbots", "Explore a world inspired by African life", "Solve real-world problems with technology"].map(item => <li key={item} className="flex items-start gap-3"><Check className="w-5 h-5 text-accent shrink-0 mt-0.5" />{item}</li>)}</ul>

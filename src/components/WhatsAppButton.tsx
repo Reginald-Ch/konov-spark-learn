@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 // wa.me expects digits only, no "+" or spaces/parens, and no domestic
 // trunk "0" (that's dropped in international dialing format).
-const WHATSAPP_NUMBER = "233208741517";
+export const WHATSAPP_NUMBER = "233208741517";
 
 interface WhatsAppButtonProps {
   message?: string;
