@@ -63,6 +63,7 @@ const organizationSchema = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
+    telephone: "+233208741517",
     email: "hello@konovtech.com",
     areaServed: "GH",
     availableLanguage: "English"
@@ -77,9 +78,11 @@ const localBusinessSchema = {
   name: SITE_NAME,
   image: `${SITE_URL}/favicon.png`,
   url: SITE_URL,
+  telephone: "+233208741517",
   email: "hello@konovtech.com",
   address: {
     "@type": "PostalAddress",
+    streetAddress: "1 Boundary Rd",
     addressLocality: "Accra",
     addressRegion: "Greater Accra",
     addressCountry: "GH"
