@@ -138,7 +138,7 @@ const Waitlist = () => {
 
   const shareOnWhatsApp = () => {
     const text = encodeURIComponent(
-      `Charley, check this out! MeAI is teaching kids real AI & machine learning — not just robot toys. My pikin go learn how ChatGPT actually works 🤯\n\nJoin the waitlist: ${referralLink}`
+      `Turn screen time into skill time! MeAI teaches kids 6–14 to code and understand AI through missions set in real African places. Only 100 Akwaba early access spots 🔥\n\nJoin the waitlist: ${referralLink}`
     );
     // Use wa.me with fallback — most reliable cross-platform
     const url = `https://wa.me/?text=${text}`;
@@ -147,7 +147,7 @@ const Waitlist = () => {
 
   const shareOnTwitter = () => {
     const text = encodeURIComponent(
-      "Just joined the MeAI waitlist! 🚀 Real AI & ML education for kids. Join me:"
+      "Just joined the MeAI parents' waitlist 🚀 Coding & AI for kids 6–14, set in real African places. Akwaba early access:"
     );
     window.open(
       `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(referralLink)}`,
@@ -158,32 +158,32 @@ const Waitlist = () => {
   const features = [
     {
       icon: Brain,
-      title: "Real AI & ML Concepts",
-      desc: "Not robot toys — kids learn how neural networks, training data, and intelligent machines actually work.",
+      title: "Understand How AI Works",
+      desc: "Kids discover how AI learns from data, makes predictions and shows up in everyday life.",
       gradient: "from-primary to-accent",
     },
     {
       icon: Bot,
-      title: "Build Chatbots & AI Models",
-      desc: "Hands-on projects where kids build conversational AI and train machine learning models.",
+      title: "Learn to Code by Building",
+      desc: "Kids build real projects — chatbots, games and simple AI models — step by step.",
       gradient: "from-green-500 to-emerald-600",
     },
     {
       icon: BookOpen,
-      title: "3D Game Missions",
-      desc: "An interactive game world inspired by African life, where every mission teaches coding and AI.",
+      title: "Quest World Missions",
+      desc: "Missions set in real African places, where every quest teaches coding and AI.",
       gradient: "from-amber-500 to-orange-500",
     },
     {
       icon: Rocket,
       title: "No Experience Needed",
-      desc: "Designed for ages 6–15. Zero coding background required — just curiosity and imagination.",
+      desc: "Designed for ages 6–14. Works on the phone or laptop you already have — no coding background needed.",
       gradient: "from-blue-500 to-cyan-600",
     },
   ];
 
   const trustQuotes = [
-    { text: "Finally something that teaches REAL AI, not just Scratch.", author: "— Parent, Accra" },
+    { text: "Finally, screen time I feel good about.", author: "— Parent, Accra" },
     { text: "My daughter built her first chatbot in one session!", author: "— Parent, Kumasi" },
     { text: "This is what AI education should look like in Africa.", author: "— Educator, Tema" },
   ];
@@ -191,8 +191,8 @@ const Waitlist = () => {
   return (
     <>
       <SEO
-        title="MeAI Waitlist — Real AI Education for Kids"
-        description="Join the MeAI waitlist. MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life."
+        title="MeAI Parents' Waitlist — Coding & AI for Kids 6–14 | KONOV"
+        description="Turn screen time into skill time. Join the MeAI parents' waitlist: kids 6–14 learn to code and understand AI through missions set in real African places."
         canonical="/waitlist"
       />
       <Navbar />
@@ -218,7 +218,7 @@ const Waitlist = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary font-bold text-sm mb-4 border-2 border-secondary/30 shadow-md font-fredoka"
             >
               <Star className="h-4 w-4" />
-              Limited Early Access
+              Akwaba Early Access
             </motion.div>
 
             {/* Headline — shorter for mobile */}
@@ -228,10 +228,10 @@ const Waitlist = () => {
               transition={{ delay: 0.2 }}
               className="text-3xl md:text-4xl lg:text-5xl font-fredoka font-bold mb-3 leading-tight"
             >
-              <span className="text-foreground">Your Kids Use AI Every Day.</span>
+              <span className="text-foreground">Turn Screen Time</span>
               <br />
               <span className="text-secondary">
-                Now They Can Understand It.
+                Into Skill Time.
               </span>
             </motion.h1>
 
@@ -242,9 +242,9 @@ const Waitlist = () => {
               transition={{ delay: 0.3 }}
               className="text-base md:text-lg text-muted-foreground mb-6 leading-relaxed"
             >
-              Most programs teach robot toys, not real AI.{" "}
-              <strong className="text-foreground">MeAI is different.</strong>{" "}
-              3D game missions, coding, chatbot building, and hands-on AI for ages 6–14.
+              Your child learns to code and understands how AI works, through missions set in real African places.{" "}
+              <strong className="text-foreground">For ages 6 to 14, on the phone or laptop you already have.</strong>{" "}
+              MeAI at home opens soon — join the parents' waitlist to hear first.
             </motion.p>
 
             {/* Social proof counter — near the form */}
@@ -331,19 +331,19 @@ const Waitlist = () => {
                       ) : (
                         <>
                           <Rocket className="w-5 h-5 mr-2" />
-                          Get Early Access
+                          Join the Parents' Waitlist
                         </>
                       )}
                     </Button>
                   </form>
 
                   <p className="text-xs text-muted-foreground mt-3 font-fredoka">
-                    🔒 We'll only notify you when spots open. No spam, ever.
+                    🔒 No ads · No chatting with strangers · Time limits you set · No spam
                   </p>
 
                   {/* Urgency */}
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-fredoka font-bold">
-                    🔥 Only 100 early access spots remaining
+                    🔥 Only 100 early access spots remaining — claim your Akwaba discount
                   </p>
                 </motion.div>
               ) : (
@@ -361,7 +361,7 @@ const Waitlist = () => {
                     <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-3" />
                   </motion.div>
                   <h3 className="text-2xl font-fredoka font-bold mb-1">
-                    You're In! 🎉
+                    Akwaba! You're In 🎉
                   </h3>
                   <p className="text-4xl font-fredoka font-bold text-primary mb-1">
                     #{signupData.position}
@@ -375,8 +375,8 @@ const Waitlist = () => {
                     <p className="font-fredoka font-bold text-sm mb-3 text-center">What happens next?</p>
                     <div className="space-y-3">
                       {[
-                        { step: "1", text: "We're building something amazing for your kids" },
-                        { step: "2", text: "You'll get early access before everyone else" },
+                        { step: "1", text: "MeAI at home is opening soon — you'll hear first" },
+                        { step: "2", text: "Your Akwaba early-access discount is reserved" },
                         { step: "3", text: "Share to move up — the higher you are, the sooner you get in!" },
                       ].map((item) => (
                         <div key={item.step} className="flex items-start gap-3">
@@ -519,7 +519,7 @@ const Waitlist = () => {
                 </span>
               </h2>
               <p className="text-sm md:text-base text-muted-foreground">
-                Real AI literacy that prepares them for the future
+                Skill time, safely: no ads, no strangers, time limits you set
               </p>
             </motion.div>
 
@@ -562,10 +562,10 @@ const Waitlist = () => {
               >
                 <Zap className="w-8 h-8 text-amber-500 mx-auto mb-3" />
                 <h3 className="text-xl md:text-2xl font-fredoka font-bold mb-2">
-                  Don't Let Your Kids Fall Behind
+                  Claim Your Akwaba Spot
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4 font-fredoka">
-                  AI is the future. Early access spots are limited.
+                  Only 100 early access spots with the Akwaba discount. Be first when MeAI at home opens.
                 </p>
                 <Button
                   onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
