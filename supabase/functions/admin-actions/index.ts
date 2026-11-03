@@ -415,6 +415,16 @@ Deno.serve(async (req) => {
         return json({ ok: true, data: { role } });
       }
 
+      case "list_waitlist": {
+        const { data, error } = await supabase
+          .from("waitlist_signups")
+          .select("id, name, email, whatsapp, position, referral_code, referred_by, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5000);
+        if (error) throw error;
+        return json({ ok: true, data });
+      }
+
       case "set_passphrase": {
         const { target_role, new_passphrase } = payload;
         if (!["organizer", "judge"].includes(target_role)) throw new Error("target_role must be 'organizer' or 'judge'");
