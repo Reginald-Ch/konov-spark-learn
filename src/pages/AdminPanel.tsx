@@ -6,7 +6,7 @@ import { WaitlistTab } from '@/components/admin/WaitlistTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import SEO from '@/components/SEO';
+import { SEO } from '@/components/SEO';
 import logo from '@/assets/konov-logo-clear.png';
 import { ArrowLeft, Loader2, LockKeyhole, LogOut, Mail } from 'lucide-react';
 
