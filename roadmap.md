@@ -12,3 +12,9 @@
 # Rebranded search details
 - [x] Align core page titles, descriptions, keywords, and company/product structured data.
 - [x] Verify static search output and live page metadata.
+
+# Private MeAI waitlist
+- [x] Separate the waitlist from FORGE and restrict signup data to the verified owner account.
+- [x] Verify signed-out protection, deployed legacy-access denial and small-screen layout; test owner-role and CSV safety rules.
+- [ ] Verify owner sign-in and real signup search/export (blocked: owner account not provisioned).
+- [ ] Grant access to the owner's account (blocked: owner email/account not supplied).

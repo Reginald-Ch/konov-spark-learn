@@ -29,7 +29,6 @@ import { ChallengesTab } from '@/components/admin/ChallengesTab';
 import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
 import { RewardsTab } from '@/components/admin/RewardsTab';
 import { CoinsTab } from '@/components/admin/CoinsTab';
-import { WaitlistTab } from '@/components/admin/WaitlistTab';
 import { CommunityStaffTab } from '@/components/admin/CommunityStaffTab';
 import { CommunityQuestsTab } from '@/components/admin/CommunityQuestsTab';
 import { FeedbackTab } from '@/components/admin/FeedbackTab';
@@ -620,7 +619,6 @@ export const JudgeDashboardPanel = () => {
               <TabsTrigger value="community-quests" className={TAB_CLASS}>Community Quests</TabsTrigger>
               <TabsTrigger value="judges" className={TAB_CLASS}>Judges</TabsTrigger>
               <TabsTrigger value="feedback" className={TAB_CLASS}>Feedback</TabsTrigger>
-              <TabsTrigger value="waitlist" className={TAB_CLASS}>MeAI Waitlist</TabsTrigger>
             </>
           )}
         </TabsList>
@@ -683,9 +681,6 @@ export const JudgeDashboardPanel = () => {
             </TabsContent>
             <TabsContent value="rewards" className="mt-4">
               <RewardsTab hackathonId={selectedHackathonId} />
-            </TabsContent>
-            <TabsContent value="waitlist" className="mt-4">
-              <WaitlistTab />
             </TabsContent>
             <TabsContent value="coins" className="mt-4">
               <CoinsTab hackathonId={selectedHackathonId} />
