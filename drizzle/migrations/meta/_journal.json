@@ -8,6 +8,13 @@
       "when": 1794307805048,
       "tag": "0000_private_waitlist_owner_access",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794307908331,
+      "tag": "0001_tighten_waitlist_role_grants",
+      "breakpoints": true
     }
   ]
 }
