@@ -1,23 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { csvCell, loadPrivateWaitlist } from '@/lib/privateWaitlist';
+import { answerLabel, csvCell, loadPrivateWaitlist, signupSource, type WaitlistSignup } from '@/lib/privateWaitlist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Download, Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Signup {
-  id: string;
-  name: string | null;
-  email: string | null;
-  whatsapp: string | null;
-  position: number;
-  referral_code: string;
-  referred_by: string | null;
-  created_at: string;
-}
-
 export const WaitlistTab = () => {
-  const [rows, setRows] = useState<Signup[]>([]);
+  const [rows, setRows] = useState<WaitlistSignup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
@@ -45,13 +34,13 @@ export const WaitlistTab = () => {
   }, [rows]);
 
   const filtered = rows.filter((r) =>
-    [r.name, r.email, r.whatsapp, r.referral_code].some((v) => v?.toLowerCase().includes(search.toLowerCase())),
+    [r.name, r.email, r.whatsapp, r.referral_code, r.school_name, r.location, r.utm_source].some((v) => v?.toLowerCase().includes(search.toLowerCase())),
   );
 
   const exportCsv = () => {
-    const header = ['position', 'name', 'email', 'whatsapp', 'referral_code', 'referred_by', 'referrals', 'joined'];
+    const header = ['position', 'name', 'email', 'whatsapp', 'role', 'child_ages', 'goal', 'device', 'location', 'class_interest', 'school_name', 'learners', 'wishlist', 'utm_source', 'utm_medium', 'utm_campaign', 'referrer', 'referral_code', 'referred_by', 'referrals', 'joined'];
     const lines = filtered.map((r) =>
-      [r.position, r.name ?? '', r.email ?? '', r.whatsapp ?? '', r.referral_code, r.referred_by ?? '', referralCounts[r.referral_code] || 0, r.created_at]
+      [r.position, r.name ?? '', r.email ?? '', r.whatsapp ?? '', answerLabel(r.role), answerLabel(r.child_age_bands), answerLabel(r.goal), answerLabel(r.device), answerLabel(r.location), answerLabel(r.class_interest), r.school_name ?? '', answerLabel(r.learner_count), r.wishlist ?? '', r.utm_source ?? '', r.utm_medium ?? '', r.utm_campaign ?? '', r.referrer ?? '', r.referral_code, r.referred_by ?? '', referralCounts[r.referral_code] || 0, r.created_at]
         .map(csvCell).join(','),
     );
     const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv' });
@@ -79,7 +68,7 @@ export const WaitlistTab = () => {
         <div className="overflow-x-auto rounded-lg border border-border/30">
           <table className="w-full text-sm">
             <thead className="text-left opacity-70">
-              <tr>{['#', 'Name', 'Email', 'WhatsApp', 'Code', 'Referred by', 'Referrals', 'Joined'].map((h) => <th key={h} className="p-2">{h}</th>)}</tr>
+              <tr>{['#', 'Name', 'Email', 'WhatsApp', 'Who', 'Ages', 'Goal', 'Device', 'Location', 'Classes', 'Source', 'Code', 'Referrals', 'Joined'].map((h) => <th key={h} className="p-2">{h}</th>)}</tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
@@ -88,13 +77,19 @@ export const WaitlistTab = () => {
                   <td className="p-2">{r.name || '—'}</td>
                   <td className="p-2">{r.email ? <a className="underline" href={`mailto:${r.email}`}>{r.email}</a> : '—'}</td>
                   <td className="p-2">{r.whatsapp ? <a className="underline" href={`https://wa.me/${r.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{r.whatsapp}</a> : '—'}</td>
+                  <td className="p-2">{r.role === 'school' ? (r.school_name || 'school') : answerLabel(r.role) || '—'}</td>
+                  <td className="p-2 whitespace-nowrap">{answerLabel(r.child_age_bands) || answerLabel(r.learner_count) || '—'}</td>
+                  <td className="p-2">{answerLabel(r.goal) || '—'}</td>
+                  <td className="p-2">{answerLabel(r.device) || '—'}</td>
+                  <td className="p-2">{answerLabel(r.location) || '—'}</td>
+                  <td className="p-2">{answerLabel(r.class_interest) || '—'}</td>
+                  <td className="p-2">{signupSource(r) || '—'}</td>
                   <td className="p-2 font-mono">{r.referral_code}</td>
-                  <td className="p-2 font-mono">{r.referred_by || '—'}</td>
                   <td className="p-2">{referralCounts[r.referral_code] || 0}</td>
                   <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                 </tr>
               ))}
-              {!filtered.length && <tr><td colSpan={8} className="p-4 text-center opacity-70">No signups found</td></tr>}
+              {!filtered.length && <tr><td colSpan={14} className="p-4 text-center opacity-70">No signups found</td></tr>}
             </tbody>
           </table>
         </div>

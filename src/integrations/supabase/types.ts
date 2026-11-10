@@ -1651,6 +1651,20 @@ export type Database = {
       }
       waitlist_signups: {
         Row: {
+          child_age_bands: string[] | null
+          class_interest: string | null
+          device: string | null
+          goal: string | null
+          learner_count: string | null
+          location: string | null
+          profile_completed_at: string | null
+          referrer: string | null
+          role: string | null
+          school_name: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          wishlist: string | null
           created_at: string
           email: string | null
           id: string
@@ -1661,6 +1675,20 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          child_age_bands?: string[] | null
+          class_interest?: string | null
+          device?: string | null
+          goal?: string | null
+          learner_count?: string | null
+          location?: string | null
+          profile_completed_at?: string | null
+          referrer?: string | null
+          role?: string | null
+          school_name?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          wishlist?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1671,6 +1699,20 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          child_age_bands?: string[] | null
+          class_interest?: string | null
+          device?: string | null
+          goal?: string | null
+          learner_count?: string | null
+          location?: string | null
+          profile_completed_at?: string | null
+          referrer?: string | null
+          role?: string | null
+          school_name?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          wishlist?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -2433,6 +2475,40 @@ export type Database = {
           score: number
           total: number
         }[]
+      }
+      join_waitlist: {
+        Args: {
+          p_email: string
+          p_name: string
+          p_referral_code: string
+          p_referred_by: string
+          p_referrer?: string
+          p_utm_campaign?: string
+          p_utm_medium?: string
+          p_utm_source?: string
+          p_whatsapp: string
+        }
+        Returns: {
+          id: string
+          is_new: boolean
+          position: number
+          referral_code: string
+        }[]
+      }
+      save_waitlist_profile: {
+        Args: {
+          p_child_age_bands: string[]
+          p_class_interest: string
+          p_device: string
+          p_goal: string
+          p_id: string
+          p_learner_count: string
+          p_location: string
+          p_role: string
+          p_school_name: string
+          p_wishlist: string
+        }
+        Returns: boolean
       }
       submit_waitlist_signup: {
         Args: {

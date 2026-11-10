@@ -15,6 +15,13 @@
       "when": 1794307908331,
       "tag": "0001_tighten_waitlist_role_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794346007484,
+      "tag": "0002_waitlist_profile_and_attribution",
+      "breakpoints": true
     }
   ]
 }

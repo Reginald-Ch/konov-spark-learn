@@ -284,15 +284,16 @@ const ROUTES = [
   },
   {
     path: "/waitlist",
-    title: "MeAI Waitlist — Real AI Education for Kids | KONOV Technologies",
+    title: "MeAI Parents' Waitlist – Akwaaba Discount | KONOV Technologies",
     description:
-      "Join the MeAI waitlist. MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life.",
-    h1: "Join the MeAI Waitlist",
+      "Turn screen time into skill time. Join the MeAI parents' waitlist and get the Akwaaba Discount: kids 6–14 learn to code and understand AI through missions set in real African places.",
+    keywords: ["MeAI waitlist", "MeAI parents waitlist", "Akwaaba Discount", "coding for kids Ghana", "AI for kids Ghana", "screen time into skill time", "MeAI"],
+    h1: "Turn Screen Time Into Skill Time",
     intro:
-      "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.",
+      "Your child learns to code and understands how AI works, through missions set in real African places. For ages 6 to 14, on the phone or laptop you already have. MeAI at home opens soon.",
     main: `
-        <h2>Why Join</h2>
-        <p>Be first to know when MeAI opens up new seats and features for kids ages 6-14 learning AI &amp; machine learning at home.</p>
+        <h2>The Akwaaba Discount</h2>
+        <p>The first 100 families on the MeAI parents' waitlist get the Akwaaba Discount. Joining is free, and we'll message you as soon as MeAI at home opens.</p>
         <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
   },
   {
