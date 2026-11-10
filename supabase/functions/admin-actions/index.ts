@@ -386,6 +386,11 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // Waitlist contacts are never authorized by shared FORGE credentials.
+  if (action === 'list_waitlist') {
+    return json({ ok: false, error: 'Use the private owner dashboard' }, 403);
+  }
+
   // Security audit fix (item 8): X-Forwarded-For is built by each proxy hop
   // APPENDING the address it saw the request come from — a client can send
   // an X-Forwarded-For header prefilled with any fake IPs it wants, but it
@@ -413,16 +418,6 @@ Deno.serve(async (req) => {
     switch (action) {
       case "verify": {
         return json({ ok: true, data: { role } });
-      }
-
-      case "list_waitlist": {
-        const { data, error } = await supabase
-          .from("waitlist_signups")
-          .select("id, name, email, whatsapp, position, referral_code, referred_by, created_at")
-          .order("created_at", { ascending: false })
-          .limit(5000);
-        if (error) throw error;
-        return json({ ok: true, data });
       }
 
       case "set_passphrase": {

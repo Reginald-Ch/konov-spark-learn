@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { callAdminAction } from '@/lib/adminClient';
+import { csvCell, loadPrivateWaitlist } from '@/lib/privateWaitlist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Download, Loader2, RefreshCw, Search } from 'lucide-react';
@@ -20,12 +20,16 @@ export const WaitlistTab = () => {
   const [rows, setRows] = useState<Signup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
-      setRows((await callAdminAction<Signup[]>('list_waitlist')) || []);
+      setRows(await loadPrivateWaitlist());
     } catch (e) {
+      setRows([]);
+      setError('Could not load signups. Please try again.');
       toast.error(e instanceof Error ? e.message : 'Could not load waitlist');
     } finally {
       setLoading(false);
@@ -46,15 +50,16 @@ export const WaitlistTab = () => {
 
   const exportCsv = () => {
     const header = ['position', 'name', 'email', 'whatsapp', 'referral_code', 'referred_by', 'referrals', 'joined'];
-    const lines = rows.map((r) =>
+    const lines = filtered.map((r) =>
       [r.position, r.name ?? '', r.email ?? '', r.whatsapp ?? '', r.referral_code, r.referred_by ?? '', referralCounts[r.referral_code] || 0, r.created_at]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','),
+        .map(csvCell).join(','),
     );
     const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `meai-waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   return (
@@ -63,13 +68,13 @@ export const WaitlistTab = () => {
         <p className="font-bold mr-auto">{rows.length} people on the MeAI waitlist</p>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 opacity-60" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" className="pl-8 h-9 w-48" />
+          <Input aria-label="Search signups" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search signups" className="pl-8 h-9 w-48" />
         </div>
-        <Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
-        <Button size="sm" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" />CSV</Button>
+        <Button size="sm" variant="outline" onClick={load} disabled={loading}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
+        <Button size="sm" onClick={exportCsv} disabled={loading || !filtered.length}><Download className="h-4 w-4 mr-1" />Export CSV</Button>
       </div>
-      {loading ? (
-        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+      {error ? <p role="alert" className="text-destructive">{error}</p> : loading ? (
+        <div role="status" className="flex justify-center gap-2 py-8"><Loader2 className="h-6 w-6 animate-spin" />Loading signups…</div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border/30">
           <table className="w-full text-sm">
