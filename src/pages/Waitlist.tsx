@@ -53,7 +53,7 @@ type Question =
 const EMPTY_PROFILE: Profile = { childAgeBands: [], schoolName: "", wishlist: "" };
 
 // The answer values must match the lists accepted by save_waitlist_profile
-// (migration 20261110010000).
+// (drizzle/migrations/0002_waitlist_profile_and_attribution.sql).
 const buildQuestions = (p: Profile): Question[] => {
   const school = p.role === "school";
   const qs: Question[] = [
@@ -191,7 +191,7 @@ const Waitlist = () => {
         return;
       }
     } else if (!/^\+?\d{8,15}$/.test(normalizeWhatsApp(trimmed))) {
-      toast.error("Please enter a valid WhatsApp number (e.g. 024 123 4567)");
+      toast.error("Please enter a valid WhatsApp number, starting with 0 or +233");
       return;
     }
 
@@ -502,7 +502,7 @@ const Waitlist = () => {
                       placeholder={
                         contactMethod === "email"
                           ? "your@email.com"
-                          : "WhatsApp number, e.g. 024 123 4567"
+                          : "Your WhatsApp number"
                       }
                       value={contactValue}
                       onChange={(e) => setContactValue(e.target.value)}
