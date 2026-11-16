@@ -50,7 +50,7 @@ interface Hackathon {
 type MainTab = 'build' | 'templates' | 'hackathons' | 'ai-models' | 'learn' | 'community';
 type HackathonSubView = 'all-events' | 'live-now' | 'upcoming' | 'past-events' | 'daily-challenge' | 'leaderboard' | 'showcase' | 'battle-arena' | 'getting-started' | 'faq' | 'feedback' | 'judge';
 
-const ACCESS_CODE = 'Forge2039';
+const ACCESS_CODE = 'Forgebuild2006';
 
 const Hackathons = () => {
   const navigate = useNavigate();

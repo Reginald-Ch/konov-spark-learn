@@ -13,6 +13,9 @@
 - [x] Align core page titles, descriptions, keywords, and company/product structured data.
 - [x] Verify static search output and live page metadata.
 
+# Forge access
+- [ ] Change the Forge builder access code to Forgebuild2006.
+
 # Private MeAI waitlist
 - [x] Separate the waitlist from FORGE and restrict signup data to the verified owner account.
 - [x] Verify signed-out protection, deployed legacy-access denial and small-screen layout; test owner-role and CSV safety rules.
