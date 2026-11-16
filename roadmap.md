@@ -14,7 +14,7 @@
 - [x] Verify static search output and live page metadata.
 
 # Forge access
-- [ ] Change the Forge builder access code to Forgebuild2006.
+- [x] Change the Forge builder access code to Forgebuild2006.
 
 # Private MeAI waitlist
 - [x] Separate the waitlist from FORGE and restrict signup data to the verified owner account.

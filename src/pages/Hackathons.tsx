@@ -66,7 +66,7 @@ const Hackathons = () => {
   const [highlightHackathonId, setHighlightHackathonId] = useState<string | null>(null);
 
   // Access code gate — a single input accepts EITHER the shared ACCESS_CODE
-  // (e.g. Forge2039) OR a per-participant tracking code (e.g. ABS-2026-0001)
+  // (e.g. Forgebuild2006) OR a per-participant tracking code (e.g. ABS-2026-0001)
   // issued at registration. Whichever it is, this only ever resolves a name
   // for display/tracking via lookup_participant_code — it never touches
   // admin_credentials/the judge-organizer role system in any way.
