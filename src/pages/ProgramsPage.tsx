@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Programs } from "@/components/Programs";
 import { Button } from "@/components/ui/button";
 import { SignupModal } from "@/components/SignupModal";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { ContactButton } from "@/components/ContactButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2, Rocket, CalendarCheck, GraduationCap, Zap } from "lucide-react";
 import { usePageTracking, useScrollTracking } from "@/hooks/useAnalytics";
@@ -509,7 +509,7 @@ const ProgramsPage = () => {
             <Button size="lg" variant="outline" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground)/0.4)] bg-card" onClick={() => openSignup('free_trial')}>
               <GraduationCap className="w-4 h-4 mr-2" /> Apply For Tertiary Program
             </Button>
-            <WhatsAppButton />
+            <ContactButton />
           </div>
         </div>
       </section>

@@ -6,7 +6,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { ContactButton } from "@/components/ContactButton";
 import { SignupModal } from "@/components/SignupModal";
 import { SEO, createFAQSchema, createBreadcrumbSchema } from "@/components/SEO";
 import { LineChart, Image, MessageSquareText, Rocket } from "lucide-react";
@@ -92,7 +92,7 @@ const MachineLearningForKids = () => {
             <Button size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary" onClick={() => setShowSignupModal(true)}>
               <Rocket className="w-5 h-5 mr-2" /> Enroll Your Child
             </Button>
-            <WhatsAppButton label="Ask A Question" message="Hi! I'd like to ask about machine learning classes for kids." />
+            <ContactButton label="Ask A Question" />
           </div>
         </div>
       </section>

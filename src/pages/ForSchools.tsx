@@ -6,7 +6,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { ContactButton } from "@/components/ContactButton";
 import { SignupModal } from "@/components/SignupModal";
 import { SEO, createFAQSchema, createBreadcrumbSchema } from "@/components/SEO";
 import {
@@ -148,7 +148,7 @@ const ForSchools = () => {
             <Button size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary" onClick={() => setShowSignupModal(true)}>
               <CalendarCheck className="w-5 h-5 mr-2" /> Book a School Workshop
             </Button>
-            <WhatsAppButton label="Chat With Us" message="Hi! I'd like to talk about a school partnership with KONOV Technologies." />
+            <ContactButton label="Chat With Us" />
           </div>
         </div>
       </section>

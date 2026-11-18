@@ -119,13 +119,11 @@ export const Footer = () => {
               </li>
               <li>
                 <a
-                  href="https://wa.me/233208741517"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/contact"
                   className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
                 >
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  Chat on WhatsApp
+                  Contact us
                 </a>
               </li>
             </ul>

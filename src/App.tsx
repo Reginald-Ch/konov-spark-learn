@@ -8,11 +8,16 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import { toast } from "sonner";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "./components/PageTransition";
-import Index from "./pages/Index";
+import Home from "./pages/site/Home";
+import Classes from "./pages/site/Classes";
+import Sprint from "./pages/site/Sprint";
+import Forge from "./pages/site/Forge";
+import About from "./pages/site/About";
+import Contact from "./pages/site/Contact";
+import Privacy from "./pages/site/Privacy";
+import { showPrivacy } from "./site/links";
 import Community from "./pages/Community";
 import ProgramsPage from "./pages/ProgramsPage";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
 import BestAIToolsForKids from "./pages/BestAIToolsForKids";
 import Blog from "./pages/Blog";
@@ -39,11 +44,16 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        {/* The redesigned pages skip PageTransition: its transform would break their fixed phone bar and menu. */}
+        <Route path="/" element={<Home />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/ai-builder-sprint" element={<Sprint />} />
+        <Route path="/forge" element={<Forge />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        {showPrivacy && <Route path="/privacy" element={<Privacy />} />}
         <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
         <Route path="/programs" element={<PageTransition><ProgramsPage /></PageTransition>} />
-        <Route path="/about" element={<PageTransition><About /></PageTransition>} />
-        <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/resources" element={<PageTransition><Resources /></PageTransition>} />
         <Route path="/resources/best-ai-tools-for-kids" element={<PageTransition><BestAIToolsForKids /></PageTransition>} />
         <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />

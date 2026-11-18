@@ -11,7 +11,7 @@ KONOV is a product-led company that teaches both AI and coding. Learners (ages 6
 - [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
 - [MeAI](/me-ai): MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.
 - [For Schools](/for-schools): School partnerships — student AI & coding workshops, MeAI classroom access, AI clubs, hackathons.
-- [Contact](/contact): Reach KONOV Technologies by email or WhatsApp.
+- [Contact](/contact): Reach KONOV Technologies by phone or email.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
 - [Hackathons / FORGE Studio](/hackathons): The live hackathon platform where learners build real Python-powered AI projects and compete.
 - [MeAI App](https://meaitech.com): The MeAI platform itself.

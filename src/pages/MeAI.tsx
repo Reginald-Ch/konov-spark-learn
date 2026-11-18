@@ -6,7 +6,7 @@ import { ComicPanel } from "@/components/ComicPanel";
 import { RobotMascot } from "@/components/RobotMascot";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { ActionBurst } from "@/components/ActionBurst";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { ContactButton } from "@/components/ContactButton";
 import { SEO, createFAQSchema, createBreadcrumbSchema, createProductSchema } from "@/components/SEO";
 import { motion } from "framer-motion";
 import {
@@ -19,7 +19,7 @@ const meAiFAQs = [
   { question: "Who is MeAI for?", answer: "MeAI is designed for young learners ages 6-14, and is also used by schools and educators for classroom AI programs." },
   { question: "Do I need coding experience to use MeAI?", answer: "No prior coding experience is required. MeAI is beginner-friendly, with guided lessons that build up to real Python code as learners progress." },
   { question: "Can schools get access to MeAI?", answer: "Yes. Schools can request classroom access to MeAI as part of KONOV's school partnership programs." },
-  { question: "How do I get started with MeAI?", answer: "Click \"Try MeAI\" to open the platform, or contact us on WhatsApp to request school or group access." },
+  { question: "How do I get started with MeAI?", answer: "Click \"Try MeAI\" to open the platform, or contact us to request school or group access." },
 ];
 
 const meAiBreadcrumb = createBreadcrumbSchema([
@@ -99,7 +99,7 @@ const MeAI = () => {
                 <Zap className="w-5 h-5 mr-2" /> Try MeAI <ExternalLink className="w-4 h-4 ml-2" />
               </a>
             </Button>
-            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to MeAI." />
+            <ContactButton label="Request School Access" />
           </div>
           <p className="text-sm text-muted-foreground font-space mt-6">
             MeAI is made by <Link to="/about" className="underline underline-offset-2 hover:text-foreground">KONOV</Link>, the EdTech company making technology fun to learn for young learners.
@@ -230,7 +230,7 @@ const MeAI = () => {
             <Button asChild size="lg" className="font-fredoka font-bold rounded-full border-3 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] bg-primary">
               <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Try MeAI</a>
             </Button>
-            <WhatsAppButton label="Request School Access" message="Hi! I'd like to request school access to MeAI." />
+            <ContactButton label="Request School Access" />
           </div>
         </div>
       </section>
