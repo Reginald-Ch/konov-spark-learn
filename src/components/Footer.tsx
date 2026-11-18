@@ -48,10 +48,10 @@ export const Footer = () => {
             <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">Quick Links</h4>
             <ul className="space-y-3 font-space">
               {[
+                { to: "/classes", label: "Classes" },
+                { to: "/ai-builder-sprint", label: "AI Builder Sprint" },
+                { to: "/forge", label: "FORGE" },
                 { to: "/about", label: "About" },
-                { to: "/programs", label: "Programs" },
-                { to: "/me-ai", label: "MeAI" },
-                { to: "/for-schools", label: "For Schools" },
                 { to: "/hackathons", label: "FORGE Studio" },
                 { to: "/blog", label: "Blog" },
                 { to: "/contact", label: "Contact" },
@@ -86,12 +86,8 @@ export const Footer = () => {
             <h4 className="text-xl font-fredoka font-bold mb-4 text-foreground">More</h4>
             <ul className="space-y-3 font-space">
               {[
-                { to: "/ai-classes-for-kids-accra", label: "AI & Coding Classes" },
-                { to: "/summer-ai-tech-camp", label: "Summer School" },
-                { to: "/machine-learning-for-kids", label: "Machine Learning for Kids" },
-                { to: "/youth-hackathons", label: "Youth AI Hackathons" },
+                { to: "/classes#workshop", label: "Workshops for schools & groups" },
                 { to: "/tertiary-ai-innovation-hub", label: "Tertiary AI Innovation Hub" },
-                { to: "/ai-curriculum-support", label: "AI Curriculum Support" },
                 { to: "/resources", label: "Learn AI" },
                 { to: "/community", label: "Community" },
                 { to: "/waitlist", label: "Waitlist" },

@@ -108,7 +108,7 @@ const BestAIToolsForKids = () => {
                   <a href="https://meaitech.com" target="_blank" rel="noopener noreferrer">Explore MeAI</a>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="font-fredoka border-4 border-foreground bg-card shadow-[4px_4px_0_hsl(var(--foreground))]">
-                  <Link to="/programs">See KONOV Programs</Link>
+                  <Link to="/classes">See KONOV Programs</Link>
                 </Button>
               </div>
             </div>

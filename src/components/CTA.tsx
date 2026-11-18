@@ -100,7 +100,7 @@ export const CTA = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.location.href = '/programs'}
+                  onClick={() => window.location.href = '/classes'}
                   className="text-lg px-8 py-6 font-fredoka font-bold rounded-full border-4 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_hsl(var(--foreground))] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all bg-card"
                 >
                   Explore Our Curriculum

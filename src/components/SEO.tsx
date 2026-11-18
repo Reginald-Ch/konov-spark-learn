@@ -114,58 +114,37 @@ const siteNavigationSchema = {
     {
       "@type": "SiteNavigationElement",
       position: 1,
-      name: "Programs",
-      description: "Weekend, after-school, and summer AI & coding classes for kids ages 6–16",
-      url: `${SITE_URL}/programs`
+      name: "Classes",
+      description: "Coding and AI classes for ages 6–14 in Accra and online",
+      url: `${SITE_URL}/classes`
     },
     {
       "@type": "SiteNavigationElement",
       position: 2,
-      name: "About",
-      description: "Learn about KONOV's mission to empower young tech innovators in Africa",
-      url: `${SITE_URL}/about`
+      name: "AI Builder Sprint",
+      description: "KONOV's yearly coding and AI hackathon for kids and teenagers",
+      url: `${SITE_URL}/ai-builder-sprint`
     },
     {
       "@type": "SiteNavigationElement",
       position: 3,
-      name: "Contact",
-      description: "Get in touch with KONOV for programs and partnerships",
-      url: `${SITE_URL}/contact`
+      name: "FORGE",
+      description: "KONOV's platform where teenagers build their own AI",
+      url: `${SITE_URL}/forge`
     },
     {
       "@type": "SiteNavigationElement",
       position: 4,
-      name: "Blog",
-      description: "AI education insights for schools, teachers and parents",
-      url: `${SITE_URL}/blog`
+      name: "About",
+      description: "KONOV, a Ghanaian edtech company: Knowledge and Innovation, together",
+      url: `${SITE_URL}/about`
     },
     {
       "@type": "SiteNavigationElement",
       position: 5,
-      name: "MeAI",
-      description: "Learn coding and AI in an interactive game world inspired by African life, ages 6–14",
-      url: `${SITE_URL}/me-ai`
-    },
-    {
-      "@type": "SiteNavigationElement",
-      position: 6,
-      name: "For Schools",
-      description: "MeAI for schools and educators",
-      url: `${SITE_URL}/for-schools`
-    },
-    {
-      "@type": "SiteNavigationElement",
-      position: 7,
-      name: "Hackathons",
-      description: "Youth AI hackathons and innovation challenges",
-      url: `${SITE_URL}/youth-hackathons`
-    },
-    {
-      "@type": "SiteNavigationElement",
-      position: 8,
-      name: "FORGE Studio",
-      description: "KONOV's AI hackathon platform for young innovators",
-      url: `${SITE_URL}/hackathons`
+      name: "Contact",
+      description: "Call or email KONOV about classes, workshops and the Sprint",
+      url: `${SITE_URL}/contact`
     }
   ]
 };

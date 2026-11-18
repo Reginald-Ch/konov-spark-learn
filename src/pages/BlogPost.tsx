@@ -120,7 +120,7 @@ const BlogPost = () => {
                   <Link to="/contact">Talk to Us About a School Partnership</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="font-fredoka border-4 border-foreground bg-background text-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-                  <Link to="/programs">See Our Programs</Link>
+                  <Link to="/classes">See Our Programs</Link>
                 </Button>
               </div>
             </div>

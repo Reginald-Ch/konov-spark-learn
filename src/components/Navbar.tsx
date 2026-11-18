@@ -7,13 +7,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import logo from "@/assets/konov-logo-clear.png";
 
 const navLinks = [
-  { name: "About KONOV", path: "/about" },
-  { name: "MeAI", path: "/me-ai" },
-  { name: "Workshops", path: "/programs" },
-  { name: "For Schools", path: "/for-schools" },
+  { name: "Classes", path: "/classes" },
+  { name: "AI Builder Sprint", path: "/ai-builder-sprint" },
+  { name: "About", path: "/about" },
   { name: "Contact", path: "/contact" },
 ];
 const exploreLinks = [
+  { name: "FORGE", path: "/forge" },
   { name: "FORGE Studio", path: "/hackathons" },
   { name: "Learn AI & Resources", path: "/resources" },
   { name: "Community", path: "/community" },

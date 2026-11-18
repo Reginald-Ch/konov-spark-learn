@@ -6,24 +6,15 @@ KONOV is a product-led company that teaches both AI and coding. Learners (ages 6
 
 ## Core Pages
 
-- [Home](/): KONOV's interactive learning tools, MeAI, workshops, and school partnerships.
-- [About](/about): Mission, vision, story, and values.
-- [Programs](/programs): Full program lineup — Weekend AI Creators, School AI Program, AI Workshops, Summer AI & Tech Camp, Youth AI Challenges, and the Tertiary AI Innovation Program.
-- [MeAI](/me-ai): MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life.
-- [For Schools](/for-schools): School partnerships — student AI & coding workshops, MeAI classroom access, AI clubs, hackathons.
+- [Home](/): KONOV, a Ghanaian edtech company: tools, classes and the AI Builder Sprint.
+- [Classes](/classes): Coding and AI classes for ages 6–14: a 10-week weekend course in Accra (GH₵1,200), one-week online classes (GH₵500) and a 5-Day Tech Camp in August. Workshops for schools and groups.
+- [AI Builder Sprint](/ai-builder-sprint): KONOV's yearly coding and AI hackathon for kids and teenagers, built on FORGE. First official Sprint planned for 2027.
+- [FORGE](/forge): KONOV's platform where teenagers build their own AI, team up and battle bots.
+- [About](/about): KONOV means Knowledge and Innovation, together. Founded in Accra in 2024.
 - [Contact](/contact): Reach KONOV Technologies by phone or email.
 - [Blog](/blog): AI education insights for schools, teachers, and parents.
-- [Hackathons / FORGE Studio](/hackathons): The live hackathon platform where learners build real Python-powered AI projects and compete.
-- [MeAI App](https://meaitech.com): The MeAI platform itself.
-
-## Program-Specific Pages
-
-- [AI Classes for Kids in Accra](/ai-classes-for-kids-accra): AI classes for children and teens ages 6-16.
-- [Machine Learning for Kids](/machine-learning-for-kids): How machine learning works, taught through hands-on projects.
-- [Tertiary AI Innovation Hub](/tertiary-ai-innovation-hub): Applied AI for tertiary/university students, featuring the free 7-day AI Builder Sprint (ends in a capstone hackathon with cash prizes).
-- [Youth AI Hackathons](/youth-hackathons): AI hackathons and innovation challenges for young people.
-- [Summer AI & Tech Camp](/summer-ai-tech-camp): Vacation AI and tech camp for primary through senior high learners.
-- [AI Curriculum Support for Schools](/ai-curriculum-support): Grade-level-aligned AI curriculum design for schools.
+- [FORGE Studio](/hackathons): The live hackathon platform used by Sprint teams.
+- [MeAI](https://meaitech.com): MeAI, KONOV's coding and AI game for kids aged 6–14. Live in schools since 2025; MeAI for homes is coming soon.
 
 ## Optional
 

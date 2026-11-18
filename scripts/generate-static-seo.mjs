@@ -74,82 +74,6 @@ const ROUTES = [
     main: `<h2>Your way into FORGE is the Sprint</h2><p>FORGE opens to teams taking part in the AI Builder Sprint.</p><p><a href="/ai-builder-sprint">Join the next Sprint</a></p>`,
   },
   {
-    path: "/programs",
-    title: "AI & Coding Programs For Kids In Accra | KONOV Technologies",
-    description: "Explore KONOV's AI & coding programs for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school, plus MeAI, our 3D coding and AI game.",
-    keywords: ["AI and coding programs for kids Accra", "coding classes for kids Ghana", "weekend coding classes Accra", "after-school coding Accra", "summer school for kids Accra"],
-    h1: "AI &amp; Coding Programs For Kids In Accra",
-    intro:
-      "KONOV Technologies runs AI &amp; coding programs for kids ages 6–16 in Accra — weekend classes, after-school programs, and summer school — alongside MeAI, our first product. Learners write code, build chatbots, train AI models, and create their own projects.",
-    main: `
-        <h2>Our Programs</h2>
-        <ul>
-          <li><strong>KONOV Weekend AI Creators</strong> — an 8-week weekend AI program for ages 6-16, building chatbots, working with models, and learning responsible AI.</li>
-          <li><strong>KONOV School AI Program</strong> — a term-based AI enrichment program for schools: after-school AI clubs, termly workshops, or school-wide ICT enrichment for Grade 1 to Grade 9.</li>
-          <li><strong>KONOV AI &amp; Coding Workshops</strong> — short, practical AI and coding workshops using MeAI, in half-day, one-day, or multi-session formats.</li>
-          <li><strong>KONOV Summer AI & Tech Camp</strong> — a vacation camp for primary, junior high, and senior high learners.</li>
-          <li><strong>KONOV Youth AI Challenges</strong> — AI hackathons, competitions, and school AI showcases.</li>
-          <li><strong>KONOV Tertiary AI Innovation Program</strong> — applied AI for tertiary students and young adults, including the free 7-day AI Builder Sprint, ending in a capstone hackathon with cash prizes.</li>
-        </ul>
-        <h2>Powered By MeAI</h2>
-        <p>MeAI supports hands-on learning across every KONOV program — learners use it to complete guided AI activities, train models, build chatbots, and create AI-powered projects.</p>
-        <p><a href="/">Back to home</a> · <a href="/me-ai">About MeAI</a> · <a href="/for-schools">For schools</a> · <a href="/contact">Contact us</a></p>`,
-  },
-  {
-    path: "/me-ai",
-    title: "MeAI | Learn Coding & AI In A Game World | KONOV Technologies",
-    description: "MeAI helps kids and teenagers learn coding and AI by building projects in an interactive game world inspired by African life. Ages 6–14.",
-    keywords: ["MeAI", "AI learning app for kids", "AI learning for classrooms", "chatbot building for kids", "machine learning for kids"],
-    h1: "MeAI — Learn Coding And AI In A Game World",
-    intro:
-      "MeAI helps kids and teenagers (ages 6-14) learn coding and AI by building projects in an interactive game world inspired by African life. It is KONOV's first product. Through 3D game missions, kids learn to code, train AI and build chatbots, gaining the skills and confidence to become creators who use technology to solve real-world problems.",
-    main: `
-        <h2>Who MeAI Is For</h2>
-        <p>Learners ages 6-14, and the parents and schools who support them — a safe, guided space with no unsupervised internet access.</p>
-        <h2>What Learners Build</h2>
-        <ul>
-          <li><strong>Chatbots</strong> — a bot with real personality, knowledge, and rules.</li>
-          <li><strong>Trained Models</strong> — real work with data and machine learning.</li>
-          <li><strong>AI-Powered Projects</strong> — creative, working AI projects to show off.</li>
-        </ul>
-        <p>Try MeAI: <a href="https://meaitech.com">meaitech.com</a> · <a href="/for-schools">Request school access</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/for-schools",
-    title: "MeAI For Schools And Educators | KONOV Technologies",
-    description: "Bring MeAI and KONOV's AI & coding workshops to your school: classroom access for MeAI, after-school clubs, student workshops, and innovation challenges.",
-    keywords: ["school partnerships Ghana", "AI workshops for schools Ghana", "MeAI for classrooms", "interactive learning tools for schools"],
-    h1: "MeAI For Schools And Educators",
-    intro:
-      "KONOV brings AI &amp; coding into schools through MeAI classroom access, workshops, after-school clubs, and student innovation challenges.",
-    main: `
-        <h2>What KONOV Offers Schools</h2>
-        <ul>
-          <li>Student AI &amp; Coding Workshops</li>
-          <li>MeAI For Classrooms</li>
-          <li>AI Clubs & After-School Programs</li>
-          <li>Hackathons & Showcases</li>
-        </ul>
-        <p><a href="/ai-curriculum-support">Curriculum support</a> · <a href="/contact">Book a school workshop</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/ai-classes-for-kids-accra",
-    title: "AI & Coding Classes For Kids In Accra | KONOV Technologies",
-    description:
-      "Fun AI & coding classes for kids ages 6–16 in Accra: weekend classes, after-school programs, and summer school. No prior coding experience needed.",
-    h1: "AI &amp; Coding Classes For Kids In Accra",
-    intro:
-      "Fun AI &amp; coding classes for kids ages 6-16 in Accra, Ghana — weekend classes, after-school programs, and summer school. No prior coding experience needed.",
-    main: `
-        <h2>What Kids Build</h2>
-        <ul>
-          <li>Chatbots with real personality, knowledge, and rules</li>
-          <li>Trained machine learning models</li>
-          <li>Creative AI-powered projects</li>
-        </ul>
-        <p><a href="/programs">See all programs</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
     path: "/tertiary-ai-innovation-hub",
     noindex: true,
     title: "Tertiary AI Innovation Hub In Ghana | KONOV Technologies",
@@ -168,74 +92,7 @@ const ROUTES = [
           <li>Research</li>
           <li>Real-World Innovation</li>
         </ul>
-        <p><a href="/programs">See all programs</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/youth-hackathons",
-    title: "Youth AI Hackathons And Innovation Challenges | KONOV Technologies",
-    description:
-      "KONOV organizes AI hackathons and innovation challenges where young people solve problems, build prototypes, and present AI-powered ideas.",
-    h1: "Build. Compete. Present.",
-    intro:
-      "KONOV organizes AI hackathons and innovation challenges where young people solve problems, build prototypes, and present AI-powered ideas.",
-    main: `
-        <h2>What A KONOV Hackathon Looks Like</h2>
-        <ul>
-          <li>Teams & Mentors</li>
-          <li>Real AI Prototypes</li>
-          <li>Showcase & Prizes</li>
-        </ul>
-        <p>Live hackathons run in <a href="/hackathons">FORGE Studio</a>, KONOV's AI hackathon platform. <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/machine-learning-for-kids",
-    title: "Machine Learning For Kids | KONOV Technologies",
-    description:
-      "KONOV Technologies teaches machine learning for kids through practical, hands-on projects — training real models with real data, built for young African learners.",
-    h1: "How Machines Actually Learn",
-    intro:
-      "Pattern recognition, not magic — KONOV Technologies teaches machine learning for kids through real, hands-on projects with real data.",
-    main: `
-        <h2>What Kids Actually Do</h2>
-        <ul>
-          <li>Train Image Models</li>
-          <li>Work With Data</li>
-          <li>Build Smarter Chatbots</li>
-        </ul>
-        <p><a href="/programs">See all programs</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/summer-ai-tech-camp",
-    title: "Summer School For Kids In Accra – AI & Coding | KONOV Technologies",
-    description:
-      "KONOV's summer school in Accra: a fun, hands-on holiday program where kids ages 6–16 learn AI and coding, build projects, and show them off.",
-    h1: "A Full AI Adventure",
-    intro:
-      "Vacation programs where learners explore AI, coding, creativity, and problem-solving through hands-on projects — a full-day immersive experience, not passive screen time.",
-    main: `
-        <h2>Camp Highlights</h2>
-        <ul>
-          <li>Full-Day Immersion</li>
-          <li>Small Groups</li>
-          <li>Showcase Day</li>
-        </ul>
-        <p><a href="/programs">See all programs</a> · <a href="/">Back to home</a></p>`,
-  },
-  {
-    path: "/ai-curriculum-support",
-    title: "AI Curriculum Support For Schools | KONOV Technologies",
-    description:
-      "KONOV Technologies helps schools design and deliver a practical AI curriculum — aligned to grade levels and built for African classrooms.",
-    h1: "AI Curriculum Support For Schools",
-    intro:
-      "A practical AI curriculum framework, adapted to your school's grade levels and existing subjects.",
-    main: `
-        <h2>What Curriculum Support Includes</h2>
-        <ul>
-          <li>A Practical Framework</li>
-          <li>Grade-Level Alignment</li>
-        </ul>
-        <p><a href="/for-schools">For schools</a> · <a href="/">Back to home</a></p>`,
+        <p><a href="/classes">See all classes</a> · <a href="/">Back to home</a></p>`,
   },
   {
     path: "/community",
@@ -252,7 +109,7 @@ const ROUTES = [
           <li><strong>Young Builders</strong> — ages 9-11, building real projects with code and AI tools.</li>
           <li><strong>Tech Ambassadors</strong> — ages 12-16, advanced AI, ML and app-development tracks.</li>
         </ul>
-        <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a> · <a href="/contact">Not sure which path is right for you? Contact us</a></p>`,
+        <p><a href="/">Back to home</a> · <a href="/classes">See our classes</a> · <a href="/contact">Not sure which path is right for you? Contact us</a></p>`,
   },
   {
     path: "/resources",
@@ -321,7 +178,7 @@ const ROUTES = [
     main: `
         <h2>The Akwaaba Discount</h2>
         <p>The first 100 families on the MeAI parents' waitlist get the Akwaaba Discount. Joining is free, and we'll message you as soon as MeAI at home opens.</p>
-        <p><a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
+        <p><a href="/">Back to home</a> · <a href="/classes">See our classes</a></p>`,
   },
   {
     path: "/hackathons",
@@ -339,7 +196,7 @@ const ROUTES = [
           <li><strong>Bot Battles</strong> — pit your bots against others.</li>
         </ul>
         <p>Access to the studio requires an access code from your instructor.</p>
-        <p><a href="/youth-hackathons">About youth AI hackathons</a> · <a href="/">Back to home</a> · <a href="/programs">See our programs</a></p>`,
+        <p><a href="/ai-builder-sprint">About the AI Builder Sprint</a> · <a href="/">Back to home</a> · <a href="/classes">See our classes</a></p>`,
   },
   {
     path: "/contact",

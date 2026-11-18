@@ -23,8 +23,48 @@
   ],
   "redirects": [
     {
+      "source": "/programs",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/ai-classes-for-kids-accra",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/summer-ai-tech-camp",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/machine-learning-for-kids",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/for-schools",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/ai-curriculum-support",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
       "source": "/teacher-training",
-      "destination": "/for-schools",
+      "destination": "/classes",
+      "permanent": true
+    },
+    {
+      "source": "/youth-hackathons",
+      "destination": "/ai-builder-sprint",
+      "permanent": true
+    },
+    {
+      "source": "/me-ai",
+      "destination": "https://meaitech.com",
       "permanent": true
     }
   ],

@@ -17,7 +17,6 @@ import Contact from "./pages/site/Contact";
 import Privacy from "./pages/site/Privacy";
 import { showPrivacy } from "./site/links";
 import Community from "./pages/Community";
-import ProgramsPage from "./pages/ProgramsPage";
 import Resources from "./pages/Resources";
 import BestAIToolsForKids from "./pages/BestAIToolsForKids";
 import Blog from "./pages/Blog";
@@ -27,17 +26,16 @@ import ProjectView from "./pages/ProjectView";
 import JudgeDashboard from "./pages/JudgeDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Waitlist from "./pages/Waitlist";
-import MeAI from "./pages/MeAI";
-import ForSchools from "./pages/ForSchools";
-import AIClassesForKids from "./pages/AIClassesForKids";
 import TertiaryHub from "./pages/TertiaryHub";
-import YouthHackathons from "./pages/YouthHackathons";
-import MachineLearningForKids from "./pages/MachineLearningForKids";
-import SummerCamp from "./pages/SummerCamp";
-import CurriculumSupport from "./pages/CurriculumSupport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Retired pages that now live on another site (MeAI moved to meaitech.com).
+const LeaveTo = ({ href }: { href: string }) => {
+  useEffect(() => { window.location.replace(href); }, [href]);
+  return null;
+};
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -53,7 +51,6 @@ const AnimatedRoutes = () => {
         <Route path="/contact" element={<Contact />} />
         {showPrivacy && <Route path="/privacy" element={<Privacy />} />}
         <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
-        <Route path="/programs" element={<PageTransition><ProgramsPage /></PageTransition>} />
         <Route path="/resources" element={<PageTransition><Resources /></PageTransition>} />
         <Route path="/resources/best-ai-tools-for-kids" element={<PageTransition><BestAIToolsForKids /></PageTransition>} />
         <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />
@@ -63,15 +60,16 @@ const AnimatedRoutes = () => {
         <Route path="/judge" element={<PageTransition><JudgeDashboard /></PageTransition>} />
         <Route path="/admin" element={<PageTransition><AdminPanel /></PageTransition>} />
         <Route path="/waitlist" element={<PageTransition><Waitlist /></PageTransition>} />
-        <Route path="/me-ai" element={<PageTransition><MeAI /></PageTransition>} />
-        <Route path="/for-schools" element={<PageTransition><ForSchools /></PageTransition>} />
-        <Route path="/ai-classes-for-kids-accra" element={<PageTransition><AIClassesForKids /></PageTransition>} />
-        <Route path="/teacher-training" element={<Navigate to="/for-schools" replace />} />
         <Route path="/tertiary-ai-innovation-hub" element={<PageTransition><TertiaryHub /></PageTransition>} />
-        <Route path="/youth-hackathons" element={<PageTransition><YouthHackathons /></PageTransition>} />
-        <Route path="/machine-learning-for-kids" element={<PageTransition><MachineLearningForKids /></PageTransition>} />
-        <Route path="/summer-ai-tech-camp" element={<PageTransition><SummerCamp /></PageTransition>} />
-        <Route path="/ai-curriculum-support" element={<PageTransition><CurriculumSupport /></PageTransition>} />
+        <Route path="/programs" element={<Navigate to="/classes" replace />} />
+        <Route path="/ai-classes-for-kids-accra" element={<Navigate to="/classes" replace />} />
+        <Route path="/summer-ai-tech-camp" element={<Navigate to="/classes" replace />} />
+        <Route path="/machine-learning-for-kids" element={<Navigate to="/classes" replace />} />
+        <Route path="/for-schools" element={<Navigate to="/classes" replace />} />
+        <Route path="/ai-curriculum-support" element={<Navigate to="/classes" replace />} />
+        <Route path="/teacher-training" element={<Navigate to="/classes" replace />} />
+        <Route path="/youth-hackathons" element={<Navigate to="/ai-builder-sprint" replace />} />
+        <Route path="/me-ai" element={<LeaveTo href="https://meaitech.com" />} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
