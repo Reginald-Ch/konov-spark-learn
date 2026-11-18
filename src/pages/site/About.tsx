@@ -13,8 +13,8 @@ const NameWord = ({ parts }: { parts: [string, boolean][] }) => (
 );
 
 const JOURNEY = [
-  ["", "KONOV is founded", "In Accra, Ghana."],
-  ["", "First classes in Accra", "Weekend coding and AI classes begin. 100+ students enrolled so far."],
+  ["2024", "KONOV is founded", "In Accra, Ghana."],
+  ["2024", "First classes in Accra", "Weekend coding and AI classes begin. 200+ students enrolled so far."],
   ["", "MeAI is live in schools", <>MeAI for homes is coming soon. <SmartLink to={LINKS.meai} className="k-ink">meaitech.com ↗</SmartLink></>],
   ["2026", "First AI Builder Sprint", "A pilot on FORGE, to find the best format and age group."],
   ["2027", "First official Sprint", "For kids and teenagers."],

@@ -169,7 +169,7 @@ const Classes = () => {
               <Button to="#book">Book a class</Button>
               <TextLink to="/contact" arrow={false}>Ask a question</TextLink>
             </div>
-            <p className="k-note">// join 100+ young creators who have learned with us</p>
+            <p className="k-note">// join 200+ young creators who have learned with us</p>
           </div>
         </div>
       </section>

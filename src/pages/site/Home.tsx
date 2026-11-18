@@ -122,7 +122,7 @@ const Home = () => {
         <div className="k-wrap k-cols k-cols--4" style={{ padding: "28px var(--gutter)" }}>
           {[
             ["who teaches", "KONOV facilitators"],
-            ["so far", "100+ young creators taught"],
+            ["so far", "200+ young creators taught"],
             ["safety", "A safe, supervised space"],
             ["ages", "6–16, no experience needed"],
           ].map(([k, v]) => (
